@@ -1,0 +1,5621 @@
+{
+  "version": "2.8",
+  "children": [
+    {
+      "type": "frame",
+      "id": "nRDez",
+      "x": 0,
+      "y": 0,
+      "name": "SMACA Login – Desktop",
+      "width": 1440,
+      "height": 900,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 135,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#2a2835",
+            "position": 0
+          },
+          {
+            "color": "#2d2a3a",
+            "position": 0.5
+          },
+          {
+            "color": "#1f1e28",
+            "position": 1
+          }
+        ]
+      },
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "RErAt",
+          "name": "card",
+          "clip": true,
+          "width": 1100,
+          "height": 650,
+          "fill": "#1a1d24B3",
+          "cornerRadius": 20,
+          "stroke": {
+            "thickness": 1,
+            "fill": "#FFFFFF22"
+          },
+          "effect": [
+            {
+              "type": "background_blur",
+              "radius": 24
+            },
+            {
+              "type": "shadow",
+              "shadowType": "outer",
+              "color": "#00000040",
+              "offset": {
+                "x": 0,
+                "y": 24
+              },
+              "blur": 48,
+              "spread": -8
+            }
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "mQn5N",
+              "name": "leftPanel",
+              "width": 495,
+              "height": "fill_container",
+              "fill": "#25223599",
+              "stroke": {
+                "thickness": 1,
+                "fill": "#FFFFFF0D"
+              },
+              "layout": "vertical",
+              "padding": 40,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "GDXSm",
+                  "name": "leftTop",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "group",
+                      "id": "9qGzD",
+                      "name": "logoGroup",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "4PaUJ",
+                          "name": "logo",
+                          "fill": "#FFFFFF",
+                          "content": "SMACA",
+                          "fontFamily": "Inter",
+                          "fontSize": 24,
+                          "fontWeight": "bold"
+                        },
+                        {
+                          "type": "text",
+                          "id": "jmSFx",
+                          "name": "logoSub",
+                          "fill": "#94A3B8",
+                          "content": "Smart Campus IoT Platform",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "M4rW9",
+                      "name": "backBtn",
+                      "cornerRadius": 6,
+                      "padding": [
+                        8,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "3Aly3",
+                          "name": "backText",
+                          "fill": "#94A3B8",
+                          "content": "Back to website →",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XplBB",
+                  "name": "imgContainer",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Pc1By",
+                      "name": "img1",
+                      "width": "fill_container",
+                      "height": 140,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "assets/image1.jpg",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pIihF",
+                      "name": "img2",
+                      "width": "fill_container",
+                      "height": 140,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "assets/image2.jpg",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BmgHM",
+                      "name": "img3",
+                      "width": "fill_container",
+                      "height": 120,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "assets/image3.jpg",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "V08cT",
+                  "name": "leftBottom",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "PkmHI",
+                      "name": "headline",
+                      "fill": "#FFFFFF",
+                      "content": "Monitor. Analyze. Optimize.",
+                      "fontFamily": "Inter",
+                      "fontSize": 28,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "81rvi",
+                      "name": "subline",
+                      "fill": "#94A3B8",
+                      "textGrowth": "fixed-width",
+                      "width": 380,
+                      "content": "Unified IoT monitoring for buildings and campuses.",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "QGohP",
+              "name": "rightPanel",
+              "width": 605,
+              "height": "fill_container",
+              "fill": "#0f0f1400",
+              "layout": "vertical",
+              "gap": 32,
+              "padding": [
+                56,
+                64
+              ],
+              "children": [
+                {
+                  "type": "group",
+                  "id": "DkCYY",
+                  "name": "formHeader",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WIUaY",
+                      "name": "formTitle",
+                      "fill": "#FFFFFF",
+                      "content": "Sign in",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "mQpJU",
+                      "name": "formSubtitle",
+                      "fill": "#94A3B8",
+                      "content": "Welcome back to SMACA",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "gcEfo",
+                      "name": "createLink",
+                      "fill": "#6D5EF6",
+                      "content": "Create account",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "sD5XI",
+                  "name": "emailField",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "outside",
+                    "thickness": 1
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "justifyContent": "space_around",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "M9bft",
+                      "name": "emailLabel",
+                      "fill": "#94A3B8",
+                      "content": "Email",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ptLEa",
+                      "name": "emailInput",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "9fH4p",
+                          "name": "emailPlaceholder",
+                          "fill": "#64748B",
+                          "content": "you@company.com",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vsKs7",
+                  "name": "passwordField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "justifyContent": "space_around",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xO12n",
+                      "name": "pwdLabel",
+                      "fill": "#94A3B8",
+                      "content": "Password",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "aFqDk",
+                      "name": "pwdInput",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "DeuHD",
+                          "name": "pwdPlaceholder",
+                          "fill": "#64748B",
+                          "content": "••••••••",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "CMH8R",
+                          "name": "eyeIcon",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "eye",
+                          "iconFontFamily": "lucide",
+                          "fill": "#64748B"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bPAjP",
+                  "name": "optionsRow",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "FH97I",
+                      "name": "rememberRow",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ondVg",
+                          "name": "checkbox",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "transparent",
+                          "cornerRadius": 4,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#2a2835"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "kiFNm",
+                          "name": "rememberText",
+                          "fill": "#94A3B8",
+                          "content": "Remember me",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "vOYfc",
+                      "name": "forgotLink",
+                      "fill": "#6D5EF6",
+                      "content": "Forgot password?",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "0UWWW",
+                  "name": "signInBtn",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 90,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#6D5EF6",
+                        "position": 0
+                      },
+                      {
+                        "color": "#5b4ce6",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 8,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "6tPoP",
+                      "name": "signInText",
+                      "fill": "#FFFFFF",
+                      "content": "Sign in",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "4yn9U",
+                  "name": "footer",
+                  "fill": "#64748B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "By continuing, you agree to the Terms and Privacy Policy.",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "m6TNu",
+      "x": 1497,
+      "y": 28,
+      "name": "SMACA Login – Mobile",
+      "width": 390,
+      "height": 844,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 135,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#2a2835",
+            "position": 0
+          },
+          {
+            "color": "#2d2a3a",
+            "position": 0.5
+          },
+          {
+            "color": "#1f1e28",
+            "position": 1
+          }
+        ]
+      },
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "XbD2M",
+          "name": "card",
+          "clip": true,
+          "width": 360,
+          "height": 650,
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#15151c",
+                "position": 0
+              },
+              {
+                "color": "#1d1c27",
+                "position": 1
+              }
+            ]
+          },
+          "cornerRadius": 20,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000040",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 48,
+            "spread": -8
+          },
+          "children": [
+            {
+              "type": "frame",
+              "id": "TCCEh",
+              "name": "leftPanel",
+              "enabled": false,
+              "width": 495,
+              "height": "fill_container",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 135,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#1a1824",
+                    "position": 0
+                  },
+                  {
+                    "color": "#252235",
+                    "position": 0.5
+                  },
+                  {
+                    "color": "#1d1b28",
+                    "position": 1
+                  }
+                ]
+              },
+              "layout": "vertical",
+              "padding": 40,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "g8jQs",
+                  "name": "leftTop",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "group",
+                      "id": "Ma2vY",
+                      "name": "logoGroup",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "sWoup",
+                          "name": "logo",
+                          "fill": "#FFFFFF",
+                          "content": "SMACA",
+                          "fontFamily": "Inter",
+                          "fontSize": 24,
+                          "fontWeight": "bold"
+                        },
+                        {
+                          "type": "text",
+                          "id": "YC5FS",
+                          "name": "logoSub",
+                          "fill": "#94A3B8",
+                          "content": "Smart Campus IoT Platform",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kOQTr",
+                      "name": "backBtn",
+                      "cornerRadius": 6,
+                      "padding": [
+                        8,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "EVuvs",
+                          "name": "backText",
+                          "fill": "#94A3B8",
+                          "content": "Back to website →",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "iC2mk",
+                  "name": "leftBottom",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "7M4yZ",
+                      "name": "headline",
+                      "fill": "#FFFFFF",
+                      "content": "Monitor. Analyze. Optimize.",
+                      "fontFamily": "Inter",
+                      "fontSize": 28,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "jBtjn",
+                      "name": "subline",
+                      "fill": "#94A3B8",
+                      "textGrowth": "fixed-width",
+                      "width": 380,
+                      "content": "Unified IoT monitoring for buildings and campuses.",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "jwKW8",
+              "name": "rightPanel",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "transparent",
+              "layout": "vertical",
+              "gap": 32,
+              "padding": [
+                40,
+                32
+              ],
+              "children": [
+                {
+                  "type": "group",
+                  "id": "R2XmO",
+                  "name": "mobileLogo",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "width": "fill_container",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "VFlTJ",
+                      "name": "mobileLogoText",
+                      "fill": "#FFFFFF",
+                      "content": "SMACA",
+                      "fontFamily": "Inter",
+                      "fontSize": 20,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "UFQ01",
+                      "name": "mobileLogoSub",
+                      "fill": "#94A3B8",
+                      "content": "Smart Campus IoT Platform",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "2nAKa",
+                  "name": "formHeader",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZtbC1",
+                      "name": "formTitle",
+                      "fill": "#FFFFFF",
+                      "content": "Sign in",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "8ffah",
+                      "name": "formSubtitle",
+                      "fill": "#94A3B8",
+                      "content": "Welcome back to SMACA",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DeJRr",
+                      "name": "createLink",
+                      "fill": "#6D5EF6",
+                      "content": "Create account",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Y9reI",
+                  "name": "emailField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dqz4r",
+                      "name": "emailLabel",
+                      "fill": "#94A3B8",
+                      "content": "Email",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tRW8f",
+                      "name": "emailInput",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "3y9w4",
+                          "name": "emailPlaceholder",
+                          "fill": "#64748B",
+                          "content": "you@company.com",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "LgDOR",
+                  "name": "passwordField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "VsPNN",
+                      "name": "pwdLabel",
+                      "fill": "#94A3B8",
+                      "content": "Password",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "i2fSt",
+                      "name": "pwdInput",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LK5Bh",
+                          "name": "pwdPlaceholder",
+                          "fill": "#64748B",
+                          "content": "••••••••",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "2yhwv",
+                          "name": "eyeIcon",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "eye",
+                          "iconFontFamily": "lucide",
+                          "fill": "#64748B"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bcjxL",
+                  "name": "optionsRow",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "lZYqJ",
+                      "name": "rememberRow",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "MoiMY",
+                          "name": "checkbox",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "transparent",
+                          "cornerRadius": 4,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#2a2835"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "kFL6J",
+                          "name": "rememberText",
+                          "fill": "#94A3B8",
+                          "content": "Remember me",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "RXeTg",
+                      "name": "forgotLink",
+                      "fill": "#6D5EF6",
+                      "content": "Forgot password?",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XYiu6",
+                  "name": "signInBtn",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 90,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#6D5EF6",
+                        "position": 0
+                      },
+                      {
+                        "color": "#5b4ce6",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 8,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nez8W",
+                      "name": "signInText",
+                      "fill": "#FFFFFF",
+                      "content": "Sign in",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "iAED7",
+                  "name": "footer",
+                  "fill": "#64748B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "By continuing, you agree to the Terms and Privacy Policy.",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ceg56",
+      "x": 1987,
+      "y": 0,
+      "name": "SMACA Register – Desktop",
+      "width": 1440,
+      "height": 900,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 135,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#2a2835",
+            "position": 0
+          },
+          {
+            "color": "#2d2a3a",
+            "position": 0.5
+          },
+          {
+            "color": "#1f1e28",
+            "position": 1
+          }
+        ]
+      },
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "qN6p2",
+          "name": "card",
+          "clip": true,
+          "width": 1100,
+          "height": 650,
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#15151c",
+                "position": 0
+              },
+              {
+                "color": "#1d1c27",
+                "position": 1
+              }
+            ]
+          },
+          "cornerRadius": 20,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000040",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 48,
+            "spread": -8
+          },
+          "children": [
+            {
+              "type": "frame",
+              "id": "OIBtm",
+              "name": "leftPanel",
+              "width": 495,
+              "height": "fill_container",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 135,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#1a1824",
+                    "position": 0
+                  },
+                  {
+                    "color": "#252235",
+                    "position": 0.5
+                  },
+                  {
+                    "color": "#1d1b28",
+                    "position": 1
+                  }
+                ]
+              },
+              "layout": "vertical",
+              "padding": 40,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "q4REJ",
+                  "name": "leftTop",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "group",
+                      "id": "0qFHV",
+                      "name": "logoGroup",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Xuh1k",
+                          "name": "logo",
+                          "fill": "#FFFFFF",
+                          "content": "SMACA",
+                          "fontFamily": "Inter",
+                          "fontSize": 24,
+                          "fontWeight": "bold"
+                        },
+                        {
+                          "type": "text",
+                          "id": "xYq8F",
+                          "name": "logoSub",
+                          "fill": "#94A3B8",
+                          "content": "Smart Campus IoT Platform",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "5PIGa",
+                      "name": "backBtn",
+                      "cornerRadius": 6,
+                      "padding": [
+                        8,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Yge4L",
+                          "name": "backText",
+                          "fill": "#94A3B8",
+                          "content": "Back to website →",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZQ8y6",
+                  "name": "imgContainer",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "GCSnC",
+                      "name": "img1",
+                      "width": "fill_container",
+                      "height": 140,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "assets/image1.jpg",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12
+                    },
+                    {
+                      "type": "frame",
+                      "id": "RWQ0t",
+                      "name": "img2",
+                      "width": "fill_container",
+                      "height": 140,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "assets/image2.jpg",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12
+                    },
+                    {
+                      "type": "frame",
+                      "id": "1cXWs",
+                      "name": "img3",
+                      "width": "fill_container",
+                      "height": 120,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "assets/image3.jpg",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "hWTQe",
+                  "name": "leftBottom",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pYc2h",
+                      "name": "headline",
+                      "fill": "#FFFFFF",
+                      "content": "Monitor. Analyze. Optimize.",
+                      "fontFamily": "Inter",
+                      "fontSize": 28,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "JAQMY",
+                      "name": "subline",
+                      "fill": "#94A3B8",
+                      "textGrowth": "fixed-width",
+                      "width": 380,
+                      "content": "Unified IoT monitoring for buildings and campuses.",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "oHFpJ",
+              "name": "rightPanel",
+              "width": 605,
+              "height": "fill_container",
+              "fill": "transparent",
+              "layout": "vertical",
+              "gap": 32,
+              "padding": [
+                56,
+                64
+              ],
+              "children": [
+                {
+                  "type": "group",
+                  "id": "UrRsb",
+                  "name": "formHeader",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "7tuoI",
+                      "name": "formTitle",
+                      "fill": "#FFFFFF",
+                      "content": "Create account",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "mfJVg",
+                      "name": "formSubtitle",
+                      "fill": "#94A3B8",
+                      "content": "Join SMACA to get started",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "1Bk90",
+                      "name": "createLink",
+                      "fill": "#6D5EF6",
+                      "content": "Sign in",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lBQ7N",
+                  "name": "fullNameField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "jLI3y",
+                      "fill": "#94A3B8",
+                      "content": "Full Name",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HNbRH",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZKmVg",
+                          "fill": "#64748B",
+                          "content": "John Doe",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p86ZK",
+                  "name": "emailField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "RMKke",
+                      "name": "emailLabel",
+                      "fill": "#94A3B8",
+                      "content": "Email",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "e2NY9",
+                      "name": "emailInput",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "NBmob",
+                          "name": "emailPlaceholder",
+                          "fill": "#64748B",
+                          "content": "you@company.com",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "2YZAu",
+                  "name": "passwordField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "UaNFE",
+                      "name": "pwdLabel",
+                      "fill": "#94A3B8",
+                      "content": "Password",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EdHL3",
+                      "name": "pwdInput",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "T7i5k",
+                          "name": "pwdPlaceholder",
+                          "fill": "#64748B",
+                          "content": "••••••••",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "1s3Aj",
+                          "name": "eyeIcon",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "eye",
+                          "iconFontFamily": "lucide",
+                          "fill": "#64748B"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wPcTk",
+                  "name": "confirmPasswordField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "9GHYK",
+                      "fill": "#94A3B8",
+                      "content": "Confirm Password",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "qloa7",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Dmi1j",
+                          "fill": "#64748B",
+                          "content": "••••••••",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "pdM1M",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "eye",
+                          "iconFontFamily": "lucide",
+                          "fill": "#64748B"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UPfwA",
+                  "name": "optionsRow",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "lkvu1",
+                      "name": "rememberRow",
+                      "enabled": false,
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "bHd9j",
+                          "name": "checkbox",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "transparent",
+                          "cornerRadius": 4,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#2a2835"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "KxXoG",
+                          "name": "rememberText",
+                          "fill": "#94A3B8",
+                          "content": "I agree to the Terms and Privacy Policy",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "6ELmU",
+                      "name": "forgotLink",
+                      "fill": "#6D5EF6",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "8WLWj",
+                  "name": "signInBtn",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 90,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#6D5EF6",
+                        "position": 0
+                      },
+                      {
+                        "color": "#5b4ce6",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 8,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "7p3H4",
+                      "name": "signInText",
+                      "fill": "#FFFFFF",
+                      "content": "Sign up",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "e342j",
+                  "name": "footer",
+                  "fill": "#64748B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Already have an account? Sign in",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "jSltX",
+      "x": 1497,
+      "y": 922,
+      "name": "SMACA Register – Mobile",
+      "width": 390,
+      "height": 844,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 135,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#2a2835",
+            "position": 0
+          },
+          {
+            "color": "#2d2a3a",
+            "position": 0.5
+          },
+          {
+            "color": "#1f1e28",
+            "position": 1
+          }
+        ]
+      },
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "jCOq5",
+          "name": "card",
+          "clip": true,
+          "width": 360,
+          "height": 650,
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#15151c",
+                "position": 0
+              },
+              {
+                "color": "#1d1c27",
+                "position": 1
+              }
+            ]
+          },
+          "cornerRadius": 20,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000040",
+            "offset": {
+              "x": 0,
+              "y": 24
+            },
+            "blur": 48,
+            "spread": -8
+          },
+          "children": [
+            {
+              "type": "frame",
+              "id": "DtQki",
+              "name": "leftPanel",
+              "enabled": false,
+              "width": 495,
+              "height": "fill_container",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 135,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#1a1824",
+                    "position": 0
+                  },
+                  {
+                    "color": "#252235",
+                    "position": 0.5
+                  },
+                  {
+                    "color": "#1d1b28",
+                    "position": 1
+                  }
+                ]
+              },
+              "layout": "vertical",
+              "padding": 40,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "8TAiJ",
+                  "name": "leftTop",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "group",
+                      "id": "yWpER",
+                      "name": "logoGroup",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "eICMd",
+                          "name": "logo",
+                          "fill": "#FFFFFF",
+                          "content": "SMACA",
+                          "fontFamily": "Inter",
+                          "fontSize": 24,
+                          "fontWeight": "bold"
+                        },
+                        {
+                          "type": "text",
+                          "id": "4opqg",
+                          "name": "logoSub",
+                          "fill": "#94A3B8",
+                          "content": "Smart Campus IoT Platform",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "DuV8H",
+                      "name": "backBtn",
+                      "cornerRadius": 6,
+                      "padding": [
+                        8,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "bLTTZ",
+                          "name": "backText",
+                          "fill": "#94A3B8",
+                          "content": "Back to website →",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "Snl6c",
+                  "name": "leftBottom",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "c9glk",
+                      "name": "headline",
+                      "fill": "#FFFFFF",
+                      "content": "Monitor. Analyze. Optimize.",
+                      "fontFamily": "Inter",
+                      "fontSize": 28,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "McOEE",
+                      "name": "subline",
+                      "fill": "#94A3B8",
+                      "textGrowth": "fixed-width",
+                      "width": 380,
+                      "content": "Unified IoT monitoring for buildings and campuses.",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pG4rJ",
+              "name": "rightPanel",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "transparent",
+              "layout": "vertical",
+              "gap": 32,
+              "padding": [
+                40,
+                32
+              ],
+              "children": [
+                {
+                  "type": "group",
+                  "id": "RGku2",
+                  "name": "mobileLogo",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "width": "fill_container",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "MuL03",
+                      "name": "mobileLogoText",
+                      "fill": "#FFFFFF",
+                      "content": "SMACA",
+                      "fontFamily": "Inter",
+                      "fontSize": 20,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uewVj",
+                      "name": "mobileLogoSub",
+                      "fill": "#94A3B8",
+                      "content": "Smart Campus IoT Platform",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "ZIE1R",
+                  "name": "formHeader",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "aBPyP",
+                      "name": "formTitle",
+                      "fill": "#FFFFFF",
+                      "content": "Create account",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "LM9wv",
+                      "name": "formSubtitle",
+                      "fill": "#94A3B8",
+                      "content": "Join SMACA to get started",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "CEJm3",
+                      "name": "createLink",
+                      "fill": "#6D5EF6",
+                      "content": "Sign in",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "E8mVI",
+                  "name": "fullNameField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nY3Mx",
+                      "fill": "#94A3B8",
+                      "content": "Full Name",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wdn37",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "MRLtd",
+                          "fill": "#64748B",
+                          "content": "John Doe",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "dDy9T",
+                  "name": "emailField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "OhQ1y",
+                      "name": "emailLabel",
+                      "fill": "#94A3B8",
+                      "content": "Email",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ocShf",
+                      "name": "emailInput",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "TOcqX",
+                          "name": "emailPlaceholder",
+                          "fill": "#64748B",
+                          "content": "you@company.com",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Czcv9",
+                  "name": "passwordField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "usF0N",
+                      "name": "pwdLabel",
+                      "fill": "#94A3B8",
+                      "content": "Password",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "8W7XV",
+                      "name": "pwdInput",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "e3lq1",
+                          "name": "pwdPlaceholder",
+                          "fill": "#64748B",
+                          "content": "••••••••",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "uB7p4",
+                          "name": "eyeIcon",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "eye",
+                          "iconFontFamily": "lucide",
+                          "fill": "#64748B"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "N8NyE",
+                  "name": "confirmPasswordField",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pxt42",
+                      "fill": "#94A3B8",
+                      "content": "Confirm Password",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "bzIti",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#0f0f14",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2a2835"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "z9EAn",
+                          "fill": "#64748B",
+                          "content": "••••••••",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "MRq2H",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "eye",
+                          "iconFontFamily": "lucide",
+                          "fill": "#64748B"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Rx49d",
+                  "name": "optionsRow",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ifoLt",
+                      "name": "rememberRow",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "sMtT0",
+                          "name": "checkbox",
+                          "width": 18,
+                          "height": 18,
+                          "fill": "transparent",
+                          "cornerRadius": 4,
+                          "stroke": {
+                            "thickness": 1,
+                            "fill": "#2a2835"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "fFRDP",
+                          "name": "rememberText",
+                          "fill": "#94A3B8",
+                          "content": "I agree to the Terms and Privacy Policy",
+                          "fontFamily": "Inter",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "7m8Xc",
+                      "name": "forgotLink",
+                      "enabled": false,
+                      "fill": "#6D5EF6",
+                      "content": "Forgot password?",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "7KHwV",
+                  "name": "signInBtn",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 90,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#6D5EF6",
+                        "position": 0
+                      },
+                      {
+                        "color": "#5b4ce6",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 8,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GB30l",
+                      "name": "signInText",
+                      "fill": "#FFFFFF",
+                      "content": "Sign up",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "uiKY4",
+                  "name": "footer",
+                  "fill": "#64748B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Already have an account? Sign in",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Yfg4V",
+      "x": 0,
+      "y": 0,
+      "name": "SMACA Landing – Desktop",
+      "width": 1440,
+      "fill": "#0f1419",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "gxO4M",
+          "name": "hero",
+          "width": "fill_container",
+          "height": 560,
+          "fill": "transparent",
+          "padding": [
+            80,
+            120
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "t8fcR",
+              "name": "heroLeft",
+              "width": 520,
+              "layout": "vertical",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "LyHTA",
+                  "name": "heroHeadline",
+                  "fill": "#e4e7eb",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Smart Monitoring for Intelligent Campuses",
+                  "fontFamily": "Inter",
+                  "fontSize": 40,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "5W3Pz",
+                  "name": "heroSub",
+                  "fill": "#9ca3af",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Real-time IoT data, AI-driven insights, and unified building intelligence in one platform.",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "J1iAh",
+                  "name": "heroCTAs",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ZdymI",
+                      "name": "btnPrimary",
+                      "height": 48,
+                      "fill": "#3b82f6",
+                      "cornerRadius": 8,
+                      "padding": [
+                        12,
+                        24
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "6wKVw",
+                          "name": "btnPrimaryText",
+                          "fill": "#FFFFFF",
+                          "content": "Request Demo",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gb0aE",
+                      "name": "btnSecondary",
+                      "height": 48,
+                      "fill": "transparent",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2d3441"
+                      },
+                      "padding": [
+                        12,
+                        24
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "PS6ZZ",
+                          "name": "btnSecText",
+                          "fill": "#e4e7eb",
+                          "content": "View Dashboard",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "dPN6T",
+                  "name": "heroBadges",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "X2AOU",
+                      "name": "badge1",
+                      "fill": "#252b3a",
+                      "cornerRadius": 6,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "gX0HL",
+                          "name": "badge1Text",
+                          "fill": "#9ca3af",
+                          "content": "Real-time Data",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EfFYy",
+                      "name": "badge2",
+                      "fill": "#252b3a",
+                      "cornerRadius": 6,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "AY2qs",
+                          "name": "badge2Text",
+                          "fill": "#9ca3af",
+                          "content": "AI Powered",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mvvR1",
+                      "name": "badge3",
+                      "fill": "#252b3a",
+                      "cornerRadius": 6,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "9prPd",
+                          "name": "badge3Text",
+                          "fill": "#9ca3af",
+                          "content": "Secure Architecture",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "LGwFe",
+              "name": "heroRight",
+              "width": 520,
+              "height": 340,
+              "fill": "#1a1f2e",
+              "cornerRadius": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "tbsyG",
+                  "name": "heroVizContent",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Ey8I1",
+                      "name": "vizBar1",
+                      "width": "fill_container",
+                      "height": 32,
+                      "fill": "#252b3a",
+                      "cornerRadius": 4
+                    },
+                    {
+                      "type": "frame",
+                      "id": "t8Ok4",
+                      "name": "vizBar2",
+                      "width": 400,
+                      "height": 32,
+                      "fill": "#252b3a",
+                      "cornerRadius": 4
+                    },
+                    {
+                      "type": "frame",
+                      "id": "H2tLG",
+                      "name": "vizBar3",
+                      "width": 280,
+                      "height": 32,
+                      "fill": "#252b3a",
+                      "cornerRadius": 4
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BM15P",
+                      "name": "vizNodes",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "FJvef",
+                          "name": "vNode1",
+                          "width": 48,
+                          "height": 48,
+                          "fill": "#3b82f640",
+                          "cornerRadius": 8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "nIZYp",
+                          "name": "vNode2",
+                          "width": 48,
+                          "height": 48,
+                          "fill": "#3b82f640",
+                          "cornerRadius": 8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qFLcG",
+                          "name": "vNode3",
+                          "width": 48,
+                          "height": 48,
+                          "fill": "#3b82f640",
+                          "cornerRadius": 8
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "WfaFX",
+          "name": "secWhat",
+          "width": "fill_container",
+          "gap": 80,
+          "padding": [
+            80,
+            120
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "D6tf0",
+              "name": "whatLeft",
+              "width": 480,
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "XWMrP",
+                  "name": "whatTitle",
+                  "fill": "#e4e7eb",
+                  "content": "What is SMACA",
+                  "fontFamily": "Inter",
+                  "fontSize": 28,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "KH5yb",
+                  "name": "whatDesc",
+                  "fill": "#9ca3af",
+                  "textGrowth": "fixed-width",
+                  "width": 480,
+                  "content": "SMACA is a unified IoT monitoring platform designed for smart buildings and campus environments. It aggregates environmental, energy, occupancy and connectivity data into a single, actionable interface.",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "W7IZd",
+              "name": "whatRight",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pPnNb",
+                  "name": "diagSensor",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "cc2S1",
+                      "name": "diagSensorBox",
+                      "width": 80,
+                      "height": 48,
+                      "fill": "#252b3a",
+                      "cornerRadius": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "vb3N1",
+                      "name": "diagSensorLabel",
+                      "fill": "#9ca3af",
+                      "content": "Sensors",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "us3To",
+                  "name": "diagArrow1",
+                  "fill": "#3b82f6",
+                  "content": "→",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "jGubZ",
+                  "name": "diagPlatform",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "IFn2M",
+                      "name": "diagPlatformBox",
+                      "width": 80,
+                      "height": 48,
+                      "fill": "#252b3a",
+                      "cornerRadius": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "zR5b1",
+                      "name": "diagPlatformLabel",
+                      "fill": "#9ca3af",
+                      "content": "Platform",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "4zuPk",
+                  "name": "diagArrow2",
+                  "fill": "#3b82f6",
+                  "content": "→",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "4mi8c",
+                  "name": "diagAI",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "6J4GE",
+                      "name": "diagAIBox",
+                      "width": 80,
+                      "height": 48,
+                      "fill": "#252b3a",
+                      "cornerRadius": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "aLCta",
+                      "name": "diagAILabel",
+                      "fill": "#9ca3af",
+                      "content": "AI Engine",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "ET04E",
+                  "name": "diagArrow3",
+                  "fill": "#3b82f6",
+                  "content": "→",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "bdudu",
+                  "name": "diagDash",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "yR7gA",
+                      "name": "diagDashBox",
+                      "width": 80,
+                      "height": 48,
+                      "fill": "#3b82f6",
+                      "cornerRadius": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "XHuti",
+                      "name": "diagDashLabel",
+                      "fill": "#9ca3af",
+                      "content": "Dashboard",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "EVx4S",
+          "name": "secModules",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            80,
+            120
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "CdFCf",
+              "name": "modTitle",
+              "fill": "#e4e7eb",
+              "content": "Core Modules",
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "Zs4Uq",
+              "name": "modGrid",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "L7jV2",
+                  "name": "modRow1",
+                  "width": "fill_container",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "fJ3yl",
+                      "name": "card1",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2d3441"
+                      },
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "TW93y",
+                          "name": "card1Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "wind",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "toQSW",
+                          "name": "card1Title",
+                          "fill": "#e4e7eb",
+                          "content": "Indoor Air Quality",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "hroon",
+                          "name": "card1Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "CO₂, humidity, temperature and environmental health indicators.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rHfkB",
+                      "name": "card2",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "tOK8n",
+                          "name": "card2Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "zap",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "0eVAL",
+                          "name": "card2Title",
+                          "fill": "#e4e7eb",
+                          "content": "Energy Monitoring",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "RLjF2",
+                          "name": "card2Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Energy consumption, max demand, power factor and usage patterns.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nCiad",
+                      "name": "card3",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "BKXi7",
+                          "name": "card3Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "users",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "F3eYs",
+                          "name": "card3Title",
+                          "fill": "#e4e7eb",
+                          "content": "Occupancy Analytics",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "KDtrt",
+                          "name": "card3Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Presence detection, movement flow and space utilization.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wQLJi",
+                  "name": "modRow2",
+                  "width": "fill_container",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uLHtc",
+                      "name": "card4",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "Z1XKY",
+                          "name": "card4Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "wifi",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "VJiUz",
+                          "name": "card4Title",
+                          "fill": "#e4e7eb",
+                          "content": "Connectivity Monitoring",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "JUhow",
+                          "name": "card4Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Signal strength, transmission quality and device health.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dRQdF",
+                      "name": "card5",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "jGfgj",
+                          "name": "card5Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "sun",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "PJQEy",
+                          "name": "card5Title",
+                          "fill": "#e4e7eb",
+                          "content": "Environmental / UV",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "PmnEK",
+                          "name": "card5Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "UV index and environmental conditions.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WvzJQ",
+                      "name": "card6",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "XBKc7",
+                          "name": "card6Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "brain",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "PS0vK",
+                          "name": "card6Title",
+                          "fill": "#e4e7eb",
+                          "content": "AI Insights",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "FmQHi",
+                          "name": "card6Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Predictive analytics, anomaly detection and smart recommendations.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "KE5dm",
+          "name": "secHow",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            80,
+            120
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "mQoqA",
+              "name": "howTitle",
+              "fill": "#e4e7eb",
+              "content": "How it Works",
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "J0fX7",
+              "name": "howSteps",
+              "width": "fill_container",
+              "gap": 32,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "85LOt",
+                  "name": "step1",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 24,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "S9HCK",
+                      "name": "step1Num",
+                      "fill": "#3b82f6",
+                      "content": "1",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uegx4",
+                      "name": "step1Text",
+                      "fill": "#e4e7eb",
+                      "content": "Sensors collect data",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "0uZ0d",
+                  "name": "step2",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 24,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "VT5NM",
+                      "name": "step2Num",
+                      "fill": "#3b82f6",
+                      "content": "2",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "TBQZV",
+                      "name": "step2Text",
+                      "fill": "#e4e7eb",
+                      "content": "Data normalized and validated",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XGRmS",
+                  "name": "step3",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 24,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WZymJ",
+                      "name": "step3Num",
+                      "fill": "#3b82f6",
+                      "content": "3",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lcRpp",
+                      "name": "step3Text",
+                      "fill": "#e4e7eb",
+                      "content": "AI engine analyzes trends",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "g8WTp",
+                  "name": "step4",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 24,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qgW2R",
+                      "name": "step4Num",
+                      "fill": "#3b82f6",
+                      "content": "4",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "KS05T",
+                      "name": "step4Text",
+                      "fill": "#e4e7eb",
+                      "content": "Dashboard delivers actionable insights",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Ni0hb",
+          "name": "secRoles",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            80,
+            120
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "u8nTc",
+              "name": "rolesTitle",
+              "fill": "#e4e7eb",
+              "content": "Role-based Access",
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "sBGIN",
+              "name": "rolesCompare",
+              "width": "fill_container",
+              "gap": 48,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "p6upc",
+                  "name": "userCol",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WTQsp",
+                      "name": "userTitle",
+                      "fill": "#3b82f6",
+                      "content": "USER",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "PWL1t",
+                      "name": "user1",
+                      "fill": "#9ca3af",
+                      "content": "View dashboards",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "JdMtZ",
+                      "name": "user2",
+                      "fill": "#9ca3af",
+                      "content": "Monitor live metrics",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "twIz8",
+                      "name": "user3",
+                      "fill": "#9ca3af",
+                      "content": "View alerts",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Ki3Gx",
+                      "name": "user4",
+                      "fill": "#9ca3af",
+                      "content": "Access building insights",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pGTiJ",
+                  "name": "adminCol",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nRAM8",
+                      "name": "adminTitle",
+                      "fill": "#3b82f6",
+                      "content": "ADMIN",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Gr1ax",
+                      "name": "admin1",
+                      "fill": "#9ca3af",
+                      "content": "Manage sensors",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "sISx0",
+                      "name": "admin2",
+                      "fill": "#9ca3af",
+                      "content": "Configure thresholds",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "3TYQx",
+                      "name": "admin3",
+                      "fill": "#9ca3af",
+                      "content": "Manage users and roles",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "FsXBG",
+                      "name": "admin4",
+                      "fill": "#9ca3af",
+                      "content": "Export reports",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "maB1W",
+                      "name": "admin5",
+                      "fill": "#9ca3af",
+                      "content": "System settings",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Yo7p4",
+          "name": "secUseCases",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            80,
+            120
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "l5oow",
+              "name": "ucTitle",
+              "fill": "#e4e7eb",
+              "content": "Use Cases",
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "Mc2WT",
+              "name": "ucGrid",
+              "width": "fill_container",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "JFObA",
+                  "name": "uc1",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "umuK7",
+                      "name": "uc1Title",
+                      "fill": "#e4e7eb",
+                      "content": "Universities",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "eJuiC",
+                      "name": "uc1Desc",
+                      "fill": "#9ca3af",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Optimize lecture halls, monitor air quality and reduce energy waste.",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "xNP3M",
+                  "name": "uc2",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "snajK",
+                      "name": "uc2Title",
+                      "fill": "#e4e7eb",
+                      "content": "Research Institutions",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "djJ4F",
+                      "name": "uc2Desc",
+                      "fill": "#9ca3af",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Ensure environmental compliance and data traceability.",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UxyRd",
+                  "name": "uc3",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "K6HIo",
+                      "name": "uc3Title",
+                      "fill": "#e4e7eb",
+                      "content": "Smart Buildings",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "08jSl",
+                      "name": "uc3Desc",
+                      "fill": "#9ca3af",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Improve operational efficiency and sustainability.",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "7nqin",
+          "name": "secSecurity",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            80,
+            120
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "O2ohA",
+              "name": "secTitle",
+              "fill": "#e4e7eb",
+              "content": "Security and Architecture",
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "ATbkX",
+              "name": "secPoints",
+              "width": "fill_container",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "E2QgY",
+                  "name": "secP1",
+                  "fill": "#9ca3af",
+                  "content": "Role-based access control",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "qpHS9",
+                  "name": "secP2",
+                  "fill": "#9ca3af",
+                  "content": "Secure data handling",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "GaEQr",
+                  "name": "secP3",
+                  "fill": "#9ca3af",
+                  "content": "Scalable architecture",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "GaRK6",
+                  "name": "secP4",
+                  "fill": "#9ca3af",
+                  "content": "API-ready design",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "SmyIr",
+              "name": "secDiagram",
+              "width": "fill_container",
+              "height": 120,
+              "fill": "#1a1f2e",
+              "cornerRadius": 8
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "HH1Mq",
+          "name": "secData",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            80,
+            120
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "Lc083",
+              "name": "dataTitle",
+              "fill": "#e4e7eb",
+              "content": "Data Transparency",
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "eOvhy",
+              "name": "dataMetrics",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "KWUte",
+                  "name": "dataM1",
+                  "fill": "#9ca3af",
+                  "content": "kWh",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "z9y17",
+                  "name": "dataM2",
+                  "fill": "#9ca3af",
+                  "content": "CO₂ ppm",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "YlWBW",
+                  "name": "dataM3",
+                  "fill": "#9ca3af",
+                  "content": "Occupancy count",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "2xYGx",
+                  "name": "dataM4",
+                  "fill": "#9ca3af",
+                  "content": "Signal strength",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "8gZvn",
+                  "name": "dataM5",
+                  "fill": "#9ca3af",
+                  "content": "UV Index",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "wqLlv",
+              "name": "dataNote",
+              "fill": "#9ca3af",
+              "content": "All data is timestamped and traceable.",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "U4Fny",
+          "name": "secCTA",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            80,
+            120
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "qEIJf",
+              "name": "ctaTitle",
+              "fill": "#e4e7eb",
+              "content": "Bring Intelligence to Your Campus Infrastructure",
+              "textAlign": "center",
+              "fontFamily": "Inter",
+              "fontSize": 32,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "Y0kMp",
+              "name": "ctaBtns",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "GiBKT",
+                  "name": "ctaBtn1",
+                  "height": 48,
+                  "fill": "#3b82f6",
+                  "cornerRadius": 8,
+                  "padding": [
+                    16,
+                    32
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dBYA9",
+                      "name": "ctaBtn1Text",
+                      "fill": "#FFFFFF",
+                      "content": "Request Demo",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "HdJl7",
+                  "name": "ctaBtn2",
+                  "height": 48,
+                  "fill": "transparent",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#2d3441"
+                  },
+                  "padding": [
+                    16,
+                    32
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SHpJX",
+                      "name": "ctaBtn2Text",
+                      "fill": "#e4e7eb",
+                      "content": "Contact Us",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "YGPGW",
+          "name": "footer",
+          "width": "fill_container",
+          "fill": "#1a1f2e",
+          "gap": 80,
+          "padding": [
+            48,
+            120
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "TaQRh",
+              "name": "footerLeft",
+              "width": 280,
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "bXk8N",
+                  "name": "footerLogo",
+                  "fill": "#e4e7eb",
+                  "content": "SMACA",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "w7YQr",
+                  "name": "footerDesc",
+                  "fill": "#9ca3af",
+                  "content": "Smart Campus IoT and AI Platform",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "7xOMO",
+              "name": "footerLinks",
+              "gap": 32,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "CrEPW",
+                  "name": "fl1",
+                  "fill": "#9ca3af",
+                  "content": "Platform",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "VVVQe",
+                  "name": "fl2",
+                  "fill": "#9ca3af",
+                  "content": "Documentation",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "v6D6F",
+                  "name": "fl3",
+                  "fill": "#9ca3af",
+                  "content": "Privacy",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "t4QFe",
+                  "name": "fl4",
+                  "fill": "#9ca3af",
+                  "content": "Terms",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "cBNe4",
+                  "name": "fl5",
+                  "fill": "#9ca3af",
+                  "content": "Contact",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "qL3tW",
+      "x": 3507,
+      "y": 0,
+      "name": "SMACA Landing – Mobile",
+      "width": 390,
+      "fill": "#0f1419",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "BvJeL",
+          "name": "hero",
+          "width": "fill_container",
+          "fill": "transparent",
+          "layout": "vertical",
+          "padding": [
+            40,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "QwUe0",
+              "name": "heroLeft",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "DKMvm",
+                  "name": "heroHeadline",
+                  "fill": "#e4e7eb",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Smart Monitoring for Intelligent Campuses",
+                  "fontFamily": "Inter",
+                  "fontSize": 28,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "xdWP6",
+                  "name": "heroSub",
+                  "fill": "#9ca3af",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Real-time IoT data, AI-driven insights, and unified building intelligence in one platform.",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "bMIuK",
+                  "name": "heroCTAs",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "tqlU6",
+                      "name": "btnPrimary",
+                      "height": 48,
+                      "fill": "#3b82f6",
+                      "cornerRadius": 8,
+                      "padding": [
+                        12,
+                        24
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Bzq8P",
+                          "name": "btnPrimaryText",
+                          "fill": "#FFFFFF",
+                          "content": "Request Demo",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tzP4H",
+                      "name": "btnSecondary",
+                      "height": 48,
+                      "fill": "transparent",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2d3441"
+                      },
+                      "padding": [
+                        12,
+                        24
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "iXaqB",
+                          "name": "btnSecText",
+                          "fill": "#e4e7eb",
+                          "content": "View Dashboard",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "CMxbY",
+                  "name": "heroBadges",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "MpGBg",
+                      "name": "badge1",
+                      "fill": "#252b3a",
+                      "cornerRadius": 6,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "gmkiG",
+                          "name": "badge1Text",
+                          "fill": "#9ca3af",
+                          "content": "Real-time Data",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "AXDM6",
+                      "name": "badge2",
+                      "fill": "#252b3a",
+                      "cornerRadius": 6,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "uuyIM",
+                          "name": "badge2Text",
+                          "fill": "#9ca3af",
+                          "content": "AI Powered",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UnLKE",
+                      "name": "badge3",
+                      "fill": "#252b3a",
+                      "cornerRadius": 6,
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "50GKW",
+                          "name": "badge3Text",
+                          "fill": "#9ca3af",
+                          "content": "Secure Architecture",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "8sKSj",
+              "name": "heroRight",
+              "width": "fill_container",
+              "height": 240,
+              "fill": "#1a1f2e",
+              "cornerRadius": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "VHcEZ",
+                  "name": "heroVizContent",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ZwNZa",
+                      "name": "vizBar1",
+                      "width": "fill_container",
+                      "height": 32,
+                      "fill": "#252b3a",
+                      "cornerRadius": 4
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZuXzR",
+                      "name": "vizBar2",
+                      "width": 294,
+                      "height": 32,
+                      "fill": "#252b3a",
+                      "cornerRadius": 4
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Q3YVd",
+                      "name": "vizBar3",
+                      "width": 294,
+                      "height": 32,
+                      "fill": "#252b3a",
+                      "cornerRadius": 4
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oPO3g",
+                      "name": "vizNodes",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "NHm7x",
+                          "name": "vNode1",
+                          "width": 48,
+                          "height": 48,
+                          "fill": "#3b82f640",
+                          "cornerRadius": 8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "3H8Bm",
+                          "name": "vNode2",
+                          "width": 48,
+                          "height": 48,
+                          "fill": "#3b82f640",
+                          "cornerRadius": 8
+                        },
+                        {
+                          "type": "frame",
+                          "id": "HAJoq",
+                          "name": "vNode3",
+                          "width": 48,
+                          "height": 48,
+                          "fill": "#3b82f640",
+                          "cornerRadius": 8
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Id6Zz",
+          "name": "secWhat",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            40,
+            24
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "DduLt",
+              "name": "whatLeft",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "1VSLd",
+                  "name": "whatTitle",
+                  "fill": "#e4e7eb",
+                  "content": "What is SMACA",
+                  "fontFamily": "Inter",
+                  "fontSize": 28,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "EYJq6",
+                  "name": "whatDesc",
+                  "fill": "#9ca3af",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "SMACA is a unified IoT monitoring platform designed for smart buildings and campus environments. It aggregates environmental, energy, occupancy and connectivity data into a single, actionable interface.",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "SkvA3",
+              "name": "whatRight",
+              "layout": "vertical",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "vQQkk",
+                  "name": "diagSensor",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "IWji2",
+                      "name": "diagSensorBox",
+                      "width": 80,
+                      "height": 48,
+                      "fill": "#252b3a",
+                      "cornerRadius": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "FwKBE",
+                      "name": "diagSensorLabel",
+                      "fill": "#9ca3af",
+                      "content": "Sensors",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "L5P7Q",
+                  "name": "diagArrow1",
+                  "rotation": -90,
+                  "fill": "#3b82f6",
+                  "content": "→",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "WOHKS",
+                  "name": "diagPlatform",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Mbj4P",
+                      "name": "diagPlatformBox",
+                      "width": 80,
+                      "height": 48,
+                      "fill": "#252b3a",
+                      "cornerRadius": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "zUtty",
+                      "name": "diagPlatformLabel",
+                      "fill": "#9ca3af",
+                      "content": "Platform",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "yGdrs",
+                  "name": "diagArrow2",
+                  "rotation": -90,
+                  "fill": "#3b82f6",
+                  "content": "→",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "Rinot",
+                  "name": "diagAI",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ksEKF",
+                      "name": "diagAIBox",
+                      "width": 80,
+                      "height": 48,
+                      "fill": "#252b3a",
+                      "cornerRadius": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "Vgfhe",
+                      "name": "diagAILabel",
+                      "fill": "#9ca3af",
+                      "content": "AI Engine",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "OD0Mq",
+                  "name": "diagArrow3",
+                  "rotation": -810,
+                  "fill": "#3b82f6",
+                  "content": "→",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "z1scc",
+                  "name": "diagDash",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "eCrkU",
+                      "name": "diagDashBox",
+                      "width": 80,
+                      "height": 48,
+                      "fill": "#3b82f6",
+                      "cornerRadius": 8
+                    },
+                    {
+                      "type": "text",
+                      "id": "rSJS4",
+                      "name": "diagDashLabel",
+                      "fill": "#9ca3af",
+                      "content": "Dashboard",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "1WWoj",
+          "name": "secModules",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            40,
+            24
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "pC2RO",
+              "name": "modTitle",
+              "fill": "#e4e7eb",
+              "content": "Core Modules",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "kBuAb",
+              "name": "modGrid",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "hdP1L",
+                  "name": "modRow1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "wiH6b",
+                      "name": "card1",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#2d3441"
+                      },
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "SpTDi",
+                          "name": "card1Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "wind",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "4H0KE",
+                          "name": "card1Title",
+                          "fill": "#e4e7eb",
+                          "content": "Indoor Air Quality",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "W6ph5",
+                          "name": "card1Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "CO₂, humidity, temperature and environmental health indicators.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZMYgM",
+                      "name": "card2",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "eK8m6",
+                          "name": "card2Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "zap",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "4FQzN",
+                          "name": "card2Title",
+                          "fill": "#e4e7eb",
+                          "content": "Energy Monitoring",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Jg0yA",
+                          "name": "card2Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Energy consumption, max demand, power factor and usage patterns.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "SgTc3",
+                      "name": "card3",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "jd9cc",
+                          "name": "card3Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "users",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "HBVOK",
+                          "name": "card3Title",
+                          "fill": "#e4e7eb",
+                          "content": "Occupancy Analytics",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rqm3V",
+                          "name": "card3Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Presence detection, movement flow and space utilization.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "2UfqK",
+                  "name": "modRow2",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 24,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "XMe5c",
+                      "name": "card4",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "ncfHQ",
+                          "name": "card4Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "wifi",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "jC499",
+                          "name": "card4Title",
+                          "fill": "#e4e7eb",
+                          "content": "Connectivity Monitoring",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ciPVI",
+                          "name": "card4Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Signal strength, transmission quality and device health.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WREH0",
+                      "name": "card5",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "GFCzt",
+                          "name": "card5Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "sun",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "52lc4",
+                          "name": "card5Title",
+                          "fill": "#e4e7eb",
+                          "content": "Environmental / UV",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "lHieK",
+                          "name": "card5Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "UV index and environmental conditions.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "enKgM",
+                      "name": "card6",
+                      "width": "fill_container",
+                      "fill": "#1a1f2e",
+                      "cornerRadius": 8,
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "pGux9",
+                          "name": "card6Icon",
+                          "width": 32,
+                          "height": 32,
+                          "iconFontName": "brain",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3b82f6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "CXEgw",
+                          "name": "card6Title",
+                          "fill": "#e4e7eb",
+                          "content": "AI Insights",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "oteRB",
+                          "name": "card6Desc",
+                          "fill": "#9ca3af",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Predictive analytics, anomaly detection and smart recommendations.",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ZTHEV",
+          "name": "secHow",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            40,
+            24
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "pvWna",
+              "name": "howTitle",
+              "fill": "#e4e7eb",
+              "content": "How it Works",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "f9lpr",
+              "name": "howSteps",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 32,
+              "justifyContent": "space_between",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "TOiYs",
+                  "name": "step1",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 24,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "I8BTI",
+                      "name": "step1Num",
+                      "fill": "#3b82f6",
+                      "content": "1",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "tr3ck",
+                      "name": "step1Text",
+                      "fill": "#e4e7eb",
+                      "content": "Sensors collect data",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Kp73L",
+                  "name": "step2",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 24,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pDXt4",
+                      "name": "step2Num",
+                      "fill": "#3b82f6",
+                      "content": "2",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "QAHJq",
+                      "name": "step2Text",
+                      "fill": "#e4e7eb",
+                      "content": "Data normalized and validated",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "jwlJL",
+                  "name": "step3",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 24,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "oG0TR",
+                      "name": "step3Num",
+                      "fill": "#3b82f6",
+                      "content": "3",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "NJBmE",
+                      "name": "step3Text",
+                      "fill": "#e4e7eb",
+                      "content": "AI engine analyzes trends",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "cg7F2",
+                  "name": "step4",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 24,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "J40bu",
+                      "name": "step4Num",
+                      "fill": "#3b82f6",
+                      "content": "4",
+                      "fontFamily": "Inter",
+                      "fontSize": 24,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "text",
+                      "id": "jC4aX",
+                      "name": "step4Text",
+                      "fill": "#e4e7eb",
+                      "content": "Dashboard delivers actionable insights",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ju7eo",
+          "name": "secRoles",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            40,
+            24
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "Gej99",
+              "name": "rolesTitle",
+              "fill": "#e4e7eb",
+              "content": "Role-based Access",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "wCqvt",
+              "name": "rolesCompare",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 48,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "phbHE",
+                  "name": "userCol",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "a6Ct6",
+                      "name": "userTitle",
+                      "fill": "#3b82f6",
+                      "content": "USER",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ALDJu",
+                      "name": "user1",
+                      "fill": "#9ca3af",
+                      "content": "View dashboards",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "WVe2n",
+                      "name": "user2",
+                      "fill": "#9ca3af",
+                      "content": "Monitor live metrics",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "aiqRP",
+                      "name": "user3",
+                      "fill": "#9ca3af",
+                      "content": "View alerts",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "BdWWk",
+                      "name": "user4",
+                      "fill": "#9ca3af",
+                      "content": "Access building insights",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "6LD8t",
+                  "name": "adminCol",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "FQFp5",
+                      "name": "adminTitle",
+                      "fill": "#3b82f6",
+                      "content": "ADMIN",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "PwemK",
+                      "name": "admin1",
+                      "fill": "#9ca3af",
+                      "content": "Manage sensors",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "MhypW",
+                      "name": "admin2",
+                      "fill": "#9ca3af",
+                      "content": "Configure thresholds",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "fRrRz",
+                      "name": "admin3",
+                      "fill": "#9ca3af",
+                      "content": "Manage users and roles",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "KTHVk",
+                      "name": "admin4",
+                      "fill": "#9ca3af",
+                      "content": "Export reports",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xIEuv",
+                      "name": "admin5",
+                      "fill": "#9ca3af",
+                      "content": "System settings",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "rXtWL",
+          "name": "secUseCases",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 40,
+          "padding": [
+            40,
+            24
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "aNcdW",
+              "name": "ucTitle",
+              "fill": "#e4e7eb",
+              "content": "Use Cases",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "NJAMU",
+              "name": "ucGrid",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "CjI8E",
+                  "name": "uc1",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "FlGrp",
+                      "name": "uc1Title",
+                      "fill": "#e4e7eb",
+                      "content": "Universities",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ptZcA",
+                      "name": "uc1Desc",
+                      "fill": "#9ca3af",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Optimize lecture halls, monitor air quality and reduce energy waste.",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "5YJ6i",
+                  "name": "uc2",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "8ncPJ",
+                      "name": "uc2Title",
+                      "fill": "#e4e7eb",
+                      "content": "Research Institutions",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "fcbLd",
+                      "name": "uc2Desc",
+                      "fill": "#9ca3af",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Ensure environmental compliance and data traceability.",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "N7yHC",
+                  "name": "uc3",
+                  "width": "fill_container",
+                  "fill": "#1a1f2e",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 32,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "t64oW",
+                      "name": "uc3Title",
+                      "fill": "#e4e7eb",
+                      "content": "Smart Buildings",
+                      "fontFamily": "Inter",
+                      "fontSize": 18,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xGwvM",
+                      "name": "uc3Desc",
+                      "fill": "#9ca3af",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Improve operational efficiency and sustainability.",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "PNgUX",
+          "name": "secSecurity",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            40,
+            24
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "OOOIP",
+              "name": "secTitle",
+              "fill": "#e4e7eb",
+              "content": "Security and Architecture",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "3k4XQ",
+              "name": "secPoints",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "vh1AJ",
+                  "name": "secP1",
+                  "fill": "#9ca3af",
+                  "content": "Role-based access control",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "vvTWA",
+                  "name": "secP2",
+                  "fill": "#9ca3af",
+                  "content": "Secure data handling",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "zl0bq",
+                  "name": "secP3",
+                  "fill": "#9ca3af",
+                  "content": "Scalable architecture",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "qVwO4",
+                  "name": "secP4",
+                  "fill": "#9ca3af",
+                  "content": "API-ready design",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "qHOX0",
+              "name": "secDiagram",
+              "width": "fill_container",
+              "height": 120,
+              "fill": "#1a1f2e",
+              "cornerRadius": 8
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "2R8yg",
+          "name": "secData",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            40,
+            24
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "8buSO",
+              "name": "dataTitle",
+              "fill": "#e4e7eb",
+              "content": "Data Transparency",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "iQR4a",
+              "name": "dataMetrics",
+              "layout": "vertical",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "GsmWX",
+                  "name": "dataM1",
+                  "fill": "#9ca3af",
+                  "content": "kWh",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "djA1U",
+                  "name": "dataM2",
+                  "fill": "#9ca3af",
+                  "content": "CO₂ ppm",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "a75Lf",
+                  "name": "dataM3",
+                  "fill": "#9ca3af",
+                  "content": "Occupancy count",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "2RtCj",
+                  "name": "dataM4",
+                  "fill": "#9ca3af",
+                  "content": "Signal strength",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "40a1B",
+                  "name": "dataM5",
+                  "fill": "#9ca3af",
+                  "content": "UV Index",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "Ew1CN",
+              "name": "dataNote",
+              "fill": "#9ca3af",
+              "content": "All data is timestamped and traceable.",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "qYvpn",
+          "name": "secCTA",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            40,
+            24
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "BIUxw",
+              "name": "ctaTitle",
+              "fill": "#e4e7eb",
+              "textGrowth": "fixed-width",
+              "width": 313,
+              "content": "Bring Intelligence to Your Campus Infrastructure",
+              "textAlign": "center",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "frame",
+              "id": "oZtnK",
+              "name": "ctaBtns",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "bWXVA",
+                  "name": "ctaBtn1",
+                  "height": 48,
+                  "fill": "#3b82f6",
+                  "cornerRadius": 8,
+                  "padding": [
+                    16,
+                    32
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "DgbTf",
+                      "name": "ctaBtn1Text",
+                      "fill": "#FFFFFF",
+                      "content": "Request Demo",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PxSHA",
+                  "name": "ctaBtn2",
+                  "height": 48,
+                  "fill": "transparent",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#2d3441"
+                  },
+                  "padding": [
+                    16,
+                    32
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "HvFjl",
+                      "name": "ctaBtn2Text",
+                      "fill": "#e4e7eb",
+                      "content": "Contact Us",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "p6VlX",
+          "name": "footer",
+          "width": "fill_container",
+          "fill": "#1a1f2e",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            40,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "rNexm",
+              "name": "footerLeft",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "OJbJg",
+                  "name": "footerLogo",
+                  "fill": "#e4e7eb",
+                  "content": "SMACA",
+                  "fontFamily": "Inter",
+                  "fontSize": 20,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "tmii1",
+                  "name": "footerDesc",
+                  "fill": "#9ca3af",
+                  "content": "Smart Campus IoT and AI Platform",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "exrA8",
+              "name": "footerLinks",
+              "layout": "vertical",
+              "gap": 32,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "4Xlh6",
+                  "name": "fl1",
+                  "fill": "#9ca3af",
+                  "content": "Platform",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "Mn8pO",
+                  "name": "fl2",
+                  "fill": "#9ca3af",
+                  "content": "Documentation",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "kXHJP",
+                  "name": "fl3",
+                  "fill": "#9ca3af",
+                  "content": "Privacy",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "B8Jc3",
+                  "name": "fl4",
+                  "fill": "#9ca3af",
+                  "content": "Terms",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "bwWBB",
+                  "name": "fl5",
+                  "fill": "#9ca3af",
+                  "content": "Contact",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "themes": {
+    "Theme": [
+      "Default"
+    ]
+  }
+}

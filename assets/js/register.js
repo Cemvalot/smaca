@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       localStorage.setItem('smaca_role', 'user');
     } catch (err) {}
-    window.location.href = 'smaca-dashboard.html';
+    window.location.href = '/dashboard';
   });
 });
 

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMACA – Smart Campus IoT & AI Platform</title>
+  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/landing.css') }}">
+</head>
+<body class="landing-page">
+  <nav class="nav">
+    <a href="{{ url('/landing') }}" class="nav__logo">SMACA</a>
+    <a href="{{ url('/login') }}" class="btn btn--ghost">Sign in</a>
+  </nav>
+  <!-- Hero -->
+  <section class="hero scroll-reveal">
+    <div class="hero__inner">
+      <div class="hero__content">
+        <h1 class="hero__headline">Smart Monitoring for Intelligent Campuses</h1>
+        <p class="hero__subheadline">Real-time IoT data, AI-driven insights, and unified building intelligence in one platform.</p>
+        <div class="hero__ctas">
+          <a href="{{ url('/login') }}" class="btn btn--primary">Request Demo</a>
+          <a href="{{ url('/dashboard') }}" class="btn btn--secondary">View Dashboard</a>
+        </div>
+        <div class="hero__badges">
+          <span class="badge">Real-time Data</span>
+          <span class="badge">AI Powered</span>
+          <span class="badge">Secure Architecture</span>
+        </div>
+      </div>
+      <div class="hero__viz">
+        <div class="viz-bars">
+          <div class="viz-bar"></div>
+          <div class="viz-bar viz-bar--short"></div>
+          <div class="viz-bar viz-bar--shorter"></div>
+        </div>
+        <div class="viz-nodes">
+          <span class="viz-node"></span>
+          <span class="viz-node"></span>
+          <span class="viz-node"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What is SMACA -->
+  <section class="section scroll-reveal">
+    <div class="section__inner section--two-col">
+      <div class="section__content">
+        <h2 class="section__title">What is SMACA</h2>
+        <p class="section__text">SMACA is a unified IoT monitoring platform designed for smart buildings and campus environments. It aggregates environmental, energy, occupancy and connectivity data into a single, actionable interface.</p>
+      </div>
+      <div class="section__diagram">
+        <span class="diag-box">Sensors</span>
+        <span class="diag-arrow">→</span>
+        <span class="diag-box">Platform</span>
+        <span class="diag-arrow">→</span>
+        <span class="diag-box">AI Engine</span>
+        <span class="diag-arrow">→</span>
+        <span class="diag-box diag-box--accent">Dashboard</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Modules -->
+  <section class="section scroll-reveal">
+    <div class="section__inner">
+      <h2 class="section__title">Core Modules</h2>
+      <div class="modules-grid">
+        <div class="card clay scroll-reveal" style="--delay: 0">
+          <span class="card__icon">🌬️</span>
+          <h3 class="card__title">Indoor Air Quality</h3>
+          <p class="card__desc">CO₂, humidity, temperature and environmental health indicators.</p>
+        </div>
+        <div class="card clay scroll-reveal" style="--delay: 1">
+          <span class="card__icon">⚡</span>
+          <h3 class="card__title">Energy Monitoring</h3>
+          <p class="card__desc">Energy consumption, max demand, power factor and usage patterns.</p>
+        </div>
+        <div class="card clay scroll-reveal" style="--delay: 2">
+          <span class="card__icon">👥</span>
+          <h3 class="card__title">Occupancy Analytics</h3>
+          <p class="card__desc">Presence detection, movement flow and space utilization.</p>
+        </div>
+        <div class="card clay scroll-reveal" style="--delay: 3">
+          <span class="card__icon">📶</span>
+          <h3 class="card__title">Connectivity Monitoring</h3>
+          <p class="card__desc">Signal strength, transmission quality and device health.</p>
+        </div>
+        <div class="card clay scroll-reveal" style="--delay: 4">
+          <span class="card__icon">☀️</span>
+          <h3 class="card__title">Environmental / UV</h3>
+          <p class="card__desc">UV index and environmental conditions.</p>
+        </div>
+        <div class="card clay scroll-reveal" style="--delay: 5">
+          <span class="card__icon">🧠</span>
+          <h3 class="card__title">AI Insights</h3>
+          <p class="card__desc">Predictive analytics, anomaly detection and smart recommendations.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it Works -->
+  <section class="section scroll-reveal">
+    <div class="section__inner">
+      <h2 class="section__title">How it Works</h2>
+      <div class="steps">
+        <div class="step clay scroll-reveal" style="--delay: 0">
+          <span class="step__num">1</span>
+          <p class="step__text">Sensors collect data</p>
+        </div>
+        <div class="step clay scroll-reveal" style="--delay: 1">
+          <span class="step__num">2</span>
+          <p class="step__text">Data normalized & validated</p>
+        </div>
+        <div class="step clay scroll-reveal" style="--delay: 2">
+          <span class="step__num">3</span>
+          <p class="step__text">AI engine analyzes trends</p>
+        </div>
+        <div class="step clay scroll-reveal" style="--delay: 3">
+          <span class="step__num">4</span>
+          <p class="step__text">Dashboard delivers actionable insights</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Role-based Access -->
+  <section class="section scroll-reveal">
+    <div class="section__inner">
+      <h2 class="section__title">Role-based Access</h2>
+      <div class="roles-compare">
+        <div class="role-card clay scroll-reveal" style="--delay: 0">
+          <h3 class="role-card__title">USER</h3>
+          <ul class="role-card__list">
+            <li>View dashboards</li>
+            <li>Monitor live metrics</li>
+            <li>View alerts</li>
+            <li>Access building insights</li>
+          </ul>
+        </div>
+        <div class="role-card clay scroll-reveal" style="--delay: 1">
+          <h3 class="role-card__title">ADMIN</h3>
+          <ul class="role-card__list">
+            <li><span class="lock-icon">🔒</span> Manage sensors</li>
+            <li><span class="lock-icon">🔒</span> Configure thresholds</li>
+            <li><span class="lock-icon">🔒</span> Manage users & roles</li>
+            <li><span class="lock-icon">🔒</span> Export reports</li>
+            <li><span class="lock-icon">🔒</span> System settings</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Cases -->
+  <section class="section scroll-reveal">
+    <div class="section__inner">
+      <h2 class="section__title">Use Cases</h2>
+      <div class="use-cases">
+        <div class="card clay scroll-reveal" style="--delay: 0">
+          <h3 class="card__title">Universities</h3>
+          <p class="card__desc">Optimize lecture halls, monitor air quality and reduce energy waste.</p>
+        </div>
+        <div class="card clay scroll-reveal" style="--delay: 1">
+          <h3 class="card__title">Research Institutions</h3>
+          <p class="card__desc">Ensure environmental compliance and data traceability.</p>
+        </div>
+        <div class="card clay scroll-reveal" style="--delay: 2">
+          <h3 class="card__title">Smart Buildings</h3>
+          <p class="card__desc">Improve operational efficiency and sustainability.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security & Architecture -->
+  <section class="section scroll-reveal">
+    <div class="section__inner">
+      <h2 class="section__title">Security & Architecture</h2>
+      <ul class="security-list clay scroll-reveal">
+        <li>Role-based access control</li>
+        <li>Secure data handling</li>
+        <li>Scalable architecture</li>
+        <li>API-ready design</li>
+      </ul>
+      <div class="arch-diagram clay scroll-reveal"></div>
+    </div>
+  </section>
+
+  <!-- Data Transparency -->
+  <section class="section scroll-reveal">
+    <div class="section__inner">
+      <h2 class="section__title">Data Transparency</h2>
+      <div class="data-metrics clay scroll-reveal">
+        <span>kWh</span>
+        <span>CO₂ ppm</span>
+        <span>Occupancy count</span>
+        <span>Signal strength</span>
+        <span>UV Index</span>
+      </div>
+      <p class="data-note scroll-reveal">All data is timestamped and traceable.</p>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section cta-section scroll-reveal">
+    <div class="section__inner cta__inner">
+      <h2 class="cta__headline">Bring Intelligence to Your Campus Infrastructure</h2>
+      <div class="cta__buttons">
+        <a href="{{ url('/login') }}" class="btn btn--primary btn--lg">Request Demo</a>
+        <a href="{{ url('/login') }}" class="btn btn--secondary btn--lg">Contact Us</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <strong>SMACA</strong>
+        <span>Smart Campus IoT and AI Platform</span>
+      </div>
+      <nav class="footer__links">
+        <a href="#">Platform</a>
+        <a href="#">Documentation</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="{{ url('/login') }}">Contact</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="{{ asset('assets/js/landing.js') }}"></script>
+</body>
+</html>
