@@ -1,0 +1,238 @@
+/* Section Header */
+.section-header {
+  margin-bottom: var(--space-6);
+}
+
+.section-header h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.section-subtitle {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Sensors Grid - Uses card styles from dashboard.css */
+.sensors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+
+/* Stack utility for sensor cards */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  /* Responsive styles for current components */
+}
+
+@media (max-width: 768px) {
+  /* Responsive styles for current components */
+}
+
+/* Dashboard Sections */
+.dashboard-section {
+  display: block;
+}
+
+.dashboard-section[style*="display: none"] {
+  display: none !important;
+}
+
+.nav-link--section.is-active {
+  background: var(--surface-2);
+  color: var(--accent);
+}
+
+.nav-link--section.is-active .nav-link__icon {
+  color: var(--accent);
+}
+
+/* Advanced Visualization Styles */
+.section-header p.section-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  margin-top: var(--space-2);
+  font-style: italic;
+}
+
+.card__header p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: var(--space-1);
+  line-height: 1.4;
+}
+
+/* Threshold bands */
+.threshold-bands rect {
+  transition: opacity 0.2s;
+}
+
+.threshold-lines line {
+  transition: opacity 0.2s;
+}
+
+/* Chart improvements */
+.chart-placeholder {
+  min-height: 300px;
+}
+
+/* Table styles for sensor health */
+#sensor-health-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#sensor-health-table td,
+#sensor-health-table th {
+  padding: var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+#sensor-health-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+/* Micro-trend indicators */
+.micro-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .sensors-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* AI Insights Recommendations */
+#ai-insights-list .card {
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+}
+
+#ai-insights-list .card:hover {
+  cursor: pointer;
+}
+
+/* Management Section */
+.management-tab {
+  transition: all 0.2s;
+}
+
+.management-tab:hover {
+  color: var(--text) !important;
+  background: var(--surface-2);
+}
+
+.management-tab.active {
+  color: var(--text) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+#sensors-management-table {
+  font-size: var(--font-size-sm);
+}
+
+#sensors-management-table tbody tr {
+  transition: background 0.2s;
+}
+
+#sensors-management-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+/* AI Insights Enhanced Styles */
+#co2-prediction-insight {
+  border-left: 3px solid #3b82f6;
+}
+
+#ai-alerts-list .badge {
+  margin-right: var(--space-2);
+}
+
+/* Production Features Styles */
+.time-range-selector {
+  display: flex;
+  gap: var(--space-1);
+  background: var(--surface-2);
+  padding: var(--space-1);
+  border-radius: var(--r-md);
+  transition: opacity 0.2s;
+}
+
+.time-range-btn {
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: normal;
+  min-width: 44px;
+  text-align: center;
+}
+
+.time-range-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.time-range-btn.active {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.trend-pill {
+  font-weight: var(--font-weight-medium);
+}
+
+.trend-pill.trend-up {
+  color: var(--danger);
+}
+
+.trend-pill.trend-down {
+  color: var(--success);
+}
+
+.trend-pill.trend-neutral {
+  color: var(--muted);
+}
+
+.alert-card {
+  transition: background 0.2s;
+}
+
+.alert-card:hover {
+  background: var(--surface-2);
+}
+
+.system-health-badge__indicator {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}

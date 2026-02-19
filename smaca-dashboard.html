@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMACA Dashboard - Unified IoT Monitoring</title>
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+  <link rel="stylesheet" href="assets/css/smaca-dashboard.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar__header">
+        <div class="sidebar__logo">SMACA</div>
+        <div class="sidebar__subtitle">IoT & AI Platform</div>
+      </div>
+      <nav class="sidebar__nav">
+        <a href="#overview" class="nav-link nav-link--section is-active" data-section="overview">
+          <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          <span class="nav-link__text">Dashboard Overview</span>
+        </a>
+        <a href="#iaq" class="nav-link nav-link--section" data-section="iaq">
+          <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span class="nav-link__text">Indoor Air Quality</span>
+        </a>
+        <a href="#occupancy" class="nav-link nav-link--section" data-section="occupancy">
+          <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          <span class="nav-link__text">Occupancy</span>
+        </a>
+        <a href="#energy" class="nav-link nav-link--section" data-section="energy">
+          <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          <span class="nav-link__text">Energy</span>
+        </a>
+        <a href="#connectivity" class="nav-link nav-link--section" data-section="connectivity">
+          <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+          </svg>
+          <span class="nav-link__text">Connectivity</span>
+        </a>
+        <a href="#environmental" class="nav-link nav-link--section" data-section="environmental">
+          <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+          </svg>
+          <span class="nav-link__text">Environmental / UV</span>
+        </a>
+        <a href="#ai-insights" class="nav-link nav-link--section" data-section="ai-insights">
+          <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+          </svg>
+          <span class="nav-link__text">AI Insights</span>
+        </a>
+        <a href="#management" class="nav-link nav-link--section" data-section="management">
+          <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          <span class="nav-link__text">Management</span>
+        </a>
+      </nav>
+      <div class="sidebar__footer">
+        <a href="login.html" class="btn btn--ghost btn--sm">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="topbar__title">
+          <h1 class="topbar__heading">SMACA Dashboard</h1>
+          <p class="topbar__subtitle">Unified IoT monitoring platform</p>
+        </div>
+        <div class="topbar__actions" style="display: flex; align-items: center; gap: var(--space-4);">
+          <!-- System Health Badge -->
+          <div id="system-health-badge" class="system-health-badge" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--r-md); background: var(--surface-2); font-size: var(--font-size-sm);">
+            <span class="system-health-badge__indicator" style="width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></span>
+            <span class="system-health-badge__text">Operational</span>
+          </div>
+          
+          <!-- Time Range Selector -->
+          <div class="time-range-selector">
+            <button class="time-range-btn active" data-timeframe="24h">24h</button>
+            <button class="time-range-btn" data-timeframe="7d">7d</button>
+            <button class="time-range-btn" data-timeframe="30d">30d</button>
+          </div>
+          
+          <!-- Export Button -->
+          <button id="export-btn" class="btn btn--secondary btn--sm" style="display: flex; align-items: center; gap: var(--space-2);">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Export
+          </button>
+          
+          <button class="btn btn--ghost btn--sm" id="sidebar-toggle" aria-label="Toggle sidebar">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+        <!-- Dashboard Overview Section -->
+        <div class="dashboard-section" id="overview" data-section="overview">
+          <!-- Header with Blue/Purple Gradient -->
+          <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: var(--r-lg); padding: var(--space-6); margin-bottom: var(--space-6); color: white;">
+            <div style="display: flex; align-items: start; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
+                  <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                  </svg>
+                  <h2 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: white; margin: 0;">Dashboard Overview</h2>
+                </div>
+                <p style="font-size: var(--font-size-base); color: rgba(255, 255, 255, 0.9); margin: 0;">Select a section from the sidebar to view detailed monitoring data</p>
+              </div>
+              <div style="background: white; border-radius: var(--r-md); padding: var(--space-4); text-align: center; min-width: 100px;">
+                <div id="overview-total-sensors" style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: #3b82f6; line-height: 1;">24</div>
+                <div style="font-size: var(--font-size-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Total sensors</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Stats Grid -->
+          <div class="grid grid--metrics grid--metrics-4">
+            <div class="stat-card">
+              <div class="stat-card__content">
+                <div class="stat-card__label">Total Sensors</div>
+                <div class="stat-card__value">24</div>
+                <div class="stat-card__unit">active</div>
+                <div class="stat-card__meta">Across all systems</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card__content">
+                <div class="stat-card__label">System Health</div>
+                <div class="stat-card__value">98%</div>
+                <div class="stat-card__unit"></div>
+                <div style="display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2);">
+                  <span class="badge badge--success badge--sm">Optimal</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card__content">
+                <div class="stat-card__label">Data Points Today</div>
+                <div class="stat-card__value">12.4K</div>
+                <div class="stat-card__unit"></div>
+                <div class="stat-card__meta">Real-time collection</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card__content">
+                <div class="stat-card__label">Last Update</div>
+                <div class="stat-card__value">2</div>
+                <div class="stat-card__unit">min ago</div>
+                <div class="stat-card__meta">All systems synchronized</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- General Information Section -->
+          <div class="grid" style="margin-top: var(--space-6); grid-template-columns: 2fr 1fr; gap: var(--space-6);">
+            <!-- System Information -->
+            <div class="card">
+              <div class="card__header">
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <h3 class="card__title">Σχετικά με το SMACA</h3>
+                </div>
+              </div>
+              <div class="card__body">
+                <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+                  <div>
+                    <h4 style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-2); color: var(--text);">Τι είναι το SMACA;</h4>
+                    <p style="font-size: var(--font-size-sm); color: var(--muted); line-height: 1.6; margin: 0;">
+                      Το SMACA (Smart Campus) είναι μια ολοκληρωμένη πλατφόρμα IoT για την παρακολούθηση της ποιότητας αέρα, της απασχόλησης, της κατανάλωσης ενέργειας και των περιβαλλοντικών συνθηκών σε έξυπνα κτίρια και πανεπιστημιακές εγκαταστάσεις.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-2); color: var(--text);">Χαρακτηριστικά</h4>
+                    <ul style="font-size: var(--font-size-sm); color: var(--muted); line-height: 1.8; margin: 0; padding-left: var(--space-4);">
+                      <li>Παρακολούθηση ποιότητας αέρα σε πραγματικό χρόνο</li>
+                      <li>Ανάλυση απασχόλησης και ροής ανθρώπων</li>
+                      <li>Μετρήσεις κατανάλωσης ενέργειας</li>
+                      <li>Περιβαλλοντικοί δείκτες (UV, θερμοκρασία)</li>
+                      <li>AI-powered προβλέψεις και συστάσεις</li>
+                      <li>Συστηματική διαχείριση αισθητήρων</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-2); color: var(--text);">Χρήσιμες Πληροφορίες</h4>
+                    <div style="font-size: var(--font-size-sm); color: var(--muted); line-height: 1.6;">
+                      <p style="margin-bottom: var(--space-2);">
+                        <strong style="color: var(--text);">Time Range Selector:</strong> Χρησιμοποίησε τα κουμπιά 24h / 7d / 30d στην επάνω γραμμή για να φιλτράρεις τα δεδομένα ανά χρονικό διάστημα.
+                      </p>
+                      <p style="margin-bottom: var(--space-2);">
+                        <strong style="color: var(--text);">Export Data:</strong> Κάνε κλικ στο κουμπί "Export" για να κατεβάσεις τα δεδομένα σε CSV format.
+                      </p>
+                      <p style="margin: 0;">
+                        <strong style="color: var(--text);">Alerts:</strong> Οι ειδοποιήσεις εμφανίζονται αυτόματα όταν εντοπίζονται προβλήματα (υψηλό CO₂, χαμηλή μπαταρία, αδύναμο σήμα).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- System Status & Quick Tips -->
+            <div class="card">
+              <div class="card__header">
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <h3 class="card__title">Κατάσταση Συστήματος</h3>
+                </div>
+              </div>
+              <div class="card__body">
+                <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+                  <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                      <span style="font-size: var(--font-size-sm); color: var(--muted);">Συνδεδεμένοι Αισθητήρες</span>
+                      <span id="overview-connected-sensors" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); color: var(--text);">24</span>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                      <span style="font-size: var(--font-size-sm); color: var(--muted);">Ενεργοί Αισθητήρες</span>
+                      <span id="overview-active-sensors" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); color: var(--success);">23</span>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                      <span style="font-size: var(--font-size-sm); color: var(--muted);">Σε Συντήρηση</span>
+                      <span id="overview-maintenance-sensors" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); color: var(--warning);">1</span>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span style="font-size: var(--font-size-sm); color: var(--muted);">AI Events (24h)</span>
+                      <span id="overview-ai-events" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); color: var(--accent);">47</span>
+                    </div>
+                  </div>
+                  
+                  <div style="border-top: 1px solid var(--border); padding-top: var(--space-4);">
+                    <h4 style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-3); color: var(--text); text-transform: uppercase; letter-spacing: 0.5px;">Γρήγορες Συμβουλές</h4>
+                    <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                      <div style="display: flex; align-items: start; gap: var(--space-2);">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent); margin-top: 2px; flex-shrink: 0;">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                          <div style="font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); color: var(--text); margin-bottom: var(--space-1);">CO₂ Levels</div>
+                          <div style="font-size: var(--font-size-xs); color: var(--muted);">Καλό: &lt;800 ppm, Προειδοποίηση: 800-1000 ppm, Κίνδυνος: &gt;1000 ppm</div>
+                        </div>
+                      </div>
+                      <div style="display: flex; align-items: start; gap: var(--space-2);">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent); margin-top: 2px; flex-shrink: 0;">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                          <div style="font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); color: var(--text); margin-bottom: var(--space-1);">Battery Status</div>
+                          <div style="font-size: var(--font-size-xs); color: var(--muted);">Ελέγχουμε τακτικά τη μπαταρία των αισθητήρων. &lt;20% = απαιτείται αντικατάσταση</div>
+                        </div>
+                      </div>
+                      <div style="display: flex; align-items: start; gap: var(--space-2);">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent); margin-top: 2px; flex-shrink: 0;">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                          <div style="font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); color: var(--text); margin-bottom: var(--space-1);">Signal Strength</div>
+                          <div style="font-size: var(--font-size-xs); color: var(--muted);">RSSI &gt; -70 dBm = Ισχυρό, -70 έως -90 dBm = Καλό, &lt; -90 dBm = Αδύναμο</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Access Links -->
+          <div class="grid" style="margin-top: var(--space-6); grid-template-columns: 1fr;">
+            <div class="card">
+              <div class="card__header">
+                <h3 class="card__title">Quick Access</h3>
+              </div>
+              <div class="card__body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4);">
+                  <a href="#iaq" class="btn btn--secondary quick-link" data-section="iaq" style="text-align: center;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: var(--space-2);">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Indoor Air Quality
+                  </a>
+                  <a href="#occupancy" class="btn btn--secondary quick-link" data-section="occupancy" style="text-align: center;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: var(--space-2);">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    Occupancy
+                  </a>
+                  <a href="#energy" class="btn btn--secondary quick-link" data-section="energy" style="text-align: center;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: var(--space-2);">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Energy
+                  </a>
+                  <a href="#connectivity" class="btn btn--secondary quick-link" data-section="connectivity" style="text-align: center;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: var(--space-2);">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                    </svg>
+                    Connectivity
+                  </a>
+                  <a href="#environmental" class="btn btn--secondary quick-link" data-section="environmental" style="text-align: center;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: var(--space-2);">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    Environmental / UV
+                  </a>
+                  <a href="#ai-insights" class="btn btn--secondary quick-link" data-section="ai-insights" style="text-align: center;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: var(--space-2);">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                    AI Insights
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Indoor Air Quality Section -->
+        <div class="dashboard-section" id="iaq" data-section="iaq" style="display: none;">
+          <!-- Header with Green/Teal Gradient -->
+          <div style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); border-radius: var(--r-lg); padding: var(--space-6); margin-bottom: var(--space-6); color: white;">
+            <div style="display: flex; align-items: start; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
+                  <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <h2 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: white; margin: 0;">Indoor Air Quality</h2>
+                </div>
+                <p style="font-size: var(--font-size-base); color: rgba(255, 255, 255, 0.9); margin: 0;">Is the space currently healthy? Is air quality degrading or improving?</p>
+              </div>
+              <div style="background: white; border-radius: var(--r-md); padding: var(--space-4); text-align: center; min-width: 100px;">
+                <div id="iaq-active-sensors" style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: #10b981; line-height: 1;">8</div>
+                <div style="font-size: var(--font-size-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Active sensors</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- KPI Cards with Metric Definitions -->
+          <div id="iaq-kpi-cards" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
+            <!-- KPI cards will be rendered here by JavaScript -->
+          </div>
+          
+          <!-- Sensor Health & Data Source -->
+          <div class="grid" style="grid-template-columns: 2fr 1fr; gap: var(--space-6); margin-bottom: var(--space-6);">
+            <div id="sensor-health-panel"></div>
+            <div id="data-source-panel"></div>
+          </div>
+          
+          <!-- Active Alerts Panel -->
+          <div class="card" style="margin-bottom: var(--space-6);">
+            <div class="card__header">
+              <h3 class="card__title">Active Alerts</h3>
+            </div>
+            <div class="card__body">
+              <div id="alerts-panel">
+                <div class="alerts-empty-state" style="text-align: center; padding: var(--space-8); color: var(--muted);">
+                  <p>No active alerts</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Domain-Driven Visualizations -->
+          <div class="grid" style="grid-template-columns: 1fr; gap: var(--space-6); margin-bottom: var(--space-6);">
+            <div class="card">
+              <div class="card__header">
+                <h3 class="card__title">CO₂ Concentration with Threshold Zones</h3>
+                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When to ventilate or adjust HVAC</p>
+              </div>
+              <div class="card__body">
+                <div class="chart-placeholder" id="iaq-co2-band-chart"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Occupancy Section -->
+        <div class="dashboard-section" id="occupancy" data-section="occupancy" style="display: none;">
+          <!-- Header with Orange/Red Gradient -->
+          <div style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); border-radius: var(--r-lg); padding: var(--space-6); margin-bottom: var(--space-6); color: white;">
+            <div style="display: flex; align-items: start; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
+                  <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  </svg>
+                  <h2 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: white; margin: 0;">Occupancy</h2>
+                </div>
+                <p style="font-size: var(--font-size-base); color: rgba(255, 255, 255, 0.9); margin: 0;">When is the space actually used? Is usage consistent or bursty?</p>
+              </div>
+              <div style="background: white; border-radius: var(--r-md); padding: var(--space-4); text-align: center; min-width: 100px;">
+                <div id="occupancy-current-count" style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: #f59e0b; line-height: 1;">7</div>
+                <div style="font-size: var(--font-size-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">People present</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Current Status -->
+          <div class="card" style="margin-bottom: var(--space-6);">
+            <div class="card__body">
+              <div style="display: flex; align-items: center; gap: var(--space-6);">
+                <div>
+                  <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">Current Occupancy</div>
+                  <div style="font-size: 36px; font-weight: 600; color: var(--text);">7</div>
+                  <div style="font-size: 11px; color: var(--muted);">people present</div>
+                </div>
+                <div style="flex: 1; border-left: 1px solid var(--border); padding-left: var(--space-6);">
+                  <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Does occupancy explain IAQ degradation?</div>
+                  <div style="font-size: 12px; color: var(--text);">Correlation analysis available in Energy section</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Domain-Driven Visualizations -->
+          <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6);">
+            <div class="card">
+              <div class="card__header">
+                <h3 class="card__title">Flow-based Movement (In/Out)</h3>
+                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is space actually being used?</p>
+              </div>
+              <div class="card__body">
+                <div class="chart-placeholder" id="occupancy-flow-chart"></div>
+                <!-- Graph Explanation -->
+                <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.6;">
+                  <div style="margin-bottom: var(--space-3);">
+                    <strong style="color: var(--text); font-size: 12px;">What is this graph?</strong>
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); margin-bottom: var(--space-3);">
+                    <div>
+                      <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">Y-axis (Vertical):</div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Center line (0):</strong> Baseline - no movement
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Upward (green bars):</strong> People entering the space
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Downward (red bars):</strong> People leaving the space
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Bar height:</strong> Number of people (scaled to max value)
+                      </div>
+                    </div>
+                    <div>
+                      <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">X-axis (Horizontal):</div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Time periods:</strong> Each bar represents one time interval (e.g., hourly)
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Range:</strong> Typically 24 hours (00:00 to 23:00)
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Pattern:</strong> Shows when people enter vs. exit throughout the day
+                      </div>
+                    </div>
+                  </div>
+                  <div style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border);">
+                    <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">How to read:</div>
+                    <div style="display: flex; gap: var(--space-4); flex-wrap: wrap;">
+                      <div style="display: flex; align-items: center; gap: var(--space-2);">
+                        <div style="width: 12px; height: 12px; background: #10b981;"></div>
+                        <span><strong>Green bars (↑):</strong> People entering - shows arrival patterns</span>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: var(--space-2);">
+                        <div style="width: 12px; height: 12px; background: #ef4444;"></div>
+                        <span><strong>Red bars (↓):</strong> People leaving - shows departure patterns</span>
+                      </div>
+                    </div>
+                    <div style="margin-top: var(--space-2); font-style: italic; font-size: 10px;">
+                      Example: If a green bar reaches 5 units upward, it means 5 people entered during that time period. If a red bar reaches 3 units downward, 3 people left.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card__header">
+                <h3 class="card__title">Occupancy Density Timeline</h3>
+                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is space actually occupied? (Discrete presence)</p>
+              </div>
+              <div class="card__body">
+                <div class="chart-placeholder" id="occupancy-density-timeline"></div>
+                <!-- Graph Explanation -->
+                <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.6;">
+                  <div style="margin-bottom: var(--space-3);">
+                    <strong style="color: var(--text); font-size: 12px;">What is this graph?</strong>
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); margin-bottom: var(--space-3);">
+                    <div>
+                      <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">Y-axis (Vertical):</div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Values (0 to max):</strong> Total number of people present in the space
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Each number:</strong> Represents the occupancy count at that moment
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Blue area:</strong> Filled area below the line shows occupancy density
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Step pattern:</strong> Values change in discrete steps (not smooth curves)
+                      </div>
+                    </div>
+                    <div>
+                      <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">X-axis (Horizontal):</div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Time periods:</strong> Each step represents one time interval (e.g., hourly)
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Range:</strong> Typically 24 hours (00:00 to 23:00)
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Step chart:</strong> Values remain constant within each interval, then jump to next value
+                      </div>
+                    </div>
+                  </div>
+                  <div style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border);">
+                    <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">How to read:</div>
+                    <div style="margin-bottom: var(--space-2);">
+                      • <strong>Higher blue area:</strong> More people present during that time period
+                    </div>
+                    <div style="margin-bottom: var(--space-2);">
+                      • <strong>Flat sections:</strong> Occupancy stayed constant during that interval
+                    </div>
+                    <div style="margin-bottom: var(--space-2);">
+                      • <strong>Vertical jumps:</strong> Sudden changes in occupancy (people entering or leaving)
+                    </div>
+                    <div style="font-style: italic; font-size: 10px;">
+                      Example: If the line is at Y=7, it means 7 people were present during that entire time period. The step pattern shows discrete occupancy levels rather than continuous changes.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Energy Section -->
+        <div class="dashboard-section" id="energy" data-section="energy" style="display: none;">
+          <!-- Header with Yellow/Orange Gradient -->
+          <div style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: var(--r-lg); padding: var(--space-6); margin-bottom: var(--space-6); color: white;">
+            <div style="display: flex; align-items: start; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
+                  <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                  </svg>
+                  <h2 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: white; margin: 0;">Energy</h2>
+                </div>
+                <p style="font-size: var(--font-size-base); color: rgba(255, 255, 255, 0.9); margin: 0;">Is energy use proportional to space usage? Are we wasting energy during low occupancy?</p>
+              </div>
+              <div style="background: white; border-radius: var(--r-md); padding: var(--space-4); text-align: center; min-width: 100px;">
+                <div id="energy-daily-consumption" style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: #f59e0b; line-height: 1;">1688</div>
+                <div style="font-size: var(--font-size-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">kWh today</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Current Status -->
+          <div class="card" style="margin-bottom: var(--space-6);">
+            <div class="card__body">
+              <div style="display: flex; align-items: center; gap: var(--space-6);">
+                <div>
+                  <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">Daily Consumption</div>
+                  <div style="font-size: 36px; font-weight: 600; color: var(--text);">1688.2</div>
+                  <div style="font-size: 11px; color: var(--muted);">kWh today</div>
+                </div>
+                <div style="flex: 1; border-left: 1px solid var(--border); padding-left: var(--space-6);">
+                  <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Idle energy periods highlighted below</div>
+                  <div style="font-size: 12px; color: #f59e0b;">Low occupancy + high energy = waste</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Domain-Driven Visualization -->
+          <div class="card">
+            <div class="card__header">
+              <h3 class="card__title">Occupancy vs Energy Correlation</h3>
+              <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: Are we wasting energy during low occupancy? (Red zones = idle waste)</p>
+            </div>
+            <div class="card__body">
+              <div class="chart-placeholder" id="energy-correlation-chart"></div>
+              <!-- Graph Explanation -->
+              <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.6;">
+                <div style="margin-bottom: var(--space-3);">
+                  <strong style="color: var(--text); font-size: 12px;">What is this graph?</strong>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); margin-bottom: var(--space-3);">
+                  <div>
+                    <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">Y-axis Left (Blue):</div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Values (0 to max):</strong> Number of people present (occupancy)
+                    </div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Blue line:</strong> Occupancy trend over time
+                    </div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Scale:</strong> Adjusted to show occupancy range (e.g., 0-25 people)
+                    </div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Ticks:</strong> Evenly divided values (e.g., 0, 5, 10, 15, 20, 25)
+                    </div>
+                  </div>
+                  <div>
+                    <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">Y-axis Right (Orange):</div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Values (0 to max):</strong> Energy consumption (kWh or similar unit)
+                    </div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Orange line:</strong> Energy consumption trend over time
+                    </div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Scale:</strong> Adjusted to show energy range (e.g., 0-200 kWh)
+                    </div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Ticks:</strong> Evenly divided values (e.g., 0, 50, 100, 150, 200)
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border);">
+                  <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">X-axis (Horizontal):</div>
+                  <div style="margin-bottom: var(--space-1);">
+                    • <strong>Time periods:</strong> Each point represents one time interval (e.g., hourly)
+                  </div>
+                  <div style="margin-bottom: var(--space-1);">
+                    • <strong>Range:</strong> Typically 24 hours (00:00 to 23:00)
+                  </div>
+                  <div style="margin-bottom: var(--space-1);">
+                    • <strong>Correlation:</strong> Both lines share the same X-axis to compare trends
+                  </div>
+                </div>
+                <div style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border);">
+                  <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">How to read:</div>
+                  <div style="display: flex; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-2);">
+                    <div style="display: flex; align-items: center; gap: var(--space-2);">
+                      <div style="width: 12px; height: 2px; background: #3b82f6;"></div>
+                      <span><strong>Blue line:</strong> Occupancy (left Y-axis) - number of people</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: var(--space-2);">
+                      <div style="width: 12px; height: 2px; background: #f59e0b;"></div>
+                      <span><strong>Orange line:</strong> Energy consumption (right Y-axis) - kWh</span>
+                    </div>
+                  </div>
+                  <div style="margin-bottom: var(--space-2);">
+                    • <strong>Parallel movement:</strong> If both lines move together, energy use is proportional to occupancy (efficient)
+                  </div>
+                  <div style="margin-bottom: var(--space-2);">
+                    • <strong>Divergence:</strong> If energy stays high while occupancy drops, energy is being wasted
+                  </div>
+                  <div style="margin-bottom: var(--space-2);">
+                    • <strong>Red highlighted areas:</strong> Periods with low occupancy (&lt;20%) but high energy (&gt;30% of max) - potential waste
+                  </div>
+                  <div style="font-style: italic; font-size: 10px;">
+                    Example: If occupancy is at 5 people (blue line at Y=5) but energy is at 150 kWh (orange line at Y=150), this suggests energy waste during low occupancy periods.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connectivity Section -->
+        <div class="dashboard-section" id="connectivity" data-section="connectivity" style="display: none;">
+          <!-- Header with Blue/Cyan Gradient -->
+          <div style="background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); border-radius: var(--r-lg); padding: var(--space-6); margin-bottom: var(--space-6); color: white;">
+            <div style="display: flex; align-items: start; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
+                  <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                  </svg>
+                  <h2 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: white; margin: 0;">Connectivity</h2>
+                </div>
+                <p style="font-size: var(--font-size-base); color: rgba(255, 255, 255, 0.9); margin: 0;">Can I trust this data? Which sensors are degrading?</p>
+              </div>
+              <div style="background: white; border-radius: var(--r-md); padding: var(--space-4); text-align: center; min-width: 100px;">
+                <div id="connectivity-connected-sensors" style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: #3b82f6; line-height: 1;">24</div>
+                <div style="font-size: var(--font-size-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Connected</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Domain-Driven Visualization -->
+          <div class="card">
+            <div class="card__header">
+              <h3 class="card__title">Sensor Health Status</h3>
+              <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: Which sensors need attention? (Battery decay, signal strength, data freshness)</p>
+            </div>
+            <div class="card__body">
+              <div id="sensor-health-table"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Environmental / UV Section -->
+        <div class="dashboard-section" id="environmental" data-section="environmental" style="display: none;">
+          <!-- Header with Yellow/Orange Gradient -->
+          <div style="background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%); border-radius: var(--r-lg); padding: var(--space-6); margin-bottom: var(--space-6); color: white;">
+            <div style="display: flex; align-items: start; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
+                  <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                  </svg>
+                  <h2 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: white; margin: 0;">Environmental / UV</h2>
+                </div>
+                <p style="font-size: var(--font-size-base); color: rgba(255, 255, 255, 0.9); margin: 0;">UV index and environmental conditions</p>
+              </div>
+              <div style="background: white; border-radius: var(--r-md); padding: var(--space-4); text-align: center; min-width: 100px;">
+                <div id="environmental-uv-index" style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: #f97316; line-height: 1;">6.5</div>
+                <div style="font-size: var(--font-size-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">UV Index</div>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid--metrics grid--metrics-4">
+            <div class="stat-card">
+              <div class="stat-card__content">
+                <div class="stat-card__label">UV Index</div>
+                <div class="stat-card__value">6.5</div>
+                <div class="stat-card__unit"></div>
+                <div class="stat-card__meta">Moderate</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Environmental Charts -->
+          <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6); margin-top: var(--space-6);">
+            <div class="card">
+              <div class="card__header">
+                <h3 class="card__title">UV Index Gauge</h3>
+              </div>
+              <div class="card__body" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
+                <div id="uv-gauge-chart"></div>
+                <!-- Graph Explanation -->
+                <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.6; width: 100%;">
+                  <div style="margin-bottom: var(--space-3);">
+                    <strong style="color: var(--text); font-size: 12px;">What is this gauge?</strong>
+                  </div>
+                  <div style="margin-bottom: var(--space-3);">
+                    <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">UV Index Scale:</div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Range:</strong> 0 to 11+ (maximum UV index scale)
+                    </div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Current value:</strong> Displayed in the center (e.g., 6.5)
+                    </div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Gauge arc:</strong> Semi-circular gauge showing current UV level
+                    </div>
+                    <div style="margin-bottom: var(--space-1);">
+                      • <strong>Color coding:</strong> Green (low), Orange (moderate), Red (high)
+                    </div>
+                  </div>
+                  <div style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border);">
+                    <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">UV Index Levels:</div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-2);">
+                      <div>
+                        <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1);">
+                          <div style="width: 12px; height: 12px; background: #10b981; border-radius: 50%;"></div>
+                          <span><strong>0-2:</strong> Low</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1);">
+                          <div style="width: 12px; height: 12px; background: #f59e0b; border-radius: 50%;"></div>
+                          <span><strong>3-5:</strong> Moderate</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1);">
+                          <div style="width: 12px; height: 12px; background: #ef4444; border-radius: 50%;"></div>
+                          <span><strong>6-7:</strong> High</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: var(--space-2);">
+                          <div style="width: 12px; height: 12px; background: #dc2626; border-radius: 50%;"></div>
+                          <span><strong>8-11+:</strong> Very High</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div style="margin-top: var(--space-2); font-style: italic; font-size: 10px;">
+                      The gauge arc fills based on the current UV index value. Higher values indicate stronger UV radiation requiring more protection.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card__header">
+                <h3 class="card__title">Hourly UV Index</h3>
+              </div>
+              <div class="card__body">
+                <div class="chart-placeholder" id="uv-hourly-chart"></div>
+                <!-- Graph Explanation -->
+                <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.6;">
+                  <div style="margin-bottom: var(--space-3);">
+                    <strong style="color: var(--text); font-size: 12px;">What is this graph?</strong>
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); margin-bottom: var(--space-3);">
+                    <div>
+                      <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">Y-axis (Vertical):</div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Values (0 to 11+):</strong> UV Index scale
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Each number:</strong> Represents UV intensity at that time
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Orange line:</strong> UV Index measurements over time
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Scale:</strong> Typically 0-11 (can extend higher)
+                      </div>
+                    </div>
+                    <div>
+                      <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">X-axis (Horizontal):</div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Time periods:</strong> Each point represents one hour
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Range:</strong> Typically 24 hours (00:00 to 23:00)
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Pattern:</strong> Shows UV intensity throughout the day
+                      </div>
+                      <div style="margin-bottom: var(--space-1);">
+                        • <strong>Peak hours:</strong> Usually midday (10:00-16:00)
+                      </div>
+                    </div>
+                  </div>
+                  <div style="margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border);">
+                    <div style="margin-bottom: var(--space-2); color: var(--text); font-weight: 500;">How to read:</div>
+                    <div style="margin-bottom: var(--space-2);">
+                      • <strong>Low values (0-2):</strong> Minimal UV exposure - safe for extended outdoor activity
+                    </div>
+                    <div style="margin-bottom: var(--space-2);">
+                      • <strong>Moderate values (3-5):</strong> Some protection needed - seek shade during midday
+                    </div>
+                    <div style="margin-bottom: var(--space-2);">
+                      • <strong>High values (6-7):</strong> Protection required - avoid sun during peak hours
+                    </div>
+                    <div style="margin-bottom: var(--space-2);">
+                      • <strong>Very high (8-11+):</strong> Extra protection needed - minimize sun exposure
+                    </div>
+                    <div style="font-style: italic; font-size: 10px;">
+                      Example: If the line peaks at Y=7 around 12:00, it means UV Index was 7 (high) at noon, requiring sun protection.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Insights Section -->
+        <div class="dashboard-section" id="ai-insights" data-section="ai-insights" style="display: none;">
+          <!-- Header with Purple Gradient -->
+          <div style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); border-radius: var(--r-lg); padding: var(--space-6); margin-bottom: var(--space-6); color: white;">
+            <div style="display: flex; align-items: start; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
+                  <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                  </svg>
+                  <h2 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: white; margin: 0;">AI Insights & Predictions</h2>
+                </div>
+                <p style="font-size: var(--font-size-base); color: rgba(255, 255, 255, 0.9); margin: 0;">Machine Learning for smart building management</p>
+              </div>
+              <div style="background: white; border-radius: var(--r-md); padding: var(--space-4); text-align: center; min-width: 100px;">
+                <div id="active-events-count" style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: #8b5cf6; line-height: 1;">5</div>
+                <div style="font-size: var(--font-size-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Active events</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ollama Model Card -->
+          <div style="margin-bottom: var(--space-6);">
+            <div class="card" id="ollama-model-card">
+              <!-- Will be rendered by JavaScript -->
+            </div>
+          </div>
+
+          <!-- CO₂ Prediction Chart & Active Alerts -->
+          <div class="grid" style="grid-template-columns: 2fr 1fr; gap: var(--space-6); margin-bottom: var(--space-6);">
+            <!-- CO₂ Prediction Chart -->
+            <div class="card">
+              <div class="card__header">
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #3b82f6;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                  </svg>
+                  <h3 class="card__title">CO₂ Prediction - Next 12 Hours</h3>
+                </div>
+              </div>
+              <div class="card__body">
+                <div class="chart-placeholder" id="co2-prediction-chart"></div>
+                <!-- Prediction Insight -->
+                <div id="co2-prediction-insight" style="margin-top: var(--space-4); padding: var(--space-3); background: rgba(59, 130, 246, 0.1); border-radius: var(--r-md); display: flex; align-items: start; gap: var(--space-2);">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #3b82f6; flex-shrink: 0; margin-top: 2px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                  </svg>
+                  <p style="font-size: var(--font-size-sm); color: var(--text); margin: 0;" id="co2-prediction-text">The model predicts an 18% increase in CO₂ in the next 3 hours</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Active Alerts -->
+            <div class="card">
+              <div class="card__header">
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--danger);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                  </svg>
+                  <h3 class="card__title">Active Alerts</h3>
+                </div>
+              </div>
+              <div class="card__body">
+                <div id="ai-alerts-list">
+                  <!-- Alerts will be loaded here via JavaScript -->
+                </div>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+
+        <!-- Management Section -->
+        <div class="dashboard-section" id="management" data-section="management" style="display: none;">
+          <!-- Header with Gray/Blue Gradient -->
+          <div style="background: linear-gradient(135deg, #6b7280 0%, #3b82f6 100%); border-radius: var(--r-lg); padding: var(--space-6); margin-bottom: var(--space-6); color: white;">
+            <div style="display: flex; align-items: start; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
+                  <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: white;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <h2 style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: white; margin: 0;">Management Dashboard</h2>
+                </div>
+                <p style="font-size: var(--font-size-base); color: rgba(255, 255, 255, 0.9); margin: 0;">Sensor, user and system settings</p>
+              </div>
+              <div style="background: white; border-radius: var(--r-md); padding: var(--space-4); text-align: center; min-width: 100px;">
+                <div id="management-total-sensors" style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: #3b82f6; line-height: 1;">13</div>
+                <div style="font-size: var(--font-size-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Total sensors</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary Cards -->
+          <div class="grid grid--metrics grid--metrics-4" style="margin-bottom: var(--space-6);">
+            <div class="stat-card">
+              <div class="stat-card__content">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                  <div class="stat-card__label">Total Sensors</div>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                  </svg>
+                </div>
+                <div class="stat-card__value" id="total-sensors">13</div>
+                <div class="stat-card__unit"></div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__content">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                  <div class="stat-card__label">Active</div>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                  </svg>
+                </div>
+                <div class="stat-card__value" id="active-sensors">12</div>
+                <div class="stat-card__unit"></div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__content">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                  <div class="stat-card__label">Maintenance</div>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                </div>
+                <div class="stat-card__value" id="maintenance-sensors">1</div>
+                <div class="stat-card__unit"></div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__content">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                  <div class="stat-card__label">AI Events</div>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                  </svg>
+                </div>
+                <div class="stat-card__value" id="ai-events-count">5</div>
+                <div class="stat-card__unit"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs Navigation -->
+          <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4); border-bottom: 1px solid var(--border);">
+            <button class="management-tab active" data-tab="sensors" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--text); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid var(--accent); margin-bottom: -1px;">Sensors</button>
+            <button class="management-tab" data-tab="ai-events" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">AI Events</button>
+            <button class="management-tab" data-tab="users" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">Users</button>
+            <button class="management-tab" data-tab="settings" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">Settings</button>
+          </div>
+
+          <!-- Sensors Management Tab -->
+          <div id="management-sensors-tab" class="management-tab-content">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
+              <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0;">Sensor Management</h3>
+              <button class="btn btn--primary" style="display: flex; align-items: center; gap: var(--space-2);">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Sensor
+              </button>
+            </div>
+            
+            <!-- Sensors Table -->
+            <div class="card" style="overflow-x: auto;">
+              <div class="card__body" style="padding: 0;">
+                <table id="sensors-management-table" style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="background: var(--surface-2); border-bottom: 2px solid var(--border);">
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Device ID</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Name</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Type</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Location</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Battery</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Signal</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sensors-management-table-body">
+                    <!-- Sensors will be loaded here via JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Other Tabs (Placeholders) -->
+          <div id="management-ai-events-tab" class="management-tab-content" style="display: none;">
+            <div class="card">
+              <div class="card__body">
+                <p style="color: var(--muted);">AI Events management coming soon...</p>
+              </div>
+            </div>
+          </div>
+          <div id="management-users-tab" class="management-tab-content" style="display: none;">
+            <div class="card">
+              <div class="card__body">
+                <p style="color: var(--muted);">Users management coming soon...</p>
+              </div>
+            </div>
+          </div>
+          <div id="management-settings-tab" class="management-tab-content" style="display: none;">
+            <div class="card">
+              <div class="card__body">
+                <p style="color: var(--muted);">System settings coming soon...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/smaca-state-manager.js"></script>
+  <script src="assets/js/smaca-trend-calculator.js"></script>
+  <script src="assets/js/smaca-alerts-engine.js"></script>
+  <script src="assets/js/smaca-csv-export.js"></script>
+  <script src="assets/js/smaca-data-normalizer.js"></script>
+  <script src="assets/js/smaca-accurate-charts.js"></script>
+  <script src="assets/js/smaca-accurate-dashboard.js"></script>
+  <script src="assets/js/advanced-visualizations.js"></script>
+  <script src="assets/js/smaca-dashboard.js"></script>
+  <script src="assets/js/smaca-production-features.js"></script>
+  <script src="assets/js/smaca-ai-insights.js"></script>
+</body>
+</html>

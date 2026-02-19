@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - SMACA</title>
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/login.css">
+</head>
+<body>
+  <div class="auth-container">
+    <!-- Left Side - Laptop Mockup -->
+    <div class="auth-left">
+      <div class="laptop-mockup">
+        <img src="assets/laptop-dashboard.png" alt="SMACA Dashboard">
+      </div>
+      <div class="promo-text">
+        <h2>Manage your institution Easily and perfectly !!</h2>
+      </div>
+    </div>
+
+    <!-- Right Side - Login Form -->
+    <div class="auth-right">
+      <div class="auth-form-container">
+        <div class="logo-section">
+          <div class="logo-icon">
+            <div class="graduation-cap">
+              <div class="tassel"></div>
+            </div>
+          </div>
+          <div class="logo-text">
+            <span class="smart">Smart</span> <span class="campus">Campus</span>
+          </div>
+          <div class="logo-slogan">IoT & AI Platform</div>
+        </div>
+
+        <form class="auth-form" id="loginForm">
+          <div class="form-field">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email" required>
+          </div>
+
+          <div class="form-field">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" required>
+          </div>
+
+          <div class="form-actions">
+            <label class="remember-me">
+              <input type="checkbox" name="remember">
+              <span>Remember me</span>
+            </label>
+            <a href="#" class="forgot-link">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn-signin">Sign In</button>
+        </form>
+
+        <div class="signup-link">
+          Don't have an account? <a href="register.html">Sign up</a>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <script src="assets/js/login.js"></script>
+</body>
+</html>
