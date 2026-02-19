@@ -146,8 +146,138 @@
   font-size: var(--font-size-sm);
 }
 
+/* AI Events Table */
+.ai-events-table tbody tr.ai-events-row {
+  transition: background 0.2s;
+}
+
+.ai-events-table tbody tr.ai-events-row:hover {
+  background: var(--surface-2);
+}
+
+.ai-events-type-badge,
+.ai-events-table .badge--muted {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Severity badges for AI Events (colored with white text) */
+.ai-events-table .badge--info {
+  background: #0ea5e9 !important;
+  color: white !important;
+}
+
+.ai-events-table .badge--danger {
+  background: #ef4444 !important;
+  color: white !important;
+}
+
+.ai-events-table .badge--warning {
+  background: #eab308 !important;
+  color: white !important;
+}
+
+.ai-events-table .badge--high {
+  background: #f97316 !important;
+  color: white !important;
+}
+
+/* User Modal */
+.user-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.user-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.user-modal__dialog {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md);
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.user-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.user-modal__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+  margin: 0;
+}
+
+.user-modal__close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--r-sm);
+  transition: color 0.2s, background 0.2s;
+}
+
+.user-modal__close:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.user-modal__body {
+  padding: var(--space-6);
+}
+
+.user-form-field {
+  margin-bottom: var(--space-4);
+}
+
+.user-form-field:last-of-type {
+  margin-bottom: 0;
+}
+
+.user-form-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.user-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  border-top: 1px solid var(--border);
+}
+
 #sensors-management-table tbody tr {
   transition: background 0.2s;
+}
+
+#users-management-table tbody tr:hover {
+  background: var(--surface-2);
 }
 
 #sensors-management-table tbody tr:hover {

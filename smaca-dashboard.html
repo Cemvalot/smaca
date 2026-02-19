@@ -1042,7 +1042,7 @@
           <div id="management-sensors-tab" class="management-tab-content">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
               <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0;">Sensor Management</h3>
-              <button class="btn btn--primary" style="display: flex; align-items: center; gap: var(--space-2);">
+              <button id="add-sensor-btn" class="btn btn--primary" style="display: flex; align-items: center; gap: var(--space-2);">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -1074,18 +1074,107 @@
             </div>
           </div>
 
-          <!-- Other Tabs (Placeholders) -->
+          <!-- AI Events Management Tab -->
           <div id="management-ai-events-tab" class="management-tab-content" style="display: none;">
-            <div class="card">
-              <div class="card__body">
-                <p style="color: var(--muted);">AI Events management coming soon...</p>
+            <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">AI Events Management</h3>
+            <div class="card" style="overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+              <div class="card__body" style="padding: 0;">
+                <table class="ai-events-table" style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="background: var(--surface-2); border-bottom: 2px solid var(--border);">
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Type</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Title</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Location</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Severity</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="ai-events-row">
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">prediction</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Expected occupancy</td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Central Library</td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--info">low</span></td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">open</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
+                    </tr>
+                    <tr class="ai-events-row">
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">alert</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Low sensor battery</td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Conference Room</td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--danger">critical</span></td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">acknowledged</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
+                    </tr>
+                    <tr class="ai-events-row">
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">recommendation</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Ventilation optimization</td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Amphitheater A</td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--warning">medium</span></td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">open</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
+                    </tr>
+                    <tr class="ai-events-row">
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">prediction</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Expected consumption increase</td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Building A</td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--info">low</span></td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">acknowledged</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
+                    </tr>
+                    <tr class="ai-events-row">
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">alert</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">High temperature</td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">IT Lab</td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--high">high</span></td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">open</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
+                    </tr>
+                    <tr class="ai-events-row">
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">anomaly</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Abnormally high CO₂ levels</td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Room B2</td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--danger">critical</span></td>
+                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">acknowledged</span></td>
+                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
+          <!-- Users Management Tab -->
           <div id="management-users-tab" class="management-tab-content" style="display: none;">
-            <div class="card">
-              <div class="card__body">
-                <p style="color: var(--muted);">Users management coming soon...</p>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
+              <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0;">Users Management</h3>
+              <button id="add-user-btn" class="btn btn--primary" style="display: flex; align-items: center; gap: var(--space-2);">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add User
+              </button>
+            </div>
+            <div class="card" style="overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+              <div class="card__body" style="padding: 0;">
+                <table id="users-management-table" style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="background: var(--surface-2); border-bottom: 2px solid var(--border);">
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Name</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Email</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Role</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Last Login</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-management-table-body">
+                    <!-- Users loaded from API/database via loadUsers() -->
+                  </tbody>
+                </table>
+                <div id="users-empty-state" class="users-empty-state" style="display: none; padding: var(--space-8); text-align: center; color: var(--muted);">
+                  <p style="margin: 0;">No users yet. Users will appear here when the database is connected.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -1101,7 +1190,123 @@
     </main>
   </div>
 
+  <!-- Add/Edit Sensor Modal -->
+  <div id="sensor-modal" class="user-modal" style="display: none;" role="dialog" aria-labelledby="sensor-modal-title" aria-modal="true">
+    <div class="user-modal__backdrop"></div>
+    <div class="user-modal__dialog">
+      <div class="user-modal__header">
+        <h3 id="sensor-modal-title" class="user-modal__title">Add Sensor</h3>
+        <button type="button" class="user-modal__close" aria-label="Close">&times;</button>
+      </div>
+      <form id="sensor-form" class="user-modal__body">
+        <input type="hidden" id="sensor-form-id" name="id" value="">
+        <div class="user-form-field">
+          <label for="sensor-form-device-id" class="user-form-label">Device ID</label>
+          <input type="text" id="sensor-form-device-id" name="deviceId" class="input" placeholder="e.g. am300-01" required>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-name" class="user-form-label">Name</label>
+          <input type="text" id="sensor-form-name" name="name" class="input" placeholder="Sensor display name" required>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-type" class="user-form-label">Type</label>
+          <select id="sensor-form-type" name="type" class="input">
+            <option value="AM300">AM300</option>
+            <option value="UC50x">UC50x</option>
+            <option value="SDM630MCT">SDM630MCT</option>
+            <option value="VS350">VS350</option>
+          </select>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-location" class="user-form-label">Location</label>
+          <input type="text" id="sensor-form-location" name="location" class="input" placeholder="e.g. Room 101" required>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-status" class="user-form-label">Status</label>
+          <select id="sensor-form-status" name="status" class="input">
+            <option value="active">Active</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-battery" class="user-form-label">Battery % (optional)</label>
+          <input type="number" id="sensor-form-battery" name="battery" class="input" placeholder="Leave empty if N/A" min="0" max="100" step="1">
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-rssi" class="user-form-label">Signal RSSI dBm (optional)</label>
+          <input type="number" id="sensor-form-rssi" name="rssi" class="input" placeholder="e.g. -75" min="-120" max="0" step="1">
+        </div>
+      </form>
+      <div class="user-modal__footer">
+        <button type="button" class="btn btn--ghost user-modal__cancel">Cancel</button>
+        <button type="submit" form="sensor-form" class="btn btn--primary">Save Sensor</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit User Modal -->
+  <div id="user-modal" class="user-modal" style="display: none;" role="dialog" aria-labelledby="user-modal-title" aria-modal="true">
+    <div class="user-modal__backdrop"></div>
+    <div class="user-modal__dialog">
+      <div class="user-modal__header">
+        <h3 id="user-modal-title" class="user-modal__title">Add User</h3>
+        <button type="button" class="user-modal__close" aria-label="Close">&times;</button>
+      </div>
+      <form id="user-form" class="user-modal__body">
+        <input type="hidden" id="user-form-id" name="id" value="">
+        <div class="user-form-field">
+          <label for="user-form-name" class="user-form-label">Name</label>
+          <input type="text" id="user-form-name" name="name" class="input" placeholder="Full name" required>
+        </div>
+        <div class="user-form-field">
+          <label for="user-form-email" class="user-form-label">Email</label>
+          <input type="email" id="user-form-email" name="email" class="input" placeholder="user@example.com" required>
+        </div>
+        <div class="user-form-field">
+          <label for="user-form-role" class="user-form-label">Role</label>
+          <select id="user-form-role" name="role" class="input">
+            <option value="user">user</option>
+            <option value="admin">admin</option>
+            <option value="viewer">viewer</option>
+          </select>
+        </div>
+        <div class="user-form-field">
+          <label for="user-form-status" class="user-form-label">Status</label>
+          <select id="user-form-status" name="status" class="input">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </form>
+      <div class="user-modal__footer">
+        <button type="button" class="btn btn--ghost user-modal__cancel">Cancel</button>
+        <button type="submit" form="user-form" class="btn btn--primary">Save User</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
+  <script>
+  (function(){
+    var h = (window.location.hash || '#overview').slice(1);
+    var secs = document.querySelectorAll('.dashboard-section');
+    for (var i = 0; i < secs.length; i++) secs[i].style.display = secs[i].id === h ? 'block' : 'none';
+    var links = document.querySelectorAll('.nav-link--section');
+    for (var j = 0; j < links.length; j++) links[j].classList.toggle('is-active', links[j].getAttribute('data-section') === h);
+    if (h === 'management') {
+      var saved = localStorage.getItem('smaca-management-tab') || 'sensors';
+      var tabs = document.querySelectorAll('.management-tab');
+      var contents = document.querySelectorAll('.management-tab-content');
+      for (var k = 0; k < tabs.length; k++) {
+        var active = tabs[k].getAttribute('data-tab') === saved;
+        tabs[k].classList.toggle('active', active);
+        tabs[k].style.color = active ? 'var(--text)' : 'var(--muted)';
+        tabs[k].style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
+      }
+      for (var m = 0; m < contents.length; m++) contents[m].style.display = contents[m].id === 'management-' + saved + '-tab' ? 'block' : 'none';
+    }
+  })();
+  </script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/smaca-state-manager.js"></script>
   <script src="assets/js/smaca-trend-calculator.js"></script>

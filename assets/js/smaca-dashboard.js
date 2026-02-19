@@ -46,6 +46,8 @@ const mockData = {
     uvIndex: 6.5,
     hourlyUV: [0, 0, 0, 0, 0, 0.5, 1.2, 2.8, 4.5, 5.8, 6.5, 7.2, 6.8, 5.5, 4.2, 3.0, 1.5, 0.8, 0.2, 0, 0, 0, 0, 0]
   },
+  // Users - empty until database/API is connected. Expected shape: { id, name, email, role, status, lastLogin }
+  users: [],
   aiInsights: {
     recommendations: [
       { 
@@ -568,9 +570,61 @@ function updateMockData() {
   loadOccupancyData();
 }
 
+// Persist sensors/users to localStorage
+const STORAGE_KEYS = { sensors: 'smaca-sensors', users: 'smaca-users', managementTab: 'smaca-management-tab' };
+
+function loadPersistedData() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEYS.sensors);
+    if (s) {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) mockData.sensors = arr;
+    }
+  } catch (e) {}
+  try {
+    const u = localStorage.getItem(STORAGE_KEYS.users);
+    if (u) {
+      const arr = JSON.parse(u);
+      if (Array.isArray(arr)) mockData.users = arr;
+    }
+  } catch (e) {}
+}
+
+function persistSensors() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.sensors, JSON.stringify(mockData.sensors));
+  } catch (e) {}
+}
+
+function persistUsers() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(mockData.users));
+  } catch (e) {}
+}
+
+function switchManagementTab(targetTab) {
+  const tabId = targetTab || localStorage.getItem(STORAGE_KEYS.managementTab) || 'sensors';
+  const managementTabs = document.querySelectorAll('.management-tab');
+  const tabContents = document.querySelectorAll('.management-tab-content');
+  managementTabs.forEach(t => {
+    t.classList.remove('active');
+    t.style.color = 'var(--muted)';
+    t.style.borderBottomColor = 'transparent';
+    if (t.getAttribute('data-tab') === tabId) {
+      t.classList.add('active');
+      t.style.color = 'var(--text)';
+      t.style.borderBottomColor = 'var(--accent)';
+    }
+  });
+  tabContents.forEach(content => {
+    const isTab = content.id === `management-${tabId}-tab`;
+    content.style.display = isTab ? 'block' : 'none';
+  });
+}
+
 // Management Data Loading
 function loadManagementData() {
-  const sensors = mockData.sensors || [];
+  const sensors = [...(mockData.sensors || [])];
   
   // Update summary cards
   const totalSensors = sensors.length;
@@ -580,14 +634,215 @@ function loadManagementData() {
   const totalEl = document.getElementById('total-sensors');
   if (totalEl) totalEl.textContent = totalSensors;
   
+  const managementTotalEl = document.getElementById('management-total-sensors');
+  if (managementTotalEl) managementTotalEl.textContent = totalSensors;
+  
   const activeEl = document.getElementById('active-sensors');
   if (activeEl) activeEl.textContent = activeSensors;
   
   const maintenanceEl = document.getElementById('maintenance-sensors');
   if (maintenanceEl) maintenanceEl.textContent = maintenanceSensors;
   
-  // Render sensors table
-  renderSensorsManagementTable(sensors);
+  // Render sensors table (newest first)
+  renderSensorsManagementTable([...(mockData.sensors || [])].reverse());
+
+  // Load and render users (ready for API/database - uses mockData.users when no API)
+  loadUsers();
+
+  // Restore last active management tab
+  switchManagementTab();
+}
+
+// API config - set USERS_API_URL when backend is ready (e.g. '/api/users')
+const USERS_API_URL = null; // Replace with '/api/users' when database is connected
+
+async function loadUsers() {
+  let users = [];
+  try {
+    if (USERS_API_URL) {
+      const res = await fetch(USERS_API_URL);
+      if (res.ok) users = await res.json();
+    } else {
+      users = mockData.users || [];
+    }
+  } catch (e) {
+    console.warn('Users load failed (API may not be ready):', e.message);
+    users = mockData.users || [];
+  }
+  renderUsersManagementTable([...users].reverse());
+}
+
+function renderUsersManagementTable(users) {
+  const tbody = document.getElementById('users-management-table-body');
+  const table = document.getElementById('users-management-table');
+  const emptyState = document.getElementById('users-empty-state');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  if (users.length === 0) {
+    if (table) table.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+  if (table) table.style.display = 'table';
+  if (emptyState) emptyState.style.display = 'none';
+
+  users.forEach(user => {
+    const row = document.createElement('tr');
+    row.dataset.userId = user.id || '';
+    row.style.borderBottom = '1px solid var(--border)';
+    row.style.transition = 'background 0.2s';
+
+    row.addEventListener('mouseenter', function() { this.style.background = 'var(--surface-2)'; });
+    row.addEventListener('mouseleave', function() { this.style.background = 'transparent'; });
+
+    const statusClass = (user.status === 'active' || user.status === 'online') ? 'badge--success' : 'badge--muted';
+    const statusText = user.status === 'active' || user.status === 'online' ? 'Active' : (user.status || 'Inactive');
+    const lastLogin = user.lastLogin || user.last_login || '-';
+    const role = user.role || 'user';
+
+    row.innerHTML = `
+      <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${escapeHtml(user.name || '-')}</td>
+      <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${escapeHtml(user.email || '-')}</td>
+      <td style="padding: var(--space-3) var(--space-4);">
+        <span class="badge badge--muted" style="text-transform: none;">${escapeHtml(role)}</span>
+      </td>
+      <td style="padding: var(--space-3) var(--space-4);">
+        <span class="badge ${statusClass} badge--sm">${statusText}</span>
+      </td>
+      <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${escapeHtml(String(lastLogin))}</td>
+      <td style="padding: var(--space-3) var(--space-4);">
+        <div style="display: flex; gap: var(--space-2);">
+          <button class="btn btn--ghost btn--sm" style="padding: var(--space-1); min-width: auto;" title="Edit" data-user-id="${user.id || ''}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          </button>
+          <button class="btn btn--ghost btn--sm" style="padding: var(--space-1); min-width: auto; color: var(--danger);" title="Delete" data-user-id="${user.id || ''}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
+        </div>
+      </td>
+    `;
+
+    row.querySelector('[title="Edit"]').addEventListener('click', () => editUser(user));
+    row.querySelector('[title="Delete"]').addEventListener('click', () => deleteUser(user.id));
+
+    tbody.appendChild(row);
+  });
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function openUserModal(user) {
+  const modal = document.getElementById('user-modal');
+  const title = document.getElementById('user-modal-title');
+  const form = document.getElementById('user-form');
+  const idInput = document.getElementById('user-form-id');
+  const nameInput = document.getElementById('user-form-name');
+  const emailInput = document.getElementById('user-form-email');
+  const roleInput = document.getElementById('user-form-role');
+  const statusInput = document.getElementById('user-form-status');
+  if (!modal || !form) return;
+
+  if (user) {
+    title.textContent = 'Edit User';
+    idInput.value = user.id || '';
+    nameInput.value = user.name || '';
+    emailInput.value = user.email || '';
+    roleInput.value = user.role || 'user';
+    statusInput.value = user.status === 'active' || user.status === 'online' ? 'active' : 'inactive';
+    emailInput.readOnly = true;
+  } else {
+    title.textContent = 'Add User';
+    idInput.value = '';
+    nameInput.value = '';
+    emailInput.value = '';
+    roleInput.value = 'user';
+    statusInput.value = 'active';
+    emailInput.readOnly = false;
+  }
+  modal.style.display = 'flex';
+}
+
+function closeUserModal() {
+  const modal = document.getElementById('user-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function editUser(userOrId) {
+  const user = typeof userOrId === 'object' ? userOrId : mockData.users.find(u => String(u.id) === String(userOrId));
+  openUserModal(user || null);
+}
+
+function deleteUser(userId) {
+  if (!confirm('Are you sure you want to delete this user?')) return;
+  const idx = mockData.users.findIndex(u => String(u.id) === String(userId));
+  if (idx >= 0) {
+    mockData.users.splice(idx, 1);
+    persistUsers();
+    loadUsers();
+  }
+}
+
+function saveUser(e) {
+  e.preventDefault();
+  const idInput = document.getElementById('user-form-id');
+  const nameInput = document.getElementById('user-form-name');
+  const emailInput = document.getElementById('user-form-email');
+  const roleInput = document.getElementById('user-form-role');
+  const statusInput = document.getElementById('user-form-status');
+  const name = (nameInput?.value || '').trim();
+  const email = (emailInput?.value || '').trim();
+  const role = roleInput?.value || 'user';
+  const status = statusInput?.value || 'active';
+  if (!name || !email) return;
+
+  const existingId = idInput?.value;
+  const existing = mockData.users.find(u => String(u.id) === String(existingId));
+
+  if (existing) {
+    existing.name = name;
+    existing.role = role;
+    existing.status = status;
+  } else {
+    const newId = 'u' + Date.now();
+    mockData.users.push({
+      id: newId,
+      name,
+      email,
+      role,
+      status,
+      lastLogin: '-'
+    });
+  }
+  closeUserModal();
+  persistUsers();
+  loadUsers();
+}
+
+function initUserModal() {
+  const modal = document.getElementById('user-modal');
+  const form = document.getElementById('user-form');
+  const backdrop = modal?.querySelector('.user-modal__backdrop');
+  const closeBtn = modal?.querySelector('.user-modal__close');
+  const cancelBtn = modal?.querySelector('.user-modal__cancel');
+
+  form?.addEventListener('submit', saveUser);
+  backdrop?.addEventListener('click', closeUserModal);
+  closeBtn?.addEventListener('click', closeUserModal);
+  cancelBtn?.addEventListener('click', closeUserModal);
+
+  modal?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeUserModal();
+  });
 }
 
 // Render Sensors Management Table
@@ -655,12 +910,12 @@ function renderSensorsManagementTable(sensors) {
       </td>
       <td style="padding: var(--space-3) var(--space-4);">
         <div style="display: flex; gap: var(--space-2);">
-          <button class="btn btn--ghost btn--sm" style="padding: var(--space-1); min-width: auto;" title="Edit" onclick="editSensor('${sensor.id}')">
+          <button class="btn btn--ghost btn--sm edit-sensor-btn" style="padding: var(--space-1); min-width: auto;" title="Edit" data-sensor-id="${sensor.id}">
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
             </svg>
           </button>
-          <button class="btn btn--ghost btn--sm" style="padding: var(--space-1); min-width: auto; color: var(--danger);" title="Delete" onclick="deleteSensor('${sensor.id}')">
+          <button class="btn btn--ghost btn--sm delete-sensor-btn" style="padding: var(--space-1); min-width: auto; color: var(--danger);" title="Delete" data-sensor-id="${sensor.id}">
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
             </svg>
@@ -668,23 +923,152 @@ function renderSensorsManagementTable(sensors) {
         </div>
       </td>
     `;
-    
+
+    row.querySelector('.edit-sensor-btn')?.addEventListener('click', () => editSensor(sensor));
+    row.querySelector('.delete-sensor-btn')?.addEventListener('click', () => {
+      if (confirm(`Are you sure you want to delete sensor ${sensor.id}?`)) {
+        const idx = mockData.sensors.findIndex(s => String(s.id) === String(sensor.id));
+        if (idx >= 0) {
+          mockData.sensors.splice(idx, 1);
+          persistSensors();
+          loadManagementData();
+        }
+      }
+    });
+
     tbody.appendChild(row);
   });
 }
 
-function editSensor(sensorId) {
-  alert(`Edit sensor: ${sensorId}`);
+function openSensorModal(sensor) {
+  const modal = document.getElementById('sensor-modal');
+  const title = document.getElementById('sensor-modal-title');
+  const idInput = document.getElementById('sensor-form-id');
+  const deviceIdInput = document.getElementById('sensor-form-device-id');
+  const nameInput = document.getElementById('sensor-form-name');
+  const typeInput = document.getElementById('sensor-form-type');
+  const locationInput = document.getElementById('sensor-form-location');
+  const statusInput = document.getElementById('sensor-form-status');
+  const batteryInput = document.getElementById('sensor-form-battery');
+  const rssiInput = document.getElementById('sensor-form-rssi');
+  if (!modal) return;
+
+  if (sensor) {
+    title.textContent = 'Edit Sensor';
+    idInput.value = sensor.id || '';
+    deviceIdInput.value = sensor.id || '';
+    deviceIdInput.readOnly = true;
+    nameInput.value = sensor.name || '';
+    typeInput.value = sensor.type || 'AM300';
+    locationInput.value = sensor.location || '';
+    statusInput.value = sensor.status === 'maintenance' ? 'maintenance' : 'active';
+    batteryInput.value = sensor.battery != null ? sensor.battery : '';
+    rssiInput.value = sensor.rssi != null ? sensor.rssi : '';
+  } else {
+    title.textContent = 'Add Sensor';
+    idInput.value = '';
+    deviceIdInput.value = '';
+    deviceIdInput.readOnly = false;
+    nameInput.value = '';
+    typeInput.value = 'AM300';
+    locationInput.value = '';
+    statusInput.value = 'active';
+    batteryInput.value = '';
+    rssiInput.value = '';
+  }
+  modal.style.display = 'flex';
+}
+
+function closeSensorModal() {
+  const modal = document.getElementById('sensor-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function editSensor(sensorOrId) {
+  const sensor = typeof sensorOrId === 'object' ? sensorOrId : mockData.sensors.find(s => String(s.id) === String(sensorOrId));
+  openSensorModal(sensor || null);
+}
+
+function saveSensor(e) {
+  e.preventDefault();
+  const idInput = document.getElementById('sensor-form-id');
+  const deviceIdInput = document.getElementById('sensor-form-device-id');
+  const nameInput = document.getElementById('sensor-form-name');
+  const typeInput = document.getElementById('sensor-form-type');
+  const locationInput = document.getElementById('sensor-form-location');
+  const statusInput = document.getElementById('sensor-form-status');
+  const batteryInput = document.getElementById('sensor-form-battery');
+  const rssiInput = document.getElementById('sensor-form-rssi');
+  const deviceId = (deviceIdInput?.value || '').trim();
+  const name = (nameInput?.value || '').trim();
+  const type = typeInput?.value || 'AM300';
+  const location = (locationInput?.value || '').trim();
+  const status = statusInput?.value || 'active';
+  const batteryVal = batteryInput?.value;
+  const rssiVal = rssiInput?.value;
+  const battery = batteryVal === '' ? null : parseInt(batteryVal, 10);
+  const rssi = rssiVal === '' ? null : parseInt(rssiVal, 10);
+  if (!deviceId || !name || !location) return;
+
+  const existingId = idInput?.value;
+  const existing = mockData.sensors.find(s => String(s.id) === String(existingId));
+
+  if (existing) {
+    existing.name = name;
+    existing.type = type;
+    existing.location = location;
+    existing.status = status;
+    existing.battery = battery;
+    existing.rssi = rssi;
+  } else {
+    mockData.sensors.push({
+      id: deviceId,
+      name,
+      type,
+      location,
+      status,
+      battery,
+      rssi,
+      snr: null
+    });
+  }
+  closeSensorModal();
+  persistSensors();
+  loadManagementData();
+}
+
+function initSensorModal() {
+  const modal = document.getElementById('sensor-modal');
+  const form = document.getElementById('sensor-form');
+  const backdrop = modal?.querySelector('.user-modal__backdrop');
+  const closeBtn = modal?.querySelector('.user-modal__close');
+  const cancelBtn = modal?.querySelector('.user-modal__cancel');
+
+  form?.addEventListener('submit', saveSensor);
+  backdrop?.addEventListener('click', closeSensorModal);
+  closeBtn?.addEventListener('click', closeSensorModal);
+  cancelBtn?.addEventListener('click', closeSensorModal);
+
+  modal?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSensorModal();
+  });
 }
 
 function deleteSensor(sensorId) {
   if (confirm(`Are you sure you want to delete sensor ${sensorId}?`)) {
-    alert(`Delete sensor: ${sensorId}`);
+    const idx = mockData.sensors.findIndex(s => String(s.id) === String(sensorId));
+    if (idx >= 0) {
+      mockData.sensors.splice(idx, 1);
+      persistSensors();
+      loadManagementData();
+    }
   }
 }
 
 // Unified Navigation Handler (moved from smaca-dashboard.html)
 document.addEventListener('DOMContentLoaded', function() {
+  loadPersistedData();
+
   const navLinks = document.querySelectorAll('.nav-link--section');
   const quickLinks = document.querySelectorAll('.quick-link');
   const sections = document.querySelectorAll('.dashboard-section');
@@ -696,9 +1080,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
+      if (sectionId === 'management') {
+        switchManagementTab();
+        if (typeof loadManagementData === 'function') loadManagementData();
+      }
       targetSection.style.display = 'block';
 
       setTimeout(() => {
+        if (sectionId === 'management') {
+          if (typeof initChartHover === 'function') setTimeout(initChartHover, 100);
+          return;
+        }
         if (sectionId === 'iaq') {
           const timeframeChangedRecently =
             typeof window !== 'undefined' &&
@@ -726,10 +1118,6 @@ document.addEventListener('DOMContentLoaded', function() {
             loadEnhancedAIInsights();
           } else if (typeof loadAIInsights === 'function') {
             loadAIInsights();
-          }
-        } else if (sectionId === 'management') {
-          if (typeof loadManagementData === 'function') {
-            loadManagementData();
           }
         }
 
@@ -780,26 +1168,18 @@ document.addEventListener('DOMContentLoaded', function() {
   managementTabs.forEach(tab => {
     tab.addEventListener('click', function() {
       const targetTab = this.getAttribute('data-tab');
-
-      managementTabs.forEach(t => {
-        t.classList.remove('active');
-        t.style.color = 'var(--muted)';
-        t.style.borderBottomColor = 'transparent';
-      });
-      this.classList.add('active');
-      this.style.color = 'var(--text)';
-      this.style.borderBottomColor = 'var(--accent)';
-
-      const tabContents = document.querySelectorAll('.management-tab-content');
-      tabContents.forEach(content => {
-        content.style.display = 'none';
-      });
-
-      const targetContent = document.getElementById(`management-${targetTab}-tab`);
-      if (targetContent) {
-        targetContent.style.display = 'block';
-      }
+      try { localStorage.setItem(STORAGE_KEYS.managementTab, targetTab); } catch (e) {}
+      switchManagementTab(targetTab);
     });
   });
+
+  const addUserBtn = document.getElementById('add-user-btn');
+  if (addUserBtn) addUserBtn.addEventListener('click', () => editUser(null));
+
+  const addSensorBtn = document.getElementById('add-sensor-btn');
+  if (addSensorBtn) addSensorBtn.addEventListener('click', () => editSensor(null));
+
+  initUserModal();
+  initSensorModal();
 });
 
