@@ -434,12 +434,28 @@
   cursor: not-allowed;
 }
 
-/* Section header variants (modifier classes) */
+/* Section header variants (modifier classes) – Claymorphism */
 .section-hero {
-  border-radius: var(--r-lg);
+  border-radius: 20px;
   padding: var(--space-6);
   margin-bottom: var(--space-6);
   color: white;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 2px 2px 4px rgba(255, 255, 255, 0.15),
+    inset -1px -1px 3px rgba(0, 0, 0, 0.15),
+    8px 8px 24px rgba(0, 0, 0, 0.35),
+    2px 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.section-hero:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 2px 2px 4px rgba(255, 255, 255, 0.18),
+    inset -1px -1px 3px rgba(0, 0, 0, 0.12),
+    12px 12px 32px rgba(0, 0, 0, 0.4),
+    4px 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .section-hero__inner {
