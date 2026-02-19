@@ -487,7 +487,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   
   // Render all KPI cards with trends
   kpiContainer.innerHTML = `
-    <div class="stat-card" style="position: relative;">
+    <div class="stat-card" style="position: relative;" title="Carbon dioxide concentration. Ventilate if above 1000 ppm">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
           <div class="stat-card__label">CO₂</div>
@@ -497,7 +497,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
         <div class="stat-card__unit">ppm</div>
       </div>
     </div>
-    <div class="stat-card" style="position: relative;">
+    <div class="stat-card" style="position: relative;" title="Ambient air temperature">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
           <div class="stat-card__label">Temperature</div>
@@ -507,7 +507,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
         <div class="stat-card__unit">°C</div>
       </div>
     </div>
-    <div class="stat-card" style="position: relative;">
+    <div class="stat-card" style="position: relative;" title="Relative humidity percentage">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
           <div class="stat-card__label">Humidity</div>
@@ -517,7 +517,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
         <div class="stat-card__unit">%</div>
       </div>
     </div>
-    <div class="stat-card" style="position: relative;">
+    <div class="stat-card" style="position: relative;" title="Particulate matter &lt; 2.5µm. Higher values may affect air quality">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
           <div class="stat-card__label">PM2.5</div>
@@ -527,7 +527,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
         <div class="stat-card__unit">µg/m³</div>
       </div>
     </div>
-    <div class="stat-card" style="position: relative;">
+    <div class="stat-card" style="position: relative;" title="Particulate matter &lt; 10µm. Higher values may affect air quality">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
           <div class="stat-card__label">PM10</div>
@@ -537,7 +537,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
         <div class="stat-card__unit">µg/m³</div>
       </div>
     </div>
-    <div class="stat-card" style="position: relative;">
+    <div class="stat-card" style="position: relative;" title="Total volatile organic compounds from sensor (raw value)">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
           <div class="stat-card__label">TVOC</div>
@@ -704,12 +704,13 @@ function updateEnergyCharts(filteredOccupancy, timeframe) {
     return baseEnergy + (occ * energyPerPerson) + variation;
   });
   
-  // Update correlation chart
+  // Update correlation chart (only when energy section visible - avoids wrong size from hidden container)
   setTimeout(() => {
+    const energySection = document.querySelector('#energy');
+    if (energySection && energySection.style.display === 'none') return;
     if (typeof createDualAxisChart === 'function' && occupancyData.length > 0) {
       const energyChartEl = document.getElementById('energy-correlation-chart');
       if (energyChartEl) {
-        // Clear previous chart SVG
         const svg = energyChartEl.querySelector('svg');
         if (svg) svg.remove();
         createDualAxisChart('energy-correlation-chart', occupancyData, energyData, { height: 400 });

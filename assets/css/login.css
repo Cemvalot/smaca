@@ -239,6 +239,16 @@
   text-decoration: underline;
 }
 
+/* Role selector - dev/testing only */
+.form-field--role .form-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.form-field--role {
+  margin-bottom: var(--space-4);
+}
+
 @media (max-width: 968px) {
   .auth-container {
     flex-direction: column;
@@ -251,5 +261,17 @@
   
   .promo-text h2 {
     font-size: 1.5rem;
+  }
+}
+
+/* Mobile: hide/collapse left mockup, keep form prominent */
+@media (max-width: 640px) {
+  .auth-left {
+    display: none;
+  }
+  
+  .auth-right {
+    flex: 1;
+    min-height: 100vh;
   }
 }

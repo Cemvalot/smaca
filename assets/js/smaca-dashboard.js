@@ -183,9 +183,10 @@ function loadEnergyData() {
     if (dailyEl) dailyEl.textContent = data.daily.toFixed(1);
   }
   
-  // Render correlation chart
+  // Render correlation chart only when energy section is visible (avoids wrong size from hidden container)
   setTimeout(() => {
-    if (data.hourlyForCorrelation && occupancyData.hourly && typeof createDualAxisChart === 'function') {
+    const energySection = document.querySelector('#energy');
+    if (energySection && energySection.style.display !== 'none' && data.hourlyForCorrelation && occupancyData.hourly && typeof createDualAxisChart === 'function') {
       createDualAxisChart('energy-correlation-chart', occupancyData.hourly, data.hourlyForCorrelation, { height: 400 });
     }
   }, 100);
@@ -1065,15 +1066,54 @@ function deleteSensor(sensorId) {
   }
 }
 
+// RBAC: apply role badge, lock admin-only items, hide connectivity details for users
+function initRBAC() {
+  if (typeof SMACARBAC === 'undefined') return;
+  const role = SMACARBAC.getRole();
+  const isAdmin = SMACARBAC.isAdmin();
+  const badge = document.getElementById('role-badge');
+  if (badge) {
+    badge.textContent = isAdmin ? 'Admin' : 'User';
+    badge.className = 'role-badge role-badge--' + (isAdmin ? 'admin' : 'user');
+  }
+  const adminLinks = document.querySelectorAll('.nav-link--admin-only, [data-admin-only].nav-link--section');
+  adminLinks.forEach(function(link) {
+    if (isAdmin) {
+      link.classList.remove('nav-link--locked');
+      link.removeAttribute('aria-disabled');
+      link.style.pointerEvents = '';
+      link.href = '#management';
+    } else {
+      link.classList.add('nav-link--locked');
+      link.setAttribute('aria-disabled', 'true');
+      link.style.pointerEvents = 'none';
+      link.href = '#';
+    }
+  });
+  const connectivityDetail = document.querySelector('[data-connectivity-admin-detail]');
+  if (connectivityDetail) connectivityDetail.style.display = isAdmin ? '' : 'none';
+  const exportBtn = document.getElementById('export-btn');
+  if (exportBtn && !isAdmin) exportBtn.setAttribute('title', 'Basic export only');
+}
+
 // Unified Navigation Handler (moved from smaca-dashboard.html)
 document.addEventListener('DOMContentLoaded', function() {
   loadPersistedData();
+  initRBAC();
+  if (typeof SMACAUI !== 'undefined' && SMACAUI.initAccordions) {
+    SMACAUI.initAccordions('.smaca-accordion');
+  }
 
   const navLinks = document.querySelectorAll('.nav-link--section');
   const quickLinks = document.querySelectorAll('.quick-link');
   const sections = document.querySelectorAll('.dashboard-section');
 
   function showSection(sectionId) {
+    if (typeof SMACARBAC !== 'undefined' && SMACARBAC.isAdminOnlySection && SMACARBAC.isAdminOnlySection(sectionId) && !SMACARBAC.isAdmin()) {
+      if (typeof SMACAUI !== 'undefined' && SMACAUI.toast) SMACAUI.toast('Access denied', { type: 'error' });
+      sectionId = 'overview';
+      window.history.replaceState(null, '', '#overview');
+    }
     sections.forEach(section => {
       section.style.display = 'none';
     });
@@ -1108,7 +1148,15 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (sectionId === 'occupancy') {
           // Occupancy charts are updated by updateOccupancyCharts in updateAllDashboards
         } else if (sectionId === 'energy') {
-          // Energy charts are updated by updateEnergyCharts in updateAllDashboards
+          // Re-render energy chart now that section is visible (fixes wrong size when rendered while hidden)
+          if (typeof SMACAState !== 'undefined' && SMACAState && typeof updateEnergyCharts === 'function') {
+            const occ = SMACAState.getFilteredOccupancy ? SMACAState.getFilteredOccupancy() : [];
+            if (occ && occ.length > 0) {
+              updateEnergyCharts(occ, SMACAState.currentTimeframe || '24h');
+            }
+          } else if (typeof loadEnergyData === 'function') {
+            loadEnergyData();
+          }
         } else if (sectionId === 'environmental') {
           if (typeof loadEnvironmentalData === 'function') {
             loadEnvironmentalData();
@@ -1142,6 +1190,7 @@ document.addEventListener('DOMContentLoaded', function() {
   navLinks.forEach(link => {
     link.addEventListener('click', function(e) {
       e.preventDefault();
+      if (this.classList.contains('nav-link--locked')) return;
       const sectionId = this.getAttribute('data-section');
       showSection(sectionId);
       window.history.pushState(null, '', '#' + sectionId);
@@ -1163,6 +1212,10 @@ document.addEventListener('DOMContentLoaded', function() {
   } else {
     showSection('overview');
   }
+  window.addEventListener('hashchange', function() {
+    const hash = (window.location.hash || '#overview').slice(1);
+    showSection(hash);
+  });
 
   const managementTabs = document.querySelectorAll('.management-tab');
   managementTabs.forEach(tab => {
@@ -1181,5 +1234,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
   initUserModal();
   initSensorModal();
+
+  var searchInput = document.getElementById('management-search');
+  var searchBtn = document.getElementById('management-search-btn');
+  function runManagementSearch() {
+    var q = (searchInput && searchInput.value ? searchInput.value.trim() : '').toLowerCase();
+    var rows = document.querySelectorAll('#sensors-management-table-body tr');
+    var anyVisible = false;
+    rows.forEach(function(tr) {
+      var id = (tr.querySelector('td:nth-child(1)') || {}).textContent || '';
+      var name = (tr.querySelector('td:nth-child(2)') || {}).textContent || '';
+      var location = (tr.querySelector('td:nth-child(4)') || {}).textContent || '';
+      var match = !q || id.toLowerCase().indexOf(q) >= 0 || name.toLowerCase().indexOf(q) >= 0 || location.toLowerCase().indexOf(q) >= 0;
+      tr.style.display = match ? '' : 'none';
+      if (match) anyVisible = true;
+    });
+    if (searchBtn && q && typeof SMACAUI !== 'undefined' && SMACAUI.toast) {
+      SMACAUI.toast(anyVisible ? 'Found matching sensors' : 'No matching room or sensor');
+    }
+  }
+  if (searchBtn) searchBtn.addEventListener('click', runManagementSearch);
+  if (searchInput) searchInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); runManagementSearch(); } });
 });
 

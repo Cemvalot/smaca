@@ -464,7 +464,7 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
   
   const width = container.offsetWidth || 800;
   const height = options.height || 400;
-  const padding = { top: 40, right: 40, bottom: 60, left: 60 };
+  const padding = { top: 45, right: 45, bottom: 70, left: 55 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   
@@ -477,7 +477,7 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
   const chartGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   chartGroup.setAttribute('transform', `translate(${padding.left}, ${padding.top})`);
   
-  const maxValue = Math.max(...inData, ...outData);
+  const maxValue = Math.max(...inData, ...outData, 1);
   const barWidth = (chartWidth / inData.length) * 0.35;
   const barSpacing = chartWidth / inData.length;
   const centerY = chartHeight / 2;
@@ -518,24 +518,50 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
   centerLine.setAttribute('stroke-dasharray', '2 2');
   chartGroup.insertBefore(centerLine, chartGroup.firstChild);
   
-  // Labels
+  // Y-axis labels (In / Out) — positioned in the middle of each half
   const inLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   inLabel.setAttribute('x', '-10');
-  inLabel.setAttribute('y', centerY - 20);
+  inLabel.setAttribute('y', centerY - (chartHeight / 4));
   inLabel.setAttribute('fill', '#10b981');
   inLabel.setAttribute('font-size', '11');
   inLabel.setAttribute('text-anchor', 'end');
-  inLabel.textContent = 'In';
+  inLabel.setAttribute('dominant-baseline', 'middle');
+  inLabel.textContent = 'In (people)';
   chartGroup.appendChild(inLabel);
   
   const outLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   outLabel.setAttribute('x', '-10');
-  outLabel.setAttribute('y', centerY + 20);
+  outLabel.setAttribute('y', centerY + (chartHeight / 4));
   outLabel.setAttribute('fill', '#ef4444');
   outLabel.setAttribute('font-size', '11');
   outLabel.setAttribute('text-anchor', 'end');
-  outLabel.textContent = 'Out';
+  outLabel.setAttribute('dominant-baseline', 'middle');
+  outLabel.textContent = 'Out (people)';
   chartGroup.appendChild(outLabel);
+  
+  // X-axis: time labels
+  const xStep = inData.length <= 7 ? 1 : Math.ceil(inData.length / 6);
+  for (let i = 0; i < inData.length; i += xStep) {
+    const x = i * barSpacing + barSpacing / 2;
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', x);
+    label.setAttribute('y', chartHeight + 18);
+    label.setAttribute('fill', 'var(--muted)');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('text-anchor', 'middle');
+    label.textContent = inData.length <= 7 ? `Day ${i + 1}` : `${i}h`;
+    chartGroup.appendChild(label);
+  }
+  
+  // X-axis title
+  const xAxisTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  xAxisTitle.setAttribute('x', chartWidth / 2);
+  xAxisTitle.setAttribute('y', chartHeight + 42);
+  xAxisTitle.setAttribute('fill', 'var(--muted)');
+  xAxisTitle.setAttribute('font-size', '11');
+  xAxisTitle.setAttribute('text-anchor', 'middle');
+  xAxisTitle.textContent = inData.length <= 7 ? 'Time (days)' : 'Time (hours)';
+  chartGroup.appendChild(xAxisTitle);
   
   svg.appendChild(chartGroup);
   container.appendChild(svg);
@@ -552,7 +578,7 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   
   const width = container.offsetWidth || 800;
   const height = options.height || 300;
-  const padding = { top: 40, right: 40, bottom: 50, left: 60 };
+  const padding = { top: 45, right: 45, bottom: 70, left: 55 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   
@@ -565,7 +591,7 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   const chartGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   chartGroup.setAttribute('transform', `translate(${padding.left}, ${padding.top})`);
   
-  const maxValue = Math.max(...data);
+  const maxValue = Math.max(...data, 1);
   const stepWidth = chartWidth / data.length;
   
   // Draw area (step chart)
@@ -617,6 +643,56 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   yAxis.setAttribute('stroke', 'var(--border)');
   yAxis.setAttribute('stroke-width', '1');
   chartGroup.appendChild(yAxis);
+  
+  // Y-axis: scale numbers (0 to maxValue)
+  const yTicks = Math.min(maxValue, 5);
+  for (let i = 0; i <= yTicks; i++) {
+    const val = Math.round((maxValue / yTicks) * i);
+    const y = chartHeight - (val / maxValue) * chartHeight;
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', '-8');
+    label.setAttribute('y', y);
+    label.setAttribute('fill', 'var(--muted)');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('text-anchor', 'end');
+    label.setAttribute('dominant-baseline', 'middle');
+    label.textContent = String(val);
+    chartGroup.appendChild(label);
+  }
+  
+  // Y-axis title (left of chart)
+  const yAxisTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  yAxisTitle.setAttribute('x', -8);
+  yAxisTitle.setAttribute('y', -18);
+  yAxisTitle.setAttribute('fill', 'var(--muted)');
+  yAxisTitle.setAttribute('font-size', '11');
+  yAxisTitle.setAttribute('text-anchor', 'end');
+  yAxisTitle.textContent = 'People';
+  chartGroup.appendChild(yAxisTitle);
+  
+  // X-axis: time labels
+  const xStep = data.length <= 7 ? 1 : Math.ceil(data.length / 6);
+  for (let i = 0; i < data.length; i += xStep) {
+    const x = i * stepWidth + stepWidth / 2;
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', x);
+    label.setAttribute('y', chartHeight + 18);
+    label.setAttribute('fill', 'var(--muted)');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('text-anchor', 'middle');
+    label.textContent = data.length <= 7 ? `Day ${i + 1}` : `${i}h`;
+    chartGroup.appendChild(label);
+  }
+  
+  // X-axis title
+  const xAxisTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  xAxisTitle.setAttribute('x', chartWidth / 2);
+  xAxisTitle.setAttribute('y', chartHeight + 42);
+  xAxisTitle.setAttribute('fill', 'var(--muted)');
+  xAxisTitle.setAttribute('font-size', '11');
+  xAxisTitle.setAttribute('text-anchor', 'middle');
+  xAxisTitle.textContent = data.length <= 7 ? 'Time (days)' : 'Time (hours)';
+  chartGroup.appendChild(xAxisTitle);
   
   svg.appendChild(chartGroup);
   container.appendChild(svg);

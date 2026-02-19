@@ -4,6 +4,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+    try {
+      localStorage.setItem('smaca_role', 'user');
+    } catch (err) {}
     window.location.href = 'smaca-dashboard.html';
   });
 });
