@@ -147,38 +147,65 @@
 }
 
 /* AI Events Table */
+.ai-events-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ai-events-table thead th,
+.ai-events-table tbody td {
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+  vertical-align: middle;
+}
+
 .ai-events-table tbody tr.ai-events-row {
   transition: background 0.2s;
+  height: 52px;
 }
 
 .ai-events-table tbody tr.ai-events-row:hover {
   background: var(--surface-2);
 }
 
+.ai-events-table .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
 .ai-events-type-badge,
 .ai-events-table .badge--muted {
   text-transform: none;
   letter-spacing: 0;
+  min-width: auto;
 }
 
 /* Severity badges for AI Events (colored with white text) */
 .ai-events-table .badge--info {
-  background: #0ea5e9 !important;
-  color: white !important;
-}
-
-.ai-events-table .badge--danger {
-  background: #ef4444 !important;
+  background: #0ea5e9 !important;   /* LOW */
   color: white !important;
 }
 
 .ai-events-table .badge--warning {
-  background: #eab308 !important;
+  background: #eab308 !important;   /* MEDIUM */
   color: white !important;
 }
 
 .ai-events-table .badge--high {
-  background: #f97316 !important;
+  background: #f97316 !important;   /* HIGH */
+  color: white !important;
+}
+
+.ai-events-table .badge--danger {
+  background: #ef4444 !important;   /* CRITICAL */
   color: white !important;
 }
 

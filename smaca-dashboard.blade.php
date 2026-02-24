@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="base-url" content="{{ url('/') }}">
   <title>SMACA Dashboard - Unified IoT Monitoring</title>
-  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v={{ env('ASSET_VERSION', '1') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ env('ASSET_VERSION', '1') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}?v={{ env('ASSET_VERSION', '1') }}">
 </head>
 <body>
   <div class="app">
@@ -70,12 +70,14 @@
         </a>
       </nav>
       <div class="sidebar__footer">
-        <a href="{{ url('/login') }}" class="btn btn--ghost btn--sm">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-          </svg>
-          Logout
-        </a>
+          <a href="{{ url('/logout') }}" class="btn btn--ghost btn--sm">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                  </path>
+              </svg>
+              <span>Logout</span>
+          </a>
       </div>
     </aside>
 
@@ -1060,8 +1062,8 @@
 
   <!-- Scripts -->
   <script>window.SMACA_BASE_URL = "{{ rtrim(url('/'), '/') }}";</script>
-  <script src="{{ asset('assets/js/rbac.js') }}"></script>
-  <script src="{{ asset('assets/js/ui.js') }}"></script>
+  <script src="{{ asset('assets/js/rbac.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/ui.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
   <script>
   (function(){
     var h = (window.location.hash || '#overview').slice(1);
@@ -1083,17 +1085,17 @@
     }
   })();
   </script>
-  <script src="{{ asset('assets/js/app.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-state-manager.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-trend-calculator.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-alerts-engine.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-csv-export.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-data-normalizer.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-accurate-charts.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}"></script>
-  <script src="{{ asset('assets/js/advanced-visualizations.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-dashboard.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-production-features.js') }}"></script>
-  <script src="{{ asset('assets/js/smaca-ai-insights.js') }}"></script>
+  <script src="{{ asset('assets/js/app.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-state-manager.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-trend-calculator.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-alerts-engine.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-accurate-charts.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/advanced-visualizations.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-dashboard.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-production-features.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-ai-insights.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
 </body>
 </html>
