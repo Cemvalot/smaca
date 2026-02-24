@@ -4,11 +4,11 @@
   const STORAGE_KEY = 'smaca_role';
   const ROLES = { admin: 'admin', user: 'user' };
 
-
+  // TEMP: Force admin so Management is visible
+  // while proper backend RBAC is being wired.
   function getRole() {
-    return ROLES.user;
+    return ROLES.admin;
   }
-
 
   function setRole(role) {
     return false;
