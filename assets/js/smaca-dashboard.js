@@ -27,21 +27,8 @@ const mockData = {
     // For correlation chart - same time points as occupancy
     hourlyForCorrelation: [45, 52, 48, 55, 68, 75, 82, 88, 95, 102, 108, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175]
   },
-  sensors: [
-    { id: '123', name: '123', type: 'UC50x', location: '213', status: 'active', battery: 81, rssi: -78, snr: null },
-    { id: 'daw', name: 'dwadwa', type: 'AM300', location: 'dwaadw', status: 'active', battery: 94, rssi: -73, snr: null },
-    { id: 'sdn630-02', name: 'Energy Meter - Building B', type: 'SDM630MCT', location: 'Central Panel B', status: 'active', battery: null, rssi: -65, snr: null },
-    { id: 'am300-03', name: 'IT Lab', type: 'AM300', location: 'Lab 3', status: 'active', battery: 89, rssi: -80, snr: null },
-    { id: 'uc50x-01', name: 'Roof Building A', type: 'UC50x', location: 'Roof Building A', status: 'active', battery: 76, rssi: -71, snr: null },
-    { id: 'sdn630-01', name: 'Room GE - Rear', type: 'SDM630MCT', location: 'Room GE', status: 'active', battery: null, rssi: -79, snr: null },
-    { id: 'am300-84', name: 'Gym - Central Hall', type: 'AM300', location: 'Gym', status: 'active', battery: 45, rssi: -82, snr: null },
-    { id: 'am300-05', name: 'Conference Room', type: 'AM300', location: 'Management Conference Room', status: 'active', battery: 92, rssi: -68, snr: null },
-    { id: 'vs350-03', name: 'Main Entrance Counter', type: 'VS350', location: 'Main Entrance', status: 'active', battery: 88, rssi: -75, snr: null },
-    { id: 'am300-06', name: 'Library - Reading Area', type: 'AM300', location: 'Library', status: 'active', battery: 67, rssi: -85, snr: null },
-    { id: 'am300-07', name: 'Cafeteria', type: 'AM300', location: 'Cafeteria Hall', status: 'active', battery: 83, rssi: -70, snr: null },
-    { id: 'vs350-04', name: 'Building B Entrance', type: 'VS350', location: 'Building B - Entrance', status: 'active', battery: 91, rssi: -72, snr: null },
-    { id: 'am300-08', name: 'Maintenance Sensor', type: 'AM300', location: 'Storage Room', status: 'maintenance', battery: 25, rssi: -95, snr: null }
-  ],
+  // Sensors for development only; in production we prefer window.SMACA_SENSORS from backend.
+  sensors: [],
   environmental: {
     uvIndex: 6.5,
     hourlyUV: [0, 0, 0, 0, 0, 0.5, 1.2, 2.8, 4.5, 5.8, 6.5, 7.2, 6.8, 5.5, 4.2, 3.0, 1.5, 0.8, 0.2, 0, 0, 0, 0, 0]
@@ -195,7 +182,11 @@ function loadEnergyData() {
 function loadConnectivityData() {
   if (typeof createSensorHealthTable === 'function') {
     setTimeout(() => {
-      createSensorHealthTable('sensor-health-table', mockData.sensors);
+      const sensors =
+        (typeof window !== 'undefined' && Array.isArray(window.SMACA_SENSORS))
+          ? window.SMACA_SENSORS
+          : (mockData.sensors || []);
+      createSensorHealthTable('sensor-health-table', sensors);
     }, 100);
   }
 }
@@ -625,27 +616,32 @@ function switchManagementTab(targetTab) {
 
 // Management Data Loading
 function loadManagementData() {
-  const sensors = [...(mockData.sensors || [])];
-  
-  // Update summary cards
-  const totalSensors = sensors.length;
-  const activeSensors = sensors.filter(s => s.status === 'active' || s.status === 'online').length;
-  const maintenanceSensors = sensors.filter(s => s.status === 'maintenance').length;
-  
-  const totalEl = document.getElementById('total-sensors');
-  if (totalEl) totalEl.textContent = totalSensors;
-  
-  const managementTotalEl = document.getElementById('management-total-sensors');
-  if (managementTotalEl) managementTotalEl.textContent = totalSensors;
-  
-  const activeEl = document.getElementById('active-sensors');
-  if (activeEl) activeEl.textContent = activeSensors;
-  
-  const maintenanceEl = document.getElementById('maintenance-sensors');
-  if (maintenanceEl) maintenanceEl.textContent = maintenanceSensors;
-  
-  // Render sensors table (newest first)
-  renderSensorsManagementTable([...(mockData.sensors || [])].reverse());
+  // When backend sensors are rendered via Blade, summary cards and table are already populated.
+  const useServerRenderedSensors =
+    (typeof window !== 'undefined' && Array.isArray(window.SMACA_SENSORS));
+  if (!useServerRenderedSensors) {
+    const sensors = [...(mockData.sensors || [])];
+    
+    // Update summary cards
+    const totalSensors = sensors.length;
+    const activeSensors = sensors.filter(s => s.status === 'active' || s.status === 'online').length;
+    const maintenanceSensors = sensors.filter(s => s.status === 'maintenance').length;
+    
+    const totalEl = document.getElementById('total-sensors');
+    if (totalEl) totalEl.textContent = totalSensors;
+    
+    const managementTotalEl = document.getElementById('management-total-sensors');
+    if (managementTotalEl) managementTotalEl.textContent = totalSensors;
+    
+    const activeEl = document.getElementById('active-sensors');
+    if (activeEl) activeEl.textContent = activeSensors;
+    
+    const maintenanceEl = document.getElementById('maintenance-sensors');
+    if (maintenanceEl) maintenanceEl.textContent = maintenanceSensors;
+    
+    // Render sensors table (newest first)
+    renderSensorsManagementTable([...(mockData.sensors || [])].reverse());
+  }
 
   // Load and render users (ready for API/database - uses mockData.users when no API)
   loadUsers();
