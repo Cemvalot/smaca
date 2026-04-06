@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="base-url" content="{{ url('/') }}">
   <title>SMACA Dashboard - Unified IoT Monitoring</title>
-  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v={{ env('ASSET_VERSION', '1') }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ env('ASSET_VERSION', '1') }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}?v={{ env('ASSET_VERSION', '1') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v={{ time() }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ time() }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}?v={{ time() }}">
 </head>
 <body>
   <div class="app">
@@ -1062,8 +1062,8 @@
 
   <!-- Scripts -->
   <script>window.SMACA_BASE_URL = "{{ rtrim(url('/'), '/') }}";</script>
-  <script src="{{ asset('assets/js/rbac.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/ui.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/rbac.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/ui.js') }}?v={{ time() }}"></script>
   <script>
   (function(){
     var h = (window.location.hash || '#overview').slice(1);
@@ -1085,17 +1085,17 @@
     }
   })();
   </script>
-  <script src="{{ asset('assets/js/app.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-state-manager.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-trend-calculator.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-alerts-engine.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-accurate-charts.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/advanced-visualizations.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-dashboard.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-production-features.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
-  <script src="{{ asset('assets/js/smaca-ai-insights.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/app.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-state-manager.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-trend-calculator.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-alerts-engine.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-accurate-charts.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/advanced-visualizations.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-dashboard.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-production-features.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-ai-insights.js') }}?v={{ time() }}"></script>
 </body>
 </html>

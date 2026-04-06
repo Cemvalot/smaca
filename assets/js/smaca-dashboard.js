@@ -79,7 +79,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Always load these (they don't conflict)
   loadConnectivityData();
-  loadEnvironmentalData();
+  if (!useProductionFeatures) {
+    loadEnvironmentalData();
+  }
   loadAIInsights();
   
   // Initialize chart hover functionality from app.js if available
@@ -192,6 +194,12 @@ function loadConnectivityData() {
 }
 
 function loadEnvironmentalData() {
+  if (typeof SMACAState !== 'undefined' && SMACAState && typeof updateEnvironmentalDashboard === 'function') {
+    const environmentalData = SMACAState.getFilteredEnvironmental ? SMACAState.getFilteredEnvironmental() : [];
+    updateEnvironmentalDashboard(environmentalData, SMACAState.currentTimeframe || '24h');
+    return;
+  }
+
   const data = mockData.environmental;
   
   if (data.uvIndex !== undefined) {
@@ -1128,19 +1136,7 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
         if (sectionId === 'iaq') {
-          const timeframeChangedRecently =
-            typeof window !== 'undefined' &&
-            window.timeframeChangeTime &&
-            (Date.now() - window.timeframeChangeTime) < 1000;
-
-          if (!timeframeChangedRecently) {
-            if (typeof initAccurateIAQDashboard === 'function') {
-              if (typeof window !== 'undefined') {
-                window.lastRenderedTimeframe = null;
-              }
-              initAccurateIAQDashboard();
-            }
-          }
+          // IAQ rendering is owned by smaca-production-features.js hydration flow.
         } else if (sectionId === 'occupancy') {
           // Occupancy charts are updated by updateOccupancyCharts in updateAllDashboards
         } else if (sectionId === 'energy') {

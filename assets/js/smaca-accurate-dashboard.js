@@ -17,6 +17,7 @@ if (typeof formatTime === 'undefined') {
 if (typeof window !== 'undefined') {
   window.lastRenderedTimeframe = null;
   window.iaqDashboardRendering = false; // Lock to prevent concurrent renders
+  console.log('[SMACA-FIX] smaca-accurate-dashboard.js passive mode enabled');
 }
 
 function initAccurateIAQDashboard() {
@@ -82,32 +83,6 @@ function initAccurateIAQDashboard() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  // Wait a bit for other scripts to load, but not too long
-  setTimeout(() => {
-    initAccurateIAQDashboard();
-  }, 100);
-});
-
-if (typeof showSection === 'undefined') {
-  document.addEventListener('DOMContentLoaded', function() {
-    const observer = new MutationObserver(function(mutations) {
-      const iaqSection = document.getElementById('iaq');
-      if (iaqSection && iaqSection.style.display !== 'none' && !iaqSection.dataset.initialized) {
-        iaqSection.dataset.initialized = 'true';
-        initAccurateIAQDashboard();
-      }
-    });
-    
-    setTimeout(() => {
-      const iaqSection = document.getElementById('iaq');
-      if (iaqSection) {
-        observer.observe(iaqSection, { attributes: true, attributeFilter: ['style'] });
-      }
-    }, 1000);
-  });
-}
-
 /**
  * Render complete IAQ dashboard
  */
@@ -119,20 +94,6 @@ function renderIAQDashboard(normalizedData) {
   const latest = normalizedData[normalizedData.length - 1];
   const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
 
-  console.log('[SMACA][IAQ] Render path dataset', {
-    selectedSensorId: selectedSensorId,
-    normalizedCount: normalizedData.length,
-    latestPoint: latest
-  });
-  console.log('[SMACA][IAQ] Render path metric values', {
-    co2: latest?.co2 ?? null,
-    temperature: latest?.temperature ?? null,
-    humidity: latest?.humidity ?? null,
-    pm2_5: latest?.pm2_5 ?? null,
-    pm10: latest?.pm10 ?? null,
-    tvoc: latest?.tvoc ?? null
-  });
-  
   // KPI cards are handled by updateIAQDashboardWithTrends in smaca-production-features.js
   // Don't render them here to avoid conflicts
   
@@ -350,13 +311,6 @@ function renderSensorHealthPanel(data) {
   const rssiStatus = getRSSIStatus(data.rssi);
   const snrStatus = getSNRStatus(data.snr);
 
-  console.log('[SMACA][IAQ] Sensor health data source', {
-    battery: batteryValue,
-    rssi: data?.rssi ?? null,
-    snr: data?.snr ?? null,
-    selectedSensorId: typeof window !== 'undefined' ? window.SMACACurrentSensorId : null
-  });
-  
   container.innerHTML = `
     <div class="card">
       <div class="card__header">
@@ -402,14 +356,6 @@ function renderDataSourcePanel(data) {
   const container = document.getElementById('data-source-panel');
   if (!container) return;
 
-  console.log('[SMACA][IAQ] Data source panel values', {
-    deviceName: data?.deviceName ?? null,
-    deviceProfileName: data?.deviceProfileName ?? null,
-    timestamp: data?.time ?? null,
-    gatewayId: data?.gatewayId ?? null,
-    selectedSensorId: typeof window !== 'undefined' ? window.SMACACurrentSensorId : null
-  });
-  
   container.innerHTML = `
     <div class="card">
       <div class="card__header">

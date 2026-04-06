@@ -59,7 +59,7 @@
           pm2_5: toNumberOrNull(snapshotRow.pm2_5_ugm3),
           pm10: toNumberOrNull(snapshotRow.pm10_ugm3),
           battery: toNumberOrNull(snapshotRow.battery_pct),
-          tvoc: null,
+          tvoc: toNumberOrNull(snapshotRow.tvoc_index),
           pressure: null,
           light_level: null,
           pir: null
@@ -162,6 +162,7 @@
       if (metric === 'pm2_5_ugm3') existing.payload.object.pm2_5 = value;
       if (metric === 'pm10_ugm3') existing.payload.object.pm10 = value;
       if (metric === 'battery_pct') existing.payload.object.battery = value;
+      if (metric === 'tvoc_index') existing.payload.object.tvoc = value;
     });
 
     return normalized;

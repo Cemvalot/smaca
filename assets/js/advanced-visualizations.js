@@ -911,8 +911,18 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
   // Body
   const tbody = document.createElement('tbody');
   sensors.forEach(sensor => {
+    const isOnline = sensor.status === 'online' || sensor.status === 'active';
     const row = document.createElement('tr');
     row.style.borderBottom = '1px solid var(--border)';
+    row.style.cursor = 'pointer';
+    row.title = 'Select sensor';
+    row.addEventListener('click', function () {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('smaca:sensor-selected', {
+          detail: { sensorId: sensor.id }
+        }));
+      }
+    });
     
     // Sensor ID
     const idCell = document.createElement('td');
@@ -993,17 +1003,17 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
     // Last Seen
     const lastSeenCell = document.createElement('td');
     lastSeenCell.style.padding = 'var(--space-4)';
-    const lastSeen = sensor.status === 'online' ? '1 min ago' : 'Offline';
+    const lastSeen = isOnline ? '1 min ago' : 'Offline';
     lastSeenCell.textContent = lastSeen;
-    lastSeenCell.style.color = sensor.status === 'online' ? 'var(--text)' : 'var(--muted)';
+    lastSeenCell.style.color = isOnline ? 'var(--text)' : 'var(--muted)';
     row.appendChild(lastSeenCell);
     
     // Status (with confidence)
     const statusCell = document.createElement('td');
     statusCell.style.padding = 'var(--space-4)';
     const statusBadge = document.createElement('span');
-    statusBadge.className = `badge badge--${sensor.status === 'online' ? 'success' : 'danger'} badge--sm`;
-    statusBadge.textContent = sensor.status === 'online' ? 'Online' : 'Offline';
+    statusBadge.className = `badge badge--${isOnline ? 'success' : 'danger'} badge--sm`;
+    statusBadge.textContent = isOnline ? 'Online' : 'Offline';
     statusCell.appendChild(statusBadge);
     row.appendChild(statusCell);
     

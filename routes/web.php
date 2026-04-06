@@ -21,6 +21,7 @@ if (!function_exists('smacaApiMetricWhitelist')) {
             'people_out',
             'people_total_in',
             'people_total_out',
+            'tvoc_index',
         ];
     }
 }
