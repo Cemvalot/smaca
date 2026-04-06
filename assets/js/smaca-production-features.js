@@ -419,29 +419,79 @@ function updateOverviewCountersFromApi(overview, sensors) {
   const totals = overview?.totals || {};
   const latestUpdate = overview?.latest_update_at || null;
   const sensorRows = Array.isArray(sensors) ? sensors : [];
+  const activeFromSensors = sensorRows.filter(function (sensor) {
+    return sensor?.is_active === true || sensor?.is_active === 1 || sensor?.is_active === '1';
+  }).length;
+  const connectedFallback = sensorRows.length;
+  const totalFallback = sensorRows.length;
+  const maintenanceFallback = Math.max(0, totalFallback - activeFromSensors);
+  const formatCount = function (value, fallback) {
+    const resolved = Number.isFinite(Number(value)) ? Number(value) : Number(fallback);
+    return Number.isFinite(resolved) ? String(resolved) : 'Not available';
+  };
 
   const totalSensorsEl = document.getElementById('overview-total-sensors');
-  if (totalSensorsEl) totalSensorsEl.textContent = String(totals.sensors ?? sensorRows.length ?? 0);
+  if (totalSensorsEl) totalSensorsEl.textContent = formatCount(totals.sensors, totalFallback);
 
   const connectedEl = document.getElementById('overview-connected-sensors');
-  if (connectedEl) connectedEl.textContent = String(totals.connected_sensors ?? sensorRows.length ?? 0);
+  if (connectedEl) connectedEl.textContent = formatCount(totals.connected_sensors, connectedFallback);
 
   const activeEl = document.getElementById('overview-active-sensors');
-  if (activeEl) activeEl.textContent = String(totals.active_sensors ?? 0);
+  if (activeEl) activeEl.textContent = formatCount(totals.active_sensors, activeFromSensors);
 
   const maintenanceEl = document.getElementById('overview-maintenance-sensors');
-  if (maintenanceEl) maintenanceEl.textContent = String(totals.maintenance_sensors ?? totals.inactive_sensors ?? 0);
+  if (maintenanceEl) maintenanceEl.textContent = formatCount(totals.maintenance_sensors ?? totals.inactive_sensors, maintenanceFallback);
 
   const lastRefreshEl = document.getElementById('overview-last-refresh');
   if (lastRefreshEl) {
-    lastRefreshEl.textContent = latestUpdate ? new Date(latestUpdate).toLocaleString() : 'N/A';
+    lastRefreshEl.textContent = latestUpdate ? new Date(latestUpdate).toLocaleString() : 'Not available';
   }
 
   const pills = document.querySelectorAll('.last-updated-pill');
   pills.forEach(function (pill) {
     pill.textContent = latestUpdate
       ? `Last updated: ${new Date(latestUpdate).toLocaleString()}`
-      : 'Last updated: No data for this sensor';
+      : 'Last updated: Not available';
+  });
+
+  const overviewSection = document.getElementById('overview');
+  if (!overviewSection) return;
+  const cards = overviewSection.querySelectorAll('.grid--metrics .stat-card');
+  cards.forEach(function (card) {
+    const label = (card.querySelector('.stat-card__label')?.textContent || '').trim().toLowerCase();
+    const valueEl = card.querySelector('.stat-card__value');
+    const unitEl = card.querySelector('.stat-card__unit');
+    if (!valueEl) return;
+
+    if (label === 'total sensors') {
+      valueEl.textContent = formatCount(totals.sensors, totalFallback);
+      if (unitEl) unitEl.textContent = 'sensors';
+      return;
+    }
+
+    if (label === 'system health') {
+      const connected = Number(formatCount(totals.connected_sensors, connectedFallback));
+      const total = Number(formatCount(totals.sensors, totalFallback));
+      if (Number.isFinite(connected) && Number.isFinite(total) && total > 0) {
+        const pct = Math.round((connected / total) * 100);
+        valueEl.textContent = `${pct}%`;
+      } else {
+        valueEl.textContent = 'Not available';
+      }
+      return;
+    }
+
+    if (label === 'last update') {
+      if (!latestUpdate) {
+        valueEl.textContent = 'Not available';
+        if (unitEl) unitEl.textContent = '';
+      } else {
+        const deltaMs = Date.now() - new Date(latestUpdate).getTime();
+        const minutes = Math.max(0, Math.round(deltaMs / 60000));
+        valueEl.textContent = String(minutes);
+        if (unitEl) unitEl.textContent = 'min ago';
+      }
+    }
   });
 }
 
@@ -1070,56 +1120,121 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     return;
   }
 
-  // Build energy series from backend energy_kwh values.
+  // Build explicit numeric series from hydrated payloads.
   const timeInterval = timeframe === '24h' ? 60 * 60 * 1000 :
                         timeframe === '7d' ? 24 * 60 * 60 * 1000 :
                         24 * 60 * 60 * 1000;
-  
-  const grouped = {};
-  filteredEnergy.forEach(item => {
-    const time = new Date(item.time).getTime();
-    const bucket = Math.floor(time / timeInterval) * timeInterval;
-    
-    if (!grouped[bucket]) {
-      grouped[bucket] = { energy: 0, count: 0 };
-    }
-    
-    const energyValue = item.payload?.object?.energy_kwh;
-    if (typeof energyValue === 'number' && Number.isFinite(energyValue)) {
-      grouped[bucket].energy += energyValue;
-      grouped[bucket].count++;
-    }
-  });
-  
-  const sortedBuckets = Object.keys(grouped).sort((a, b) => a - b);
-  const energyData = sortedBuckets.map(bucket => {
-    const avg = grouped[bucket].count > 0 ? grouped[bucket].energy / grouped[bucket].count : null;
-    return avg;
+  const filteredOccupancy = typeof SMACAState?.getFilteredOccupancy === 'function'
+    ? SMACAState.getFilteredOccupancy()
+    : (Array.isArray(SMACAState?.rawData?.occupancy) ? SMACAState.rawData.occupancy : []);
+
+  const energyPoints = filteredEnergy
+    .map(function (row) {
+      const time = row?.time;
+      const timeMs = new Date(time).getTime();
+      const energyValue = Number(row?.payload?.object?.energy_kwh);
+      return { time: time, timeMs: timeMs, value: energyValue };
+    })
+    .filter(function (point) {
+      return point.time && Number.isFinite(point.timeMs) && Number.isFinite(point.value);
+    });
+
+  const occupancyPoints = filteredOccupancy
+    .map(function (row) {
+      const time = row?.time;
+      const timeMs = new Date(time).getTime();
+      const peopleIn = Number(row?.payload?.object?.people_in);
+      const peopleOut = Number(row?.payload?.object?.people_out);
+      const activity = peopleIn + peopleOut;
+      return {
+        time: time,
+        timeMs: timeMs,
+        people_in: peopleIn,
+        people_out: peopleOut,
+        value: activity
+      };
+    })
+    .filter(function (point) {
+      return point.time && Number.isFinite(point.timeMs) && Number.isFinite(point.value);
+    });
+
+  const groupedEnergy = {};
+  energyPoints.forEach(function (point) {
+    const bucket = Math.floor(point.timeMs / timeInterval) * timeInterval;
+    if (!groupedEnergy[bucket]) groupedEnergy[bucket] = { sum: 0, count: 0 };
+    groupedEnergy[bucket].sum += point.value;
+    groupedEnergy[bucket].count += 1;
   });
 
-  const occupancyData = sortedBuckets.map(function (bucket) {
-    const bucketTime = Number(bucket);
-    const nearest = Array.isArray(SMACAState.rawData.occupancy)
-      ? SMACAState.rawData.occupancy.find(item => Math.abs(new Date(item.time).getTime() - bucketTime) <= timeInterval)
-      : null;
-    if (!nearest) return null;
-    const totalIn = nearest.payload?.object?.people_total_in ?? nearest.payload?.object?.total_in;
-    const totalOut = nearest.payload?.object?.people_total_out ?? nearest.payload?.object?.total_out;
-    if (typeof totalIn !== 'number' || typeof totalOut !== 'number') return null;
-    return Math.max(0, totalIn - totalOut);
+  const groupedOccupancy = {};
+  occupancyPoints.forEach(function (point) {
+    const bucket = Math.floor(point.timeMs / timeInterval) * timeInterval;
+    if (!groupedOccupancy[bucket]) groupedOccupancy[bucket] = { sum: 0, count: 0 };
+    groupedOccupancy[bucket].sum += point.value;
+    groupedOccupancy[bucket].count += 1;
+  });
+
+  const sampleOccupancy = occupancyPoints.slice(0, 3).map(function (item) {
+    return {
+      time: item?.time || null,
+      people_in: item?.people_in ?? null,
+      people_out: item?.people_out ?? null,
+      activity: item?.value ?? null
+    };
+  });
+  const sampleEnergy = energyPoints.slice(0, 3).map(function (item) {
+    return {
+      time: item?.time || null,
+      energy_kwh: item?.value ?? null
+    };
+  });
+  console.log('[SMACA] energy chart input sample', sampleEnergy);
+  console.log('[SMACA] occupancy chart input sample', sampleOccupancy);
+
+  const sharedBuckets = Object.keys(groupedEnergy)
+    .filter(function (bucket) { return !!groupedOccupancy[bucket]; })
+    .map(function (bucket) { return Number(bucket); })
+    .filter(Number.isFinite)
+    .sort(function (a, b) { return a - b; });
+
+  const pairedSeries = sharedBuckets
+    .map(function (bucket) {
+      const energyAvg = groupedEnergy[bucket].count > 0 ? groupedEnergy[bucket].sum / groupedEnergy[bucket].count : NaN;
+      const occupancyAvg = groupedOccupancy[bucket].count > 0 ? groupedOccupancy[bucket].sum / groupedOccupancy[bucket].count : NaN;
+      const energyValue = Number(energyAvg);
+      const occupancyValue = Number(occupancyAvg);
+      return { occupancy: occupancyValue, energy: energyValue };
+    })
+    .filter(function (point) {
+      return Number.isFinite(point.occupancy) && Number.isFinite(point.energy);
+    });
+
+  const occupancyData = pairedSeries.map(function (point) { return point.occupancy; });
+  const energyData = pairedSeries.map(function (point) { return point.energy; });
+  const maxOccupancy = occupancyData.length > 0 ? Math.max.apply(null, occupancyData) : 0;
+  const maxEnergy = energyData.length > 0 ? Math.max.apply(null, energyData) : 0;
+  console.log('[SMACA] valid counts', {
+    occupancy: occupancyData.length,
+    energy: energyData.length
   });
   
   // Update correlation chart (only when energy section visible - avoids wrong size from hidden container)
   setTimeout(() => {
     const energySection = document.querySelector('#energy');
     if (energySection && energySection.style.display === 'none') return;
-    if (typeof createDualAxisChart === 'function' && energyData.length > 0) {
-      const energyChartEl = document.getElementById('energy-correlation-chart');
-      if (energyChartEl) {
-        const svg = energyChartEl.querySelector('svg');
-        if (svg) svg.remove();
-        createDualAxisChart('energy-correlation-chart', occupancyData.map(v => v ?? 0), energyData.map(v => v ?? 0), { height: 400 });
-      }
+    const energyChartEl = document.getElementById('energy-correlation-chart');
+    if (!energyChartEl) return;
+
+    const svg = energyChartEl.querySelector('svg');
+    if (svg) svg.remove();
+
+    if (occupancyData.length === 0 || energyData.length === 0 || !Number.isFinite(maxOccupancy) || !Number.isFinite(maxEnergy) || maxOccupancy <= 0 || maxEnergy <= 0) {
+      energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for this sensor</div>';
+      return;
+    }
+
+    if (typeof createDualAxisChart === 'function') {
+      createDualAxisChart('energy-correlation-chart', occupancyData, energyData, { height: 400 });
     }
   }, 200);
 }
@@ -1189,8 +1304,10 @@ function updateHeaderCounters(timeframe, filteredData) {
   // Update Overview total sensors
   const overviewCounter = document.getElementById('overview-total-sensors');
   if (overviewCounter) {
+    const totals = window.SMACADashboardContext?.overview?.totals || {};
     const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
-    overviewCounter.textContent = String(sensors.length);
+    const resolvedTotal = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensors.length;
+    overviewCounter.textContent = Number.isFinite(resolvedTotal) ? String(resolvedTotal) : 'Not available';
   }
   
   // Update Overview System Status counters
@@ -1199,26 +1316,28 @@ function updateHeaderCounters(timeframe, filteredData) {
 
 // Update Overview System Status counters
 function updateOverviewSystemStatus() {
+  const totals = window.SMACADashboardContext?.overview?.totals || {};
   const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
-  
-  // Count active sensors
-  const activeSensors = sensors.filter(s => s.is_active === true || s.is_active === 1 || s.is_active === '1').length;
+  const activeFallback = sensors.filter(s => s.is_active === true || s.is_active === 1 || s.is_active === '1').length;
+  const activeSensors = Number.isFinite(Number(totals.active_sensors)) ? Number(totals.active_sensors) : activeFallback;
   const activeCounter = document.getElementById('overview-active-sensors');
   if (activeCounter) {
     activeCounter.textContent = activeSensors;
   }
   
-  // Count maintenance sensors
-  const maintenanceSensors = sensors.filter(s => !(s.is_active === true || s.is_active === 1 || s.is_active === '1')).length;
+  const maintenanceFallback = Math.max(0, sensors.length - activeFallback);
+  const maintenanceSensors = Number.isFinite(Number(totals.maintenance_sensors ?? totals.inactive_sensors))
+    ? Number(totals.maintenance_sensors ?? totals.inactive_sensors)
+    : maintenanceFallback;
   const maintenanceCounter = document.getElementById('overview-maintenance-sensors');
   if (maintenanceCounter) {
     maintenanceCounter.textContent = maintenanceSensors;
   }
   
-  // Count connected sensors (all sensors)
+  const connectedSensors = Number.isFinite(Number(totals.connected_sensors)) ? Number(totals.connected_sensors) : sensors.length;
   const connectedCounter = document.getElementById('overview-connected-sensors');
   if (connectedCounter) {
-    connectedCounter.textContent = sensors.length;
+    connectedCounter.textContent = connectedSensors;
   }
   
   // Update AI events (from AI Insights if available)
