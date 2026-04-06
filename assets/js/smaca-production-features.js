@@ -29,6 +29,16 @@ function logSmacaHydratedState(lengths) {
   console.log('[SMACA] hydrated state', lengths);
 }
 
+function escapeSmacaHtml(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
   // API-first initialization for production dashboard data.
   await initializeStateFromApi();
@@ -446,15 +456,21 @@ function renderManagementSensorsFromLiveData() {
     const batteryText = latest?.battery_pct !== null && latest?.battery_pct !== undefined ? `${latest.battery_pct}%` : 'Not reported by sensor';
     const lastSeen = latestRow?.last_seen_at || latest?.measured_at || sensor?.last_seen_at || null;
     const lastSeenText = lastSeen ? new Date(lastSeen).toLocaleString() : 'No data for this sensor';
+    const sensorIdentifier = escapeSmacaHtml(sensor?.sensor_uid || sensor?.id || '');
+    const sensorName = escapeSmacaHtml(sensor?.name || `Sensor ${sensor?.id}`);
+    const sensorType = escapeSmacaHtml(sensor?.device_type || 'Not reported by sensor');
+    const sensorSiteName = escapeSmacaHtml(sensor?.site?.name || 'Not reported by sensor');
+    const batteryTextEscaped = escapeSmacaHtml(batteryText);
+    const lastSeenEscaped = escapeSmacaHtml(lastSeenText);
     return `
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text); font-family: monospace;">${sensor?.sensor_uid || sensor?.id}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensor?.name || `Sensor ${sensor?.id}`}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensor?.device_type || 'Not reported by sensor'}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensor?.site?.name || 'Not reported by sensor'}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text); font-family: monospace;">${sensorIdentifier}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorName}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorType}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorSiteName}</td>
         <td style="padding: var(--space-3) var(--space-4);"><span class="badge ${isActive ? 'badge--success' : 'badge--muted'} badge--sm">${isActive ? 'Live' : 'Inactive'}</span></td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${batteryText}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${lastSeenText}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${batteryTextEscaped}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${lastSeenEscaped}</td>
         <td style="padding: var(--space-3) var(--space-4);"><span style="font-size: var(--font-size-xs); color: var(--muted);">Read-only</span></td>
       </tr>
     `;
@@ -669,6 +685,8 @@ function applyHydratedState(data, shouldNotify) {
 
 // Setup time range selector
 function setupTimeRangeSelector() {
+  if (typeof window !== 'undefined' && window.__smacaTimeRangeBound) return;
+  if (typeof window !== 'undefined') window.__smacaTimeRangeBound = true;
   const buttons = document.querySelectorAll('.time-range-btn');
   const selector = document.querySelector('.time-range-selector');
   
@@ -733,6 +751,8 @@ function setupTimeRangeSelector() {
 
 // Setup export button
 function setupExportButton() {
+  if (typeof window !== 'undefined' && window.__smacaExportBound) return;
+  if (typeof window !== 'undefined') window.__smacaExportBound = true;
   const exportBtn = document.getElementById('export-btn');
   if (exportBtn) {
     exportBtn.addEventListener('click', function() {
@@ -808,17 +828,21 @@ function updateAlertsPanel() {
                          alert.severity === 'warning' ? 'badge--warning' : 'badge--info';
     
     const timeAgo = SMACAAlertsEngine.formatTimeAgo(alert.timestamp);
+    const safeMessage = escapeSmacaHtml(alert.message || '');
+    const safeSeverity = escapeSmacaHtml(alert.severity || 'info');
+    const safeTimeAgo = escapeSmacaHtml(timeAgo || '');
+    const safeConfidence = Number.isFinite(Number(alert.confidence)) ? Number(alert.confidence) : 0;
     
     return `
       <div class="alert-card" style="padding: var(--space-4); border-bottom: 1px solid var(--border); display: flex; align-items: start; gap: var(--space-3);">
         <div style="flex: 1;">
           <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);">
-            <span class="badge ${severityClass} badge--sm">${alert.severity}</span>
-            <span style="font-size: var(--font-size-xs); color: var(--muted);">${timeAgo}</span>
+            <span class="badge ${severityClass} badge--sm">${safeSeverity}</span>
+            <span style="font-size: var(--font-size-xs); color: var(--muted);">${safeTimeAgo}</span>
           </div>
-          <p style="margin: 0; font-size: var(--font-size-sm);">${alert.message}</p>
+          <p style="margin: 0; font-size: var(--font-size-sm);">${safeMessage}</p>
           <div style="margin-top: var(--space-2); font-size: var(--font-size-xs); color: var(--muted);">
-            Confidence: ${alert.confidence}%
+            Confidence: ${safeConfidence}%
           </div>
         </div>
       </div>

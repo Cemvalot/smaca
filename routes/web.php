@@ -47,8 +47,11 @@ if (!function_exists('smacaApiIso')) {
         if (empty($value)) {
             return null;
         }
-
-        return Carbon::parse($value, 'Europe/Athens')->toISOString();
+        try {
+            return Carbon::parse($value, 'Europe/Athens')->toISOString();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }
 
@@ -115,9 +118,18 @@ if (!function_exists('smacaHandleIngest')) {
             ], 404);
         }
 
-        $measuredAt = $request->filled('measured_at')
-            ? Carbon::parse($request->input('measured_at'), 'Europe/Athens')
-            : $nowAthens;
+        if ($request->filled('measured_at')) {
+            try {
+                $measuredAt = Carbon::parse($request->input('measured_at'), 'Europe/Athens');
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Invalid measured_at timestamp',
+                ], 422);
+            }
+        } else {
+            $measuredAt = $nowAthens;
+        }
 
         $readingMetricFields = [
             'battery_pct',
