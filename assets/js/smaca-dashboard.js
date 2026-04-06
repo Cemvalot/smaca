@@ -1102,7 +1102,11 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
         if (sectionId === 'iaq') {
-          // IAQ rendering is owned by smaca-production-features.js hydration flow.
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('smaca:section-visible', {
+              detail: { sectionId: 'iaq' }
+            }));
+          }
         } else if (sectionId === 'occupancy') {
           // Occupancy charts are updated by updateOccupancyCharts in updateAllDashboards
         } else if (sectionId === 'energy') {

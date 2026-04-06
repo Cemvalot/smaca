@@ -51,6 +51,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     updateSystemHealthBadge();
     updateAlertsPanel();
   });
+
+  if (typeof window !== 'undefined' && !window.__smacaIAQVisibilityBound) {
+    window.__smacaIAQVisibilityBound = true;
+    window.addEventListener('smaca:section-visible', function (event) {
+      if (event?.detail?.sectionId === 'iaq') {
+        renderIAQSection('section-visible', false);
+      }
+    });
+  }
   
   // Initial render
   const filteredData = {
@@ -64,6 +73,53 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Update overview system status
   updateOverviewSystemStatus();
 });
+
+function renderIAQSection(reason, allowDeferred) {
+  const iaqSection = document.getElementById('iaq');
+  const chartContainer = document.getElementById('iaq-co2-band-chart');
+  const filteredIAQ = SMACAState.getFilteredIAQ();
+  const isVisible = !!iaqSection && iaqSection.style.display !== 'none';
+  const pointsCount = Array.isArray(filteredIAQ) ? filteredIAQ.length : 0;
+  console.log('[SMACA] IAQ chart render attempted', {
+    reason: reason || 'unknown',
+    containerVisible: isVisible,
+    iaqPoints: pointsCount
+  });
+
+  if (!iaqSection || !chartContainer || pointsCount === 0) return;
+
+  if (!isVisible) {
+    if (allowDeferred === false) return;
+    let attempts = 0;
+    const maxAttempts = 12;
+    const deferredRender = function () {
+      const visibleNow = iaqSection.style.display !== 'none';
+      if (visibleNow) {
+        renderIAQSection('deferred-visible', false);
+        return;
+      }
+      attempts += 1;
+      if (attempts < maxAttempts) {
+        requestAnimationFrame(function () {
+          setTimeout(deferredRender, 80);
+        });
+      }
+    };
+    requestAnimationFrame(function () {
+      setTimeout(deferredRender, 80);
+    });
+    return;
+  }
+
+  updateIAQDashboardWithTrends(filteredIAQ, SMACAState.currentTimeframe);
+  if (typeof initAccurateIAQDashboard === 'function') {
+    if (typeof window !== 'undefined') {
+      window.lastRenderedTimeframe = null;
+    }
+    initAccurateIAQDashboard();
+    console.log('[SMACA] IAQ chart render completed', { points: pointsCount });
+  }
+}
 
 async function initializeStateFromApi() {
   const canUseApi = typeof window !== 'undefined' && window.SMACAApi;
@@ -317,12 +373,14 @@ function setupSensorSelectionListeners() {
 
   window.SMACASelectSensorById = async function (sensorId) {
     await setCurrentSensorAndReload(sensorId);
+    renderIAQSection('sensor-selected-api', true);
   };
 
   window.addEventListener('smaca:sensor-selected', async function (event) {
     const sensorId = event?.detail?.sensorId;
     if (sensorId === null || sensorId === undefined) return;
     await setCurrentSensorAndReload(sensorId);
+    renderIAQSection('sensor-selected-event', true);
   });
 }
 
@@ -774,13 +832,7 @@ function updateAllDashboards(timeframe, filteredData) {
   updateHeaderCounters(timeframe, filteredData);
 
   // Update IAQ KPI and charts from backend-backed state.
-  updateIAQDashboardWithTrends(filteredData.iaq, timeframe);
-  if (typeof initAccurateIAQDashboard === 'function') {
-    if (typeof window !== 'undefined') {
-      window.lastRenderedTimeframe = null;
-    }
-    initAccurateIAQDashboard();
-  }
+  renderIAQSection('update-all-dashboards', true);
 
   updateOccupancyDashboardWithTrends(filteredData.occupancy, timeframe);
   updateOccupancyCharts(filteredData.occupancy, timeframe);
