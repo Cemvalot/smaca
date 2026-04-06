@@ -3,9 +3,17 @@ function seededRandom(seed) {
   return x - Math.floor(x);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize state manager with sample data
-  initializeStateWithSampleData();
+function getIAQItemIdentityKey(item) {
+  if (!item) return null;
+  return item.sensorId ?? item.sensorUid ?? item.deviceInfo?.deviceName ?? item.deviceName ?? null;
+}
+
+// Tracks the currently selected sensor for backend timeseries requests.
+window.SMACACurrentSensorId = null;
+
+document.addEventListener('DOMContentLoaded', async function() {
+  // API-first initialization for production dashboard data.
+  await initializeStateFromApi();
   
   // Setup time range selector
   setupTimeRangeSelector();
@@ -37,6 +45,191 @@ document.addEventListener('DOMContentLoaded', function() {
   // Update overview system status
   updateOverviewSystemStatus();
 });
+
+async function initializeStateFromApi() {
+  const canUseApi = typeof window !== 'undefined' && window.SMACAApi;
+  if (!canUseApi) {
+    initializeStateWithSampleData();
+    return;
+  }
+
+  try {
+    const [overview, sensorsPayload] = await Promise.all([
+      window.SMACAApi.fetchDashboardOverview(),
+      window.SMACAApi.fetchSensors()
+    ]);
+
+    const sensors = Array.isArray(sensorsPayload?.rows) ? sensorsPayload.rows : [];
+    hydrateLegacySensorsForUi(sensors, overview);
+
+    const defaultSensor = chooseDefaultSensor(sensors, overview);
+    window.SMACACurrentSensorId = defaultSensor
+      ? (defaultSensor.id ?? defaultSensor.sensor_uid ?? defaultSensor.name ?? null)
+      : null;
+
+    if (!window.SMACACurrentSensorId) {
+      // No sensors yet; keep state empty but valid.
+      applyHydratedState({ iaq: [], occupancy: [], environmental: [] });
+      return;
+    }
+
+    const hydrated = await fetchAndMapTimeseriesForSensor(window.SMACACurrentSensorId, SMACAState.currentTimeframe);
+    applyHydratedState(hydrated);
+  } catch (error) {
+    console.error('SMACA API initialization failed, falling back to sample data:', error);
+    initializeStateWithSampleData();
+  }
+}
+
+function chooseDefaultSensor(sensors, overview) {
+  const rows = Array.isArray(sensors) ? sensors : [];
+  if (rows.length === 0) return null;
+
+  const snapshotRows = Array.isArray(overview?.latest_sensor_snapshot_rows)
+    ? overview.latest_sensor_snapshot_rows
+    : [];
+  const snapshotIds = new Set(snapshotRows.map(r => Number(r.sensor_id)).filter(Number.isFinite));
+  const withData = rows.find(s => snapshotIds.has(Number(s.id)));
+  return withData || rows[0];
+}
+
+function hydrateLegacySensorsForUi(sensors, overview) {
+  if (typeof mockData === 'undefined') return;
+
+  const rows = Array.isArray(sensors) ? sensors : [];
+  mockData.sensors = rows.map(function (sensor) {
+    const isActive = sensor.is_active === 1 || sensor.is_active === true || sensor.is_active === '1';
+    return {
+      id: sensor.id,
+      name: sensor.name || sensor.sensor_uid || `Sensor ${sensor.id}`,
+      status: isActive ? 'active' : 'maintenance',
+      lastSeen: sensor.last_seen_at || null,
+      type: sensor.device_type || 'Unknown',
+      siteName: sensor.site?.name || null,
+      sensorUid: sensor.sensor_uid || null
+    };
+  });
+
+  // Keep pre-existing global list for connectivity table.
+  if (typeof window !== 'undefined') {
+    window.SMACA_SENSORS = mockData.sensors;
+  }
+
+  const totalSensorsEl = document.getElementById('overview-total-sensors');
+  if (totalSensorsEl && overview?.totals?.sensors !== undefined) {
+    totalSensorsEl.textContent = String(overview.totals.sensors);
+  }
+}
+
+async function fetchAndMapTimeseriesForSensor(sensorId, timeframe) {
+  const tf = timeframe || '24h';
+  const metricList = [
+    'co2_ppm',
+    'temperature_c',
+    'humidity_rh',
+    'pm2_5_ugm3',
+    'pm10_ugm3',
+    'people_in',
+    'people_out',
+    'people_total_in',
+    'people_total_out',
+    'uv_index',
+    'energy_kwh',
+    'battery_pct'
+  ];
+
+  const latestPromise = window.SMACAApi.fetchSensorLatest(sensorId).catch(function () {
+    return null;
+  });
+
+  const responses = await Promise.all(metricList.map(function (metric) {
+    return window.SMACAApi
+      .fetchSensorTimeseries(sensorId, metric, tf)
+      .then(function (payload) { return { metric: metric, payload: payload }; })
+      .catch(function () {
+        return { metric: metric, payload: { points: [] } };
+      });
+  }));
+
+  const latestPayload = await latestPromise;
+  const latestRow = latestPayload?.row || null;
+  const adapters = window.SMACAApi.adapters;
+  const meta = {
+    sensorId: sensorId,
+    sensorUid: latestRow?.sensor_uid || null,
+    deviceName: latestRow?.name || `Sensor ${sensorId}`,
+    deviceProfileName: latestRow?.device_type || null
+  };
+
+  const firstIAQ = responses.find(r => ['co2_ppm', 'temperature_c', 'humidity_rh', 'pm2_5_ugm3', 'pm10_ugm3', 'battery_pct'].includes(r.metric));
+  const firstOcc = responses.find(r => ['people_in', 'people_out', 'people_total_in', 'people_total_out'].includes(r.metric));
+  const firstEnv = responses.find(r => ['uv_index', 'energy_kwh'].includes(r.metric));
+
+  let iaq = adapters.timeseriesPointsToIAQItems(firstIAQ?.payload?.points || [], meta);
+  let occupancy = adapters.timeseriesPointsToOccupancyItems(firstOcc?.payload?.points || [], meta);
+  let environmental = adapters.timeseriesPointsToEnvironmentalItems(firstEnv?.payload?.points || [], meta);
+
+  responses.forEach(function (response) {
+    iaq = adapters.mergeMetricIntoIAQItems(iaq, response.metric, response.payload?.points || []);
+    occupancy = adapters.mergeMetricIntoOccupancyItems(occupancy, response.metric, response.payload?.points || []);
+    environmental = adapters.mergeMetricIntoEnvironmentalItems(environmental, response.metric, response.payload?.points || []);
+  });
+
+  // Ensure latest snapshot can still drive KPI cards when timeseries is sparse.
+  if (latestRow && iaq.length === 0) {
+    const snapshotRow = {
+      sensor_id: latestRow.id,
+      sensor_uid: latestRow.sensor_uid,
+      sensor_name: latestRow.name,
+      device_type: latestRow.device_type,
+      measured_at: latestRow.latest?.measured_at,
+      battery_pct: latestRow.latest?.battery_pct,
+      co2_ppm: latestRow.latest?.co2_ppm,
+      temperature_c: latestRow.latest?.temperature_c,
+      humidity_rh: latestRow.latest?.humidity_rh,
+      pm2_5_ugm3: latestRow.latest?.pm2_5_ugm3,
+      pm10_ugm3: latestRow.latest?.pm10_ugm3
+    };
+    const snapshotItem = adapters.normalizeSnapshotToIAQItem(snapshotRow);
+    if (snapshotItem) iaq.push(snapshotItem);
+  }
+
+  iaq = iaq.map(function (item) {
+    const resolvedSensorId = item?.sensorId ?? (latestRow?.id ?? sensorId);
+    const resolvedSensorUid = item?.sensorUid ?? (latestRow?.sensor_uid ?? null);
+    const deviceName = item?.deviceInfo?.deviceName || item?.deviceName || latestRow?.name || `Sensor ${resolvedSensorId}`;
+    const deviceProfileName = item?.deviceInfo?.deviceProfileName || item?.deviceProfileName || latestRow?.device_type || null;
+    return {
+      ...item,
+      sensorId: resolvedSensorId ?? null,
+      sensorUid: resolvedSensorUid ?? null,
+      deviceName: deviceName || 'Unknown',
+      deviceProfileName: deviceProfileName,
+      deviceInfo: {
+        ...(item?.deviceInfo || {}),
+        deviceName: deviceName || 'Unknown',
+        deviceProfileName: deviceProfileName
+      }
+    };
+  });
+
+  iaq.sort((a, b) => new Date(a.time) - new Date(b.time));
+  occupancy.sort((a, b) => new Date(a.time) - new Date(b.time));
+  environmental.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+  return { iaq: iaq, occupancy: occupancy, environmental: environmental };
+}
+
+function applyHydratedState(data, shouldNotify) {
+  const notify = shouldNotify !== false;
+  // Keep existing state-manager architecture; just replace raw arrays atomically.
+  SMACAState.rawData.iaq = Array.isArray(data?.iaq) ? data.iaq : [];
+  SMACAState.rawData.occupancy = Array.isArray(data?.occupancy) ? data.occupancy : [];
+  SMACAState.rawData.environmental = Array.isArray(data?.environmental) ? data.environmental : [];
+  if (notify) {
+    SMACAState.notifyListeners();
+  }
+}
 
 // Initialize state with sample data (deterministic - same data every refresh)
 // PRODUCTION NOTE: Replace this function to fetch data from Laravel API endpoints
@@ -184,7 +377,7 @@ function setupTimeRangeSelector() {
   const selector = document.querySelector('.time-range-selector');
   
   buttons.forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', async function() {
       const timeframe = this.getAttribute('data-timeframe');
       const currentTimeframe = SMACAState.currentTimeframe;
       
@@ -222,7 +415,17 @@ function setupTimeRangeSelector() {
       this.style.color = 'var(--text)';
       this.style.fontWeight = '600';
       
-      // Update state (this will trigger listeners and update charts)
+      // Refetch from backend for selected timeframe when API mode is active.
+      if (window.SMACAApi && window.SMACACurrentSensorId) {
+        try {
+          const hydrated = await fetchAndMapTimeseriesForSensor(window.SMACACurrentSensorId, timeframe);
+          applyHydratedState(hydrated, false);
+        } catch (error) {
+          console.error('Failed to refresh timeframe from API:', error);
+        }
+      }
+
+      // Update state (triggers listeners/charts and keeps existing behavior)
       SMACAState.setTimeframe(timeframe);
       
       // Remove loading state after a short delay
@@ -261,7 +464,7 @@ function updateSystemHealthBadge() {
   const badge = document.getElementById('system-health-badge');
   if (!badge) return;
   
-  const sensors = mockData.sensors || [];
+  const sensors = (typeof mockData !== 'undefined' && mockData.sensors) ? mockData.sensors : [];
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   
@@ -307,7 +510,7 @@ function updateAlertsPanel() {
     environmental: SMACAState.getFilteredEnvironmental()
   };
   
-  const sensors = mockData.sensors || [];
+  const sensors = (typeof mockData !== 'undefined' && mockData.sensors) ? mockData.sensors : [];
   const alerts = SMACAAlertsEngine.checkRules(filteredData, sensors);
   
   if (alerts.length === 0) {
@@ -451,6 +654,15 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
     kpiContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: var(--space-4); color: var(--muted);">Insufficient history for selected range</div>';
     return;
   }
+
+  const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
+  const rawIAQ = Array.isArray(SMACAState.rawData?.iaq) ? SMACAState.rawData.iaq : [];
+  const selectedSensorRawIAQ = selectedSensorId == null
+    ? rawIAQ
+    : rawIAQ.filter(item => String(getIAQItemIdentityKey(item)) === String(selectedSensorId));
+  const liveSeries = selectedSensorRawIAQ.length > 0 ? selectedSensorRawIAQ : filteredIAQ;
+  const latest = liveSeries[liveSeries.length - 1] || filteredIAQ[filteredIAQ.length - 1];
+  const latestValues = latest?.payload?.object || {};
   
   // Calculate trends for all metrics
   const co2Trend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.iaq, 'co2', timeframe);
@@ -460,22 +672,17 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   const pm10Trend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.iaq, 'pm10', timeframe);
   const tvocTrend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.iaq, 'tvoc', timeframe);
   
-  // Get latest values
-  const latest = filteredIAQ[filteredIAQ.length - 1];
-  const co2 = latest?.payload?.object?.co2 || 0;
-  const temp = latest?.payload?.object?.temperature || 0;
-  const humidity = latest?.payload?.object?.humidity || 0;
-  const pm25 = latest?.payload?.object?.pm2_5 || 0;
-  const pm10 = latest?.payload?.object?.pm10 || 0;
-  const tvoc = latest?.payload?.object?.tvoc || 0;
-  
-  // Calculate averages for display
-  const co2Avg = SMACATrendCalculator.calculateAverage(filteredIAQ, 'co2') || co2;
-  const tempAvg = SMACATrendCalculator.calculateAverage(filteredIAQ, 'temperature') || temp;
-  const humidityAvg = SMACATrendCalculator.calculateAverage(filteredIAQ, 'humidity') || humidity;
-  const pm25Avg = SMACATrendCalculator.calculateAverage(filteredIAQ, 'pm2_5') || pm25;
-  const pm10Avg = SMACATrendCalculator.calculateAverage(filteredIAQ, 'pm10') || pm10;
-  const tvocAvg = SMACATrendCalculator.calculateAverage(filteredIAQ, 'tvoc') || tvoc;
+  // Get latest live values for selected/current sensor.
+  const co2 = latestValues?.co2 ?? null;
+  const temp = latestValues?.temperature ?? null;
+  const humidity = latestValues?.humidity ?? null;
+  const pm25 = latestValues?.pm2_5 ?? null;
+  const pm10 = latestValues?.pm10 ?? null;
+  const tvoc = latestValues?.tvoc ?? null;
+
+  const formatMetricValue = (value, decimals) => (
+    typeof value === 'number' && Number.isFinite(value) ? value.toFixed(decimals) : 'N/A'
+  );
   
   // Format trends
   const co2TrendFormatted = SMACATrendCalculator.formatTrend(co2Trend);
@@ -484,6 +691,37 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   const pm25TrendFormatted = SMACATrendCalculator.formatTrend(pm25Trend);
   const pm10TrendFormatted = SMACATrendCalculator.formatTrend(pm10Trend);
   const tvocTrendFormatted = SMACATrendCalculator.formatTrend(tvocTrend);
+
+  console.log('[SMACA][IAQ] KPI render dataset', {
+    timeframe: timeframe,
+    selectedSensorKey: selectedSensorId,
+    filteredCount: filteredIAQ.length,
+    rawCount: rawIAQ.length,
+    selectedSeriesCount: selectedSensorRawIAQ.length,
+    renderSeriesCount: liveSeries.length,
+    latestPoint: latest
+  });
+  console.log('[SMACA][IAQ] First IAQ item key fields', rawIAQ.length > 0 ? {
+    sensorId: rawIAQ[0]?.sensorId ?? null,
+    sensorUid: rawIAQ[0]?.sensorUid ?? null,
+    deviceInfoDeviceName: rawIAQ[0]?.deviceInfo?.deviceName ?? null,
+    identityKey: getIAQItemIdentityKey(rawIAQ[0])
+  } : null);
+  console.log('[SMACA][IAQ] Latest selected sensor', {
+    selectedSensorKey: selectedSensorId,
+    latestSensorId: latest?.sensorId ?? null,
+    latestSensorUid: latest?.sensorUid ?? null,
+    latestDeviceName: latest?.deviceName ?? latest?.deviceInfo?.deviceName ?? null
+  });
+  console.log('[SMACA][IAQ] Filtered selected-series count', selectedSensorRawIAQ.length);
+  console.log('[SMACA][IAQ] KPI metric values', {
+    co2: co2,
+    temperature: temp,
+    humidity: humidity,
+    pm2_5: pm25,
+    pm10: pm10,
+    tvoc: tvoc
+  });
   
   // Render all KPI cards with trends
   kpiContainer.innerHTML = `
@@ -493,7 +731,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
           <div class="stat-card__label">CO₂</div>
           <span class="trend-pill ${co2TrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${co2TrendFormatted.text}</span>
         </div>
-        <div class="stat-card__value">${co2Avg.toFixed(0)}</div>
+        <div class="stat-card__value">${formatMetricValue(co2, 0)}</div>
         <div class="stat-card__unit">ppm</div>
       </div>
     </div>
@@ -503,7 +741,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
           <div class="stat-card__label">Temperature</div>
           <span class="trend-pill ${tempTrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${tempTrendFormatted.text}</span>
         </div>
-        <div class="stat-card__value">${tempAvg.toFixed(1)}</div>
+        <div class="stat-card__value">${formatMetricValue(temp, 1)}</div>
         <div class="stat-card__unit">°C</div>
       </div>
     </div>
@@ -513,7 +751,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
           <div class="stat-card__label">Humidity</div>
           <span class="trend-pill ${humidityTrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${humidityTrendFormatted.text}</span>
         </div>
-        <div class="stat-card__value">${humidityAvg.toFixed(0)}</div>
+        <div class="stat-card__value">${formatMetricValue(humidity, 0)}</div>
         <div class="stat-card__unit">%</div>
       </div>
     </div>
@@ -523,7 +761,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
           <div class="stat-card__label">PM2.5</div>
           <span class="trend-pill ${pm25TrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${pm25TrendFormatted.text}</span>
         </div>
-        <div class="stat-card__value">${pm25Avg.toFixed(1)}</div>
+        <div class="stat-card__value">${formatMetricValue(pm25, 1)}</div>
         <div class="stat-card__unit">µg/m³</div>
       </div>
     </div>
@@ -533,7 +771,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
           <div class="stat-card__label">PM10</div>
           <span class="trend-pill ${pm10TrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${pm10TrendFormatted.text}</span>
         </div>
-        <div class="stat-card__value">${pm10Avg.toFixed(1)}</div>
+        <div class="stat-card__value">${formatMetricValue(pm10, 1)}</div>
         <div class="stat-card__unit">µg/m³</div>
       </div>
     </div>
@@ -543,7 +781,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
           <div class="stat-card__label">TVOC</div>
           <span class="trend-pill ${tvocTrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${tvocTrendFormatted.text}</span>
         </div>
-        <div class="stat-card__value">${tvocAvg.toFixed(1)}</div>
+        <div class="stat-card__value">${formatMetricValue(tvoc, 1)}</div>
         <div class="stat-card__unit">(raw)</div>
       </div>
     </div>
@@ -724,8 +962,8 @@ function updateHeaderCounters(timeframe, filteredData) {
   // Update IAQ active sensors counter
   const iaqCounter = document.getElementById('iaq-active-sensors');
   if (iaqCounter && filteredData.iaq) {
-    const uniqueSensors = new Set(filteredData.iaq.map(d => d.deviceInfo?.deviceName || 'default'));
-    iaqCounter.textContent = uniqueSensors.size || filteredData.iaq.length > 0 ? '8' : '0';
+    const uniqueSensors = new Set(filteredData.iaq.map(d => d.deviceName || d.deviceInfo?.deviceName || 'default'));
+    iaqCounter.textContent = String(uniqueSensors.size || (filteredData.iaq.length > 0 ? 1 : 0));
   }
   
   // Update Occupancy current count
@@ -773,13 +1011,13 @@ function updateHeaderCounters(timeframe, filteredData) {
   // Update Management total sensors
   const managementCounter = document.getElementById('management-total-sensors');
   if (managementCounter) {
-    managementCounter.textContent = mockData.sensors?.length || 13;
+    managementCounter.textContent = String((typeof mockData !== 'undefined' && mockData.sensors?.length) ? mockData.sensors.length : 0);
   }
   
   // Update Overview total sensors
   const overviewCounter = document.getElementById('overview-total-sensors');
   if (overviewCounter) {
-    overviewCounter.textContent = mockData.sensors?.length || 24;
+    overviewCounter.textContent = String((typeof mockData !== 'undefined' && mockData.sensors?.length) ? mockData.sensors.length : 0);
   }
   
   // Update Overview System Status counters
@@ -788,7 +1026,7 @@ function updateHeaderCounters(timeframe, filteredData) {
 
 // Update Overview System Status counters
 function updateOverviewSystemStatus() {
-  const sensors = mockData.sensors || [];
+  const sensors = (typeof mockData !== 'undefined' && mockData.sensors) ? mockData.sensors : [];
   
   // Count active sensors
   const activeSensors = sensors.filter(s => s.status === 'active').length;

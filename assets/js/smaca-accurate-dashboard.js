@@ -14,42 +14,6 @@ if (typeof formatTime === 'undefined') {
   }
 }
 
-const sampleIAQPayload = {
-  payload: {
-    object: {
-      co2: 522,
-      temperature: 22.5,
-      humidity: 47,
-      pm2_5: 12,
-      pm10: 18,
-      tvoc: 148,
-      pressure: 1013.25,
-      light_level: 350,
-      pir: "idle",
-      battery: 85
-    }
-  },
-  deviceInfo: {
-    deviceName: "IAQ-Sensor-001",
-    deviceProfileName: "Milesight AM308L"
-  },
-  rxInfo: [{
-    rssi: -45,
-    snr: 25,
-    gatewayId: "gateway-001"
-  }],
-  time: new Date().toISOString()
-};
-
-const sampleIAQHistory = [
-  { ...sampleIAQPayload, time: new Date(Date.now() - 3600000 * 15).toISOString(), payload: { object: { ...sampleIAQPayload.payload.object, co2: 480, temperature: 21.5, humidity: 45 } } },
-  { ...sampleIAQPayload, time: new Date(Date.now() - 3600000 * 12).toISOString(), payload: { object: { ...sampleIAQPayload.payload.object, co2: 495, temperature: 21.8, humidity: 46 } } },
-  { ...sampleIAQPayload, time: new Date(Date.now() - 3600000 * 9).toISOString(), payload: { object: { ...sampleIAQPayload.payload.object, co2: 510, temperature: 22.0, humidity: 47 } } },
-  { ...sampleIAQPayload, time: new Date(Date.now() - 3600000 * 6).toISOString(), payload: { object: { ...sampleIAQPayload.payload.object, co2: 530, temperature: 22.6, humidity: 48 } } },
-  { ...sampleIAQPayload, time: new Date(Date.now() - 3600000 * 3).toISOString(), payload: { object: { ...sampleIAQPayload.payload.object, co2: 525, temperature: 22.5, humidity: 47 } } },
-  sampleIAQPayload
-];
-
 if (typeof window !== 'undefined') {
   window.lastRenderedTimeframe = null;
   window.iaqDashboardRendering = false; // Lock to prevent concurrent renders
@@ -153,7 +117,21 @@ function renderIAQDashboard(normalizedData) {
   }
   
   const latest = normalizedData[normalizedData.length - 1];
-  const previous = normalizedData.length > 1 ? normalizedData[normalizedData.length - 2] : null;
+  const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
+
+  console.log('[SMACA][IAQ] Render path dataset', {
+    selectedSensorId: selectedSensorId,
+    normalizedCount: normalizedData.length,
+    latestPoint: latest
+  });
+  console.log('[SMACA][IAQ] Render path metric values', {
+    co2: latest?.co2 ?? null,
+    temperature: latest?.temperature ?? null,
+    humidity: latest?.humidity ?? null,
+    pm2_5: latest?.pm2_5 ?? null,
+    pm10: latest?.pm10 ?? null,
+    tvoc: latest?.tvoc ?? null
+  });
   
   // KPI cards are handled by updateIAQDashboardWithTrends in smaca-production-features.js
   // Don't render them here to avoid conflicts
@@ -350,6 +328,8 @@ function calculateMicroTrend(currentValue, previousValue, invert = false) {
 function renderSensorHealthPanel(data) {
   const container = document.getElementById('sensor-health-panel');
   if (!container) return;
+
+  const batteryValue = typeof data?.battery === 'number' && Number.isFinite(data.battery) ? data.battery : null;
   
   // RSSI interpretation
   const getRSSIStatus = (rssi) => {
@@ -369,6 +349,13 @@ function renderSensorHealthPanel(data) {
   
   const rssiStatus = getRSSIStatus(data.rssi);
   const snrStatus = getSNRStatus(data.snr);
+
+  console.log('[SMACA][IAQ] Sensor health data source', {
+    battery: batteryValue,
+    rssi: data?.rssi ?? null,
+    snr: data?.snr ?? null,
+    selectedSensorId: typeof window !== 'undefined' ? window.SMACACurrentSensorId : null
+  });
   
   container.innerHTML = `
     <div class="card">
@@ -380,26 +367,26 @@ function renderSensorHealthPanel(data) {
           <div>
             <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Battery</div>
             <div style="width: 100%; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; margin-bottom: var(--space-1);">
-              <div style="width: ${data.battery || 0}%; height: 100%; background: ${data.battery > 50 ? '#10b981' : data.battery > 20 ? '#f59e0b' : '#ef4444'};"></div>
+              <div style="width: ${batteryValue !== null ? batteryValue : 0}%; height: 100%; background: ${batteryValue !== null && batteryValue > 50 ? '#10b981' : batteryValue !== null && batteryValue > 20 ? '#f59e0b' : '#ef4444'};"></div>
             </div>
-            <div style="font-size: 12px; font-weight: 600; color: var(--text);">${data.battery !== null ? `${data.battery}%` : 'N/A'}</div>
+            <div style="font-size: 12px; font-weight: 600; color: var(--text);">${batteryValue !== null ? `${batteryValue}%` : 'N/A'}</div>
           </div>
           <div>
             <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">RSSI</div>
             <div style="font-size: 18px; font-weight: 600; color: ${rssiStatus.color}; margin-bottom: var(--space-1);">
-              ${data.rssi !== null ? `${data.rssi} dBm` : 'N/A'}
+              ${data.rssi !== null && data.rssi !== undefined ? `${data.rssi} dBm` : 'N/A'}
             </div>
             <div style="font-size: 10px; color: var(--muted);">
-              ${rssiStatus.label} ${data.rssi !== null ? `(${data.rssi > -70 ? '> -70' : data.rssi > -90 ? '-70 to -90' : '< -90'})` : ''}
+              ${rssiStatus.label} ${data.rssi !== null && data.rssi !== undefined ? `(${data.rssi > -70 ? '> -70' : data.rssi > -90 ? '-70 to -90' : '< -90'})` : ''}
             </div>
           </div>
           <div>
             <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">SNR</div>
             <div style="font-size: 18px; font-weight: 600; color: ${snrStatus.color}; margin-bottom: var(--space-1);">
-              ${data.snr !== null ? `${data.snr} dB` : 'N/A'}
+              ${data.snr !== null && data.snr !== undefined ? `${data.snr} dB` : 'N/A'}
             </div>
             <div style="font-size: 10px; color: var(--muted);">
-              ${snrStatus.label} ${data.snr !== null ? `(${data.snr > 5 ? '> 5' : data.snr > 0 ? '0-5' : '< 0'})` : ''}
+              ${snrStatus.label} ${data.snr !== null && data.snr !== undefined ? `(${data.snr > 5 ? '> 5' : data.snr > 0 ? '0-5' : '< 0'})` : ''}
             </div>
           </div>
         </div>
@@ -414,6 +401,14 @@ function renderSensorHealthPanel(data) {
 function renderDataSourcePanel(data) {
   const container = document.getElementById('data-source-panel');
   if (!container) return;
+
+  console.log('[SMACA][IAQ] Data source panel values', {
+    deviceName: data?.deviceName ?? null,
+    deviceProfileName: data?.deviceProfileName ?? null,
+    timestamp: data?.time ?? null,
+    gatewayId: data?.gatewayId ?? null,
+    selectedSensorId: typeof window !== 'undefined' ? window.SMACACurrentSensorId : null
+  });
   
   container.innerHTML = `
     <div class="card">
@@ -424,19 +419,19 @@ function renderDataSourcePanel(data) {
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); font-size: 11px;">
           <div>
             <div style="color: var(--muted); margin-bottom: var(--space-1);">Device Name</div>
-            <div style="color: var(--text); font-weight: 500;">${data.deviceName}</div>
+            <div style="color: var(--text); font-weight: 500;">${data.deviceName || 'N/A'}</div>
           </div>
           <div>
             <div style="color: var(--muted); margin-bottom: var(--space-1);">Device Profile</div>
-            <div style="color: var(--text); font-weight: 500;">${data.deviceProfileName}</div>
+            <div style="color: var(--text); font-weight: 500;">${data.deviceProfileName || 'N/A'}</div>
           </div>
           <div>
             <div style="color: var(--muted); margin-bottom: var(--space-1);">Timestamp</div>
-            <div style="color: var(--text); font-weight: 500;">${formatTime(data.time, true)}</div>
+            <div style="color: var(--text); font-weight: 500;">${data.time ? formatTime(data.time, true) : 'N/A'}</div>
           </div>
           <div>
             <div style="color: var(--muted); margin-bottom: var(--space-1);">Gateway ID</div>
-            <div style="color: var(--text); font-weight: 500;">${data.gatewayId}</div>
+            <div style="color: var(--text); font-weight: 500;">${data.gatewayId || 'N/A'}</div>
           </div>
         </div>
       </div>

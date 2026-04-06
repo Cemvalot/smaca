@@ -5,6 +5,8 @@ function normalizeIAQData(payload) {
     .map(p => {
       const obj = p.payload?.object || p.object || {};
       const deviceInfo = p.deviceInfo || {};
+      const resolvedDeviceName = deviceInfo.deviceName || p.deviceName || 'Unknown';
+      const resolvedDeviceProfileName = deviceInfo.deviceProfileName || p.deviceProfileName || 'Unknown';
       const rxInfo = p.rxInfo?.[0] || {};
       
       return {
@@ -21,9 +23,15 @@ function normalizeIAQData(payload) {
         battery: obj.battery !== undefined ? obj.battery : null, // %
         
         // Metadata
+        sensorId: p.sensorId ?? null,
+        sensorUid: p.sensorUid ?? null,
         time: p.time || p.timestamp || new Date().toISOString(),
-        deviceName: deviceInfo.deviceName || 'Unknown',
-        deviceProfileName: deviceInfo.deviceProfileName || 'Unknown',
+        deviceName: resolvedDeviceName,
+        deviceProfileName: resolvedDeviceProfileName,
+        deviceInfo: {
+          deviceName: resolvedDeviceName,
+          deviceProfileName: resolvedDeviceProfileName
+        },
         rssi: rxInfo.rssi !== undefined ? rxInfo.rssi : null,
         snr: rxInfo.snr !== undefined ? rxInfo.snr : null,
         gatewayId: rxInfo.gatewayId || 'Unknown'
@@ -126,4 +134,61 @@ function formatTime(timestamp, includeDate = false) {
     });
   }
   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+/**
+ * Laravel API adapters (kept here for compatibility with existing normalizer usage).
+ */
+function mapLaravelSnapshotToNormalizedIAQ(row) {
+  if (window.SMACAApi && window.SMACAApi.adapters && typeof window.SMACAApi.adapters.normalizeSnapshotToIAQItem === 'function') {
+    return window.SMACAApi.adapters.normalizeSnapshotToIAQItem(row);
+  }
+
+  return {
+    time: row?.measured_at || new Date().toISOString(),
+    sensorId: row?.sensor_id ?? null,
+    sensorUid: row?.sensor_uid ?? null,
+    deviceName: row?.sensor_name || 'Unknown',
+    deviceProfileName: row?.device_type || null,
+    payload: {
+      object: {
+        co2: row?.co2_ppm ?? null,
+        temperature: row?.temperature_c ?? null,
+        humidity: row?.humidity_rh ?? null,
+        pm2_5: row?.pm2_5_ugm3 ?? null,
+        pm10: row?.pm10_ugm3 ?? null,
+        battery: row?.battery_pct ?? null,
+        tvoc: null,
+        pressure: null,
+        light_level: null,
+        pir: null
+      }
+    }
+  };
+}
+
+function mapLaravelTimeseriesToNormalized(points, category, metric, meta) {
+  const adapters = window.SMACAApi && window.SMACAApi.adapters ? window.SMACAApi.adapters : null;
+  const safeMeta = meta || {};
+  const safePoints = Array.isArray(points) ? points : [];
+
+  if (adapters) {
+    if (category === 'iaq') {
+      let rows = adapters.timeseriesPointsToIAQItems(safePoints, safeMeta);
+      rows = adapters.mergeMetricIntoIAQItems(rows, metric, safePoints);
+      return rows;
+    }
+    if (category === 'occupancy') {
+      let rows = adapters.timeseriesPointsToOccupancyItems(safePoints, safeMeta);
+      rows = adapters.mergeMetricIntoOccupancyItems(rows, metric, safePoints);
+      return rows;
+    }
+    if (category === 'environmental') {
+      let rows = adapters.timeseriesPointsToEnvironmentalItems(safePoints, safeMeta);
+      rows = adapters.mergeMetricIntoEnvironmentalItems(rows, metric, safePoints);
+      return rows;
+    }
+  }
+
+  return [];
 }

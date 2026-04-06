@@ -358,8 +358,8 @@ function renderAIAlerts() {
   // Get alerts from alerts engine
   const filteredData = {
     iaq: SMACAState.getFilteredIAQ(),
-    occupancy: SMACAState.getFilteredIAQ(),
-    environmental: SMACAState.getFilteredIAQ()
+    occupancy: SMACAState.getFilteredOccupancy(),
+    environmental: SMACAState.getFilteredEnvironmental()
   };
   const sensors = mockData.sensors || [];
   const alerts = SMACAAlertsEngine.checkRules(filteredData, sensors);
@@ -412,8 +412,8 @@ function renderAIAlerts() {
 function updateActiveEventsCount() {
   const filteredData = {
     iaq: SMACAState.getFilteredIAQ(),
-    occupancy: SMACAState.getFilteredIAQ(),
-    environmental: SMACAState.getFilteredIAQ()
+    occupancy: SMACAState.getFilteredOccupancy(),
+    environmental: SMACAState.getFilteredEnvironmental()
   };
   const sensors = mockData.sensors || [];
   const alerts = SMACAAlertsEngine.checkRules(filteredData, sensors);

@@ -1150,6 +1150,7 @@
   <script src="{{ asset('assets/js/smaca-trend-calculator.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
   <script src="{{ asset('assets/js/smaca-alerts-engine.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
   <script src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
+  <script src="{{ asset('assets/js/smaca-api.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
   <script src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
   <script src="{{ asset('assets/js/smaca-accurate-charts.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
   <script src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}?v={{ env('ASSET_VERSION', '1') }}"></script>
