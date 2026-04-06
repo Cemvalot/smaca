@@ -912,6 +912,18 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
   const tbody = document.createElement('tbody');
   sensors.forEach(sensor => {
     const isOnline = sensor.status === 'online' || sensor.status === 'active';
+    const formatLastSeen = function (isoDate) {
+      if (!isoDate) return 'No data for this sensor';
+      const ts = new Date(isoDate).getTime();
+      if (!Number.isFinite(ts)) return 'No data for this sensor';
+      const deltaMs = Date.now() - ts;
+      const mins = Math.floor(deltaMs / 60000);
+      if (mins < 1) return 'Just now';
+      if (mins < 60) return `${mins} min ago`;
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return `${hours}h ago`;
+      return new Date(isoDate).toLocaleString();
+    };
     const row = document.createElement('tr');
     row.style.borderBottom = '1px solid var(--border)';
     row.style.cursor = 'pointer';
@@ -956,7 +968,7 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
     batteryBar.appendChild(batteryFill);
     
     const batteryText = document.createElement('span');
-    batteryText.textContent = sensor.battery !== null ? `${sensor.battery}%` : 'N/A';
+    batteryText.textContent = sensor.battery !== null && sensor.battery !== undefined ? `${sensor.battery}%` : 'Not reported by sensor';
     batteryText.style.marginLeft = 'var(--space-2)';
     batteryText.style.fontSize = '11px';
     batteryText.style.color = 'var(--muted)';
@@ -968,7 +980,7 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
     // Signal (dB bands)
     const signalCell = document.createElement('td');
     signalCell.style.padding = 'var(--space-4)';
-    if (sensor.rssi !== null) {
+    if (sensor.rssi !== null && sensor.rssi !== undefined && typeof sensor.rssi === 'number') {
       const signalBar = document.createElement('div');
       signalBar.style.display = 'flex';
       signalBar.style.gap = '2px';
@@ -995,7 +1007,7 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
       signalCell.appendChild(signalBar);
       signalCell.appendChild(signalText);
     } else {
-      signalCell.textContent = 'N/A';
+      signalCell.textContent = typeof sensor.rssi === 'string' ? sensor.rssi : 'Not reported by sensor';
       signalCell.style.color = 'var(--muted)';
     }
     row.appendChild(signalCell);
@@ -1003,9 +1015,9 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
     // Last Seen
     const lastSeenCell = document.createElement('td');
     lastSeenCell.style.padding = 'var(--space-4)';
-    const lastSeen = isOnline ? '1 min ago' : 'Offline';
+    const lastSeen = formatLastSeen(sensor.lastSeenAt);
     lastSeenCell.textContent = lastSeen;
-    lastSeenCell.style.color = isOnline ? 'var(--text)' : 'var(--muted)';
+    lastSeenCell.style.color = 'var(--text)';
     row.appendChild(lastSeenCell);
     
     // Status (with confidence)

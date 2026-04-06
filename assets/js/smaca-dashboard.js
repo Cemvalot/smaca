@@ -62,42 +62,8 @@ const mockData = {
   }
 };
 
-// Initialize Dashboard
-document.addEventListener('DOMContentLoaded', () => {
-  // Check if production features (with filtered data) are loaded
-  // If SMACAState exists, don't use mockData functions - they will be handled by production-features.js
-  const useProductionFeatures = typeof SMACAState !== 'undefined' && SMACAState !== null;
-  
-  
-  if (!useProductionFeatures) {
-    // Load data for all sections (only if production features not loaded)
-    loadIAQData();
-    loadOccupancyData();
-    loadEnergyData();
-  } else {
-  }
-  
-  // Always load these (they don't conflict)
-  loadConnectivityData();
-  if (!useProductionFeatures) {
-    loadEnvironmentalData();
-  }
-  loadAIInsights();
-  
-  // Initialize chart hover functionality from app.js if available
-  setTimeout(() => {
-    if (typeof initChartHover === 'function') {
-      initChartHover();
-    }
-  }, 500);
-  
-  // Update data every 30 seconds (only if not using production features)
-  if (!useProductionFeatures) {
-    setInterval(() => {
-      updateMockData();
-    }, 30000);
-  }
-});
+// Data loading is owned by smaca-production-features.js.
+// This file keeps rendering helpers and navigation behavior only.
 
 // Tab Management - Removed (using unified navigation in HTML)
 // Dark Mode Toggle - Removed (using existing dark theme)
@@ -1142,13 +1108,13 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (sectionId === 'energy') {
           // Re-render energy chart now that section is visible (fixes wrong size when rendered while hidden)
           if (typeof SMACAState !== 'undefined' && SMACAState && typeof updateEnergyCharts === 'function') {
-            const occ = SMACAState.getFilteredOccupancy ? SMACAState.getFilteredOccupancy() : [];
-            if (occ && occ.length > 0) {
-              updateEnergyCharts(occ, SMACAState.currentTimeframe || '24h');
-            }
+            const energy = SMACAState.getFilteredEnergy ? SMACAState.getFilteredEnergy() : [];
+            updateEnergyCharts(energy, SMACAState.currentTimeframe || '24h');
           } else if (typeof loadEnergyData === 'function') {
             loadEnergyData();
           }
+        } else if (sectionId === 'connectivity') {
+          if (typeof loadConnectivityData === 'function') loadConnectivityData();
         } else if (sectionId === 'environmental') {
           if (typeof loadEnvironmentalData === 'function') {
             loadEnvironmentalData();

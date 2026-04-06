@@ -3,7 +3,8 @@ const SMACAState = {
   rawData: {
     iaq: [],
     occupancy: [],
-    environmental: []
+    environmental: [],
+    energy: []
   },
   
   // Get milliseconds for timeframe
@@ -58,6 +59,12 @@ const SMACAState = {
     const filtered = this.filterByTimeframe(this.rawData.environmental, this.currentTimeframe);
     return filtered;
   },
+
+  // Get filtered Energy data
+  getFilteredEnergy() {
+    const filtered = this.filterByTimeframe(this.rawData.energy, this.currentTimeframe);
+    return filtered;
+  },
   
   // Set timeframe and trigger update
   setTimeframe(timeframe) {
@@ -66,7 +73,8 @@ const SMACAState = {
       const filteredData = {
         iaq: this.getFilteredIAQ(),
         occupancy: this.getFilteredOccupancy(),
-        environmental: this.getFilteredEnvironmental()
+        environmental: this.getFilteredEnvironmental(),
+        energy: this.getFilteredEnergy()
       };
       this.notifyListeners();
     }
@@ -145,7 +153,8 @@ const SMACAState = {
         callback(this.currentTimeframe, {
           iaq: this.getFilteredIAQ(),
           occupancy: this.getFilteredOccupancy(),
-          environmental: this.getFilteredEnvironmental()
+          environmental: this.getFilteredEnvironmental(),
+          energy: this.getFilteredEnergy()
         });
       } catch (e) {
         // Silently handle listener errors in production
