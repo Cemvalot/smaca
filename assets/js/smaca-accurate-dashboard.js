@@ -17,7 +17,6 @@ if (typeof formatTime === 'undefined') {
 if (typeof window !== 'undefined') {
   window.lastRenderedTimeframe = null;
   window.iaqDashboardRendering = false; // Lock to prevent concurrent renders
-  console.log('[SMACA-FIX] smaca-accurate-dashboard.js passive mode enabled');
 }
 
 function initAccurateIAQDashboard() {
@@ -291,6 +290,15 @@ function renderSensorHealthPanel(data) {
   if (!container) return;
 
   const batteryValue = typeof data?.battery === 'number' && Number.isFinite(data.battery) ? data.battery : null;
+  const hasBatteryField = data && Object.prototype.hasOwnProperty.call(data, 'battery');
+  const hasRSSIField = data && Object.prototype.hasOwnProperty.call(data, 'rssi');
+  const hasSNRField = data && Object.prototype.hasOwnProperty.call(data, 'snr');
+
+  const resolveMissingLabel = (hasField, value, unsupportedText) => {
+    if (!hasField) return unsupportedText;
+    if (value === null || value === undefined) return 'Unavailable';
+    return null;
+  };
   
   // RSSI interpretation
   const getRSSIStatus = (rssi) => {
@@ -323,12 +331,14 @@ function renderSensorHealthPanel(data) {
             <div style="width: 100%; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; margin-bottom: var(--space-1);">
               <div style="width: ${batteryValue !== null ? batteryValue : 0}%; height: 100%; background: ${batteryValue !== null && batteryValue > 50 ? '#10b981' : batteryValue !== null && batteryValue > 20 ? '#f59e0b' : '#ef4444'};"></div>
             </div>
-            <div style="font-size: 12px; font-weight: 600; color: var(--text);">${batteryValue !== null ? `${batteryValue}%` : 'N/A'}</div>
+            <div style="font-size: 12px; font-weight: 600; color: var(--text);">
+              ${batteryValue !== null ? `${batteryValue}%` : resolveMissingLabel(hasBatteryField, data?.battery, 'Not reported by sensor')}
+            </div>
           </div>
           <div>
             <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">RSSI</div>
             <div style="font-size: 18px; font-weight: 600; color: ${rssiStatus.color}; margin-bottom: var(--space-1);">
-              ${data.rssi !== null && data.rssi !== undefined ? `${data.rssi} dBm` : 'N/A'}
+              ${data.rssi !== null && data.rssi !== undefined ? `${data.rssi} dBm` : resolveMissingLabel(hasRSSIField, data?.rssi, 'Unsupported by device')}
             </div>
             <div style="font-size: 10px; color: var(--muted);">
               ${rssiStatus.label} ${data.rssi !== null && data.rssi !== undefined ? `(${data.rssi > -70 ? '> -70' : data.rssi > -90 ? '-70 to -90' : '< -90'})` : ''}
@@ -337,7 +347,7 @@ function renderSensorHealthPanel(data) {
           <div>
             <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">SNR</div>
             <div style="font-size: 18px; font-weight: 600; color: ${snrStatus.color}; margin-bottom: var(--space-1);">
-              ${data.snr !== null && data.snr !== undefined ? `${data.snr} dB` : 'N/A'}
+              ${data.snr !== null && data.snr !== undefined ? `${data.snr} dB` : resolveMissingLabel(hasSNRField, data?.snr, 'Unsupported by device')}
             </div>
             <div style="font-size: 10px; color: var(--muted);">
               ${snrStatus.label} ${data.snr !== null && data.snr !== undefined ? `(${data.snr > 5 ? '> 5' : data.snr > 0 ? '0-5' : '< 0'})` : ''}
@@ -356,6 +366,13 @@ function renderDataSourcePanel(data) {
   const container = document.getElementById('data-source-panel');
   if (!container) return;
 
+  const formatField = (value, options = {}) => {
+    if (value !== null && value !== undefined && value !== '') return value;
+    if (options.unsupportedWhenMissing) return 'Unsupported by device';
+    if (options.notReportedWhenMissing) return 'Not reported by sensor';
+    return 'Unavailable';
+  };
+
   container.innerHTML = `
     <div class="card">
       <div class="card__header">
@@ -365,19 +382,19 @@ function renderDataSourcePanel(data) {
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); font-size: 11px;">
           <div>
             <div style="color: var(--muted); margin-bottom: var(--space-1);">Device Name</div>
-            <div style="color: var(--text); font-weight: 500;">${data.deviceName || 'N/A'}</div>
+            <div style="color: var(--text); font-weight: 500;">${formatField(data.deviceName, { notReportedWhenMissing: true })}</div>
           </div>
           <div>
             <div style="color: var(--muted); margin-bottom: var(--space-1);">Device Profile</div>
-            <div style="color: var(--text); font-weight: 500;">${data.deviceProfileName || 'N/A'}</div>
+            <div style="color: var(--text); font-weight: 500;">${formatField(data.deviceProfileName, { notReportedWhenMissing: true })}</div>
           </div>
           <div>
             <div style="color: var(--muted); margin-bottom: var(--space-1);">Timestamp</div>
-            <div style="color: var(--text); font-weight: 500;">${data.time ? formatTime(data.time, true) : 'N/A'}</div>
+            <div style="color: var(--text); font-weight: 500;">${data.time ? formatTime(data.time, true) : 'Unavailable'}</div>
           </div>
           <div>
             <div style="color: var(--muted); margin-bottom: var(--space-1);">Gateway ID</div>
-            <div style="color: var(--text); font-weight: 500;">${data.gatewayId || 'N/A'}</div>
+            <div style="color: var(--text); font-weight: 500;">${formatField(data.gatewayId, { unsupportedWhenMissing: true })}</div>
           </div>
         </div>
       </div>

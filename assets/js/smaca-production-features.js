@@ -11,8 +11,16 @@ window.SMACADashboardContext = {
   selectedSensorLatest: null
 };
 
-function logLiveHydration(tag, payload) {
-  console.log(`[SMACA-LIVE] ${tag}`, payload);
+function logSmacaSelection(selectedSensorId, timeframe) {
+  console.log('[SMACA]', { selectedSensorId: selectedSensorId, timeframe: timeframe });
+}
+
+function logSmacaFetchedPoints(pointsByMetric) {
+  console.log('[SMACA] fetched points', pointsByMetric);
+}
+
+function logSmacaHydratedState(lengths) {
+  console.log('[SMACA] hydrated state', lengths);
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -72,7 +80,6 @@ async function initializeStateFromApi() {
     updateOverviewCountersFromApi(overview, sensors);
 
     const selectedSensorId = chooseDefaultSensorIdFromSnapshots(overview, sensors);
-    logLiveHydration('chosen default sensor id', selectedSensorId);
     if (!Number.isFinite(Number(selectedSensorId))) {
       // No sensors yet; keep state empty but valid.
       applyHydratedState({ iaq: [], occupancy: [], environmental: [] });
@@ -93,22 +100,10 @@ async function refreshDashboardForSelection(sensorId, timeframe) {
   const tf = timeframe || SMACAState.currentTimeframe || '24h';
   window.SMACACurrentSensorId = canonicalSensorId;
 
-  logLiveHydration('selected sensor id', canonicalSensorId);
-  logLiveHydration('current timeframe', tf);
+  logSmacaSelection(canonicalSensorId, tf);
 
   const hydrated = await fetchAndMapTimeseriesForSensor(canonicalSensorId, tf);
   applyHydratedState(hydrated, false);
-  const selectedSeries = Array.isArray(hydrated?.iaq)
-    ? hydrated.iaq.filter(function (item) { return Number(item?.sensorId) === canonicalSensorId; })
-    : [];
-  const metricCounts = {
-    co2_ppm: selectedSeries.filter(item => item?.payload?.object?.co2 !== null && item?.payload?.object?.co2 !== undefined).length,
-    temperature_c: selectedSeries.filter(item => item?.payload?.object?.temperature !== null && item?.payload?.object?.temperature !== undefined).length,
-    humidity_rh: selectedSeries.filter(item => item?.payload?.object?.humidity !== null && item?.payload?.object?.humidity !== undefined).length,
-    pm2_5_ugm3: selectedSeries.filter(item => item?.payload?.object?.pm2_5 !== null && item?.payload?.object?.pm2_5 !== undefined).length,
-    pm10_ugm3: selectedSeries.filter(item => item?.payload?.object?.pm10 !== null && item?.payload?.object?.pm10 !== undefined).length
-  };
-  logLiveHydration('selected sensor metrics counts after hydration', metricCounts);
   SMACAState.setTimeframe(tf);
 }
 
@@ -155,8 +150,6 @@ function chooseDefaultSensorIdFromSnapshots(overview, sensors) {
       if (b.score !== a.score) return b.score - a.score;
       return b.measuredAtMs - a.measuredAtMs;
     });
-
-  logLiveHydration('scored candidates', scoredCandidates);
 
   return scoredCandidates[0]?.sensorId ?? null;
 }
@@ -278,12 +271,11 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe) {
     siteName: latestRow?.site?.name || null
   };
 
-  responses.forEach(function (response) {
-    logLiveHydration('fetched points count per metric', {
-      metric: response.metric,
-      points: Array.isArray(response.payload?.points) ? response.payload.points.length : 0
-    });
-  });
+  const pointsByMetric = responses.reduce(function (acc, response) {
+    acc[response.metric] = Array.isArray(response.payload?.points) ? response.payload.points.length : 0;
+    return acc;
+  }, {});
+  logSmacaFetchedPoints(pointsByMetric);
 
   const firstIAQ = responses.find(r => ['co2_ppm', 'temperature_c', 'humidity_rh', 'pm2_5_ugm3', 'pm10_ugm3', 'tvoc_index', 'battery_pct'].includes(r.metric));
   const firstOcc = responses.find(r => ['people_in', 'people_out', 'people_total_in', 'people_total_out'].includes(r.metric));
@@ -376,7 +368,7 @@ function applyHydratedState(data, shouldNotify) {
   SMACAState.rawData.iaq = Array.isArray(data?.iaq) ? data.iaq : [];
   SMACAState.rawData.occupancy = Array.isArray(data?.occupancy) ? data.occupancy : [];
   SMACAState.rawData.environmental = Array.isArray(data?.environmental) ? data.environmental : [];
-  logLiveHydration('hydrated state lengths', {
+  logSmacaHydratedState({
     iaq: SMACAState.rawData.iaq.length,
     occupancy: SMACAState.rawData.occupancy.length,
     environmental: SMACAState.rawData.environmental.length
@@ -564,13 +556,6 @@ function updateAllDashboards(timeframe, filteredData) {
   updateEnergyCharts(filteredData.environmental, timeframe);
   updateEnvironmentalDashboard(filteredData.environmental, timeframe);
 
-  logLiveHydration('final render calls', {
-    timeframe: timeframe,
-    selectedSensorId: window.SMACACurrentSensorId,
-    iaqPoints: Array.isArray(filteredData.iaq) ? filteredData.iaq.length : 0,
-    occupancyPoints: Array.isArray(filteredData.occupancy) ? filteredData.occupancy.length : 0,
-    environmentalPoints: Array.isArray(filteredData.environmental) ? filteredData.environmental.length : 0
-  });
 }
 
 // Show insufficient history message
@@ -615,14 +600,43 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   const liveSeries = selectedSensorRawIAQ.length > 0 ? selectedSensorRawIAQ : filteredIAQ;
   const latest = liveSeries[liveSeries.length - 1] || filteredIAQ[filteredIAQ.length - 1];
   const latestValues = latest?.payload?.object || {};
-  
-  // Calculate trends for all metrics
-  const co2Trend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.iaq, 'co2', timeframe);
-  const tempTrend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.iaq, 'temperature', timeframe);
-  const humidityTrend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.iaq, 'humidity', timeframe);
-  const pm25Trend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.iaq, 'pm2_5', timeframe);
-  const pm10Trend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.iaq, 'pm10', timeframe);
-  const tvocTrend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.iaq, 'tvoc', timeframe);
+
+  const sortedSeries = [...liveSeries].sort((a, b) => new Date(a.time) - new Date(b.time));
+  const metricPrecision = {
+    co2: 0,
+    temperature: 1,
+    humidity: 0,
+    pm2_5: 1,
+    pm10: 1,
+    tvoc: 1
+  };
+
+  function resolveMetricValues(metricKey) {
+    return sortedSeries
+      .map(item => item?.payload?.object?.[metricKey])
+      .filter(value => value !== null && value !== undefined && Number.isFinite(Number(value)))
+      .map(value => Number(value));
+  }
+
+  function buildTrend(metricKey) {
+    const values = resolveMetricValues(metricKey);
+    if (values.length < 2) {
+      return { text: '—', class: 'trend-neutral' };
+    }
+
+    const current = values[values.length - 1];
+    const previous = values[values.length - 2];
+    const delta = current - previous;
+    const precision = metricPrecision[metricKey] ?? 1;
+
+    if (delta > 0) {
+      return { text: `↑ +${delta.toFixed(precision)}`, class: 'trend-up' };
+    }
+    if (delta < 0) {
+      return { text: `↓ ${delta.toFixed(precision)}`, class: 'trend-down' };
+    }
+    return { text: '→ 0', class: 'trend-stable' };
+  }
   
   // Get latest live values for selected/current sensor.
   const co2 = latestValues?.co2 ?? null;
@@ -636,13 +650,13 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
     typeof value === 'number' && Number.isFinite(value) ? value.toFixed(decimals) : 'N/A'
   );
   
-  // Format trends
-  const co2TrendFormatted = SMACATrendCalculator.formatTrend(co2Trend);
-  const tempTrendFormatted = SMACATrendCalculator.formatTrend(tempTrend);
-  const humidityTrendFormatted = SMACATrendCalculator.formatTrend(humidityTrend);
-  const pm25TrendFormatted = SMACATrendCalculator.formatTrend(pm25Trend);
-  const pm10TrendFormatted = SMACATrendCalculator.formatTrend(pm10Trend);
-  const tvocTrendFormatted = SMACATrendCalculator.formatTrend(tvocTrend);
+  // Compute trends from selected sensor's hydrated IAQ series.
+  const co2TrendFormatted = buildTrend('co2');
+  const tempTrendFormatted = buildTrend('temperature');
+  const humidityTrendFormatted = buildTrend('humidity');
+  const pm25TrendFormatted = buildTrend('pm2_5');
+  const pm10TrendFormatted = buildTrend('pm10');
+  const tvocTrendFormatted = buildTrend('tvoc');
 
   // Render all KPI cards with trends
   kpiContainer.innerHTML = `
