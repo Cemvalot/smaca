@@ -10,7 +10,7 @@
                 </div>
                 <p class="section-hero__subtitle">When is the space actually used? Is usage consistent or bursty?</p>
               </div>
-              <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">7</div><div class="section-hero__stat-label">People present</div></div>
+              <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">7</div><div class="section-hero__stat-label">Recent movements</div></div>
             </div>
           </div>
           <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">Live</span><span class="last-updated-pill" title="Time since last data sync">Last updated: 2 min ago</span></div>
@@ -20,9 +20,9 @@
             <div class="card__body">
               <div style="display: flex; align-items: center; gap: var(--space-6);">
                 <div>
-                  <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">Current Occupancy</div>
+                  <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">Current Activity</div>
                   <div style="font-size: 36px; font-weight: 600; color: var(--text);">7</div>
-                  <div style="font-size: 11px; color: var(--muted);">people present</div>
+                  <div style="font-size: 11px; color: var(--muted);">Cumulative Entries / Cumulative Exits</div>
                 </div>
                 <div style="flex: 1; border-left: 1px solid var(--border); padding-left: var(--space-6);">
                   <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Does occupancy explain IAQ degradation?</div>
@@ -36,7 +36,7 @@
           <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6);">
             <div class="card">
               <div class="card__header">
-                <h3 class="card__title">Flow-based Movement (In/Out)</h3>
+                <h3 class="card__title">Flow Over Time (In/Out)</h3>
                 <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is space actually being used?</p>
               </div>
               <div class="card__body">
@@ -69,8 +69,8 @@
             </div>
             <div class="card">
               <div class="card__header">
-                <h3 class="card__title">Occupancy Density Timeline</h3>
-                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is space actually occupied? (Discrete presence)</p>
+                <h3 class="card__title">Activity Over Time</h3>
+                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is traffic/movement highest? (entries + exits)</p>
               </div>
               <div class="card__body">
                 <div class="chart-placeholder" id="occupancy-density-timeline"></div>

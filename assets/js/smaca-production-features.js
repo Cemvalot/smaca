@@ -77,7 +77,30 @@ function clearSmacaTimeseriesCache() {
 function setSectionLoadingState(sectionId, isLoading) {
   const section = document.getElementById(sectionId);
   if (!section) return;
-  section.style.opacity = isLoading ? '0.75' : '1';
+  section.style.opacity = '1';
+}
+
+function setDashboardLoadingMessage(message) {
+  const messageEl = document.getElementById('smaca-page-loading-message');
+  if (!messageEl) return;
+  messageEl.textContent = message || 'Loading data...';
+}
+
+function showDashboardLoadingOverlay(pageName) {
+  const overlay = document.getElementById('smaca-page-loading-overlay');
+  if (!overlay) return;
+  setDashboardLoadingMessage('Loading data...');
+  overlay.classList.add('is-visible');
+  overlay.setAttribute('aria-hidden', 'false');
+  console.log('[SMACA] loading overlay shown', { page: pageName || getSmacaCurrentPage() });
+}
+
+function hideDashboardLoadingOverlay(pageName) {
+  const overlay = document.getElementById('smaca-page-loading-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('is-visible');
+  overlay.setAttribute('aria-hidden', 'true');
+  console.log('[SMACA] loading overlay hidden', { page: pageName || getSmacaCurrentPage() });
 }
 
 function setCurrentPageLoadingState(isLoading) {
@@ -94,6 +117,30 @@ function setCurrentPageLoadingState(isLoading) {
   };
   const sectionId = sectionByPage[page];
   if (sectionId) setSectionLoadingState(sectionId, isLoading);
+  if (isLoading) showDashboardLoadingOverlay(page);
+  else hideDashboardLoadingOverlay(page);
+}
+
+function renderEmptyState(containerId, message) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<div style="color: var(--muted); text-align: center; padding: var(--space-6);">${message || 'No data available'}</div>`;
+}
+
+function renderCurrentPageFailureState(page) {
+  if (page === 'occupancy') {
+    renderEmptyState('occupancy-flow-chart', 'No occupancy data available');
+    renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
+  }
+  if (page === 'environmental') {
+    renderEmptyState('uv-hourly-chart', 'No UV data available');
+  }
+  if (page === 'energy') {
+    renderEmptyState('energy-correlation-chart', 'No data available');
+  }
+  if (page === 'iaq') {
+    renderEmptyState('iaq-co2-band-chart', 'No data available');
+  }
 }
 
 function escapeSmacaHtml(value) {
@@ -157,12 +204,6 @@ function renderIAQSection(reason, allowDeferred) {
   const filteredIAQ = SMACAState.getFilteredIAQ();
   const isVisible = !!iaqSection && iaqSection.style.display !== 'none';
   const pointsCount = Array.isArray(filteredIAQ) ? filteredIAQ.length : 0;
-  console.log('[SMACA] IAQ chart render attempted', {
-    reason: reason || 'unknown',
-    containerVisible: isVisible,
-    iaqPoints: pointsCount
-  });
-
   if (!iaqSection || !chartContainer || pointsCount === 0) return;
 
   if (!isVisible) {
@@ -194,7 +235,6 @@ function renderIAQSection(reason, allowDeferred) {
       window.lastRenderedTimeframe = null;
     }
     initAccurateIAQDashboard();
-    console.log('[SMACA] IAQ chart render completed', { points: pointsCount });
   }
 }
 
@@ -278,6 +318,14 @@ function getAggregatedSum(perSensorLatestMap) {
   }).filter(Number.isFinite);
   if (entries.length === 0) return null;
   return entries.reduce(function (acc, value) { return acc + value; }, 0);
+}
+
+function sumLatestMetricAcrossSensors(items, metricKey) {
+  return getAggregatedSum(getLatestValidMetricPerSensor(items, metricKey));
+}
+
+function averageLatestMetricAcrossSensors(items, metricKey) {
+  return getAggregatedAverage(getLatestValidMetricPerSensor(items, metricKey));
 }
 
 function getEnergyDeltaPerSensor(items, sensorId) {
@@ -418,7 +466,9 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     timeframe: tf,
     requiredBuckets: requiredBuckets
   });
+  console.log('[SMACA] loading start', { page: currentPage });
   setCurrentPageLoadingState(true);
+  let refreshSucceeded = false;
 
   try {
     const [overview, sensorsPayload] = await Promise.all([
@@ -455,7 +505,7 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
       });
     });
     const fetchedBuckets = await Promise.all(fetchTasks);
-    console.log('[SMACA] fetched buckets count', fetchedBuckets.length);
+    console.log('[SMACA] fetched buckets count', { page: currentPage, count: fetchedBuckets.length });
 
     const nextHydratedState = {
       iaq: [],
@@ -479,10 +529,15 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     if (currentPage === 'management' && document.getElementById('sensors-management-table-body')) {
       renderManagementSensorsFromLiveData();
     }
-    SMACAState.setTimeframe(tf);
+    refreshSucceeded = true;
+  } catch (error) {
+    renderCurrentPageFailureState(currentPage);
+    throw error;
   } finally {
+    console.log('[SMACA] loading end', { page: currentPage });
     setCurrentPageLoadingState(false);
   }
+  if (refreshSucceeded) SMACAState.setTimeframe(tf);
 }
 
 async function setCurrentSensorAndReload(selectedSensorId, options) {
@@ -771,10 +826,8 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, b
   const responses = await Promise.all(metrics.map(function (metric) {
     const cacheKey = getCachedTimeseriesKey(sensorId, tf, bucket, metric);
     if (!forceRefresh && SMACA_TS_CACHE.timeseries[cacheKey]) {
-      console.log('[SMACA] timeseries cache hit', { key: cacheKey });
       return Promise.resolve({ metric: metric, payload: SMACA_TS_CACHE.timeseries[cacheKey] });
     }
-    console.log('[SMACA] timeseries cache miss', { key: cacheKey });
     return window.SMACAApi
       .fetchSensorTimeseries(sensorId, metric, tf)
       .then(function (payload) {
@@ -1104,6 +1157,7 @@ function renderCurrentPageOnly(timeframe, filteredData) {
     renderIAQSection('render-current-page-only', true);
   }
   if (currentPage === 'occupancy') {
+    if (!document.getElementById('occupancy')) return;
     updateOccupancyDashboardWithTrends(filteredData.occupancy, timeframe);
     updateOccupancyCharts(filteredData.occupancy, timeframe);
   }
@@ -1111,6 +1165,7 @@ function renderCurrentPageOnly(timeframe, filteredData) {
     updateEnergyCharts(filteredData.energy || [], timeframe);
   }
   if (currentPage === 'environmental') {
+    if (!document.getElementById('environmental')) return;
     updateEnvironmentalDashboard(filteredData.environmental, timeframe);
   }
   if (currentPage === 'connectivity' && document.getElementById('sensor-health-table')) {
@@ -1300,22 +1355,31 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
   const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : filteredOccupancy;
   if (!occupancyRows || occupancyRows.length === 0) {
     const currentCardValue = occupancySection.querySelector('.card:first-child .card__body div div div:nth-child(2)');
-    if (currentCardValue) currentCardValue.textContent = 'No data for selected timeframe';
+    if (currentCardValue) currentCardValue.textContent = 'No occupancy data available';
+    const occupancyCounter = document.getElementById('occupancy-current-count');
+    if (occupancyCounter) occupancyCounter.textContent = 'No occupancy data available';
     return;
   }
 
-  const occupancyTrend = SMACATrendCalculator.calculateMetricTrend(occupancyRows, 'total_in', timeframe);
-  const latestTotalIn = getAggregatedSum(getLatestValidMetricPerSensor(occupancyRows, 'people_total_in'));
-  const latestTotalOut = getAggregatedSum(getLatestValidMetricPerSensor(occupancyRows, 'people_total_out'));
-  const occupancyAvg = Math.max(0, Number(latestTotalIn || 0) - Number(latestTotalOut || 0));
+  const occupancyTrend = SMACATrendCalculator.calculateMetricTrend(occupancyRows, 'people_in', timeframe);
+  const latestPeopleIn = sumLatestMetricAcrossSensors(occupancyRows, 'people_in');
+  const latestPeopleOut = sumLatestMetricAcrossSensors(occupancyRows, 'people_out');
+  const latestTotalIn = sumLatestMetricAcrossSensors(occupancyRows, 'people_total_in');
+  const latestTotalOut = sumLatestMetricAcrossSensors(occupancyRows, 'people_total_out');
+  const latestActivity = Number(latestPeopleIn || 0) + Number(latestPeopleOut || 0);
   const occupancyTrendFormatted = SMACATrendCalculator.formatTrend(occupancyTrend);
+  console.log('[SMACA] occupancy cumulative totals', {
+    page: getSmacaCurrentPage(),
+    latestTotalIn: Number.isFinite(Number(latestTotalIn)) ? Number(latestTotalIn) : null,
+    latestTotalOut: Number.isFinite(Number(latestTotalOut)) ? Number(latestTotalOut) : null
+  });
   
   // Update occupancy KPI card if it exists
   const occupancyCard = occupancySection.querySelector('.stat-card');
   if (occupancyCard) {
     const valueEl = occupancyCard.querySelector('.stat-card__value');
     if (valueEl) {
-      valueEl.textContent = Math.round(occupancyAvg);
+      valueEl.textContent = Math.round(latestActivity);
     }
     
     // Add trend pill if not exists
@@ -1340,47 +1404,41 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
 
   const summaryValueEl = occupancySection.querySelector('.card .card__body div div div:nth-child(2)');
   if (summaryValueEl) {
-    summaryValueEl.textContent = String(Math.round(occupancyAvg));
+    const hasAnyOccupancyMetric = [latestPeopleIn, latestPeopleOut, latestTotalIn, latestTotalOut].some(function (value) {
+      return Number.isFinite(Number(value));
+    });
+    summaryValueEl.textContent = hasAnyOccupancyMetric ? String(Math.round(latestActivity)) : 'No occupancy data available';
+  }
+  const heroLabel = occupancySection.querySelector('.section-hero__stat-label');
+  if (heroLabel) heroLabel.textContent = 'Recent movements';
+  const summaryLabel = occupancySection.querySelector('.card .card__body div div div:first-child');
+  if (summaryLabel) summaryLabel.textContent = 'Current Activity';
+  const summarySubLabel = occupancySection.querySelector('.card .card__body div div div:nth-child(3)');
+  if (summarySubLabel) summarySubLabel.textContent = `Cumulative entries: ${Number.isFinite(Number(latestTotalIn)) ? Math.round(Number(latestTotalIn)) : 'N/A'} | exits: ${Number.isFinite(Number(latestTotalOut)) ? Math.round(Number(latestTotalOut)) : 'N/A'}`;
+  const occupancyCounter = document.getElementById('occupancy-current-count');
+  if (occupancyCounter) {
+    occupancyCounter.textContent = Number.isFinite(latestActivity) ? String(Math.round(latestActivity)) : 'No occupancy data available';
   }
 }
 
 // Update Environmental dashboard
 function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
+  if (getSmacaCurrentPage() !== 'environmental') return;
   const environmentalSection = document.querySelector('#environmental');
   if (!environmentalSection) return;
 
   const uvCounter = document.getElementById('environmental-uv-index');
   const uvCardValue = environmentalSection.querySelector('.stat-card .stat-card__value');
   const uvCardMeta = environmentalSection.querySelector('.stat-card .stat-card__meta');
-  const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : filteredEnvironmental;
-  const uvByBucket = {};
-  (environmentalRows || []).forEach(function (item) {
-    const timeMs = new Date(item?.time || item?.timestamp || 0).getTime();
-    const uv = Number(item?.payload?.object?.uv_index);
-    if (!Number.isFinite(timeMs) || !Number.isFinite(uv)) return;
-    const bucket = timeframe === '24h'
-      ? Math.floor(timeMs / (60 * 60 * 1000)) * (60 * 60 * 1000)
-      : Math.floor(timeMs / (24 * 60 * 60 * 1000)) * (24 * 60 * 60 * 1000);
-    if (!uvByBucket[bucket]) uvByBucket[bucket] = [];
-    uvByBucket[bucket].push(uv);
-  });
-  const uvValues = Object.keys(uvByBucket)
-    .map(function (bucket) {
-      const values = uvByBucket[bucket];
-      const sum = values.reduce(function (acc, value) { return acc + value; }, 0);
-      return { bucket: Number(bucket), avg: sum / values.length };
-    })
-    .sort(function (a, b) { return a.bucket - b.bucket; })
-    .map(function (entry) { return entry.avg; });
-  const latestUv = getAggregatedAverage(getLatestValidMetricPerSensor(environmentalRows, 'uv_index'));
+  const environmentalRows = typeof SMACAState.getFilteredEnvironmental === 'function'
+    ? SMACAState.getFilteredEnvironmental()
+    : (Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : filteredEnvironmental);
+  const latestUv = averageLatestMetricAcrossSensors(environmentalRows, 'uv_index');
   if (latestUv === null) {
-    if (uvCounter) uvCounter.textContent = 'Unsupported by device';
-    if (uvCardValue) uvCardValue.textContent = 'No data for this sensor';
+    if (uvCounter) uvCounter.textContent = 'No UV data available';
+    if (uvCardValue) uvCardValue.textContent = 'No UV data available';
     if (uvCardMeta) uvCardMeta.textContent = 'Unsupported by device';
-    const uvGauge = document.getElementById('uv-gauge-chart');
-    const uvHourly = document.getElementById('uv-hourly-chart');
-    if (uvGauge) uvGauge.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
-    if (uvHourly) uvHourly.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">Unsupported by device</div>';
+    renderEmptyState('uv-hourly-chart', 'No UV data available');
     return;
   }
 
@@ -1388,19 +1446,37 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   if (uvCardValue) uvCardValue.textContent = latestUv.toFixed(1);
   if (uvCardMeta) uvCardMeta.textContent = latestUv >= 8 ? 'Very High' : latestUv >= 6 ? 'High' : latestUv >= 3 ? 'Moderate' : 'Low';
 
-  // Update UV gauge and line chart from backend data
+  // Keep chart behavior for detail views (selected sensor drill-down).
+  const chartRows = (Array.isArray(environmentalRows) ? environmentalRows : [])
+    .map(function (item) {
+      const timeMs = new Date(item?.time || item?.timestamp || 0).getTime();
+      const uv = Number(item?.payload?.object?.uv_index);
+      return { timeMs: timeMs, uv: uv };
+    })
+    .filter(function (entry) {
+      return Number.isFinite(entry.timeMs) && Number.isFinite(entry.uv);
+    })
+    .sort(function (a, b) { return a.timeMs - b.timeMs; });
+  const uvValues = chartRows.map(function (entry) { return entry.uv; });
+  console.log('[SMACA] UV valid points', { page: getSmacaCurrentPage(), count: uvValues.length });
+
   const uvGauge = document.getElementById('uv-gauge-chart');
   if (uvGauge && typeof createGaugeChart === 'function') {
-    createGaugeChart('uv-gauge-chart', latestUv, 11, {
+    const gaugeValue = uvValues.length > 0 ? uvValues[uvValues.length - 1] : latestUv;
+    createGaugeChart('uv-gauge-chart', gaugeValue, 11, {
       size: 200,
-      color: latestUv >= 6 ? '#ef4444' : latestUv >= 3 ? '#f59e0b' : '#10b981',
+      color: gaugeValue >= 6 ? '#ef4444' : gaugeValue >= 3 ? '#f59e0b' : '#10b981',
       label: 'UV Index'
     });
   }
   const uvHourly = document.getElementById('uv-hourly-chart');
   if (uvHourly && typeof createLineChart === 'function') {
+    if (uvValues.length === 0) {
+      renderEmptyState('uv-hourly-chart', 'No UV data available');
+      return;
+    }
     createLineChart('uv-hourly-chart', [{
-      label: 'UV Index (all sensors avg)',
+      label: 'UV Index',
       values: uvValues,
       color: '#f97316'
     }], { height: 300, legend: true });
@@ -1409,17 +1485,33 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
 
 // Update Occupancy charts with filtered data
 function updateOccupancyCharts(filteredOccupancy, timeframe) {
-  const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : filteredOccupancy;
+  if (getSmacaCurrentPage() !== 'occupancy') return;
+  console.log('[SMACA] updateOccupancyCharts entered', { page: getSmacaCurrentPage(), timeframe: timeframe });
+  ensureOccupancyLocationChartContainers();
+  const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
+  const hydratedRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : [];
+  const fallbackRows = Array.isArray(filteredOccupancy) ? filteredOccupancy : [];
+  const occupancyRows = fallbackRows.length > 0 ? fallbackRows : hydratedRows;
+  console.log('[SMACA] occupancy chart source', {
+    page: getSmacaCurrentPage(),
+    filteredCount: fallbackRows.length,
+    hydratedCount: hydratedRows.length,
+    selectedSensorId: selectedSensorId,
+    selectedSensorBypassed: true,
+    usingAllSensorsCount: occupancyRows.length
+  });
   if (!occupancyRows || occupancyRows.length === 0) {
-    const flowChartEl = document.getElementById('occupancy-flow-chart');
-    const densityChartEl = document.getElementById('occupancy-density-timeline');
-    if (flowChartEl) flowChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
-    if (densityChartEl) densityChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
+    renderEmptyState('occupancy-flow-chart', 'No occupancy data available');
+    renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
+    renderEmptyState('occupancy-current-by-location-chart', 'No occupancy data available');
+    renderEmptyState('occupancy-total-entries-by-location-chart', 'No occupancy data available');
+    renderEmptyState('occupancy-flow-by-location-chart', 'No occupancy data available');
+    console.log('[SMACA] occupancy render empty state', { page: getSmacaCurrentPage() });
     return;
   }
   
   // Convert filtered data to chart format
-  const hourlyData = [];
+  const activityData = [];
   const flowIn = [];
   const flowOut = [];
   
@@ -1429,50 +1521,438 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
                         24 * 60 * 60 * 1000; // 1 day for 30d
   
   const grouped = {};
-  occupancyRows.forEach(item => {
-    const time = new Date(item.time).getTime();
+  const normalizedPreview = [];
+  occupancyRows.forEach(function (item, idx) {
+    const time = new Date(item?.time || item?.timestamp || 0).getTime();
+    const peopleIn = Number(item?.payload?.object?.people_in);
+    const peopleOut = Number(item?.payload?.object?.people_out);
+    const peopleTotalIn = Number(item?.payload?.object?.people_total_in);
+    const peopleTotalOut = Number(item?.payload?.object?.people_total_out);
+    if (normalizedPreview.length < 3) {
+      normalizedPreview.push({
+        sensorId: item?.sensorId ?? null,
+        timeMs: Number.isFinite(time) ? time : null,
+        peopleIn: Number.isFinite(peopleIn) ? peopleIn : null,
+        peopleOut: Number.isFinite(peopleOut) ? peopleOut : null,
+        peopleTotalIn: Number.isFinite(peopleTotalIn) ? peopleTotalIn : null,
+        peopleTotalOut: Number.isFinite(peopleTotalOut) ? peopleTotalOut : null
+      });
+    }
+    if (!Number.isFinite(time)) return;
     const bucket = Math.floor(time / timeInterval) * timeInterval;
     
-    if (!grouped[bucket]) {
-      grouped[bucket] = { in: 0, out: 0, total: 0 };
-    }
-    
-    const periodIn = Number(item?.payload?.object?.period_in ?? item?.payload?.object?.people_in);
-    const periodOut = Number(item?.payload?.object?.period_out ?? item?.payload?.object?.people_out);
-    grouped[bucket].in += Number.isFinite(periodIn) ? periodIn : 0;
-    grouped[bucket].out += Number.isFinite(periodOut) ? periodOut : 0;
-    grouped[bucket].total += (Number.isFinite(periodIn) ? periodIn : 0) - (Number.isFinite(periodOut) ? periodOut : 0);
+    if (!grouped[bucket]) grouped[bucket] = { in: 0, out: 0 };
+
+    grouped[bucket].in += Number.isFinite(peopleIn) ? peopleIn : 0;
+    grouped[bucket].out += Number.isFinite(peopleOut) ? peopleOut : 0;
+
   });
   
   const sortedBuckets = Object.keys(grouped).sort((a, b) => a - b);
-  sortedBuckets.forEach(bucket => {
-    hourlyData.push(grouped[bucket].total);
-    flowIn.push(grouped[bucket].in);
-    flowOut.push(grouped[bucket].out);
+  console.log('[SMACA] occupancy grouped flow buckets', {
+    page: getSmacaCurrentPage(),
+    buckets: sortedBuckets.length,
+    firstBuckets: sortedBuckets.slice(0, 10).map(function (bucket) {
+      return {
+        bucket: Number(bucket),
+        peopleIn: grouped[bucket]?.in || 0,
+        peopleOut: grouped[bucket]?.out || 0
+      };
+    })
   });
-  
-  // Update charts
-  setTimeout(() => {
-    if (typeof createFlowBarChart === 'function' && flowIn.length > 0) {
-      const flowChartEl = document.getElementById('occupancy-flow-chart');
-      if (flowChartEl) {
-        // Clear previous chart SVG
-        const svg = flowChartEl.querySelector('svg');
-        if (svg) svg.remove();
-        createFlowBarChart('occupancy-flow-chart', flowIn, flowOut, { height: 400 });
-      }
+  sortedBuckets.forEach(bucket => {
+    const bucketIn = Number(grouped[bucket]?.in || 0);
+    const bucketOut = Number(grouped[bucket]?.out || 0);
+    activityData.push(Math.max(0, bucketIn + bucketOut));
+    flowIn.push(bucketIn);
+    flowOut.push(bucketOut);
+  });
+  console.log('[SMACA] occupancy grouped activity buckets', {
+    page: getSmacaCurrentPage(),
+    buckets: sortedBuckets.length,
+    firstBuckets: sortedBuckets.slice(0, 10).map(function (bucket, idx) {
+      return {
+        bucket: Number(bucket),
+        activity: activityData[idx] || 0
+      };
+    })
+  });
+  console.log('[SMACA] occupancy chart arrays', {
+    page: getSmacaCurrentPage(),
+    flowInLength: flowIn.length,
+    flowOutLength: flowOut.length,
+    activityLength: activityData.length,
+    flowInHead: flowIn.slice(0, 8),
+    flowOutHead: flowOut.slice(0, 8),
+    activityHead: activityData.slice(0, 8)
+  });
+  const safeFlowIn = flowIn.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
+  const safeFlowOut = flowOut.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
+  const safeActivityData = activityData.map(function (value) { return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0; });
+  console.log('[SMACA] flow/activity arrays ready', {
+    flowInLength: safeFlowIn.length,
+    flowOutLength: safeFlowOut.length,
+    activityLength: safeActivityData.length
+  });
+  if (typeof window !== 'undefined') {
+    window.__lastOccupancyFlowBuckets = sortedBuckets.slice(0, 200).map(function (bucket, idx) {
+      return {
+        bucket: Number(bucket),
+        peopleIn: flowIn[idx] || 0,
+        peopleOut: flowOut[idx] || 0
+      };
+    });
+    window.__lastOccupancyActivityBuckets = sortedBuckets.slice(0, 200).map(function (bucket, idx) {
+      return {
+        bucket: Number(bucket),
+        activity: activityData[idx] || 0
+      };
+    });
+    window.__lastOccupancyChartArrays = {
+      source: {
+        filteredCount: fallbackRows.length,
+        hydratedCount: hydratedRows.length,
+        selectedSensorBypassed: true
+      },
+      flowIn: safeFlowIn.slice(),
+      flowOut: safeFlowOut.slice(),
+      activity: safeActivityData.slice()
+    };
+  }
+
+  // Update charts after layout is measurable.
+  setTimeout(function () {
+    renderOccupancyChartWhenReady('occupancy-flow-chart', function () {
+      if (typeof createFlowBarChart !== 'function') throw new Error('createFlowBarChart unavailable');
+      if (safeFlowIn.length === 0 || safeFlowOut.length === 0) throw new Error('empty-flow-arrays');
+      createFlowBarChart('occupancy-flow-chart', safeFlowIn, safeFlowOut, { height: 400, minVisibleBarPx: 3 });
+    }, function (reason) {
+      console.warn('[SMACA] occupancy flow render failed', { reason: reason });
+      renderEmptyState('occupancy-flow-chart', 'No occupancy data available');
+    });
+
+    renderOccupancyChartWhenReady('occupancy-density-timeline', function () {
+      if (typeof createOccupancyDensityTimeline !== 'function') throw new Error('createOccupancyDensityTimeline unavailable');
+      if (safeActivityData.length === 0) throw new Error('empty-activity-array');
+      createOccupancyDensityTimeline('occupancy-density-timeline', safeActivityData, { height: 300, minVisiblePointPx: 2 });
+    }, function (reason) {
+      console.warn('[SMACA] occupancy activity render failed', { reason: reason });
+      renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
+    });
+
+    renderOccupancyLocationCharts(occupancyRows);
+    console.log('[SMACA] occupancy render completed', { page: getSmacaCurrentPage(), points: occupancyRows.length });
+  }, 120);
+}
+
+function renderOccupancyChartWhenReady(containerId, renderFn, onFailure) {
+  const maxAttempts = 12;
+  let attempt = 0;
+  const tryRender = function () {
+    const container = document.getElementById(containerId);
+    if (!container) {
+      console.warn('[SMACA] occupancy container missing', { id: containerId, page: getSmacaCurrentPage() });
+      if (typeof onFailure === 'function') onFailure('container-missing');
+      return;
     }
-    
-    if (typeof createOccupancyDensityTimeline === 'function' && hourlyData.length > 0) {
-      const densityChartEl = document.getElementById('occupancy-density-timeline');
-      if (densityChartEl) {
-        // Clear previous chart SVG
-        const svg = densityChartEl.querySelector('svg');
-        if (svg) svg.remove();
-        createOccupancyDensityTimeline('occupancy-density-timeline', hourlyData, { height: 300 });
+    const width = Number(container.offsetWidth || 0);
+    const height = Number(container.offsetHeight || 0);
+    console.log('[SMACA] occupancy container check', {
+      page: getSmacaCurrentPage(),
+      id: containerId,
+      width: width,
+      height: height,
+      attempt: attempt + 1
+    });
+    if (width <= 0 || height <= 0) {
+      attempt += 1;
+      if (attempt >= maxAttempts) {
+        if (typeof onFailure === 'function') onFailure('container-not-measurable');
+        return;
       }
+      requestAnimationFrame(function () {
+        setTimeout(tryRender, 50);
+      });
+      return;
     }
-  }, 150);
+
+    try {
+      container.innerHTML = '';
+      renderFn();
+      const hasSvg = !!container.querySelector('svg');
+      if (!hasSvg) throw new Error('no-svg-appended');
+      console.log('[SMACA] occupancy chart helper completed', { id: containerId });
+      console.log('[SMACA] occupancy chart rendered', { id: containerId, width: width, height: height });
+    } catch (error) {
+      if (typeof onFailure === 'function') onFailure(error?.message || 'render-error');
+    }
+  };
+  tryRender();
+}
+
+function getOccupancyLocationLabel(item, sensorMetaById) {
+  const sensorId = Number(item?.sensorId);
+  const sensorMeta = Number.isFinite(sensorId) ? sensorMetaById[String(sensorId)] : null;
+  const label = item?.location
+    || item?.siteName
+    || sensorMeta?.site?.name
+    || sensorMeta?.location
+    || sensorMeta?.name;
+  return label ? String(label) : 'Unknown location';
+}
+
+function groupOccupancyByLocation(items) {
+  const rows = Array.isArray(items) ? items : [];
+  const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+  const sensorMetaById = sensors.reduce(function (acc, sensor) {
+    const sensorId = Number(sensor?.id);
+    if (Number.isFinite(sensorId)) acc[String(sensorId)] = sensor;
+    return acc;
+  }, {});
+  return rows.reduce(function (acc, item) {
+    const label = getOccupancyLocationLabel(item, sensorMetaById);
+    if (!acc[label]) acc[label] = [];
+    acc[label].push(item);
+    return acc;
+  }, {});
+}
+
+function getFlowTotalsPerLocation(itemsByLocation) {
+  return Object.keys(itemsByLocation).map(function (location) {
+    const rows = itemsByLocation[location] || [];
+    const totals = rows.reduce(function (acc, item) {
+      const inValue = Number(item?.payload?.object?.people_in);
+      const outValue = Number(item?.payload?.object?.people_out);
+      if (Number.isFinite(inValue)) acc.peopleIn += inValue;
+      if (Number.isFinite(outValue)) acc.peopleOut += outValue;
+      return acc;
+    }, { peopleIn: 0, peopleOut: 0 });
+    return { location: location, peopleIn: totals.peopleIn, peopleOut: totals.peopleOut };
+  }).filter(function (entry) {
+    return entry.peopleIn > 0 || entry.peopleOut > 0;
+  });
+}
+
+function getActivityPerLocation(itemsByLocation) {
+  return Object.keys(itemsByLocation).map(function (location) {
+    const rows = itemsByLocation[location] || [];
+    const activity = rows.reduce(function (sum, item) {
+      const peopleIn = Number(item?.payload?.object?.people_in);
+      const peopleOut = Number(item?.payload?.object?.people_out);
+      return sum + (Number.isFinite(peopleIn) ? peopleIn : 0) + (Number.isFinite(peopleOut) ? peopleOut : 0);
+    }, 0);
+    return { location: location, activity: activity };
+  }).filter(function (entry) {
+    return Number.isFinite(entry.activity) && entry.activity > 0;
+  });
+}
+
+function getTotalEntriesPerLocation(itemsByLocation) {
+  return Object.keys(itemsByLocation).map(function (location) {
+    const rows = itemsByLocation[location] || [];
+    const totalEntries = rows.reduce(function (sum, item) {
+      const value = Number(item?.payload?.object?.people_total_in);
+      return Number.isFinite(value) ? Math.max(sum, value) : sum;
+    }, 0);
+    return { location: location, totalEntries: totalEntries };
+  }).filter(function (entry) {
+    return Number.isFinite(entry.totalEntries) && entry.totalEntries > 0;
+  });
+}
+
+function ensureOccupancyLocationChartContainers() {
+  const occupancySection = document.getElementById('occupancy');
+  if (!occupancySection) return;
+  if (document.getElementById('occupancy-current-by-location-chart')) return;
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+  grid.style.gap = 'var(--space-6)';
+  grid.style.marginTop = 'var(--space-6)';
+  grid.innerHTML = `
+    <div class="card">
+      <div class="card__header">
+        <h3 class="card__title">Activity by Location</h3>
+      </div>
+      <div class="card__body">
+        <div class="chart-placeholder" id="occupancy-current-by-location-chart"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card__header">
+        <h3 class="card__title">Cumulative Entries by Location</h3>
+      </div>
+      <div class="card__body">
+        <div class="chart-placeholder" id="occupancy-total-entries-by-location-chart"></div>
+      </div>
+    </div>
+    <div class="card" style="grid-column: 1 / -1;">
+      <div class="card__header">
+        <h3 class="card__title">Flow by Location (In/Out)</h3>
+      </div>
+      <div class="card__body">
+        <div class="chart-placeholder" id="occupancy-flow-by-location-chart"></div>
+      </div>
+    </div>
+  `;
+  occupancySection.appendChild(grid);
+}
+
+function renderOccupancyLocationCharts(occupancyRows) {
+  if (getSmacaCurrentPage() !== 'occupancy') return;
+  ensureOccupancyLocationChartContainers();
+  const byLocation = groupOccupancyByLocation(occupancyRows);
+  const locationCount = Object.keys(byLocation).length;
+  console.log('[SMACA] occupancy locations grouped', { page: getSmacaCurrentPage(), locations: locationCount });
+  if (locationCount === 0) {
+    renderEmptyState('occupancy-current-by-location-chart', 'No data available');
+    renderEmptyState('occupancy-total-entries-by-location-chart', 'No data available');
+    renderEmptyState('occupancy-flow-by-location-chart', 'No data available');
+    return;
+  }
+
+  const currentByLocation = getActivityPerLocation(byLocation);
+  const entriesByLocation = getTotalEntriesPerLocation(byLocation);
+  const flowByLocation = getFlowTotalsPerLocation(byLocation);
+
+  if (currentByLocation.length > 0) {
+    renderLocationBarChart(
+      'occupancy-current-by-location-chart',
+      currentByLocation.map(function (item) { return item.location; }),
+      currentByLocation.map(function (item) { return item.activity; }),
+      '#3b82f6'
+    );
+  } else {
+    renderEmptyState('occupancy-current-by-location-chart', 'No data available');
+  }
+
+  if (entriesByLocation.length > 0) {
+    renderLocationBarChart(
+      'occupancy-total-entries-by-location-chart',
+      entriesByLocation.map(function (item) { return item.location; }),
+      entriesByLocation.map(function (item) { return item.totalEntries; }),
+      '#10b981'
+    );
+  } else {
+    renderEmptyState('occupancy-total-entries-by-location-chart', 'No data available');
+  }
+
+  if (flowByLocation.length > 0) {
+    renderLocationFlowChart(
+      'occupancy-flow-by-location-chart',
+      flowByLocation.map(function (item) { return item.location; }),
+      flowByLocation.map(function (item) { return item.peopleIn; }),
+      flowByLocation.map(function (item) { return item.peopleOut; }),
+      { height: 360 }
+    );
+  } else {
+    renderEmptyState('occupancy-flow-by-location-chart', 'No data available');
+  }
+  if (locationCount === 1) {
+    const chartEl = document.getElementById('occupancy-current-by-location-chart');
+    if (chartEl && !chartEl.querySelector('[data-one-location-note]')) {
+      const note = document.createElement('div');
+      note.setAttribute('data-one-location-note', 'true');
+      note.style.cssText = 'font-size: var(--font-size-xs); color: var(--muted); text-align: center; margin-top: var(--space-2);';
+      note.textContent = 'Only one location available';
+      chartEl.appendChild(note);
+    }
+  }
+}
+
+function renderLocationBarChart(containerId, labels, values, color) {
+  const container = document.getElementById(containerId);
+  if (!container || !Array.isArray(labels) || !Array.isArray(values) || labels.length === 0 || labels.length !== values.length) return;
+  const width = container.offsetWidth || 800;
+  const height = 320;
+  const padding = { top: 20, right: 20, bottom: 70, left: 50 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const safeValues = values.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
+  const maxValue = Math.max(1, ...safeValues);
+  const barSpace = chartWidth / labels.length;
+  const barWidth = Math.max(14, barSpace * 0.6);
+  container.innerHTML = '';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'chart-svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  group.setAttribute('transform', `translate(${padding.left}, ${padding.top})`);
+  safeValues.forEach(function (value, idx) {
+    const barHeight = (value / maxValue) * chartHeight;
+    const x = idx * barSpace + ((barSpace - barWidth) / 2);
+    const y = chartHeight - barHeight;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x);
+    rect.setAttribute('y', y);
+    rect.setAttribute('width', barWidth);
+    rect.setAttribute('height', barHeight);
+    rect.setAttribute('fill', color || '#3b82f6');
+    rect.setAttribute('rx', '4');
+    group.appendChild(rect);
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', x + (barWidth / 2));
+    label.setAttribute('y', chartHeight + 20);
+    label.setAttribute('fill', 'var(--muted)');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('text-anchor', 'middle');
+    label.textContent = String(labels[idx]).slice(0, 16);
+    group.appendChild(label);
+  });
+  svg.appendChild(group);
+  container.appendChild(svg);
+}
+
+function renderLocationFlowChart(containerId, labels, inValues, outValues, options) {
+  const container = document.getElementById(containerId);
+  if (!container || !Array.isArray(labels) || !Array.isArray(inValues) || !Array.isArray(outValues)) return;
+  if (labels.length === 0 || labels.length !== inValues.length || labels.length !== outValues.length) return;
+  const width = container.offsetWidth || 800;
+  const height = options?.height || 360;
+  const padding = { top: 30, right: 20, bottom: 80, left: 50 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const safeIn = inValues.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
+  const safeOut = outValues.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
+  const maxValue = Math.max(1, ...safeIn, ...safeOut);
+  const groupSpace = chartWidth / labels.length;
+  const barWidth = Math.max(10, groupSpace * 0.25);
+  container.innerHTML = '';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'chart-svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  group.setAttribute('transform', `translate(${padding.left}, ${padding.top})`);
+  safeIn.forEach(function (inValue, idx) {
+    const outValue = safeOut[idx];
+    const baseX = idx * groupSpace + (groupSpace / 2);
+    const inHeight = (inValue / maxValue) * chartHeight;
+    const outHeight = (outValue / maxValue) * chartHeight;
+    const inRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    inRect.setAttribute('x', baseX - barWidth - 2);
+    inRect.setAttribute('y', chartHeight - inHeight);
+    inRect.setAttribute('width', barWidth);
+    inRect.setAttribute('height', inHeight);
+    inRect.setAttribute('fill', '#10b981');
+    group.appendChild(inRect);
+    const outRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    outRect.setAttribute('x', baseX + 2);
+    outRect.setAttribute('y', chartHeight - outHeight);
+    outRect.setAttribute('width', barWidth);
+    outRect.setAttribute('height', outHeight);
+    outRect.setAttribute('fill', '#ef4444');
+    group.appendChild(outRect);
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', baseX);
+    label.setAttribute('y', chartHeight + 22);
+    label.setAttribute('fill', 'var(--muted)');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('text-anchor', 'middle');
+    label.textContent = String(labels[idx]).slice(0, 16);
+    group.appendChild(label);
+  });
+  svg.appendChild(group);
+  container.appendChild(svg);
 }
 
 // Update Energy charts with filtered data
@@ -1633,12 +2113,21 @@ function updateHeaderCounters(timeframe, filteredData) {
   const occupancyCounter = document.getElementById('occupancy-current-count');
   const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : (filteredData.occupancy || []);
   if (occupancyCounter && occupancyRows.length > 0) {
-    const totalIn = getAggregatedSum(getLatestValidMetricPerSensor(occupancyRows, 'people_total_in'));
-    const totalOut = getAggregatedSum(getLatestValidMetricPerSensor(occupancyRows, 'people_total_out'));
-    const current = Number(totalIn || 0) - Number(totalOut || 0);
-    occupancyCounter.textContent = String(Math.max(0, Math.round(current)));
+    const latestIn = sumLatestMetricAcrossSensors(occupancyRows, 'people_in');
+    const latestOut = sumLatestMetricAcrossSensors(occupancyRows, 'people_out');
+    const activity = Number(latestIn || 0) + Number(latestOut || 0);
+    occupancyCounter.textContent = String(Math.max(0, Math.round(activity)));
   } else if (occupancyCounter) {
-    occupancyCounter.textContent = '0';
+    occupancyCounter.textContent = 'No occupancy data available';
+  }
+  const occupancySection = document.getElementById('occupancy');
+  if (occupancySection) {
+    const cumulativeLabelEl = occupancySection.querySelector('.card .card__body div div div:nth-child(3)');
+    if (cumulativeLabelEl && occupancyRows.length > 0) {
+      const totalEntries = sumLatestMetricAcrossSensors(occupancyRows, 'people_total_in');
+      const totalExits = sumLatestMetricAcrossSensors(occupancyRows, 'people_total_out');
+      cumulativeLabelEl.textContent = `Cumulative Entries: ${Number.isFinite(Number(totalEntries)) ? Math.round(Number(totalEntries)) : 'N/A'} | Cumulative Exits: ${Number.isFinite(Number(totalExits)) ? Math.round(Number(totalExits)) : 'N/A'}`;
+    }
   }
   
   // Update Energy daily consumption
@@ -1664,7 +2153,7 @@ function updateHeaderCounters(timeframe, filteredData) {
     const uvValue = getAggregatedAverage(getLatestValidMetricPerSensor(environmentalRows, 'uv_index'));
     uvCounter.textContent = Number.isFinite(Number(uvValue)) ? Number(uvValue).toFixed(1) : 'Unsupported by device';
   } else if (uvCounter) {
-    uvCounter.textContent = 'No data';
+    uvCounter.textContent = 'No UV data available';
   }
   
   // Update Management total sensors

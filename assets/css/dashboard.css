@@ -149,6 +149,52 @@
   flex: 1;
   padding: var(--space-8);
   overflow-y: auto;
+  position: relative;
+}
+
+.smaca-page-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+}
+
+.smaca-page-loading-overlay.is-visible {
+  display: flex;
+}
+
+.smaca-page-loading-overlay__panel {
+  min-width: 180px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.35);
+}
+
+.smaca-page-loading-overlay__spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid rgba(248, 250, 252, 0.35);
+  border-top-color: #f8fafc;
+  animation: smaca-page-spin 0.85s linear infinite;
+}
+
+.smaca-page-loading-overlay__message {
+  font-size: var(--font-size-sm);
+  line-height: 1.2;
+}
+
+@keyframes smaca-page-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Grid */

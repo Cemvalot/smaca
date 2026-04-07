@@ -15,6 +15,12 @@
     <main class="main">
       @include('dashboard.partials.topbar')
       <div class="content">
+        <div id="smaca-page-loading-overlay" class="smaca-page-loading-overlay" aria-live="polite" aria-hidden="true">
+          <div class="smaca-page-loading-overlay__panel">
+            <div class="smaca-page-loading-overlay__spinner" aria-hidden="true"></div>
+            <div id="smaca-page-loading-message" class="smaca-page-loading-overlay__message">Loading data...</div>
+          </div>
+        </div>
         @yield('dashboard-content')
       </div>
     </main>

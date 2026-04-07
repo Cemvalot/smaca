@@ -481,13 +481,15 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
   const barWidth = (chartWidth / inData.length) * 0.35;
   const barSpacing = chartWidth / inData.length;
   const centerY = chartHeight / 2;
+  const minVisibleBarPx = Number.isFinite(Number(options.minVisibleBarPx)) ? Math.max(0, Number(options.minVisibleBarPx)) : 0;
   
   inData.forEach((inVal, i) => {
     const outVal = outData[i];
     const x = i * barSpacing + (barSpacing - barWidth) / 2;
     
     // In bar (upward)
-    const inBarHeight = (inVal / maxValue) * (chartHeight / 2);
+    const rawInBarHeight = (inVal / maxValue) * (chartHeight / 2);
+    const inBarHeight = inVal > 0 ? Math.max(rawInBarHeight, minVisibleBarPx) : 0;
     const inRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     inRect.setAttribute('x', x);
     inRect.setAttribute('y', centerY - inBarHeight);
@@ -497,7 +499,8 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
     chartGroup.appendChild(inRect);
     
     // Out bar (downward)
-    const outBarHeight = (outVal / maxValue) * (chartHeight / 2);
+    const rawOutBarHeight = (outVal / maxValue) * (chartHeight / 2);
+    const outBarHeight = outVal > 0 ? Math.max(rawOutBarHeight, minVisibleBarPx) : 0;
     const outRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     outRect.setAttribute('x', x);
     outRect.setAttribute('y', centerY);
@@ -593,6 +596,12 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   
   const maxValue = Math.max(...data, 1);
   const stepWidth = chartWidth / data.length;
+  const minVisiblePointPx = Number.isFinite(Number(options.minVisiblePointPx)) ? Math.max(0, Number(options.minVisiblePointPx)) : 0;
+  const toY = (value) => {
+    const rawHeight = (value / maxValue) * chartHeight;
+    const adjustedHeight = value > 0 ? Math.max(rawHeight, minVisiblePointPx) : 0;
+    return chartHeight - adjustedHeight;
+  };
   
   // Draw area (step chart)
   const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -600,7 +609,7 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   
   data.forEach((value, i) => {
     const x = i * stepWidth;
-    const y = chartHeight - (value / maxValue) * chartHeight;
+    const y = toY(value);
     pathData += ` L ${x} ${y} L ${x + stepWidth} ${y}`;
   });
   pathData += ` L ${chartWidth} ${chartHeight} Z`;
@@ -611,11 +620,11 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   
   // Draw step line
   const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  let lineData = `M 0 ${chartHeight - (data[0] / maxValue) * chartHeight}`;
+  let lineData = `M 0 ${toY(data[0])}`;
   
   data.forEach((value, i) => {
     const x = i * stepWidth;
-    const y = chartHeight - (value / maxValue) * chartHeight;
+    const y = toY(value);
     lineData += ` L ${x} ${y} L ${x + stepWidth} ${y}`;
   });
   
