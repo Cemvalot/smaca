@@ -29,6 +29,73 @@ function logSmacaHydratedState(lengths) {
   console.log('[SMACA] hydrated state', lengths);
 }
 
+const SMACA_PAGE_BUCKETS = {
+  overview: ['iaq'],
+  iaq: ['iaq'],
+  occupancy: ['occupancy'],
+  environmental: ['environmental'],
+  connectivity: [],
+  'ai-insights': [],
+  energy: ['energy', 'occupancy'],
+  management: []
+};
+
+const SMACA_TS_CACHE = {
+  timeseries: {},
+  latest: {},
+  render: {}
+};
+
+function getSmacaCurrentPage() {
+  const explicitPage = typeof window !== 'undefined' ? window.SMACA_CURRENT_PAGE : null;
+  if (explicitPage) return String(explicitPage);
+  const path = typeof window !== 'undefined' ? (window.location?.pathname || '') : '';
+  const parts = path.split('/').filter(Boolean);
+  const maybePage = parts.length > 1 ? parts[1] : 'overview';
+  return maybePage || 'overview';
+}
+
+function getRequiredBucketsForCurrentPage() {
+  const page = getSmacaCurrentPage();
+  return SMACA_PAGE_BUCKETS[page] || [];
+}
+
+function shouldHydrateAllSensorLatestForCurrentPage() {
+  const page = getSmacaCurrentPage();
+  return page === 'connectivity' || page === 'management' || page === 'overview';
+}
+
+function getCachedTimeseriesKey(sensorId, timeframe, bucket, metric) {
+  return [String(sensorId), String(timeframe || '24h'), String(bucket), String(metric)].join('|');
+}
+
+function clearSmacaTimeseriesCache() {
+  SMACA_TS_CACHE.timeseries = {};
+  SMACA_TS_CACHE.latest = {};
+}
+
+function setSectionLoadingState(sectionId, isLoading) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+  section.style.opacity = isLoading ? '0.75' : '1';
+}
+
+function setCurrentPageLoadingState(isLoading) {
+  const page = getSmacaCurrentPage();
+  const sectionByPage = {
+    overview: 'overview',
+    iaq: 'iaq',
+    occupancy: 'occupancy',
+    environmental: 'environmental',
+    connectivity: 'connectivity',
+    'ai-insights': 'ai-insights',
+    energy: 'energy',
+    management: 'management'
+  };
+  const sectionId = sectionByPage[page];
+  if (sectionId) setSectionLoadingState(sectionId, isLoading);
+}
+
 function escapeSmacaHtml(value) {
   if (value === null || value === undefined) return '';
   return String(value)
@@ -159,7 +226,7 @@ async function initializeStateFromApi() {
       return;
     }
 
-    await setCurrentSensorAndReload(selectedSensorId);
+    await setCurrentSensorAndReload(selectedSensorId, { forceRefresh: true });
     setupSensorSelectionListeners();
   } catch (error) {
     console.error('SMACA API initialization failed:', error);
@@ -255,51 +322,94 @@ function chooseSectionSensors(overview, sensors, preferredSensorId) {
   };
 }
 
-async function refreshDashboardForSelection(sensorId, timeframe) {
+async function refreshDashboardForSelection(sensorId, timeframe, options) {
   const canonicalSensorId = Number(sensorId);
   const tf = timeframe || SMACAState.currentTimeframe || '24h';
+  const opts = options || {};
+  const forceRefresh = opts.forceRefresh === true;
+  const currentPage = getSmacaCurrentPage();
+  const requiredBuckets = getRequiredBucketsForCurrentPage();
+  const shouldHydrateLatestRows = shouldHydrateAllSensorLatestForCurrentPage();
   if (Number.isFinite(canonicalSensorId)) {
+    if (window.SMACACurrentSensorId !== canonicalSensorId) clearSmacaTimeseriesCache();
     window.SMACACurrentSensorId = canonicalSensorId;
     logSmacaSelection(canonicalSensorId, tf);
   } else {
     logSmacaSelection(null, tf);
   }
+  if ((SMACAState.currentTimeframe || '24h') !== tf) clearSmacaTimeseriesCache();
+  if (forceRefresh) clearSmacaTimeseriesCache();
+  console.log('[SMACA] refresh context', {
+    page: currentPage,
+    selectedSensorId: Number.isFinite(canonicalSensorId) ? canonicalSensorId : null,
+    timeframe: tf,
+    requiredBuckets: requiredBuckets
+  });
+  setCurrentPageLoadingState(true);
 
-  const [overview, sensorsPayload] = await Promise.all([
-    window.SMACAApi.fetchDashboardOverview(),
-    window.SMACAApi.fetchSensors()
-  ]);
-  const sensors = Array.isArray(sensorsPayload?.rows) ? sensorsPayload.rows : [];
-  const selectedBySection = chooseSectionSensors(overview, sensors, canonicalSensorId);
-  if (typeof window !== 'undefined') {
-    window.SMACADashboardContext.overview = overview || null;
-    window.SMACADashboardContext.sensors = sensors;
-    window.SMACADashboardContext.selectedSensorsBySection = selectedBySection;
+  try {
+    const [overview, sensorsPayload] = await Promise.all([
+      window.SMACAApi.fetchDashboardOverview(),
+      window.SMACAApi.fetchSensors()
+    ]);
+    const sensors = Array.isArray(sensorsPayload?.rows) ? sensorsPayload.rows : [];
+    const selectedBySection = chooseSectionSensors(overview, sensors, canonicalSensorId);
+    if (typeof window !== 'undefined') {
+      window.SMACADashboardContext.overview = overview || null;
+      window.SMACADashboardContext.sensors = sensors;
+      window.SMACADashboardContext.selectedSensorsBySection = selectedBySection;
+    }
+    logSmacaSectionSelections(selectedBySection);
+    hydrateLegacySensorsForUi(sensors, overview);
+    updateOverviewCountersFromApi(overview, sensors);
+
+    const bucketFetchers = {
+      iaq: function () { return fetchAndMapTimeseriesForSensor(selectedBySection.iaq, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh); },
+      occupancy: function () { return fetchAndMapTimeseriesForSensor(selectedBySection.occupancy, tf, SMACA_SECTION_METRICS.occupancy, 'occupancy', forceRefresh); },
+      environmental: function () { return fetchAndMapTimeseriesForSensor(selectedBySection.environmental, tf, SMACA_SECTION_METRICS.environmental, 'environmental', forceRefresh); },
+      energy: function () { return fetchAndMapTimeseriesForSensor(selectedBySection.energy, tf, SMACA_SECTION_METRICS.energy, 'energy', forceRefresh); }
+    };
+
+    const fetchTasks = requiredBuckets.map(function (bucket) {
+      const fn = bucketFetchers[bucket];
+      if (!fn) return Promise.resolve({ bucket: bucket, items: [] });
+      return fn().then(function (result) {
+        return { bucket: bucket, items: result.items || [] };
+      });
+    });
+    const fetchedBuckets = await Promise.all(fetchTasks);
+    console.log('[SMACA] fetched buckets count', fetchedBuckets.length);
+
+    const nextHydratedState = {
+      iaq: [],
+      occupancy: [],
+      environmental: [],
+      energy: []
+    };
+    fetchedBuckets.forEach(function (bucketPayload) {
+      if (nextHydratedState[bucketPayload.bucket] !== undefined) {
+        nextHydratedState[bucketPayload.bucket] = Array.isArray(bucketPayload.items) ? bucketPayload.items : [];
+      }
+    });
+    applyHydratedState(nextHydratedState, false);
+
+    if (shouldHydrateLatestRows) {
+      await hydrateSensorLatestRowsForUi(sensors, forceRefresh);
+    }
+    if (currentPage === 'connectivity' && document.getElementById('sensor-health-table')) {
+      renderConnectivityFromLiveSensors();
+    }
+    if (currentPage === 'management' && document.getElementById('sensors-management-table-body')) {
+      renderManagementSensorsFromLiveData();
+    }
+    SMACAState.setTimeframe(tf);
+  } finally {
+    setCurrentPageLoadingState(false);
   }
-  logSmacaSectionSelections(selectedBySection);
-  hydrateLegacySensorsForUi(sensors, overview);
-  updateOverviewCountersFromApi(overview, sensors);
-
-  const iaqHydrated = await fetchAndMapTimeseriesForSensor(selectedBySection.iaq, tf, SMACA_SECTION_METRICS.iaq, 'iaq');
-  const occupancyHydrated = await fetchAndMapTimeseriesForSensor(selectedBySection.occupancy, tf, SMACA_SECTION_METRICS.occupancy, 'occupancy');
-  const environmentalHydrated = await fetchAndMapTimeseriesForSensor(selectedBySection.environmental, tf, SMACA_SECTION_METRICS.environmental, 'environmental');
-  const energyHydrated = await fetchAndMapTimeseriesForSensor(selectedBySection.energy, tf, SMACA_SECTION_METRICS.energy, 'energy');
-
-  applyHydratedState({
-    iaq: iaqHydrated.items,
-    occupancy: occupancyHydrated.items,
-    environmental: environmentalHydrated.items,
-    energy: energyHydrated.items
-  }, false);
-
-  await hydrateSensorLatestRowsForUi(sensors);
-  renderConnectivityFromLiveSensors();
-  renderManagementSensorsFromLiveData();
-  SMACAState.setTimeframe(tf);
 }
 
-async function setCurrentSensorAndReload(selectedSensorId) {
-  await refreshDashboardForSelection(selectedSensorId, SMACAState.currentTimeframe);
+async function setCurrentSensorAndReload(selectedSensorId, options) {
+  await refreshDashboardForSelection(selectedSensorId, SMACAState.currentTimeframe, options);
 }
 
 function chooseDefaultSensorIdFromSnapshots(overview, sensors) {
@@ -412,13 +522,19 @@ function toConnectivitySensorRow(sensor, latestRow) {
   };
 }
 
-async function hydrateSensorLatestRowsForUi(sensors) {
+async function hydrateSensorLatestRowsForUi(sensors, forceRefresh) {
   const rows = Array.isArray(sensors) ? sensors : [];
   const results = await Promise.all(rows.map(function (sensor) {
     const sensorId = Number(sensor?.id);
     if (!Number.isFinite(sensorId)) return Promise.resolve(null);
+    const cacheKey = String(sensorId);
+    if (!forceRefresh && Object.prototype.hasOwnProperty.call(SMACA_TS_CACHE.latest, cacheKey)) {
+      return Promise.resolve({ sensorId: sensorId, row: SMACA_TS_CACHE.latest[cacheKey] });
+    }
     return window.SMACAApi.fetchSensorLatest(sensorId).then(function (payload) {
-      return { sensorId: sensorId, row: payload?.row || null };
+      const row = payload?.row || null;
+      SMACA_TS_CACHE.latest[cacheKey] = row;
+      return { sensorId: sensorId, row: row };
     }).catch(function () {
       return { sensorId: sensorId, row: null };
     });
@@ -569,19 +685,36 @@ function updateOverviewCountersFromApi(overview, sensors) {
   });
 }
 
-async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, bucket) {
+async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, bucket, forceRefresh) {
   const tf = timeframe || '24h';
   const metrics = Array.isArray(metricList) ? metricList : [];
   const adapters = window.SMACAApi.adapters;
   if (!Number.isFinite(Number(sensorId))) return { items: [], latestRow: null };
 
   const responses = await Promise.all(metrics.map(function (metric) {
+    const cacheKey = getCachedTimeseriesKey(sensorId, tf, bucket, metric);
+    if (!forceRefresh && SMACA_TS_CACHE.timeseries[cacheKey]) {
+      console.log('[SMACA] timeseries cache hit', { key: cacheKey });
+      return Promise.resolve({ metric: metric, payload: SMACA_TS_CACHE.timeseries[cacheKey] });
+    }
+    console.log('[SMACA] timeseries cache miss', { key: cacheKey });
     return window.SMACAApi
       .fetchSensorTimeseries(sensorId, metric, tf)
-      .then(function (payload) { return { metric: metric, payload: payload }; })
+      .then(function (payload) {
+        const safePayload = payload || { points: [] };
+        SMACA_TS_CACHE.timeseries[cacheKey] = safePayload;
+        return { metric: metric, payload: safePayload };
+      })
       .catch(function () { return { metric: metric, payload: { points: [] } }; });
   }));
-  const latestPayload = await window.SMACAApi.fetchSensorLatest(sensorId).catch(function () { return null; });
+  const latestCacheKey = String(sensorId);
+  let latestPayload = null;
+  if (!forceRefresh && Object.prototype.hasOwnProperty.call(SMACA_TS_CACHE.latest, latestCacheKey)) {
+    latestPayload = { row: SMACA_TS_CACHE.latest[latestCacheKey] };
+  } else {
+    latestPayload = await window.SMACAApi.fetchSensorLatest(sensorId).catch(function () { return null; });
+    if (latestPayload?.row || latestPayload === null) SMACA_TS_CACHE.latest[latestCacheKey] = latestPayload?.row || null;
+  }
   const latestRow = latestPayload?.row || null;
 
   const meta = {
@@ -854,17 +987,42 @@ function updateAlertsPanel() {
 function updateAllDashboards(timeframe, filteredData) {
   // Update header counters based on timeframe
   updateHeaderCounters(timeframe, filteredData);
+  renderCurrentPageOnly(timeframe, filteredData);
+}
 
-  // Update IAQ KPI and charts from backend-backed state.
-  renderIAQSection('update-all-dashboards', true);
+function renderCurrentPageOnly(timeframe, filteredData) {
+  const currentPage = getSmacaCurrentPage();
+  const signature = [
+    currentPage,
+    timeframe,
+    window.SMACACurrentSensorId || 'none',
+    (filteredData?.iaq || []).length,
+    (filteredData?.occupancy || []).length,
+    (filteredData?.environmental || []).length,
+    (filteredData?.energy || []).length
+  ].join('|');
+  if (SMACA_TS_CACHE.render.lastSignature === signature) return;
+  SMACA_TS_CACHE.render.lastSignature = signature;
 
-  updateOccupancyDashboardWithTrends(filteredData.occupancy, timeframe);
-  updateOccupancyCharts(filteredData.occupancy, timeframe);
-  updateEnergyCharts(filteredData.energy || [], timeframe);
-  updateEnvironmentalDashboard(filteredData.environmental, timeframe);
-  renderConnectivityFromLiveSensors();
-  renderManagementSensorsFromLiveData();
-
+  if (currentPage === 'overview' || currentPage === 'iaq') {
+    renderIAQSection('render-current-page-only', true);
+  }
+  if (currentPage === 'occupancy') {
+    updateOccupancyDashboardWithTrends(filteredData.occupancy, timeframe);
+    updateOccupancyCharts(filteredData.occupancy, timeframe);
+  }
+  if (currentPage === 'energy') {
+    updateEnergyCharts(filteredData.energy || [], timeframe);
+  }
+  if (currentPage === 'environmental') {
+    updateEnvironmentalDashboard(filteredData.environmental, timeframe);
+  }
+  if (currentPage === 'connectivity' && document.getElementById('sensor-health-table')) {
+    renderConnectivityFromLiveSensors();
+  }
+  if (currentPage === 'management' && document.getElementById('sensors-management-table-body')) {
+    renderManagementSensorsFromLiveData();
+  }
 }
 
 // Show insufficient history message
