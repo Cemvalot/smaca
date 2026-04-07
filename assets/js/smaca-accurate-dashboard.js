@@ -92,13 +92,57 @@ function renderIAQDashboard(normalizedData) {
   
   const latest = normalizedData[normalizedData.length - 1];
   const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
+  const aggregatedSeriesByTime = buildAggregatedIAQSeriesByTimestamp(normalizedData);
 
   // KPI cards are handled by updateIAQDashboardWithTrends in smaca-production-features.js
   // Don't render them here to avoid conflicts
   
-  createAccurateCO2Chart('iaq-co2-band-chart', normalizedData);
+  createAccurateCO2Chart('iaq-co2-band-chart', aggregatedSeriesByTime);
   renderSensorHealthPanel(latest);
   renderDataSourcePanel(latest);
+}
+
+function buildAggregatedIAQSeriesByTimestamp(normalizedData) {
+  const rows = Array.isArray(normalizedData) ? normalizedData : [];
+  const grouped = {};
+  rows.forEach(function (row) {
+    const timeMs = new Date(row?.time).getTime();
+    if (!Number.isFinite(timeMs)) return;
+    const key = String(timeMs);
+    if (!grouped[key]) {
+      grouped[key] = {
+        time: new Date(timeMs).toISOString(),
+        co2: [],
+        temperature: [],
+        humidity: [],
+        pm2_5: [],
+        pm10: [],
+        tvoc: []
+      };
+    }
+    ['co2', 'temperature', 'humidity', 'pm2_5', 'pm10', 'tvoc'].forEach(function (metric) {
+      const value = Number(row?.[metric]);
+      if (Number.isFinite(value)) grouped[key][metric].push(value);
+    });
+  });
+  return Object.values(grouped)
+    .map(function (bucket) {
+      const avg = function (arr) {
+        if (!Array.isArray(arr) || arr.length === 0) return null;
+        const sum = arr.reduce(function (acc, value) { return acc + value; }, 0);
+        return sum / arr.length;
+      };
+      return {
+        time: bucket.time,
+        co2: avg(bucket.co2),
+        temperature: avg(bucket.temperature),
+        humidity: avg(bucket.humidity),
+        pm2_5: avg(bucket.pm2_5),
+        pm10: avg(bucket.pm10),
+        tvoc: avg(bucket.tvoc)
+      };
+    })
+    .sort(function (a, b) { return new Date(a.time) - new Date(b.time); });
 }
 
 /**

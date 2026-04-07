@@ -241,6 +241,79 @@ const SMACA_SECTION_METRICS = {
   energy: ['energy_kwh']
 };
 
+function isValidFiniteNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed);
+}
+
+function getLatestValidMetricPerSensor(items, metricKey) {
+  const rows = Array.isArray(items) ? items : [];
+  const perSensor = {};
+  rows.forEach(function (item) {
+    const sensorId = item?.sensorId;
+    const value = item?.payload?.object?.[metricKey];
+    if (sensorId === null || sensorId === undefined || !isValidFiniteNumber(value)) return;
+    const timeMs = new Date(item?.time || item?.timestamp || 0).getTime();
+    if (!Number.isFinite(timeMs)) return;
+    const existing = perSensor[String(sensorId)];
+    if (!existing || timeMs >= existing.timeMs) {
+      perSensor[String(sensorId)] = { value: Number(value), timeMs: timeMs };
+    }
+  });
+  return perSensor;
+}
+
+function getAggregatedAverage(perSensorLatestMap) {
+  const entries = Object.values(perSensorLatestMap || {}).map(function (item) {
+    return Number(item?.value);
+  }).filter(Number.isFinite);
+  if (entries.length === 0) return null;
+  const sum = entries.reduce(function (acc, value) { return acc + value; }, 0);
+  return sum / entries.length;
+}
+
+function getAggregatedSum(perSensorLatestMap) {
+  const entries = Object.values(perSensorLatestMap || {}).map(function (item) {
+    return Number(item?.value);
+  }).filter(Number.isFinite);
+  if (entries.length === 0) return null;
+  return entries.reduce(function (acc, value) { return acc + value; }, 0);
+}
+
+function getEnergyDeltaPerSensor(items, sensorId) {
+  const rows = (Array.isArray(items) ? items : [])
+    .filter(function (item) { return String(item?.sensorId) === String(sensorId); })
+    .map(function (item) {
+      return {
+        timeMs: new Date(item?.time || item?.timestamp || 0).getTime(),
+        value: Number(item?.payload?.object?.energy_kwh)
+      };
+    })
+    .filter(function (entry) {
+      return Number.isFinite(entry.timeMs) && Number.isFinite(entry.value);
+    })
+    .sort(function (a, b) { return a.timeMs - b.timeMs; });
+  if (rows.length < 2) return null;
+  const first = rows[0].value;
+  const last = rows[rows.length - 1].value;
+  const delta = last - first;
+  if (!Number.isFinite(delta) || delta < 0) return null;
+  return delta;
+}
+
+function getAggregatedEnergyForTimeframe(energyItems) {
+  const rows = Array.isArray(energyItems) ? energyItems : [];
+  const sensorIds = new Set(rows.map(function (item) { return item?.sensorId; }).filter(function (id) {
+    return id !== null && id !== undefined;
+  }));
+  let totalDelta = 0;
+  sensorIds.forEach(function (sensorId) {
+    const delta = getEnergyDeltaPerSensor(rows, sensorId);
+    if (Number.isFinite(delta) && delta >= 0) totalDelta += delta;
+  });
+  return totalDelta;
+}
+
 function buildLatestSnapshotBySensorId(overview, sensors) {
   const byId = {};
   const snapshotRows = Array.isArray(overview?.latest_sensor_snapshot_rows) ? overview.latest_sensor_snapshot_rows : [];
@@ -363,11 +436,15 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     hydrateLegacySensorsForUi(sensors, overview);
     updateOverviewCountersFromApi(overview, sensors);
 
+    const allSensorIds = sensors
+      .map(function (sensor) { return Number(sensor?.id); })
+      .filter(Number.isFinite);
+
     const bucketFetchers = {
-      iaq: function () { return fetchAndMapTimeseriesForSensor(selectedBySection.iaq, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh); },
-      occupancy: function () { return fetchAndMapTimeseriesForSensor(selectedBySection.occupancy, tf, SMACA_SECTION_METRICS.occupancy, 'occupancy', forceRefresh); },
-      environmental: function () { return fetchAndMapTimeseriesForSensor(selectedBySection.environmental, tf, SMACA_SECTION_METRICS.environmental, 'environmental', forceRefresh); },
-      energy: function () { return fetchAndMapTimeseriesForSensor(selectedBySection.energy, tf, SMACA_SECTION_METRICS.energy, 'energy', forceRefresh); }
+      iaq: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh); },
+      occupancy: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.occupancy, 'occupancy', forceRefresh); },
+      environmental: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.environmental, 'environmental', forceRefresh); },
+      energy: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.energy, 'energy', forceRefresh); }
     };
 
     const fetchTasks = requiredBuckets.map(function (bucket) {
@@ -798,6 +875,25 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, b
   return { items: items, latestRow: latestRow };
 }
 
+async function fetchAndMapTimeseriesForSensors(sensorIds, timeframe, metricList, bucket, forceRefresh) {
+  const ids = Array.isArray(sensorIds) ? sensorIds.filter(Number.isFinite) : [];
+  if (ids.length === 0) return { items: [], latestRowsBySensorId: {} };
+  const results = await Promise.all(ids.map(function (sensorId) {
+    return fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, bucket, forceRefresh)
+      .catch(function () { return { items: [], latestRow: null, sensorId: sensorId }; });
+  }));
+  const mergedItems = [];
+  const latestRowsBySensorId = {};
+  results.forEach(function (result, index) {
+    const sid = ids[index];
+    const items = Array.isArray(result?.items) ? result.items : [];
+    mergedItems.push.apply(mergedItems, items);
+    latestRowsBySensorId[String(sid)] = result?.latestRow || null;
+  });
+  mergedItems.sort(function (a, b) { return new Date(a.time) - new Date(b.time); });
+  return { items: mergedItems, latestRowsBySensorId: latestRowsBySensorId };
+}
+
 function applyHydratedState(data, shouldNotify) {
   const notify = shouldNotify !== false;
   // Keep existing state-manager architecture; just replace raw arrays atomically.
@@ -1055,19 +1151,12 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   }
   
   if (!filteredIAQ || filteredIAQ.length === 0) {
-    kpiContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: var(--space-4); color: var(--muted);">No backend points returned for selected sensor/timeframe</div>';
+    kpiContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: var(--space-4); color: var(--muted);">No backend points returned for selected timeframe</div>';
     return;
   }
 
-  const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
   const rawIAQ = Array.isArray(SMACAState.rawData?.iaq) ? SMACAState.rawData.iaq : [];
-  const selectedSensorRawIAQ = selectedSensorId == null
-    ? rawIAQ
-    : rawIAQ.filter(item => String(getIAQItemIdentityKey(item)) === String(selectedSensorId));
-  const liveSeries = selectedSensorRawIAQ.length > 0 ? selectedSensorRawIAQ : filteredIAQ;
-  const latest = liveSeries[liveSeries.length - 1] || filteredIAQ[filteredIAQ.length - 1];
-  const latestValues = latest?.payload?.object || {};
-
+  const liveSeries = rawIAQ.length > 0 ? rawIAQ : filteredIAQ;
   const sortedSeries = [...liveSeries].sort((a, b) => new Date(a.time) - new Date(b.time));
   const metricPrecision = {
     co2: 0,
@@ -1079,10 +1168,23 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   };
 
   function resolveMetricValues(metricKey) {
-    return sortedSeries
-      .map(item => item?.payload?.object?.[metricKey])
-      .filter(value => value !== null && value !== undefined && Number.isFinite(Number(value)))
-      .map(value => Number(value));
+    const byBucket = {};
+    sortedSeries.forEach(function (item) {
+      const timeMs = new Date(item?.time || item?.timestamp || 0).getTime();
+      const value = Number(item?.payload?.object?.[metricKey]);
+      if (!Number.isFinite(timeMs) || !Number.isFinite(value)) return;
+      const bucket = Math.floor(timeMs / (60 * 60 * 1000)) * (60 * 60 * 1000);
+      if (!byBucket[bucket]) byBucket[bucket] = [];
+      byBucket[bucket].push(value);
+    });
+    return Object.keys(byBucket)
+      .map(function (bucket) {
+        const values = byBucket[bucket];
+        const sum = values.reduce(function (acc, v) { return acc + v; }, 0);
+        return { bucket: Number(bucket), avg: sum / values.length };
+      })
+      .sort(function (a, b) { return a.bucket - b.bucket; })
+      .map(function (entry) { return entry.avg; });
   }
 
   function buildTrend(metricKey) {
@@ -1105,13 +1207,13 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
     return { text: '→ 0', class: 'trend-stable' };
   }
   
-  // Get latest live values for selected/current sensor.
-  const co2 = latestValues?.co2 ?? null;
-  const temp = latestValues?.temperature ?? null;
-  const humidity = latestValues?.humidity ?? null;
-  const pm25 = latestValues?.pm2_5 ?? null;
-  const pm10 = latestValues?.pm10 ?? null;
-  const tvoc = latestValues?.tvoc ?? null;
+  // Aggregate latest valid value per sensor, then aggregate across sensors.
+  const co2 = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'co2'));
+  const temp = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'temperature'));
+  const humidity = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'humidity'));
+  const pm25 = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'pm2_5'));
+  const pm10 = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'pm10'));
+  const tvoc = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'tvoc'));
 
   const formatMetricValue = (value, decimals) => (
     typeof value === 'number' && Number.isFinite(value) ? value.toFixed(decimals) : 'N/A'
@@ -1195,15 +1297,17 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
   const occupancySection = document.querySelector('#occupancy');
   if (!occupancySection) return;
   
-  if (!filteredOccupancy || filteredOccupancy.length === 0) {
+  const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : filteredOccupancy;
+  if (!occupancyRows || occupancyRows.length === 0) {
     const currentCardValue = occupancySection.querySelector('.card:first-child .card__body div div div:nth-child(2)');
-    if (currentCardValue) currentCardValue.textContent = 'No data for this sensor';
+    if (currentCardValue) currentCardValue.textContent = 'No data for selected timeframe';
     return;
   }
-  
-  // Calculate occupancy average trend
-  const occupancyTrend = SMACATrendCalculator.calculateMetricTrend(SMACAState.rawData.occupancy, 'total_in', timeframe);
-  const occupancyAvg = SMACATrendCalculator.calculateAverage(filteredOccupancy, 'total_in') || 0;
+
+  const occupancyTrend = SMACATrendCalculator.calculateMetricTrend(occupancyRows, 'total_in', timeframe);
+  const latestTotalIn = getAggregatedSum(getLatestValidMetricPerSensor(occupancyRows, 'people_total_in'));
+  const latestTotalOut = getAggregatedSum(getLatestValidMetricPerSensor(occupancyRows, 'people_total_out'));
+  const occupancyAvg = Math.max(0, Number(latestTotalIn || 0) - Number(latestTotalOut || 0));
   const occupancyTrendFormatted = SMACATrendCalculator.formatTrend(occupancyTrend);
   
   // Update occupancy KPI card if it exists
@@ -1233,6 +1337,11 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
       trendPill.className = `trend-pill ${occupancyTrendFormatted.class}`;
     }
   }
+
+  const summaryValueEl = occupancySection.querySelector('.card .card__body div div div:nth-child(2)');
+  if (summaryValueEl) {
+    summaryValueEl.textContent = String(Math.round(occupancyAvg));
+  }
 }
 
 // Update Environmental dashboard
@@ -1243,17 +1352,34 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   const uvCounter = document.getElementById('environmental-uv-index');
   const uvCardValue = environmentalSection.querySelector('.stat-card .stat-card__value');
   const uvCardMeta = environmentalSection.querySelector('.stat-card .stat-card__meta');
-  const uvValues = (filteredEnvironmental || [])
-    .map(function (item) { return item?.payload?.object?.uv_index; })
-    .filter(function (value) { return typeof value === 'number' && Number.isFinite(value); });
-  const latestUv = uvValues.length > 0 ? uvValues[uvValues.length - 1] : null;
+  const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : filteredEnvironmental;
+  const uvByBucket = {};
+  (environmentalRows || []).forEach(function (item) {
+    const timeMs = new Date(item?.time || item?.timestamp || 0).getTime();
+    const uv = Number(item?.payload?.object?.uv_index);
+    if (!Number.isFinite(timeMs) || !Number.isFinite(uv)) return;
+    const bucket = timeframe === '24h'
+      ? Math.floor(timeMs / (60 * 60 * 1000)) * (60 * 60 * 1000)
+      : Math.floor(timeMs / (24 * 60 * 60 * 1000)) * (24 * 60 * 60 * 1000);
+    if (!uvByBucket[bucket]) uvByBucket[bucket] = [];
+    uvByBucket[bucket].push(uv);
+  });
+  const uvValues = Object.keys(uvByBucket)
+    .map(function (bucket) {
+      const values = uvByBucket[bucket];
+      const sum = values.reduce(function (acc, value) { return acc + value; }, 0);
+      return { bucket: Number(bucket), avg: sum / values.length };
+    })
+    .sort(function (a, b) { return a.bucket - b.bucket; })
+    .map(function (entry) { return entry.avg; });
+  const latestUv = getAggregatedAverage(getLatestValidMetricPerSensor(environmentalRows, 'uv_index'));
   if (latestUv === null) {
     if (uvCounter) uvCounter.textContent = 'Unsupported by device';
     if (uvCardValue) uvCardValue.textContent = 'No data for this sensor';
     if (uvCardMeta) uvCardMeta.textContent = 'Unsupported by device';
     const uvGauge = document.getElementById('uv-gauge-chart');
     const uvHourly = document.getElementById('uv-hourly-chart');
-    if (uvGauge) uvGauge.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for this sensor</div>';
+    if (uvGauge) uvGauge.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
     if (uvHourly) uvHourly.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">Unsupported by device</div>';
     return;
   }
@@ -1274,7 +1400,7 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   const uvHourly = document.getElementById('uv-hourly-chart');
   if (uvHourly && typeof createLineChart === 'function') {
     createLineChart('uv-hourly-chart', [{
-      label: 'UV Index',
+      label: 'UV Index (all sensors avg)',
       values: uvValues,
       color: '#f97316'
     }], { height: 300, legend: true });
@@ -1283,11 +1409,12 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
 
 // Update Occupancy charts with filtered data
 function updateOccupancyCharts(filteredOccupancy, timeframe) {
-  if (!filteredOccupancy || filteredOccupancy.length === 0) {
+  const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : filteredOccupancy;
+  if (!occupancyRows || occupancyRows.length === 0) {
     const flowChartEl = document.getElementById('occupancy-flow-chart');
     const densityChartEl = document.getElementById('occupancy-density-timeline');
-    if (flowChartEl) flowChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for this sensor</div>';
-    if (densityChartEl) densityChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for this sensor</div>';
+    if (flowChartEl) flowChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
+    if (densityChartEl) densityChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
     return;
   }
   
@@ -1302,7 +1429,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
                         24 * 60 * 60 * 1000; // 1 day for 30d
   
   const grouped = {};
-  filteredOccupancy.forEach(item => {
+  occupancyRows.forEach(item => {
     const time = new Date(item.time).getTime();
     const bucket = Math.floor(time / timeInterval) * timeInterval;
     
@@ -1310,9 +1437,11 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
       grouped[bucket] = { in: 0, out: 0, total: 0 };
     }
     
-    grouped[bucket].in += item.payload?.object?.period_in || 0;
-    grouped[bucket].out += item.payload?.object?.period_out || 0;
-    grouped[bucket].total = (item.payload?.object?.total_in || 0) - (item.payload?.object?.total_out || 0);
+    const periodIn = Number(item?.payload?.object?.period_in ?? item?.payload?.object?.people_in);
+    const periodOut = Number(item?.payload?.object?.period_out ?? item?.payload?.object?.people_out);
+    grouped[bucket].in += Number.isFinite(periodIn) ? periodIn : 0;
+    grouped[bucket].out += Number.isFinite(periodOut) ? periodOut : 0;
+    grouped[bucket].total += (Number.isFinite(periodIn) ? periodIn : 0) - (Number.isFinite(periodOut) ? periodOut : 0);
   });
   
   const sortedBuckets = Object.keys(grouped).sort((a, b) => a - b);
@@ -1348,9 +1477,10 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
 
 // Update Energy charts with filtered data
 function updateEnergyCharts(filteredEnergy, timeframe) {
-  if (!filteredEnergy || filteredEnergy.length === 0) {
+  const energyRows = Array.isArray(SMACAState.rawData?.energy) ? SMACAState.rawData.energy : filteredEnergy;
+  if (!energyRows || energyRows.length === 0) {
     const energyChartEl = document.getElementById('energy-correlation-chart');
-    if (energyChartEl) energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for this sensor</div>';
+    if (energyChartEl) energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
     return;
   }
 
@@ -1362,7 +1492,7 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     ? SMACAState.getFilteredOccupancy()
     : (Array.isArray(SMACAState?.rawData?.occupancy) ? SMACAState.rawData.occupancy : []);
 
-  const energyPoints = filteredEnergy
+  const energyPoints = energyRows
     .map(function (row) {
       const time = row?.time;
       const timeMs = new Date(time).getTime();
@@ -1463,7 +1593,7 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     if (svg) svg.remove();
 
     if (occupancyData.length === 0 || energyData.length === 0 || !Number.isFinite(maxOccupancy) || !Number.isFinite(maxEnergy) || maxOccupancy <= 0 || maxEnergy <= 0) {
-      energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for this sensor</div>';
+      energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
       return;
     }
 
@@ -1471,6 +1601,19 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
       createDualAxisChart('energy-correlation-chart', occupancyData, energyData, { height: 400 });
     }
   }, 200);
+
+  const energySection = document.querySelector('#energy');
+  if (energySection) {
+    const summaryValue = energySection.querySelector('.card .card__body div div div:nth-child(2)');
+    const totalDelta = getAggregatedEnergyForTimeframe(energyRows);
+    if (summaryValue && Number.isFinite(totalDelta)) {
+      summaryValue.textContent = totalDelta.toFixed(1);
+    }
+    const summaryLabel = energySection.querySelector('.card .card__body div div div:nth-child(3)');
+    if (summaryLabel) {
+      summaryLabel.textContent = timeframe === '24h' ? 'kWh today' : timeframe === '7d' ? 'kWh this week' : 'kWh this month';
+    }
+  }
 }
 
 // Update header counters based on timeframe
@@ -1488,11 +1631,11 @@ function updateHeaderCounters(timeframe, filteredData) {
   
   // Update Occupancy current count
   const occupancyCounter = document.getElementById('occupancy-current-count');
-  if (occupancyCounter && filteredData.occupancy && filteredData.occupancy.length > 0) {
-    const latest = filteredData.occupancy[filteredData.occupancy.length - 1];
-    const totalIn = latest.payload?.object?.people_total_in ?? latest.payload?.object?.total_in ?? 0;
-    const totalOut = latest.payload?.object?.people_total_out ?? latest.payload?.object?.total_out ?? 0;
-    const current = Number(totalIn) - Number(totalOut);
+  const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : (filteredData.occupancy || []);
+  if (occupancyCounter && occupancyRows.length > 0) {
+    const totalIn = getAggregatedSum(getLatestValidMetricPerSensor(occupancyRows, 'people_total_in'));
+    const totalOut = getAggregatedSum(getLatestValidMetricPerSensor(occupancyRows, 'people_total_out'));
+    const current = Number(totalIn || 0) - Number(totalOut || 0);
     occupancyCounter.textContent = String(Math.max(0, Math.round(current)));
   } else if (occupancyCounter) {
     occupancyCounter.textContent = '0';
@@ -1501,11 +1644,9 @@ function updateHeaderCounters(timeframe, filteredData) {
   // Update Energy daily consumption
   const energyCounter = document.getElementById('energy-daily-consumption');
   if (energyCounter) {
-    const energyValues = (filteredData.energy || [])
-      .map(item => item?.payload?.object?.energy_kwh)
-      .filter(v => typeof v === 'number' && Number.isFinite(v));
-    const total = energyValues.reduce((sum, value) => sum + value, 0);
-    energyCounter.textContent = energyValues.length > 0 ? total.toFixed(1) : 'No data for this sensor';
+    const energyRows = Array.isArray(SMACAState.rawData?.energy) ? SMACAState.rawData.energy : (filteredData.energy || []);
+    const totalDelta = getAggregatedEnergyForTimeframe(energyRows);
+    energyCounter.textContent = energyRows.length > 0 ? totalDelta.toFixed(1) : 'No data';
   }
   
   // Update Connectivity counter
@@ -1518,14 +1659,12 @@ function updateHeaderCounters(timeframe, filteredData) {
   
   // Update Environmental UV index
   const uvCounter = document.getElementById('environmental-uv-index');
-  if (uvCounter && filteredData.environmental && filteredData.environmental.length > 0) {
-    const latest = filteredData.environmental[filteredData.environmental.length - 1];
-    const uvValue = latest.payload?.object?.uv_index;
-    uvCounter.textContent = typeof uvValue === 'number' && Number.isFinite(uvValue)
-      ? uvValue.toFixed(1)
-      : 'Unsupported by device';
+  const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : (filteredData.environmental || []);
+  if (uvCounter && environmentalRows.length > 0) {
+    const uvValue = getAggregatedAverage(getLatestValidMetricPerSensor(environmentalRows, 'uv_index'));
+    uvCounter.textContent = Number.isFinite(Number(uvValue)) ? Number(uvValue).toFixed(1) : 'Unsupported by device';
   } else if (uvCounter) {
-    uvCounter.textContent = 'No data for this sensor';
+    uvCounter.textContent = 'No data';
   }
   
   // Update Management total sensors
