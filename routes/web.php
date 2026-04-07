@@ -98,15 +98,31 @@ if (!function_exists('smacaHandleIngest')) {
             ], 422);
         }
 
-        $sensor = DB::table('sensors')
-            ->select(['id', 'external_id'])
-            ->where('external_id', (string) $sensorUid)
+        $sensor = DB::table('sensors as s')
+            ->leftJoin('sites as si', 'si.id', '=', 's.site_id')
+            ->select([
+                's.id',
+                's.external_id',
+                's.name',
+                's.site_id',
+                'si.name as site_name',
+                'si.address as site_address',
+            ])
+            ->where('s.external_id', (string) $sensorUid)
             ->first();
 
         if (!$sensor && is_numeric($sensorUid)) {
-            $sensor = DB::table('sensors')
-                ->select(['id', 'external_id'])
-                ->where('id', (int) $sensorUid)
+            $sensor = DB::table('sensors as s')
+                ->leftJoin('sites as si', 'si.id', '=', 's.site_id')
+                ->select([
+                    's.id',
+                    's.external_id',
+                    's.name',
+                    's.site_id',
+                    'si.name as site_name',
+                    'si.address as site_address',
+                ])
+                ->where('s.id', (int) $sensorUid)
                 ->first();
         }
 
@@ -164,13 +180,23 @@ if (!function_exists('smacaHandleIngest')) {
             }
         }
 
-        $readingInsert = array_merge([
+        $readingBase = [
             'sensor_uid' => (string) $sensor->external_id,
             'measured_at' => $measuredAt,
             'message_uid' => $request->input('message_uid'),
             'created_at' => $nowAthens,
             'updated_at' => $nowAthens,
-        ], $metricValues);
+        ];
+
+        if (smacaReadingsHasColumn('sensor_name')) {
+            $readingBase['sensor_name'] = $sensor->name ?? null;
+        }
+
+        if (smacaReadingsHasColumn('sensor_location')) {
+            $readingBase['sensor_location'] = ($sensor->site_name ?? null) ?: ($sensor->site_address ?? null);
+        }
+
+        $readingInsert = array_merge($readingBase, $metricValues);
 
         $readingId = DB::table('readings')->insertGetId($readingInsert);
 
