@@ -473,6 +473,8 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('class', 'chart-svg');
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', String(height));
   
   const chartGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   chartGroup.setAttribute('transform', `translate(${padding.left}, ${padding.top})`);
@@ -568,6 +570,16 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
   
   svg.appendChild(chartGroup);
   container.appendChild(svg);
+  const rectCount = chartGroup.querySelectorAll('rect').length;
+  const pathCount = chartGroup.querySelectorAll('path').length;
+  console.log('[SMACA] flow chart helper render', {
+    containerId: containerId,
+    svgExists: !!container.querySelector('svg'),
+    rectCount: rectCount,
+    pathCount: pathCount,
+    maxInputValue: maxValue,
+    points: inData.length
+  });
 }
 
 /**
@@ -590,6 +602,8 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('class', 'chart-svg');
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', String(height));
   
   const chartGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   chartGroup.setAttribute('transform', `translate(${padding.left}, ${padding.top})`);
@@ -705,6 +719,16 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   
   svg.appendChild(chartGroup);
   container.appendChild(svg);
+  const rectCount = chartGroup.querySelectorAll('rect').length;
+  const pathCount = chartGroup.querySelectorAll('path').length;
+  console.log('[SMACA] activity chart helper render', {
+    containerId: containerId,
+    svgExists: !!container.querySelector('svg'),
+    rectCount: rectCount,
+    pathCount: pathCount,
+    maxInputValue: maxValue,
+    points: data.length
+  });
 }
 
 // ============================================================================
