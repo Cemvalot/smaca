@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="base-url" content="{{ url('/') }}">
+  <title>SMACA Dashboard - Unified IoT Monitoring</title>
+  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v={{ time() }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ time() }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}?v={{ time() }}">
+</head>
+<body>
+  <div class="app">
+    @include('dashboard.partials.sidebar')
+    <main class="main">
+      @include('dashboard.partials.topbar')
+      <div class="content">
+        @yield('dashboard-content')
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Sensor Modal -->
+
+  <div id="sensor-modal" class="user-modal" style="display: none;" role="dialog" aria-labelledby="sensor-modal-title" aria-modal="true">
+    <div class="user-modal__backdrop"></div>
+    <div class="user-modal__dialog">
+      <div class="user-modal__header">
+        <h3 id="sensor-modal-title" class="user-modal__title">Add Sensor</h3>
+        <button type="button" class="user-modal__close" aria-label="Close">&times;</button>
+      </div>
+      <form id="sensor-form" class="user-modal__body" method="post" action="#" onsubmit="return false;">
+        <input type="hidden" id="sensor-form-id" name="id" value="">
+        <div class="user-form-field">
+          <label for="sensor-form-device-id" class="user-form-label">Device ID</label>
+          <input type="text" id="sensor-form-device-id" name="deviceId" class="input" placeholder="e.g. am300-01" required>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-name" class="user-form-label">Name</label>
+          <input type="text" id="sensor-form-name" name="name" class="input" placeholder="Sensor display name" required>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-type" class="user-form-label">Type</label>
+          <select id="sensor-form-type" name="type" class="input">
+            <option value="AM300">AM300</option>
+            <option value="UC50x">UC50x</option>
+            <option value="SDM630MCT">SDM630MCT</option>
+            <option value="VS350">VS350</option>
+          </select>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-location" class="user-form-label">Location</label>
+          <input type="text" id="sensor-form-location" name="location" class="input" placeholder="e.g. Room 101" required>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-status" class="user-form-label">Status</label>
+          <select id="sensor-form-status" name="status" class="input">
+            <option value="active">Active</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-battery" class="user-form-label">Battery % (optional)</label>
+          <input type="number" id="sensor-form-battery" name="battery" class="input" placeholder="Leave empty if N/A" min="0" max="100" step="1">
+        </div>
+        <div class="user-form-field">
+          <label for="sensor-form-rssi" class="user-form-label">Signal RSSI dBm (optional)</label>
+          <input type="number" id="sensor-form-rssi" name="rssi" class="input" placeholder="e.g. -75" min="-120" max="0" step="1">
+        </div>
+      </form>
+      <div class="user-modal__footer">
+        <button type="button" class="btn btn--ghost user-modal__cancel">Cancel</button>
+        <button type="submit" form="sensor-form" class="btn btn--primary">Save Sensor</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit User Modal -->
+  <div id="user-modal" class="user-modal" style="display: none;" role="dialog" aria-labelledby="user-modal-title" aria-modal="true">
+    <div class="user-modal__backdrop"></div>
+    <div class="user-modal__dialog">
+      <div class="user-modal__header">
+        <h3 id="user-modal-title" class="user-modal__title">Add User</h3>
+        <button type="button" class="user-modal__close" aria-label="Close">&times;</button>
+      </div>
+      <form id="user-form" class="user-modal__body" method="post" action="#" onsubmit="return false;">
+        <input type="hidden" id="user-form-id" name="id" value="">
+        <div class="user-form-field">
+          <label for="user-form-name" class="user-form-label">Name</label>
+          <input type="text" id="user-form-name" name="name" class="input" placeholder="Full name" required>
+        </div>
+        <div class="user-form-field">
+          <label for="user-form-email" class="user-form-label">Email</label>
+          <input type="email" id="user-form-email" name="email" class="input" placeholder="user@example.com" required>
+        </div>
+        <div class="user-form-field">
+          <label for="user-form-role" class="user-form-label">Role</label>
+          <select id="user-form-role" name="role" class="input">
+            <option value="user">user</option>
+            <option value="admin">admin</option>
+            <option value="viewer">viewer</option>
+          </select>
+        </div>
+        <div class="user-form-field">
+          <label for="user-form-status" class="user-form-label">Status</label>
+          <select id="user-form-status" name="status" class="input">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </form>
+      <div class="user-modal__footer">
+        <button type="button" class="btn btn--ghost user-modal__cancel">Cancel</button>
+        <button type="submit" form="user-form" class="btn btn--primary">Save User</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    window.SMACA_BASE_URL = "{{ rtrim(url('/'), '/') }}";
+    window.SMACA_CURRENT_PAGE = "{{ $smacaPage ?? 'overview' }}";
+    window.SMACA_SENSORS = @json($sensors ?? []);
+  </script>
+  <script src="{{ asset('assets/js/rbac.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/ui.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/app.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-state-manager.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-trend-calculator.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-alerts-engine.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-api.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-accurate-charts.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/advanced-visualizations.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-dashboard.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-production-features.js') }}?v={{ time() }}"></script>
+  <script src="{{ asset('assets/js/smaca-ai-insights.js') }}?v={{ time() }}"></script>
+</body>
+</html>

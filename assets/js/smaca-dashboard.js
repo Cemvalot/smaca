@@ -1052,7 +1052,7 @@ function initRBAC() {
       link.classList.remove('nav-link--locked');
       link.removeAttribute('aria-disabled');
       link.style.pointerEvents = '';
-      link.href = '#management';
+      link.href = '/dashboard/management';
     } else {
       link.classList.add('nav-link--locked');
       link.setAttribute('aria-disabled', 'true');
@@ -1066,7 +1066,7 @@ function initRBAC() {
   if (exportBtn && !isAdmin) exportBtn.setAttribute('title', 'Basic export only');
 }
 
-// Unified Navigation Handler (moved from smaca-dashboard.html)
+// Page-aware bootstrap for split dashboard routes.
 document.addEventListener('DOMContentLoaded', function() {
   loadPersistedData();
   initRBAC();
@@ -1074,110 +1074,47 @@ document.addEventListener('DOMContentLoaded', function() {
     SMACAUI.initAccordions('.smaca-accordion');
   }
 
-  const navLinks = document.querySelectorAll('.nav-link--section');
-  const quickLinks = document.querySelectorAll('.quick-link');
-  const sections = document.querySelectorAll('.dashboard-section');
+  const currentPage = (typeof window !== 'undefined' && window.SMACA_CURRENT_PAGE)
+    ? window.SMACA_CURRENT_PAGE
+    : 'overview';
 
-  function showSection(sectionId) {
-    if (typeof SMACARBAC !== 'undefined' && SMACARBAC.isAdminOnlySection && SMACARBAC.isAdminOnlySection(sectionId) && !SMACARBAC.isAdmin()) {
-      if (typeof SMACAUI !== 'undefined' && SMACAUI.toast) SMACAUI.toast('Access denied', { type: 'error' });
-      sectionId = 'overview';
-      window.history.replaceState(null, '', '#overview');
+  setTimeout(() => {
+    if (currentPage === 'management') {
+      switchManagementTab();
+      if (typeof loadManagementData === 'function') loadManagementData();
+      if (typeof initChartHover === 'function') setTimeout(initChartHover, 100);
+      return;
     }
-    sections.forEach(section => {
-      section.style.display = 'none';
-    });
 
-    const targetSection = document.getElementById(sectionId);
-    if (targetSection) {
-      if (sectionId === 'management') {
-        switchManagementTab();
-        if (typeof loadManagementData === 'function') loadManagementData();
+    if (currentPage === 'iaq' && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('smaca:section-visible', {
+        detail: { sectionId: 'iaq' }
+      }));
+    } else if (currentPage === 'energy') {
+      if (typeof SMACAState !== 'undefined' && SMACAState && typeof updateEnergyCharts === 'function') {
+        const energy = SMACAState.getFilteredEnergy ? SMACAState.getFilteredEnergy() : [];
+        updateEnergyCharts(energy, SMACAState.currentTimeframe || '24h');
+      } else if (typeof loadEnergyData === 'function') {
+        loadEnergyData();
       }
-      targetSection.style.display = 'block';
+    } else if (currentPage === 'connectivity') {
+      if (typeof loadConnectivityData === 'function') loadConnectivityData();
+    } else if (currentPage === 'environmental') {
+      if (typeof loadEnvironmentalData === 'function') loadEnvironmentalData();
+    } else if (currentPage === 'ai-insights') {
+      if (typeof loadEnhancedAIInsights === 'function') {
+        loadEnhancedAIInsights();
+      } else if (typeof loadAIInsights === 'function') {
+        loadAIInsights();
+      }
+    }
 
+    if (typeof initChartHover === 'function') {
       setTimeout(() => {
-        if (sectionId === 'management') {
-          if (typeof initChartHover === 'function') setTimeout(initChartHover, 100);
-          return;
-        }
-        if (sectionId === 'iaq') {
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('smaca:section-visible', {
-              detail: { sectionId: 'iaq' }
-            }));
-          }
-        } else if (sectionId === 'occupancy') {
-          // Occupancy charts are updated by updateOccupancyCharts in updateAllDashboards
-        } else if (sectionId === 'energy') {
-          // Re-render energy chart now that section is visible (fixes wrong size when rendered while hidden)
-          if (typeof SMACAState !== 'undefined' && SMACAState && typeof updateEnergyCharts === 'function') {
-            const energy = SMACAState.getFilteredEnergy ? SMACAState.getFilteredEnergy() : [];
-            updateEnergyCharts(energy, SMACAState.currentTimeframe || '24h');
-          } else if (typeof loadEnergyData === 'function') {
-            loadEnergyData();
-          }
-        } else if (sectionId === 'connectivity') {
-          if (typeof loadConnectivityData === 'function') loadConnectivityData();
-        } else if (sectionId === 'environmental') {
-          if (typeof loadEnvironmentalData === 'function') {
-            loadEnvironmentalData();
-          }
-        } else if (sectionId === 'ai-insights') {
-          if (typeof loadEnhancedAIInsights === 'function') {
-            loadEnhancedAIInsights();
-          } else if (typeof loadAIInsights === 'function') {
-            loadAIInsights();
-          }
-        }
-
-        if (typeof initChartHover === 'function') {
-          setTimeout(() => {
-            initChartHover();
-          }, 200);
-        }
-      }, 100);
+        initChartHover();
+      }, 200);
     }
-
-    navLinks.forEach(link => {
-      link.classList.remove('is-active');
-      if (link.getAttribute('data-section') === sectionId) {
-        link.classList.add('is-active');
-      }
-    });
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  navLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      if (this.classList.contains('nav-link--locked')) return;
-      const sectionId = this.getAttribute('data-section');
-      showSection(sectionId);
-      window.history.pushState(null, '', '#' + sectionId);
-    });
-  });
-
-  quickLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      const sectionId = this.getAttribute('data-section');
-      showSection(sectionId);
-      window.history.pushState(null, '', '#' + sectionId);
-    });
-  });
-
-  if (window.location.hash) {
-    const hash = window.location.hash.substring(1);
-    showSection(hash);
-  } else {
-    showSection('overview');
-  }
-  window.addEventListener('hashchange', function() {
-    const hash = (window.location.hash || '#overview').slice(1);
-    showSection(hash);
-  });
+  }, 100);
 
   const managementTabs = document.querySelectorAll('.management-tab');
   managementTabs.forEach(tab => {
