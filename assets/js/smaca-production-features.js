@@ -705,17 +705,18 @@ function renderManagementSensorsFromLiveData() {
     const lastSeen = latestRow?.last_seen_at || latest?.measured_at || sensor?.last_seen_at || null;
     const lastSeenText = lastSeen ? new Date(lastSeen).toLocaleString() : 'No data for this sensor';
     const sensorIdentifier = escapeSmacaHtml(sensor?.sensor_uid || sensor?.id || '');
-    const sensorName = escapeSmacaHtml(sensor?.name || `Sensor ${sensor?.id}`);
-    const sensorType = escapeSmacaHtml(sensor?.device_type || 'Not reported by sensor');
-    const sensorSiteName = escapeSmacaHtml(sensor?.site?.name || 'Not reported by sensor');
+    const rawSensorName = latestRow?.sensor_name || sensor?.sensor_name || latestRow?.name || sensor?.name || '';
+    const displayTypeName = escapeSmacaHtml(rawSensorName || sensor?.device_type || 'Unknown');
+    const sensorLocation = escapeSmacaHtml(
+      latestRow?.sensor_location || sensor?.sensor_location || 'N/A'
+    );
     const batteryTextEscaped = escapeSmacaHtml(batteryText);
     const lastSeenEscaped = escapeSmacaHtml(lastSeenText);
     return `
       <tr style="border-bottom: 1px solid var(--border);">
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text); font-family: monospace;">${sensorIdentifier}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorName}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorType}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorSiteName}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${displayTypeName}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorLocation}</td>
         <td style="padding: var(--space-3) var(--space-4);"><span class="badge ${isActive ? 'badge--success' : 'badge--muted'} badge--sm">${isActive ? 'Live' : 'Inactive'}</span></td>
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${batteryTextEscaped}</td>
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${lastSeenEscaped}</td>

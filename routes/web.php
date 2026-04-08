@@ -435,6 +435,7 @@ Route::get('/api/sensors', function () {
     $rows = DB::table('sensors as s')
         ->leftJoin('sites as si', 'si.id', '=', 's.site_id')
         ->leftJoin('sensor_latest as sl', 'sl.sensor_id', '=', 's.id')
+        ->leftJoin('readings as r', 'r.id', '=', 'sl.reading_id')
         ->select([
             's.id',
             's.external_id as sensor_uid',
@@ -444,6 +445,8 @@ Route::get('/api/sensors', function () {
             's.last_seen_at',
             'si.id as site_id',
             'si.name as site_name',
+            'r.sensor_name as latest_sensor_name',
+            'r.sensor_location as latest_sensor_location',
             'sl.measured_at',
             'sl.battery_pct',
             'sl.co2_ppm',
@@ -467,6 +470,8 @@ Route::get('/api/sensors', function () {
                 'id' => $row->id,
                 'sensor_uid' => $row->sensor_uid,
                 'name' => $row->name,
+                'sensor_name' => $row->latest_sensor_name ?: $row->name,
+                'sensor_location' => $row->latest_sensor_location,
                 'device_type' => $row->device_type,
                 'is_active' => $row->is_active,
                 'last_seen_at' => smacaApiIso($row->last_seen_at),
@@ -484,6 +489,7 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
     $row = DB::table('sensors as s')
         ->leftJoin('sites as si', 'si.id', '=', 's.site_id')
         ->leftJoin('sensor_latest as sl', 'sl.sensor_id', '=', 's.id')
+        ->leftJoin('readings as r', 'r.id', '=', 'sl.reading_id')
         ->select([
             's.id',
             's.external_id as sensor_uid',
@@ -493,6 +499,8 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
             's.last_seen_at',
             'si.id as site_id',
             'si.name as site_name',
+            'r.sensor_name as latest_sensor_name',
+            'r.sensor_location as latest_sensor_location',
             'sl.measured_at',
             'sl.battery_pct',
             'sl.co2_ppm',
@@ -521,6 +529,8 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
             'id' => $row->id,
             'sensor_uid' => $row->sensor_uid,
             'name' => $row->name,
+            'sensor_name' => $row->latest_sensor_name ?: $row->name,
+            'sensor_location' => $row->latest_sensor_location,
             'device_type' => $row->device_type,
             'is_active' => $row->is_active,
             'last_seen_at' => smacaApiIso($row->last_seen_at),

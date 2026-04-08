@@ -100,9 +100,8 @@
                   <thead>
                     <tr style="background: var(--surface-2); border-bottom: 2px solid var(--border);">
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Device ID</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Name</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Type</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Location</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Type-Name</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Sensor Location</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Battery</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Signal</th>
@@ -122,10 +121,7 @@
                           {{ $deviceId }}
                         </td>
                         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">
-                          {{ $sensor->name }}
-                        </td>
-                        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">
-                          {{ $sensor->device_type ?? 'N/A' }}
+                          {{ $sensor->name ?: ($sensor->device_type ?: 'Unknown') }}
                         </td>
                         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">
                           {{ $site->name ?? '—' }}

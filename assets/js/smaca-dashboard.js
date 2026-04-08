@@ -851,10 +851,11 @@ function renderSensorsManagementTable(sensors) {
       signalDisplay = `${sensor.rssi} dBm`;
     }
     
+    const displayTypeName = sensor.name || sensor.type || sensor.device_type || 'Unknown';
+
     row.innerHTML = `
       <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text); font-family: monospace;">${sensor.id}</td>
-      <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensor.name}</td>
-      <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensor.type || 'N/A'}</td>
+      <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${displayTypeName}</td>
       <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensor.location}</td>
       <td style="padding: var(--space-3) var(--space-4);">
         <span class="badge ${statusClass} badge--sm">${statusText}</span>
@@ -1143,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', function() {
     rows.forEach(function(tr) {
       var id = (tr.querySelector('td:nth-child(1)') || {}).textContent || '';
       var name = (tr.querySelector('td:nth-child(2)') || {}).textContent || '';
-      var location = (tr.querySelector('td:nth-child(4)') || {}).textContent || '';
+      var location = (tr.querySelector('td:nth-child(3)') || {}).textContent || '';
       var match = !q || id.toLowerCase().indexOf(q) >= 0 || name.toLowerCase().indexOf(q) >= 0 || location.toLowerCase().indexOf(q) >= 0;
       tr.style.display = match ? '' : 'none';
       if (match) anyVisible = true;
