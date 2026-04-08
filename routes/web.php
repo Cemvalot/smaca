@@ -189,11 +189,14 @@ if (!function_exists('smacaHandleIngest')) {
         ];
 
         if (smacaReadingsHasColumn('sensor_name')) {
-            $readingBase['sensor_name'] = $sensor->name ?? null;
+            $readingBase['sensor_name'] = $request->input('sensor_name', $sensor->name ?? null);
         }
 
         if (smacaReadingsHasColumn('sensor_location')) {
-            $readingBase['sensor_location'] = ($sensor->site_name ?? null) ?: ($sensor->site_address ?? null);
+            $readingBase['sensor_location'] = $request->input(
+                'sensor_location',
+                ($sensor->site_name ?? null) ?: ($sensor->site_address ?? null)
+            );
         }
 
         $readingInsert = array_merge($readingBase, $metricValues);
