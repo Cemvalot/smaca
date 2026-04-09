@@ -57,13 +57,13 @@
                     <div class="accordion-content">
                       <p><strong>Y-axis (Vertical):</strong></p>
                       <ul>
-                        <li><strong>Values (ppm):</strong> Carbon dioxide concentration in parts per million</li>
-                        <li><strong>Green zone:</strong> &lt;800 ppm — good air quality, no action needed</li>
-                        <li><strong>Amber zone:</strong> 800–1000 ppm — consider ventilation</li>
-                        <li><strong>Red zone:</strong> &gt;1000 ppm — ventilate or adjust HVAC</li>
+                        <li><strong>Values (ppm):</strong> Aggregated CO2 concentration from all IAQ sensors</li>
+                        <li><strong>Green band:</strong> &lt;800 ppm — generally healthy</li>
+                        <li><strong>Amber band:</strong> 800–1000 ppm — monitor and increase fresh air</li>
+                        <li><strong>Red band:</strong> &gt;1000 ppm — ventilate or adjust HVAC promptly</li>
                       </ul>
-                      <p><strong>X-axis (Horizontal):</strong> Time — each point represents a measurement moment. Range follows selected timeframe (24h, 7d, 30d).</p>
-                      <p><strong>How to read:</strong> The line shows CO₂ levels over time. When it enters the amber or red zone, increase ventilation. Sustained high levels indicate poor air exchange.</p>
+                      <p><strong>X-axis (Horizontal):</strong> Time buckets (24h/7d/30d view), each point is the aggregated average for that bucket.</p>
+                      <p><strong>How to act:</strong> If the line repeatedly enters amber/red ranges, schedule earlier ventilation and review occupancy peaks for those periods.</p>
                     </div>
                   </div>
                 </div>

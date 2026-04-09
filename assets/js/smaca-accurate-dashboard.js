@@ -40,6 +40,20 @@ function finalizeIaqPageRenderCleanup() {
     chart.style.position = 'relative';
     chart.style.zIndex = '1';
   }
+  // Defensive IAQ-only cleanup in case legacy/combined templates are present.
+  [
+    '#alerts-panel',
+    '#add-sensor-btn',
+    '#add-user-btn',
+    '#management',
+    '#management-sensors-tab',
+    '#management-users-tab',
+    '#sensor-modal',
+    '#user-modal'
+  ].forEach(function (selector) {
+    const el = document.querySelector(selector);
+    if (el) el.style.display = 'none';
+  });
   console.log('[SMACA][IAQ] page cleanup completed');
 }
 
@@ -450,17 +464,66 @@ function renderIaqMainTrendChart(computed) {
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   const values = series.map(function (entry) { return Number(entry.value); });
-  let min = Math.min.apply(null, values);
-  let max = Math.max.apply(null, values);
-  if (metric === 'co2') {
-    min = Math.min(min, 600);
-    max = Math.max(max, 1100);
+  const dataMin = Math.min.apply(null, values);
+  const dataMax = Math.max.apply(null, values);
+  const dataSpread = dataMax - dataMin;
+  const scalingByMetric = {
+    co2: { minVisualRange: 20, paddingRatio: 0.2, minPadding: 4 },
+    temperature: { minVisualRange: 1.5, paddingRatio: 0.18, minPadding: 0.3 },
+    humidity: { minVisualRange: 8, paddingRatio: 0.16, minPadding: 1.5 },
+    pm2_5: { minVisualRange: 5, paddingRatio: 0.2, minPadding: 0.8 },
+    pm10: { minVisualRange: 8, paddingRatio: 0.2, minPadding: 1 },
+    tvoc: { minVisualRange: 20, paddingRatio: 0.2, minPadding: 2 }
+  };
+  const scaling = scalingByMetric[metric] || { minVisualRange: 5, paddingRatio: 0.18, minPadding: 1 };
+  let min = dataMin;
+  let max = dataMax;
+  if (dataSpread < scaling.minVisualRange) {
+    const center = (dataMin + dataMax) / 2;
+    const halfRange = scaling.minVisualRange / 2;
+    min = center - halfRange;
+    max = center + halfRange;
   }
-  if (min === max) { min = min - 1; max = max + 1; }
   const bands = getThresholdBandsForMetric(metric);
-  const yPadding = (max - min) * 0.08;
+  const baseSpread = (max - min) || scaling.minVisualRange || 1;
+  const yPadding = Math.max(baseSpread * scaling.paddingRatio, scaling.minPadding);
   min -= yPadding;
   max += yPadding;
+  if (min < 0 && metric !== 'temperature') min = 0;
+  console.log('[SMACA][IAQ][CO2] chart stats', {
+    pointCount: metric === 'co2' ? series.length : null,
+    min: metric === 'co2' ? dataMin : null,
+    max: metric === 'co2' ? dataMax : null,
+    spread: metric === 'co2' ? dataSpread : null,
+    timeframe: metric === 'co2' ? computed.timeframe : null,
+    yDomain: metric === 'co2' ? [min, max] : null
+  });
+  console.log('[SMACA][IAQ] y-axis scaling resolved', {
+    metric: metric,
+    min: dataMin,
+    max: dataMax,
+    spread: dataSpread,
+    yDomain: [min, max]
+  });
+  const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
+  if (typeof window !== 'undefined' && currentPage === 'iaq') {
+    window.__iaqChartData = {
+      selectedMetric: metric,
+      timeframe: computed.timeframe,
+      pointCount: series.length,
+      series: series.map(function (entry) {
+        return {
+          time: entry?.time || null,
+          value: Number(entry?.value)
+        };
+      }),
+      min: dataMin,
+      max: dataMax,
+      spread: dataSpread,
+      yDomain: [min, max]
+    };
+    console.log('[SMACA][IAQ] chart debug exposed', window.__iaqChartData);
+  }
   const yScale = function (v) { return chartHeight - ((v - min) / (max - min || 1)) * chartHeight; };
   const xScale = function (i) { return (i / Math.max(1, series.length - 1)) * chartWidth; };
   const path = series.map(function (entry, i) {
@@ -615,9 +678,25 @@ function renderIaqHourlyHeatStrip(computed) {
       <div class="card__header"><h3 class="card__title">CO2 Hourly Pattern</h3></div>
       <div class="card__body">
         <div style="display:grid;grid-template-columns:repeat(${series.length}, minmax(8px,1fr));gap:4px;">${cells}</div>
+        <div class="smaca-accordion smaca-accordion--collapsed" style="margin-top: var(--space-4);">
+          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+            <span>What is this pattern?</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="smaca-accordion__body" hidden>
+            <div class="accordion-content">
+              <p><strong>What it shows:</strong> Aggregated CO2 behavior by hour slots across the selected timeframe.</p>
+              <p><strong>How to read:</strong> Stronger/darker color blocks indicate consistently higher CO2 during those hours.</p>
+              <p><strong>Why useful:</strong> Use recurring hot hours to identify ventilation or occupancy patterns and pre-emptively improve air exchange.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
+  if (typeof window !== 'undefined' && window.SMACAUI && typeof window.SMACAUI.initAccordions === 'function') {
+    window.SMACAUI.initAccordions('#iaq-hourly-heatstrip-panel .smaca-accordion');
+  }
 }
 
 /**

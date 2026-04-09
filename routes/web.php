@@ -268,7 +268,23 @@ Route::get('/landing', function () {
 });
 
 Route::get('/login', function () {
-    return view('login');
+	// Check session
+	if(session()->has('user_id')) {
+		return redirect('dashboard');
+	}
+	return view('login');
+});
+
+Route::post('/login', function (Request $request) {
+	$email = $request->email;
+	$password = $request->password;
+	$search_for = DB::table('users')->where('email', $email)->firstOrFail();
+	if($search_for->password === $password) {
+		// Save data in session
+		session(['user_id' => 1, 'user_email' => $email]);
+		return redirect('dashboard');
+	}
+	return redirect('/login');
 });
 
 Route::get('/register', function () {
@@ -301,6 +317,10 @@ if (!function_exists('smacaDashboardViewData')) {
 }
 
 Route::get('/dashboard', function () {
+	// Check session
+	if(!session()->has('user_id')) {
+		return redirect('login');
+	}
     return view('dashboard.pages.overview', smacaDashboardViewData('overview'));
 });
 
@@ -606,6 +626,8 @@ Route::get('/api/sensors/{id}/timeseries', function (Request $request, $id) {
     ]);
 });
 
-Route::get('/logout', function () {
+Route::get('/logout', function (Request $request) {
+	// Clear all session data
+    $request->session()->flush();
     return redirect('/landing');
 });
