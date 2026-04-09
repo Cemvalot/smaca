@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - SMACA</title>
+  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v=3">
+  <link rel="stylesheet" href="{{ asset('assets/css/login.css') }}?v=3">
+</head>
+<body class="login-page">
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <!-- Left Panel -->
+      <div class="auth-left">
+        <div class="left-top">
+          <div class="logo-group">
+            <span class="logo-text">SMACA</span>
+            <span class="logo-sub">Smart Campus IoT Platform</span>
+          </div>
+          <a href="{{ url('/landing') }}" class="back-btn">Back to website →</a>
+        </div>
+        <div class="image-carousel">
+          <div class="carousel-track">
+            <img src="{{ asset('assets/image1.jpg') }}" alt="SMACA 1" class="carousel-slide active">
+            <img src="{{ asset('assets/image2.jpg') }}" alt="SMACA 2" class="carousel-slide">
+            <img src="{{ asset('assets/image3.jpg') }}" alt="SMACA 3" class="carousel-slide">
+          </div>
+          <div class="pagination-dots" aria-hidden="true">
+            <span class="dot active" data-index="0"></span>
+            <span class="dot" data-index="1"></span>
+            <span class="dot" data-index="2"></span>
+          </div>
+        </div>
+        <div class="left-bottom">
+          <h2 class="headline">Monitor. Analyze. Optimize.</h2>
+          <p class="subline">Unified IoT monitoring for buildings and campuses.</p>
+        </div>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="auth-right">
+        <div class="form-header">
+          <h1 class="form-title">Sign in</h1>
+          <p class="form-subtitle">Welcome back to SMACA</p>
+        </div>
+
+        <form class="auth-form" id="loginForm" method="POST" action="{{ url('/login') }}">
+          @csrf
+          <div class="form-field">
+            <label for="email" class="form-label">Email</label>
+            <div class="input-wrapper">
+              <input type="email" id="email" name="email" class="form-input" placeholder="you@company.com" required value="{{ old('email') }}">
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-wrapper input-wrapper--password">
+              <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+              <button type="button" class="pwd-toggle" aria-label="Toggle password visibility">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="options-row">
+            <label class="remember-me">
+              <input type="checkbox" name="remember">
+              <span class="checkbox-box"></span>
+              <span>Remember me</span>
+            </label>
+            <a href="#" class="forgot-link">Forgot password?</a>
+          </div>
+          <div class="form-field form-field--role">
+            <label for="role-select" class="form-label">Sign in as (dev)</label>
+            <div class="input-wrapper">
+              <select id="role-select" name="role" class="form-input">
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn-signin">Sign in</button>
+        </form>
+
+        <p class="form-footer">Don't have an account? <a href="{{ url('/register') }}">Register</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!--<script src="{{ asset('assets/js/login.js') }}"></script>-->
+</body>
+</html>

@@ -1124,7 +1124,27 @@
   </script>
   <script src="{{ asset('assets/js/rbac.js') }}?v={{ time() }}"></script>
   <script src="{{ asset('assets/js/ui.js') }}?v={{ time() }}"></script>
-  
+  <script>
+  (function(){
+    var h = (window.location.hash || '#overview').slice(1);
+    var secs = document.querySelectorAll('.dashboard-section');
+    for (var i = 0; i < secs.length; i++) secs[i].style.display = secs[i].id === h ? 'block' : 'none';
+    var links = document.querySelectorAll('.nav-link--section');
+    for (var j = 0; j < links.length; j++) links[j].classList.toggle('is-active', links[j].getAttribute('data-section') === h);
+    if (h === 'management') {
+      var saved = localStorage.getItem('smaca-management-tab') || 'sensors';
+      var tabs = document.querySelectorAll('.management-tab');
+      var contents = document.querySelectorAll('.management-tab-content');
+      for (var k = 0; k < tabs.length; k++) {
+        var active = tabs[k].getAttribute('data-tab') === saved;
+        tabs[k].classList.toggle('active', active);
+        tabs[k].style.color = active ? 'var(--text)' : 'var(--muted)';
+        tabs[k].style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
+      }
+      for (var m = 0; m < contents.length; m++) contents[m].style.display = contents[m].id === 'management-' + saved + '-tab' ? 'block' : 'none';
+    }
+  })();
+  </script>
   <script src="{{ asset('assets/js/app.js') }}?v={{ time() }}"></script>
   <script src="{{ asset('assets/js/smaca-state-manager.js') }}?v={{ time() }}"></script>
   <script src="{{ asset('assets/js/smaca-trend-calculator.js') }}?v={{ time() }}"></script>
