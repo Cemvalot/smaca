@@ -48,12 +48,15 @@ function initAccurateIAQDashboard() {
   
   // Get filtered data from state manager
   const filteredIAQ = SMACAState.getFilteredIAQ();
+  console.log('[SMACA][IAQ] chart source count', {
+    filteredRows: Array.isArray(filteredIAQ) ? filteredIAQ.length : 0
+  });
   
   if (!filteredIAQ || filteredIAQ.length === 0) {
     // Show insufficient history message
     const chartPlaceholders = document.querySelectorAll('#iaq .chart-placeholder');
     chartPlaceholders.forEach(placeholder => {
-      placeholder.innerHTML = '<div style="text-align: center; padding: var(--space-8); color: var(--muted);"><p>Insufficient history for selected range</p></div>';
+      placeholder.innerHTML = '<div style="text-align: center; padding: var(--space-8); color: var(--muted);"><p>No IAQ data available</p></div>';
     });
     if (typeof window !== 'undefined') {
       window.lastRenderedTimeframe = currentTimeframe;
@@ -93,6 +96,11 @@ function renderIAQDashboard(normalizedData) {
   const latest = normalizedData[normalizedData.length - 1];
   const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
   const aggregatedSeriesByTime = buildAggregatedIAQSeriesByTimestamp(normalizedData);
+  console.log('[SMACA][IAQ] chart source count', {
+    normalizedRows: Array.isArray(normalizedData) ? normalizedData.length : 0,
+    aggregatedSeriesCount: Array.isArray(aggregatedSeriesByTime) ? aggregatedSeriesByTime.length : 0,
+    selectedSensorBypassed: true
+  });
 
   // KPI cards are handled by updateIAQDashboardWithTrends in smaca-production-features.js
   // Don't render them here to avoid conflicts

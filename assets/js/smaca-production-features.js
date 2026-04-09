@@ -3,6 +3,88 @@ function getIAQItemIdentityKey(item) {
   return item.sensorId ?? null;
 }
 
+function normalizeSensorTypeToken(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function resolveSensorNameForClassification(x) {
+  return (
+    x?.payload?.object?.sensor_name ||
+    x?.payload?.sensor_name ||
+    x?.sensor_name ||
+    x?.deviceInfo?.deviceName ||
+    x?.sensorName ||
+    x?.type_name ||
+    x?.typeName ||
+    x?.['type-name'] ||
+    x?.device_type ||
+    x?.deviceType ||
+    ''
+  );
+}
+
+function getSensorTypeNameCandidates(sensor) {
+  const row = sensor || {};
+  return [
+    resolveSensorNameForClassification(row)
+  ].filter(function (value) {
+    return value !== null && value !== undefined && String(value).trim() !== '';
+  });
+}
+
+function getPrimarySensorTypeName(sensor) {
+  const candidates = getSensorTypeNameCandidates(sensor);
+  return candidates[0] || null;
+}
+
+function matchesSensorCategoryByName(sensor, acceptedNormalizedNames) {
+  const accepted = new Set((Array.isArray(acceptedNormalizedNames) ? acceptedNormalizedNames : []).map(normalizeSensorTypeToken));
+  if (accepted.size === 0) return false;
+  const candidates = getSensorTypeNameCandidates(sensor).map(normalizeSensorTypeToken).filter(Boolean);
+  return candidates.some(function (candidate) { return accepted.has(candidate); });
+}
+
+function isIaqSensor(sensor) {
+  return matchesSensorCategoryByName(sensor, [
+    'indoorAirQuality',
+    'iaq'
+  ]);
+}
+
+function isOccupancySensor(sensor) {
+  return matchesSensorCategoryByName(sensor, [
+    'peopleCounter',
+    'occupancy'
+  ]);
+}
+
+function isEnvironmentalSensor(sensor) {
+  return matchesSensorCategoryByName(sensor, [
+    'sensorUV',
+    'uv',
+    'environmental'
+  ]);
+}
+
+function getDetectedIaqSensors() {
+  const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+  return sensors.filter(isIaqSensor);
+}
+
+function getIaqNormalizedNameSample(limit) {
+  const max = Number.isFinite(Number(limit)) ? Number(limit) : 8;
+  const fromSensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+  const fromIaqRows = Array.isArray(SMACAState?.rawData?.iaq) ? SMACAState.rawData.iaq : [];
+  return fromSensors.concat(fromIaqRows).slice(0, max).map(function (item) {
+    const rawName = resolveSensorNameForClassification(item);
+    return {
+      rawName: rawName || '',
+      normalizedName: normalizeSensorTypeToken(rawName)
+    };
+  });
+}
+
 // Tracks the currently selected sensor for backend timeseries requests.
 window.SMACACurrentSensorId = null;
 window.SMACADashboardContext = {
@@ -201,10 +283,34 @@ document.addEventListener('DOMContentLoaded', async function() {
 function renderIAQSection(reason, allowDeferred) {
   const iaqSection = document.getElementById('iaq');
   const chartContainer = document.getElementById('iaq-co2-band-chart');
+  const kpiContainer = document.getElementById('iaq-kpi-cards');
   const filteredIAQ = SMACAState.getFilteredIAQ();
+  console.log('[SMACA][IAQ] normalized names sample', getIaqNormalizedNameSample(12));
+  const iaqSensors = getDetectedIaqSensors();
+  const iaqSensorIds = iaqSensors.map(function (sensor) { return Number(sensor?.id); }).filter(Number.isFinite);
+  const iaqSensorNames = iaqSensors.map(function (sensor) { return getPrimarySensorTypeName(sensor) || `Sensor ${sensor?.id || 'Unknown'}`; });
+  console.log('[SMACA][IAQ] detected IAQ sensors', {
+    ids: iaqSensorIds,
+    names: iaqSensorNames
+  });
   const isVisible = !!iaqSection && iaqSection.style.display !== 'none';
   const pointsCount = Array.isArray(filteredIAQ) ? filteredIAQ.length : 0;
-  if (!iaqSection || !chartContainer || pointsCount === 0) return;
+  console.log('[SMACA][IAQ] filtered row count', { count: pointsCount });
+  if (!iaqSection || !chartContainer) return;
+  if (iaqSensorIds.length === 0) {
+    renderEmptyState('iaq-co2-band-chart', 'No IAQ sensors available');
+    if (kpiContainer) {
+      kpiContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: var(--space-4); color: var(--muted);">No IAQ sensors available</div>';
+    }
+    return;
+  }
+  if (pointsCount === 0) {
+    renderEmptyState('iaq-co2-band-chart', 'No IAQ data available');
+    if (kpiContainer) {
+      kpiContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: var(--space-4); color: var(--muted);">No IAQ data available</div>';
+    }
+    return;
+  }
 
   if (!isVisible) {
     if (allowDeferred === false) return;
@@ -489,9 +595,25 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     const allSensorIds = sensors
       .map(function (sensor) { return Number(sensor?.id); })
       .filter(Number.isFinite);
+    console.log('[SMACA][IAQ] normalized names sample', sensors.slice(0, 12).map(function (sensor) {
+      const rawName = resolveSensorNameForClassification(sensor);
+      return {
+        id: Number(sensor?.id),
+        rawName: rawName || '',
+        normalizedName: normalizeSensorTypeToken(rawName)
+      };
+    }));
+    const iaqSensors = sensors.filter(isIaqSensor);
+    const iaqSensorIds = iaqSensors
+      .map(function (sensor) { return Number(sensor?.id); })
+      .filter(Number.isFinite);
+    console.log('[SMACA][IAQ] detected IAQ sensors', {
+      ids: iaqSensorIds,
+      names: iaqSensors.map(function (sensor) { return getPrimarySensorTypeName(sensor) || `Sensor ${sensor?.id || 'Unknown'}`; })
+    });
 
     const bucketFetchers = {
-      iaq: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh); },
+      iaq: function () { return fetchAndMapTimeseriesForSensors(iaqSensorIds, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh); },
       occupancy: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.occupancy, 'occupancy', forceRefresh); },
       environmental: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.environmental, 'environmental', forceRefresh); },
       energy: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.energy, 'energy', forceRefresh); }
@@ -847,11 +969,19 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, b
     if (latestPayload?.row || latestPayload === null) SMACA_TS_CACHE.latest[latestCacheKey] = latestPayload?.row || null;
   }
   const latestRow = latestPayload?.row || null;
+  const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+  const sensorMeta = sensors.find(function (sensor) { return String(sensor?.id) === String(sensorId); }) || null;
+  const resolvedSensorUid = latestRow?.sensor_uid ?? sensorMeta?.sensor_uid ?? null;
+  const resolvedSensorName = latestRow?.sensor_name
+    || sensorMeta?.sensor_name
+    || sensorMeta?.name
+    || latestRow?.name
+    || null;
 
   const meta = {
     sensorId: sensorId,
-    sensorUid: latestRow?.sensor_uid ?? null,
-    deviceName: latestRow?.name || `Sensor ${sensorId}`,
+    sensorUid: resolvedSensorUid,
+    deviceName: resolvedSensorName || `Sensor ${sensorId}`,
     deviceProfileName: latestRow?.device_type || null,
     batteryPct: latestRow?.latest?.battery_pct ?? null,
     lastSeenAt: latestRow?.last_seen_at || latestRow?.latest?.measured_at || null,
@@ -880,7 +1010,7 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, b
     const snapshotItem = adapters.normalizeSnapshotToIAQItem({
       sensor_id: latestRow.id,
       sensor_uid: latestRow.sensor_uid,
-      sensor_name: latestRow.name,
+      sensor_name: latestRow.sensor_name || latestRow.name,
       device_type: latestRow.device_type,
       measured_at: latestRow.latest?.measured_at,
       battery_pct: latestRow.latest?.battery_pct,
@@ -895,12 +1025,30 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, b
   }
 
   items = items.map(function (item) {
+    const itemSensorId = item?.sensorId ?? sensorId;
+    const itemSensorMeta = sensors.find(function (sensor) { return String(sensor?.id) === String(itemSensorId); }) || sensorMeta;
+    const rowSensorName = item?.sensorName
+      || item?.sensor_name
+      || item?.payload?.object?.sensor_name
+      || item?.payload?.sensor_name
+      || latestRow?.sensor_name
+      || itemSensorMeta?.sensor_name
+      || item?.deviceInfo?.deviceName
+      || item?.deviceName
+      || itemSensorMeta?.name
+      || null;
     return {
       ...item,
-      sensorId: item?.sensorId ?? sensorId,
-      sensorUid: item?.sensorUid ?? latestRow?.sensor_uid ?? null,
+      sensorId: itemSensorId,
+      sensorUid: item?.sensorUid ?? resolvedSensorUid,
+      sensorName: rowSensorName,
+      sensor_name: rowSensorName,
       deviceName: item?.deviceName || meta.deviceName,
       deviceProfileName: item?.deviceProfileName || meta.deviceProfileName,
+      deviceInfo: {
+        ...((item && item.deviceInfo) || {}),
+        deviceName: rowSensorName || item?.deviceInfo?.deviceName || item?.deviceName || meta.deviceName || null
+      },
       battery: item?.battery ?? meta.batteryPct,
       lastSeenAt: item?.lastSeenAt || meta.lastSeenAt,
       siteName: item?.siteName || meta.siteName
@@ -961,6 +1109,33 @@ function applyHydratedState(data, shouldNotify) {
     environmental: SMACAState.rawData.environmental.length,
     energy: SMACAState.rawData.energy.length
   });
+  const iaqHydratedSample = SMACAState.rawData.iaq.slice(0, 10).map(function (row) {
+    return {
+      sensorId: row?.sensorId ?? null,
+      sensorName: row?.sensorName
+        || row?.sensor_name
+        || row?.payload?.object?.sensor_name
+        || row?.payload?.sensor_name
+        || row?.deviceInfo?.deviceName
+        || null
+    };
+  });
+  const distinctIaqNames = Array.from(new Set(
+    SMACAState.rawData.iaq.map(function (row) {
+      return row?.sensorName
+        || row?.sensor_name
+        || row?.payload?.object?.sensor_name
+        || row?.payload?.sensor_name
+        || row?.deviceInfo?.deviceName
+        || null;
+    }).filter(function (name) {
+      return name !== null && name !== undefined && String(name).trim() !== '';
+    }).map(function (name) {
+      return String(name).trim();
+    })
+  ));
+  console.log('[SMACA][IAQ] hydrated rows sample', iaqHydratedSample);
+  console.log('[SMACA][IAQ] distinct IAQ sensor names detected', distinctIaqNames);
   if (notify) {
     SMACAState.notifyListeners();
   }
@@ -1207,7 +1382,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   }
   
   if (!filteredIAQ || filteredIAQ.length === 0) {
-    kpiContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: var(--space-4); color: var(--muted);">No backend points returned for selected timeframe</div>';
+    kpiContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: var(--space-4); color: var(--muted);">No IAQ data available</div>';
     return;
   }
 
@@ -1270,6 +1445,14 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   const pm25 = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'pm2_5'));
   const pm10 = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'pm10'));
   const tvoc = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'tvoc'));
+  console.log('[SMACA][IAQ] aggregated widget values', {
+    co2: Number.isFinite(Number(co2)) ? Number(co2) : null,
+    temperature: Number.isFinite(Number(temp)) ? Number(temp) : null,
+    humidity: Number.isFinite(Number(humidity)) ? Number(humidity) : null,
+    pm2_5: Number.isFinite(Number(pm25)) ? Number(pm25) : null,
+    pm10: Number.isFinite(Number(pm10)) ? Number(pm10) : null,
+    tvoc: Number.isFinite(Number(tvoc)) ? Number(tvoc) : null
+  });
 
   const formatMetricValue = (value, decimals) => (
     typeof value === 'number' && Number.isFinite(value) ? value.toFixed(decimals) : 'N/A'
