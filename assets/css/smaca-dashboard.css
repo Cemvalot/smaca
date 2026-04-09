@@ -578,6 +578,43 @@
   color: var(--muted);
 }
 
+/* IAQ page polish (scoped) */
+#iaq #iaq-kpi-cards {
+  align-items: stretch;
+}
+
+#iaq #iaq-kpi-cards .stat-card {
+  height: 100%;
+  min-height: 168px;
+  display: flex;
+}
+
+#iaq #iaq-kpi-cards .stat-card .stat-card__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+}
+
+#iaq #sensor-health-panel .card,
+#iaq #data-source-panel .card,
+#iaq #iaq-hourly-heatstrip-panel .card {
+  height: 100%;
+  min-height: 184px;
+}
+
+#iaq #iaq-co2-band-chart.chart-placeholder {
+  min-height: 360px;
+}
+
+#iaq #iaq-metric-toggle {
+  flex-wrap: wrap;
+}
+
+#iaq #iaq-metric-toggle .time-range-btn {
+  white-space: nowrap;
+}
+
 /* Accordion for graph explanations */
 .smaca-accordion {
   margin-top: var(--space-4);

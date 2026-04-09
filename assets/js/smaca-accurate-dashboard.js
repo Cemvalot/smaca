@@ -17,6 +17,30 @@ if (typeof formatTime === 'undefined') {
 if (typeof window !== 'undefined') {
   window.lastRenderedTimeframe = null;
   window.iaqDashboardRendering = false; // Lock to prevent concurrent renders
+  window.SMACAIaqSelectedMetric = window.SMACAIaqSelectedMetric || 'co2';
+}
+
+function finalizeIaqPageRenderCleanup() {
+  if (typeof window === 'undefined') return;
+  const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
+  if (currentPage !== 'iaq') return;
+  const overlay = document.getElementById('smaca-page-loading-overlay');
+  const overlayMessage = document.getElementById('smaca-page-loading-message');
+  if (overlay) {
+    overlay.classList.remove('is-visible');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.style.display = '';
+    console.log('[SMACA][IAQ] loading overlay hidden');
+  }
+  if (overlayMessage && overlay && !overlay.classList.contains('is-visible')) {
+    overlayMessage.textContent = 'Loading data...';
+  }
+  const chart = document.getElementById('iaq-co2-band-chart');
+  if (chart) {
+    chart.style.position = 'relative';
+    chart.style.zIndex = '1';
+  }
+  console.log('[SMACA][IAQ] page cleanup completed');
 }
 
 function initAccurateIAQDashboard() {
@@ -62,15 +86,18 @@ function initAccurateIAQDashboard() {
       window.lastRenderedTimeframe = currentTimeframe;
       window.iaqDashboardRendering = false; // Release lock
     }
+    finalizeIaqPageRenderCleanup();
     return;
   }
   
   try {
-    // Normalize data
     const normalizedIAQ = normalizeIAQData(filteredIAQ);
-    
-    // Render IAQ dashboard
-    renderIAQDashboard(normalizedIAQ);
+    const computed = computeIaqDashboardData(normalizedIAQ, currentTimeframe);
+    if (typeof window !== 'undefined') window.__SMACAIaqComputed = computed;
+    bindIaqMetricToggle();
+    renderIAQDashboard(computed);
+    finalizeIaqPageRenderCleanup();
+    console.log('[SMACA][IAQ] render completed');
     
     // Update last rendered timeframe and release lock
     if (typeof window !== 'undefined') {
@@ -85,215 +112,512 @@ function initAccurateIAQDashboard() {
   }
 }
 
-/**
- * Render complete IAQ dashboard
- */
-function renderIAQDashboard(normalizedData) {
-  if (!normalizedData || normalizedData.length === 0) {
-    return;
-  }
-  
-  const latest = normalizedData[normalizedData.length - 1];
-  const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
-  const aggregatedSeriesByTime = buildAggregatedIAQSeriesByTimestamp(normalizedData);
-  console.log('[SMACA][IAQ] chart source count', {
-    normalizedRows: Array.isArray(normalizedData) ? normalizedData.length : 0,
-    aggregatedSeriesCount: Array.isArray(aggregatedSeriesByTime) ? aggregatedSeriesByTime.length : 0,
-    selectedSensorBypassed: true
-  });
-
-  // KPI cards are handled by updateIAQDashboardWithTrends in smaca-production-features.js
-  // Don't render them here to avoid conflicts
-  
-  createAccurateCO2Chart('iaq-co2-band-chart', aggregatedSeriesByTime);
-  renderSensorHealthPanel(latest);
-  renderDataSourcePanel(latest);
+function getIaqMetricConfig() {
+  return {
+    co2: { label: 'CO2', unit: 'ppm', decimals: 0, color: '#3b82f6' },
+    temperature: { label: 'Temperature', unit: '°C', decimals: 1, color: '#06b6d4' },
+    humidity: { label: 'Humidity', unit: '%', decimals: 0, color: '#6366f1' },
+    pm2_5: { label: 'PM2.5', unit: 'µg/m³', decimals: 1, color: '#f59e0b' },
+    pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
+    tvoc: { label: 'TVOC', unit: '(raw)', decimals: 1, color: '#ec4899' }
+  };
 }
 
-function buildAggregatedIAQSeriesByTimestamp(normalizedData) {
-  const rows = Array.isArray(normalizedData) ? normalizedData : [];
+function getBucketMsForTimeframe(timeframe) {
+  if (timeframe === '7d') return 6 * 60 * 60 * 1000;
+  if (timeframe === '30d') return 24 * 60 * 60 * 1000;
+  return 60 * 60 * 1000;
+}
+
+function isFiniteMetric(value) {
+  return Number.isFinite(Number(value));
+}
+
+function computeIaqDashboardData(normalizedRows, timeframe) {
+  const rows = Array.isArray(normalizedRows) ? normalizedRows : [];
+  const metrics = ['co2', 'temperature', 'humidity', 'pm2_5', 'pm10', 'tvoc'];
+  const bucketMs = getBucketMsForTimeframe(timeframe);
   const grouped = {};
+  let latestTimestampMs = 0;
+  const latestPerSensor = {};
+
   rows.forEach(function (row) {
     const timeMs = new Date(row?.time).getTime();
     if (!Number.isFinite(timeMs)) return;
-    const key = String(timeMs);
-    if (!grouped[key]) {
-      grouped[key] = {
-        time: new Date(timeMs).toISOString(),
-        co2: [],
-        temperature: [],
-        humidity: [],
-        pm2_5: [],
-        pm10: [],
-        tvoc: []
+    latestTimestampMs = Math.max(latestTimestampMs, timeMs);
+    const sensorId = row?.sensorId;
+    if (sensorId !== null && sensorId !== undefined) {
+      const key = String(sensorId);
+      if (!latestPerSensor[key] || timeMs >= latestPerSensor[key].timeMs) {
+        latestPerSensor[key] = { timeMs: timeMs, row: row };
+      }
+    }
+    const bucket = Math.floor(timeMs / bucketMs) * bucketMs;
+    const bucketKey = String(bucket);
+    if (!grouped[bucketKey]) {
+      grouped[bucketKey] = {
+        bucketMs: bucket,
+        metrics: {
+          co2: [], temperature: [], humidity: [], pm2_5: [], pm10: [], tvoc: []
+        }
       };
     }
-    ['co2', 'temperature', 'humidity', 'pm2_5', 'pm10', 'tvoc'].forEach(function (metric) {
+    metrics.forEach(function (metric) {
       const value = Number(row?.[metric]);
-      if (Number.isFinite(value)) grouped[key][metric].push(value);
+      if (Number.isFinite(value)) grouped[bucketKey].metrics[metric].push(value);
     });
   });
-  return Object.values(grouped)
-    .map(function (bucket) {
-      const avg = function (arr) {
-        if (!Array.isArray(arr) || arr.length === 0) return null;
-        const sum = arr.reduce(function (acc, value) { return acc + value; }, 0);
-        return sum / arr.length;
-      };
-      return {
-        time: bucket.time,
-        co2: avg(bucket.co2),
-        temperature: avg(bucket.temperature),
-        humidity: avg(bucket.humidity),
-        pm2_5: avg(bucket.pm2_5),
-        pm10: avg(bucket.pm10),
-        tvoc: avg(bucket.tvoc)
-      };
-    })
-    .sort(function (a, b) { return new Date(a.time) - new Date(b.time); });
+
+  const sortedBuckets = Object.values(grouped).sort(function (a, b) { return a.bucketMs - b.bucketMs; });
+  const seriesByMetric = {
+    co2: [], temperature: [], humidity: [], pm2_5: [], pm10: [], tvoc: []
+  };
+  sortedBuckets.forEach(function (bucket) {
+    metrics.forEach(function (metric) {
+      const values = bucket.metrics[metric];
+      if (!values.length) return;
+      const sum = values.reduce(function (acc, v) { return acc + v; }, 0);
+      seriesByMetric[metric].push({
+        time: new Date(bucket.bucketMs).toISOString(),
+        value: sum / values.length
+      });
+    });
+  });
+
+  const latestValues = {};
+  const previousValues = {};
+  metrics.forEach(function (metric) {
+    const series = seriesByMetric[metric];
+    const latest = series.length ? series[series.length - 1].value : null;
+    const previous = series.length > 1 ? series[series.length - 2].value : null;
+    latestValues[metric] = Number.isFinite(Number(latest)) ? Number(latest) : null;
+    previousValues[metric] = Number.isFinite(Number(previous)) ? Number(previous) : null;
+  });
+
+  const activeSensorCount = Object.values(latestPerSensor).filter(function (entry) {
+    const row = entry?.row || {};
+    return metrics.some(function (metric) { return isFiniteMetric(row?.[metric]); });
+  }).length;
+
+  const summary = evaluateOverallIaqSummary(latestValues, activeSensorCount, latestTimestampMs);
+  console.log('[SMACA][IAQ] aggregated KPI values', {
+    co2: latestValues.co2,
+    temperature: latestValues.temperature,
+    humidity: latestValues.humidity,
+    pm2_5: latestValues.pm2_5,
+    pm10: latestValues.pm10,
+    tvoc: latestValues.tvoc
+  });
+  console.log('[SMACA][IAQ] active sensor count', { activeIaqSensors: activeSensorCount });
+  console.log('[SMACA][IAQ] latest timestamp/freshness', {
+    latestTimestamp: latestTimestampMs ? new Date(latestTimestampMs).toISOString() : null,
+    freshnessMinutes: latestTimestampMs ? Math.max(0, Math.round((Date.now() - latestTimestampMs) / 60000)) : null
+  });
+
+  return {
+    timeframe: timeframe,
+    rows: rows,
+    seriesByMetric: seriesByMetric,
+    latestValues: latestValues,
+    previousValues: previousValues,
+    activeSensorCount: activeSensorCount,
+    latestTimestampMs: latestTimestampMs,
+    summary: summary
+  };
+}
+
+function evaluateMetricStatus(metric, value) {
+  if (!Number.isFinite(Number(value))) return { label: 'N/A', score: 0, tone: 'neutral' };
+  const v = Number(value);
+  if (metric === 'co2') {
+    if (v < 800) return { label: 'Good', score: 5, tone: 'good' };
+    if (v < 1000) return { label: 'Moderate', score: 3, tone: 'moderate' };
+    return { label: 'High', score: 1, tone: 'high' };
+  }
+  if (metric === 'pm2_5') {
+    if (v <= 12) return { label: 'Low', score: 5, tone: 'good' };
+    if (v <= 35) return { label: 'Elevated', score: 3, tone: 'moderate' };
+    return { label: 'High', score: 1, tone: 'high' };
+  }
+  if (metric === 'pm10') {
+    if (v <= 20) return { label: 'Low', score: 5, tone: 'good' };
+    if (v <= 50) return { label: 'Elevated', score: 3, tone: 'moderate' };
+    return { label: 'High', score: 1, tone: 'high' };
+  }
+  if (metric === 'temperature') {
+    if (v >= 21 && v <= 25) return { label: 'Comfortable', score: 5, tone: 'good' };
+    if ((v >= 19 && v < 21) || (v > 25 && v <= 27)) return { label: 'Slightly Off', score: 3, tone: 'moderate' };
+    return { label: 'Out of Range', score: 1, tone: 'high' };
+  }
+  if (metric === 'humidity') {
+    if (v >= 40 && v <= 60) return { label: 'Comfortable', score: 5, tone: 'good' };
+    if ((v >= 30 && v < 40) || (v > 60 && v <= 70)) return { label: 'Slightly Off', score: 3, tone: 'moderate' };
+    return { label: 'Out of Range', score: 1, tone: 'high' };
+  }
+  if (metric === 'tvoc') {
+    if (v < 150) return { label: 'Low', score: 5, tone: 'good' };
+    if (v < 300) return { label: 'Elevated', score: 3, tone: 'moderate' };
+    return { label: 'High', score: 1, tone: 'high' };
+  }
+  return { label: 'N/A', score: 0, tone: 'neutral' };
+}
+
+function evaluateOverallIaqSummary(latestValues, activeSensorCount, latestTimestampMs) {
+  const drivingOrder = ['co2', 'pm2_5', 'pm10', 'humidity', 'temperature', 'tvoc'];
+  const statuses = drivingOrder.map(function (metric) {
+    return { metric: metric, status: evaluateMetricStatus(metric, latestValues?.[metric]) };
+  });
+  const contributing = statuses.filter(function (entry) { return entry.status.score > 0; });
+  if (!contributing.length) {
+    return {
+      statusLabel: 'Moderate',
+      explanation: 'No valid IAQ metric values available',
+      freshnessMinutes: null
+    };
+  }
+  const minScore = contributing.reduce(function (min, entry) { return Math.min(min, entry.status.score); }, 5);
+  const avgScore = contributing.reduce(function (acc, entry) { return acc + entry.status.score; }, 0) / contributing.length;
+  let statusLabel = 'Good';
+  if (minScore <= 1 && avgScore < 2) statusLabel = 'Critical';
+  else if (minScore <= 1) statusLabel = 'Poor';
+  else if (avgScore < 3) statusLabel = 'Moderate';
+  else if (avgScore >= 4.5) statusLabel = 'Excellent';
+  const topDriver = statuses.sort(function (a, b) { return a.status.score - b.status.score; })[0];
+  const driverLabelMap = { co2: 'CO2', pm2_5: 'PM2.5', pm10: 'PM10', humidity: 'Humidity', temperature: 'Temperature', tvoc: 'TVOC' };
+  const explanation = topDriver
+    ? `${driverLabelMap[topDriver.metric]} is ${topDriver.status.label.toLowerCase()}`
+    : 'IAQ metrics are within expected ranges';
+  const freshnessMinutes = latestTimestampMs ? Math.max(0, Math.round((Date.now() - latestTimestampMs) / 60000)) : null;
+  return {
+    statusLabel: statusLabel,
+    explanation: explanation,
+    activeSensorCount: activeSensorCount,
+    latestTimestamp: latestTimestampMs ? new Date(latestTimestampMs).toISOString() : null,
+    freshnessMinutes: freshnessMinutes
+  };
+}
+
+/**
+ * Render complete IAQ dashboard
+ */
+function renderIAQDashboard(computed) {
+  if (!computed || !computed.rows || computed.rows.length === 0) {
+    return;
+  }
+  renderIAQKPICards(computed);
+  renderIaqMainTrendChart(computed);
+  renderSensorHealthPanel(computed);
+  renderDataSourcePanel(computed.summary);
+  renderIaqHourlyHeatStrip(computed);
 }
 
 /**
  * Render IAQ KPI Cards with metric definitions
  */
-function renderIAQKPICards(latest, previous) {
-  const metrics = [
-    {
-      key: 'co2',
-      label: 'CO₂',
-      value: latest.co2,
-      unit: 'ppm',
-      definition: 'Carbon dioxide concentration; proxy for ventilation adequacy.',
-      trendKey: 'co2',
-      invertTrend: true // Lower is better for CO2
-    },
-    {
-      key: 'temperature',
-      label: 'Temperature',
-      value: latest.temperature,
-      unit: '°C',
-      definition: 'Indoor air temperature.',
-      trendKey: 'temperature'
-    },
-    {
-      key: 'humidity',
-      label: 'Humidity',
-      value: latest.humidity,
-      unit: '%',
-      definition: 'Relative humidity.',
-      trendKey: 'humidity'
-    },
-    {
-      key: 'pm2_5',
-      label: 'PM2.5',
-      value: latest.pm2_5,
-      unit: 'µg/m³',
-      definition: 'Particulate matter concentration (particles < 2.5µm).',
-      trendKey: 'pm2_5',
-      invertTrend: true
-    },
-    {
-      key: 'pm10',
-      label: 'PM10',
-      value: latest.pm10,
-      unit: 'µg/m³',
-      definition: 'Particulate matter concentration (particles < 10µm).',
-      trendKey: 'pm10',
-      invertTrend: true
-    },
-    {
-      key: 'tvoc',
-      label: 'TVOC',
-      value: latest.tvoc,
-      unit: '(raw)',
-      definition: 'Total volatile organic compounds (raw from sensor payload).',
-      trendKey: 'tvoc',
-      invertTrend: true
-    }
-  ];
-  
+function renderIAQKPICards(computed) {
+  const cfg = getIaqMetricConfig();
+  const metrics = Object.keys(cfg);
   const container = document.getElementById('iaq-kpi-cards');
   if (!container) return;
-  
   container.innerHTML = '';
-  
-  metrics.forEach(metric => {
-    if (metric.value === null || metric.value === undefined) return;
-    
+  metrics.forEach(function (metricKey) {
+    const metricCfg = cfg[metricKey];
+    const value = computed.latestValues?.[metricKey];
+    const previous = computed.previousValues?.[metricKey];
+    const status = evaluateMetricStatus(metricKey, value);
+    const trend = calculateMicroTrend(value, previous, ['co2', 'pm2_5', 'pm10', 'tvoc'].includes(metricKey));
+    const series = (computed.seriesByMetric?.[metricKey] || []).slice(-18).map(function (entry) { return entry.value; });
+    const sparkline = renderSparklineSvg(series, metricCfg.color);
+    const toneColor = status.tone === 'good' ? '#10b981' : status.tone === 'moderate' ? '#f59e0b' : status.tone === 'high' ? '#ef4444' : 'var(--muted)';
+    const displayValue = Number.isFinite(Number(value)) ? Number(value).toFixed(metricCfg.decimals) : 'N/A';
     const card = document.createElement('div');
-    card.className = 'card';
-    
-    const trend = previous ? calculateMicroTrend(
-      metric.value,
-      previous[metric.trendKey],
-      metric.invertTrend
-    ) : { direction: '—', text: 'Insufficient history' };
-    
-    const trendColor = trend.direction === '↑' && metric.invertTrend ? '#ef4444' :
-                      trend.direction === '↓' && metric.invertTrend ? '#10b981' :
-                      trend.direction === '↑' ? '#10b981' :
-                      trend.direction === '↓' ? '#ef4444' : 'var(--muted)';
-    
+    card.className = 'stat-card';
     card.innerHTML = `
-      <div class="card__body">
-        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-3);">
-          <div style="flex: 1;">
-            <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);">
-              <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">${metric.label}</div>
-              <div class="info-tooltip" style="position: relative; cursor: help;">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <div class="tooltip-content" style="
-                  position: absolute;
-                  bottom: 100%;
-                  left: 50%;
-                  transform: translateX(-50%);
-                  margin-bottom: var(--space-2);
-                  background: var(--surface);
-                  border: 1px solid var(--border);
-                  border-radius: var(--r-md);
-                  padding: var(--space-2) var(--space-3);
-                  font-size: 10px;
-                  color: var(--text);
-                  white-space: nowrap;
-                  opacity: 0;
-                  pointer-events: none;
-                  transition: opacity 0.2s;
-                  z-index: 100;
-                  box-shadow: var(--shadow-md);
-                ">
-                  ${metric.definition}
-                </div>
-              </div>
-            </div>
-            <div style="font-size: 28px; font-weight: 600; color: var(--text); margin-bottom: var(--space-1);">
-              ${typeof metric.value === 'number' ? metric.value.toFixed(metric.value % 1 === 0 ? 0 : 1) : metric.value}
-            </div>
-            <div style="font-size: 11px; color: var(--muted);">${metric.unit}</div>
+      <div class="stat-card__content">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2);">
+          <div class="stat-card__label">${metricCfg.label}</div>
+          <span class="badge badge--sm" style="border:1px solid ${toneColor};color:${toneColor};background:transparent;">${status.label}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:var(--space-2);">
+          <div>
+            <div class="stat-card__value">${displayValue}</div>
+            <div class="stat-card__unit">${metricCfg.unit}</div>
           </div>
-          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1);">
-            <div style="color: ${trendColor}; font-size: 16px; font-weight: 600;">${trend.direction}</div>
-            <div style="font-size: 10px; color: var(--muted);">${trend.text}</div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:var(--muted);">Trend</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text);">${trend.text}</div>
           </div>
         </div>
+        <div style="margin-top:var(--space-2);">${sparkline}</div>
       </div>
     `;
-    
-    // Add tooltip functionality
-    const tooltipTrigger = card.querySelector('.info-tooltip');
-    const tooltipContent = card.querySelector('.tooltip-content');
-    if (tooltipTrigger && tooltipContent) {
-      tooltipTrigger.addEventListener('mouseenter', () => {
-        tooltipContent.style.opacity = '1';
-      });
-      tooltipTrigger.addEventListener('mouseleave', () => {
-        tooltipContent.style.opacity = '0';
-      });
-    }
-    
     container.appendChild(card);
   });
+}
+
+function renderSparklineSvg(values, color) {
+  const series = Array.isArray(values) ? values.filter(function (v) { return Number.isFinite(Number(v)); }).map(Number) : [];
+  if (series.length < 2) {
+    return '<div style="height:26px;font-size:11px;color:var(--muted);display:flex;align-items:center;">No sparkline data</div>';
+  }
+  const min = Math.min.apply(null, series);
+  const max = Math.max.apply(null, series);
+  const range = max - min || 1;
+  const points = series.map(function (v, i) {
+    const x = (i / (series.length - 1)) * 100;
+    const y = 24 - (((v - min) / range) * 20 + 2);
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(' ');
+  return `<svg viewBox="0 0 100 26" preserveAspectRatio="none" style="width:100%;height:26px;display:block;"><polyline fill="none" stroke="${color}" stroke-width="2" points="${points}"/></svg>`;
+}
+
+function bindIaqMetricToggle() {
+  if (typeof window === 'undefined' || window.__smacaIaqMetricToggleBound) return;
+  const toggle = document.getElementById('iaq-metric-toggle');
+  if (!toggle) return;
+  window.__smacaIaqMetricToggleBound = true;
+  toggle.addEventListener('click', function (event) {
+    const button = event.target?.closest('button[data-iaq-metric]');
+    if (!button) return;
+    const metric = button.getAttribute('data-iaq-metric') || 'co2';
+    window.SMACAIaqSelectedMetric = metric;
+    toggle.querySelectorAll('button[data-iaq-metric]').forEach(function (btn) {
+      btn.classList.toggle('active', btn === button);
+    });
+    console.log('[SMACA][IAQ] selected metric for main chart', { metric: metric });
+    if (window.__SMACAIaqComputed) renderIaqMainTrendChart(window.__SMACAIaqComputed);
+  });
+}
+
+function getThresholdBandsForMetric(metric) {
+  if (metric === 'co2') {
+    return [
+      { min: 400, max: 800, color: 'rgba(16,185,129,0.12)' },
+      { min: 800, max: 1000, color: 'rgba(245,158,11,0.12)' },
+      { min: 1000, max: Number.POSITIVE_INFINITY, color: 'rgba(239,68,68,0.12)' }
+    ];
+  }
+  if (metric === 'pm2_5') {
+    return [
+      { min: 0, max: 12, color: 'rgba(16,185,129,0.12)' },
+      { min: 12, max: 35, color: 'rgba(245,158,11,0.12)' },
+      { min: 35, max: Number.POSITIVE_INFINITY, color: 'rgba(239,68,68,0.12)' }
+    ];
+  }
+  if (metric === 'pm10') {
+    return [
+      { min: 0, max: 20, color: 'rgba(16,185,129,0.12)' },
+      { min: 20, max: 50, color: 'rgba(245,158,11,0.12)' },
+      { min: 50, max: Number.POSITIVE_INFINITY, color: 'rgba(239,68,68,0.12)' }
+    ];
+  }
+  if (metric === 'temperature') return [{ min: 21, max: 25, color: 'rgba(6,182,212,0.12)' }];
+  if (metric === 'humidity') return [{ min: 40, max: 60, color: 'rgba(99,102,241,0.12)' }];
+  return [];
+}
+
+function renderIaqMainTrendChart(computed) {
+  const chartEl = document.getElementById('iaq-co2-band-chart');
+  if (!chartEl) return;
+  const metric = (typeof window !== 'undefined' ? window.SMACAIaqSelectedMetric : null) || 'co2';
+  const toggle = document.getElementById('iaq-metric-toggle');
+  if (toggle) {
+    toggle.querySelectorAll('button[data-iaq-metric]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-iaq-metric') === metric);
+    });
+  }
+  const cfg = getIaqMetricConfig()[metric] || getIaqMetricConfig().co2;
+  const series = (computed.seriesByMetric?.[metric] || []).filter(function (entry) {
+    return Number.isFinite(Number(entry?.value));
+  });
+  console.log('[SMACA][IAQ] selected metric for main chart', { metric: metric });
+  console.log('[SMACA][IAQ] main chart point count', { metric: metric, points: series.length });
+  if (!series.length) {
+    chartEl.innerHTML = '<div style="padding: var(--space-6); text-align:center; color: var(--muted);">No IAQ data available</div>';
+    return;
+  }
+  chartEl.style.position = 'relative';
+  chartEl.style.zIndex = '1';
+
+  const titleEl = document.getElementById('iaq-main-chart-title');
+  if (titleEl) titleEl.textContent = `IAQ Trend - ${cfg.label}`;
+  const subtitleEl = document.getElementById('iaq-main-chart-subtitle');
+  if (subtitleEl) subtitleEl.textContent = `Aggregated across ${computed.activeSensorCount} IAQ sensors`;
+
+  const width = chartEl.offsetWidth || 900;
+  const height = 370;
+  const padding = { top: 20, right: 24, bottom: 50, left: 56 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const values = series.map(function (entry) { return Number(entry.value); });
+  let min = Math.min.apply(null, values);
+  let max = Math.max.apply(null, values);
+  if (metric === 'co2') {
+    min = Math.min(min, 600);
+    max = Math.max(max, 1100);
+  }
+  if (min === max) { min = min - 1; max = max + 1; }
+  const bands = getThresholdBandsForMetric(metric);
+  const yPadding = (max - min) * 0.08;
+  min -= yPadding;
+  max += yPadding;
+  const yScale = function (v) { return chartHeight - ((v - min) / (max - min || 1)) * chartHeight; };
+  const xScale = function (i) { return (i / Math.max(1, series.length - 1)) * chartWidth; };
+  const path = series.map(function (entry, i) {
+    const x = xScale(i);
+    const y = yScale(Number(entry.value));
+    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(' ');
+
+  chartEl.innerHTML = '';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'chart-svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('transform', `translate(${padding.left},${padding.top})`);
+
+  const yTickCount = 6;
+  const yTicks = [];
+  for (let i = 0; i < yTickCount; i += 1) {
+    const ratio = i / Math.max(1, yTickCount - 1);
+    yTicks.push(min + ((max - min) * (1 - ratio)));
+  }
+  yTicks.forEach(function (tickValue) {
+    const y = yScale(tickValue);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', '0');
+    line.setAttribute('y1', String(y));
+    line.setAttribute('x2', String(chartWidth));
+    line.setAttribute('y2', String(y));
+    line.setAttribute('stroke', 'var(--border)');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('opacity', '0.28');
+    g.appendChild(line);
+
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', '-8');
+    label.setAttribute('y', String(y));
+    label.setAttribute('fill', 'var(--muted)');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('text-anchor', 'end');
+    label.setAttribute('dominant-baseline', 'middle');
+    label.textContent = metric === 'co2' || metric === 'humidity'
+      ? String(Math.round(tickValue))
+      : Number(tickValue).toFixed(metric === 'temperature' ? 1 : 0);
+    g.appendChild(label);
+  });
+
+  bands.forEach(function (band) {
+    const top = Number.isFinite(band.max) ? Math.max(min, Math.min(max, band.max)) : max;
+    const bottom = Number.isFinite(band.min) ? Math.max(min, Math.min(max, band.min)) : min;
+    if (top <= bottom) return;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', '0');
+    rect.setAttribute('y', yScale(top));
+    rect.setAttribute('width', String(chartWidth));
+    rect.setAttribute('height', String(yScale(bottom) - yScale(top)));
+    rect.setAttribute('fill', band.color);
+    g.appendChild(rect);
+  });
+
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  line.setAttribute('d', path);
+  line.setAttribute('fill', 'none');
+  line.setAttribute('stroke', cfg.color);
+  line.setAttribute('stroke-width', '2.75');
+  line.setAttribute('stroke-linejoin', 'round');
+  line.setAttribute('stroke-linecap', 'round');
+  const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const areaPath = `${path} L ${xScale(series.length - 1).toFixed(2)} ${chartHeight} L 0 ${chartHeight} Z`;
+  area.setAttribute('d', areaPath);
+  area.setAttribute('fill', cfg.color);
+  area.setAttribute('opacity', '0.08');
+  g.appendChild(area);
+  g.appendChild(line);
+
+  const lastPoint = series[series.length - 1];
+  if (lastPoint) {
+    const cx = xScale(series.length - 1);
+    const cy = yScale(Number(lastPoint.value));
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', String(cx));
+    dot.setAttribute('cy', String(cy));
+    dot.setAttribute('r', '4');
+    dot.setAttribute('fill', cfg.color);
+    dot.setAttribute('stroke', '#0f172a');
+    dot.setAttribute('stroke-width', '1.5');
+    g.appendChild(dot);
+  }
+
+  const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  xAxis.setAttribute('x1', '0');
+  xAxis.setAttribute('y1', String(chartHeight));
+  xAxis.setAttribute('x2', String(chartWidth));
+  xAxis.setAttribute('y2', String(chartHeight));
+  xAxis.setAttribute('stroke', 'var(--border)');
+  g.appendChild(xAxis);
+  const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  yAxis.setAttribute('x1', '0');
+  yAxis.setAttribute('y1', '0');
+  yAxis.setAttribute('x2', '0');
+  yAxis.setAttribute('y2', String(chartHeight));
+  yAxis.setAttribute('stroke', 'var(--border)');
+  g.appendChild(yAxis);
+
+  const tickCount = 5;
+  for (let i = 0; i < tickCount; i += 1) {
+    const idx = Math.floor((i / Math.max(1, tickCount - 1)) * (series.length - 1));
+    const x = xScale(idx);
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', String(x));
+    label.setAttribute('y', String(chartHeight + 16));
+    label.setAttribute('fill', 'var(--muted)');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('text-anchor', 'middle');
+    label.textContent = formatTime(series[idx].time, computed.timeframe !== '24h');
+    g.appendChild(label);
+  }
+
+  const yAxisUnitLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  yAxisUnitLabel.setAttribute('x', '-40');
+  yAxisUnitLabel.setAttribute('y', '-6');
+  yAxisUnitLabel.setAttribute('fill', 'var(--muted)');
+  yAxisUnitLabel.setAttribute('font-size', '10');
+  yAxisUnitLabel.textContent = cfg.unit;
+  g.appendChild(yAxisUnitLabel);
+
+  svg.appendChild(g);
+  chartEl.appendChild(svg);
+}
+
+function renderIaqHourlyHeatStrip(computed) {
+  const container = document.getElementById('iaq-hourly-heatstrip-panel');
+  if (!container) return;
+  const metric = 'co2';
+  const series = (computed.seriesByMetric?.[metric] || []).slice(-24);
+  if (!series.length) {
+    container.innerHTML = '<div class="card"><div class="card__body"><div style="color: var(--muted); text-align:center;">No IAQ data available</div></div></div>';
+    return;
+  }
+  const values = series.map(function (entry) { return Number(entry.value); });
+  const min = Math.min.apply(null, values);
+  const max = Math.max.apply(null, values);
+  const range = max - min || 1;
+  const cells = series.map(function (entry) {
+    const val = Number(entry.value);
+    const ratio = (val - min) / range;
+    const hue = 120 - (ratio * 120);
+    const color = `hsl(${hue.toFixed(0)} 75% 45%)`;
+    return `<div title="${formatTime(entry.time, true)} - ${val.toFixed(0)} ppm" style="height:16px;border-radius:4px;background:${color};"></div>`;
+  }).join('');
+  container.innerHTML = `
+    <div class="card">
+      <div class="card__header"><h3 class="card__title">CO2 Hourly Pattern</h3></div>
+      <div class="card__body">
+        <div style="display:grid;grid-template-columns:repeat(${series.length}, minmax(8px,1fr));gap:4px;">${cells}</div>
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -337,72 +661,53 @@ function calculateMicroTrend(currentValue, previousValue, invert = false) {
 /**
  * Render Sensor Health Panel
  */
-function renderSensorHealthPanel(data) {
+function renderSensorHealthPanel(computed) {
   const container = document.getElementById('sensor-health-panel');
   if (!container) return;
-
-  const batteryValue = typeof data?.battery === 'number' && Number.isFinite(data.battery) ? data.battery : null;
-  const hasBatteryField = data && Object.prototype.hasOwnProperty.call(data, 'battery');
-  const hasRSSIField = data && Object.prototype.hasOwnProperty.call(data, 'rssi');
-  const hasSNRField = data && Object.prototype.hasOwnProperty.call(data, 'snr');
-
-  const resolveMissingLabel = (hasField, value, unsupportedText) => {
-    if (!hasField) return unsupportedText;
-    if (value === null || value === undefined) return 'Unavailable';
-    return null;
-  };
-  
-  // RSSI interpretation
-  const getRSSIStatus = (rssi) => {
-    if (rssi === null || rssi === undefined) return { status: 'unknown', label: 'N/A', color: 'var(--muted)' };
-    if (rssi > -70) return { status: 'strong', label: 'Strong', color: '#10b981' };
-    if (rssi > -90) return { status: 'ok', label: 'OK', color: '#f59e0b' };
-    return { status: 'weak', label: 'Weak', color: '#ef4444' };
-  };
-  
-  // SNR interpretation
-  const getSNRStatus = (snr) => {
-    if (snr === null || snr === undefined) return { status: 'unknown', label: 'N/A', color: 'var(--muted)' };
-    if (snr > 5) return { status: 'good', label: 'Good', color: '#10b981' };
-    if (snr > 0) return { status: 'ok', label: 'OK', color: '#f59e0b' };
-    return { status: 'poor', label: 'Poor', color: '#ef4444' };
-  };
-  
-  const rssiStatus = getRSSIStatus(data.rssi);
-  const snrStatus = getSNRStatus(data.snr);
+  const metrics = ['co2', 'temperature', 'humidity', 'pm2_5', 'pm10', 'tvoc'];
+  const latestValues = computed?.latestValues || {};
+  const validCount = metrics.filter(function (metric) {
+    return Number.isFinite(Number(latestValues?.[metric]));
+  }).length;
+  const completenessPct = Math.round((validCount / metrics.length) * 100);
+  const freshnessMinutes = computed?.summary?.freshnessMinutes;
+  const freshnessText = Number.isFinite(Number(freshnessMinutes)) ? `${freshnessMinutes} min ago` : 'Unavailable';
+  const freshnessColor = Number.isFinite(Number(freshnessMinutes))
+    ? (freshnessMinutes <= 10 ? '#10b981' : freshnessMinutes <= 30 ? '#f59e0b' : '#ef4444')
+    : 'var(--muted)';
 
   container.innerHTML = `
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">Sensor Health</h3>
+        <h3 class="card__title">Data Reliability</h3>
       </div>
       <div class="card__body">
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4);">
           <div>
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Battery</div>
+            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Active IAQ Sensors</div>
             <div style="width: 100%; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; margin-bottom: var(--space-1);">
-              <div style="width: ${batteryValue !== null ? batteryValue : 0}%; height: 100%; background: ${batteryValue !== null && batteryValue > 50 ? '#10b981' : batteryValue !== null && batteryValue > 20 ? '#f59e0b' : '#ef4444'};"></div>
+              <div style="width: 100%; height: 100%; background: #10b981;"></div>
             </div>
             <div style="font-size: 12px; font-weight: 600; color: var(--text);">
-              ${batteryValue !== null ? `${batteryValue}%` : resolveMissingLabel(hasBatteryField, data?.battery, 'Not reported by sensor')}
+              ${Number(computed?.activeSensorCount || 0)}
             </div>
           </div>
           <div>
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">RSSI</div>
-            <div style="font-size: 18px; font-weight: 600; color: ${rssiStatus.color}; margin-bottom: var(--space-1);">
-              ${data.rssi !== null && data.rssi !== undefined ? `${data.rssi} dBm` : resolveMissingLabel(hasRSSIField, data?.rssi, 'Unsupported by device')}
+            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Metric Coverage</div>
+            <div style="font-size: 18px; font-weight: 600; color: ${completenessPct >= 80 ? '#10b981' : completenessPct >= 50 ? '#f59e0b' : '#ef4444'}; margin-bottom: var(--space-1);">
+              ${completenessPct}%
             </div>
             <div style="font-size: 10px; color: var(--muted);">
-              ${rssiStatus.label} ${data.rssi !== null && data.rssi !== undefined ? `(${data.rssi > -70 ? '> -70' : data.rssi > -90 ? '-70 to -90' : '< -90'})` : ''}
+              ${validCount}/${metrics.length} metrics have valid current values
             </div>
           </div>
           <div>
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">SNR</div>
-            <div style="font-size: 18px; font-weight: 600; color: ${snrStatus.color}; margin-bottom: var(--space-1);">
-              ${data.snr !== null && data.snr !== undefined ? `${data.snr} dB` : resolveMissingLabel(hasSNRField, data?.snr, 'Unsupported by device')}
+            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Data Freshness</div>
+            <div style="font-size: 18px; font-weight: 600; color: ${freshnessColor}; margin-bottom: var(--space-1);">
+              ${freshnessText}
             </div>
             <div style="font-size: 10px; color: var(--muted);">
-              ${snrStatus.label} ${data.snr !== null && data.snr !== undefined ? `(${data.snr > 5 ? '> 5' : data.snr > 0 ? '0-5' : '< 0'})` : ''}
+              Latest aggregated IAQ sample
             </div>
           </div>
         </div>
@@ -414,39 +719,41 @@ function renderSensorHealthPanel(data) {
 /**
  * Render Data Source Panel
  */
-function renderDataSourcePanel(data) {
+function renderDataSourcePanel(summary) {
   const container = document.getElementById('data-source-panel');
   if (!container) return;
-
-  const formatField = (value, options = {}) => {
-    if (value !== null && value !== undefined && value !== '') return value;
-    if (options.unsupportedWhenMissing) return 'Unsupported by device';
-    if (options.notReportedWhenMissing) return 'Not reported by sensor';
-    return 'Unavailable';
-  };
+  const status = summary?.statusLabel || 'Moderate';
+  const explanation = summary?.explanation || 'IAQ summary is unavailable';
+  const activeSensors = Number(summary?.activeSensorCount || 0);
+  const latestTimestamp = summary?.latestTimestamp ? formatTime(summary.latestTimestamp, true) : 'Unavailable';
+  const freshnessText = Number.isFinite(Number(summary?.freshnessMinutes)) ? `${summary.freshnessMinutes} min ago` : 'Unavailable';
 
   container.innerHTML = `
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">Data Source</h3>
+        <h3 class="card__title">Overall IAQ Summary</h3>
       </div>
       <div class="card__body">
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); font-size: 11px;">
           <div>
-            <div style="color: var(--muted); margin-bottom: var(--space-1);">Device Name</div>
-            <div style="color: var(--text); font-weight: 500;">${formatField(data.deviceName, { notReportedWhenMissing: true })}</div>
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">Status</div>
+            <div style="color: var(--text); font-weight: 600; font-size: 14px;">${status}</div>
           </div>
           <div>
-            <div style="color: var(--muted); margin-bottom: var(--space-1);">Device Profile</div>
-            <div style="color: var(--text); font-weight: 500;">${formatField(data.deviceProfileName, { notReportedWhenMissing: true })}</div>
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">Active sensors</div>
+            <div style="color: var(--text); font-weight: 500;">${activeSensors}</div>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">Driver</div>
+            <div style="color: var(--text); font-weight: 500;">${explanation}</div>
           </div>
           <div>
-            <div style="color: var(--muted); margin-bottom: var(--space-1);">Timestamp</div>
-            <div style="color: var(--text); font-weight: 500;">${data.time ? formatTime(data.time, true) : 'Unavailable'}</div>
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">Latest timestamp</div>
+            <div style="color: var(--text); font-weight: 500;">${latestTimestamp}</div>
           </div>
           <div>
-            <div style="color: var(--muted); margin-bottom: var(--space-1);">Gateway ID</div>
-            <div style="color: var(--text); font-weight: 500;">${formatField(data.gatewayId, { unsupportedWhenMissing: true })}</div>
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">Freshness</div>
+            <div style="color: var(--text); font-weight: 500;">${freshnessText}</div>
           </div>
         </div>
       </div>

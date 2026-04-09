@@ -26,8 +26,8 @@
     </main>
   </div>
 
-  <!-- Add/Edit Sensor Modal -->
-
+  @if(($smacaPage ?? 'overview') === 'management')
+  <!-- Add/Edit Sensor Modal (management page only) -->
   <div id="sensor-modal" class="user-modal" style="display: none;" role="dialog" aria-labelledby="sensor-modal-title" aria-modal="true">
     <div class="user-modal__backdrop"></div>
     <div class="user-modal__dialog">
@@ -81,7 +81,7 @@
     </div>
   </div>
 
-  <!-- Add/Edit User Modal -->
+  <!-- Add/Edit User Modal (management page only) -->
   <div id="user-modal" class="user-modal" style="display: none;" role="dialog" aria-labelledby="user-modal-title" aria-modal="true">
     <div class="user-modal__backdrop"></div>
     <div class="user-modal__dialog">
@@ -121,6 +121,7 @@
       </div>
     </div>
   </div>
+  @endif
 
   <!-- Scripts -->
   <script>

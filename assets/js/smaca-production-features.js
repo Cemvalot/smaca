@@ -175,6 +175,9 @@ function showDashboardLoadingOverlay(pageName) {
   overlay.classList.add('is-visible');
   overlay.setAttribute('aria-hidden', 'false');
   console.log('[SMACA] loading overlay shown', { page: pageName || getSmacaCurrentPage() });
+  if ((pageName || getSmacaCurrentPage()) === 'iaq') {
+    console.log('[SMACA][IAQ] loading overlay shown');
+  }
 }
 
 function hideDashboardLoadingOverlay(pageName) {
@@ -183,6 +186,9 @@ function hideDashboardLoadingOverlay(pageName) {
   overlay.classList.remove('is-visible');
   overlay.setAttribute('aria-hidden', 'true');
   console.log('[SMACA] loading overlay hidden', { page: pageName || getSmacaCurrentPage() });
+  if ((pageName || getSmacaCurrentPage()) === 'iaq') {
+    console.log('[SMACA][IAQ] loading overlay hidden');
+  }
 }
 
 function setCurrentPageLoadingState(isLoading) {
@@ -302,12 +308,20 @@ function renderIAQSection(reason, allowDeferred) {
     if (kpiContainer) {
       kpiContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: var(--space-4); color: var(--muted);">No IAQ sensors available</div>';
     }
+    if (typeof hideDashboardLoadingOverlay === 'function') {
+      hideDashboardLoadingOverlay('iaq');
+      console.log('[SMACA][IAQ] loading overlay hidden');
+    }
     return;
   }
   if (pointsCount === 0) {
     renderEmptyState('iaq-co2-band-chart', 'No IAQ data available');
     if (kpiContainer) {
       kpiContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: var(--space-4); color: var(--muted);">No IAQ data available</div>';
+    }
+    if (typeof hideDashboardLoadingOverlay === 'function') {
+      hideDashboardLoadingOverlay('iaq');
+      console.log('[SMACA][IAQ] loading overlay hidden');
     }
     return;
   }
@@ -335,12 +349,14 @@ function renderIAQSection(reason, allowDeferred) {
     return;
   }
 
-  updateIAQDashboardWithTrends(filteredIAQ, SMACAState.currentTimeframe);
   if (typeof initAccurateIAQDashboard === 'function') {
     if (typeof window !== 'undefined') {
       window.lastRenderedTimeframe = null;
     }
     initAccurateIAQDashboard();
+  } else {
+    // Backward-compatible fallback if advanced IAQ renderer is unavailable.
+    updateIAQDashboardWithTrends(filteredIAQ, SMACAState.currentTimeframe);
   }
 }
 

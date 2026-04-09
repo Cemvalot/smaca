@@ -27,26 +27,24 @@
             <div id="data-source-panel"></div>
           </div>
           
-          <!-- Active Alerts Panel -->
-          <div class="card" style="margin-bottom: var(--space-6);">
-            <div class="card__header">
-              <h3 class="card__title">Active Alerts</h3>
-            </div>
-            <div class="card__body">
-              <div id="alerts-panel">
-                <div class="alerts-empty-state" style="text-align: center; padding: var(--space-8); color: var(--muted);">
-                  <p>No active alerts</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
           <!-- Domain-Driven Visualizations -->
           <div class="grid" style="grid-template-columns: 1fr; gap: var(--space-6); margin-bottom: var(--space-6);">
             <div class="card">
               <div class="card__header">
-                <h3 class="card__title">CO₂ Concentration with Threshold Zones</h3>
-                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When to ventilate or adjust HVAC</p>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap;">
+                  <div>
+                    <h3 id="iaq-main-chart-title" class="card__title">IAQ Trend - CO₂</h3>
+                    <p id="iaq-main-chart-subtitle" style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Aggregated across all IAQ sensors</p>
+                  </div>
+                  <div id="iaq-metric-toggle" class="time-range-selector" role="tablist" aria-label="Select IAQ metric">
+                    <button type="button" class="time-range-btn active" data-iaq-metric="co2">CO₂</button>
+                    <button type="button" class="time-range-btn" data-iaq-metric="temperature">Temperature</button>
+                    <button type="button" class="time-range-btn" data-iaq-metric="humidity">Humidity</button>
+                    <button type="button" class="time-range-btn" data-iaq-metric="pm2_5">PM2.5</button>
+                    <button type="button" class="time-range-btn" data-iaq-metric="pm10">PM10</button>
+                    <button type="button" class="time-range-btn" data-iaq-metric="tvoc">TVOC</button>
+                  </div>
+                </div>
               </div>
               <div class="card__body">
                 <div class="chart-placeholder" id="iaq-co2-band-chart"></div>
@@ -71,6 +69,7 @@
                 </div>
               </div>
             </div>
+            <div id="iaq-hourly-heatstrip-panel"></div>
           </div>
         </div>
 @endsection
