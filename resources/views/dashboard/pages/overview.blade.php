@@ -1,184 +1,256 @@
 @extends('dashboard.layouts.app')
 
 @section('dashboard-content')
+@php
+  $smacaRole = session('role', 'user');
+  $smacaIsAdmin = $smacaRole === 'admin';
+@endphp
 <div class="dashboard-section" id="overview" data-section="overview">
-          <div class="section-hero section-hero--overview">
-            <div class="section-hero__inner">
-              <div>
-                <div class="section-hero__title-row">
-                  <svg class="section-hero__icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                  </svg>
-                  <h2 class="section-hero__title">Dashboard Overview</h2>
-                </div>
-                <p class="section-hero__subtitle">Select a section from the sidebar to view detailed monitoring data</p>
-              </div>
-              <div class="section-hero__stat">
-                <div id="overview-total-sensors" class="section-hero__stat-value">24</div>
-                <div class="section-hero__stat-label">Total sensors</div>
+  <div class="grid grid--metrics grid--metrics-4 overview-kpi-grid">
+    <article class="stat-card overview-kpi-card">
+      <div class="stat-card__content">
+        <div class="stat-card__label">Active Sensors</div>
+        <div id="overview-active-sensors" class="stat-card__value">24</div>
+        <div class="stat-card__meta">
+          <span id="overview-active-sensors-trend" class="overview-trend overview-trend--neutral">--</span>
+          <span class="overview-kpi-signal overview-kpi-signal--stable"></span>
+        </div>
+      </div>
+    </article>
+    <article class="stat-card overview-kpi-card">
+      <div class="stat-card__content">
+        <div class="stat-card__label">Air Quality Status</div>
+        <div id="overview-air-quality-status" class="stat-card__value">--</div>
+        <div class="stat-card__meta">
+          <span id="overview-air-quality-trend" class="overview-trend overview-trend--neutral">--</span>
+          <span class="overview-kpi-signal overview-kpi-signal--success"></span>
+        </div>
+      </div>
+    </article>
+    <article class="stat-card overview-kpi-card">
+      <div class="stat-card__content">
+        <div class="stat-card__label">Occupancy Load</div>
+        <div id="overview-occupancy-load" class="stat-card__value">23</div>
+        <div class="stat-card__meta">
+          <span id="overview-occupancy-trend" class="overview-trend overview-trend--neutral">--</span>
+          <span class="overview-kpi-signal overview-kpi-signal--warning"></span>
+        </div>
+      </div>
+    </article>
+    <article class="stat-card overview-kpi-card">
+      <div class="stat-card__content">
+        <div class="stat-card__label">Connectivity Health</div>
+        <div id="overview-connectivity-health" class="stat-card__value">98%</div>
+        <div class="stat-card__meta">
+          <span id="overview-connectivity-trend" class="overview-trend overview-trend--neutral">--</span>
+          <span class="overview-kpi-signal overview-kpi-signal--info"></span>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div class="overview-top-grid">
+    <section class="card overview-live-card">
+      <div class="card__header">
+        <div class="card__header-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          <h3 class="card__title">Campus Live Status</h3>
+        </div>
+      </div>
+      <div class="card__body">
+        <p class="overview-live-subtitle">
+          High-level campus monitoring across air quality, occupancy, environmental exposure, and connectivity.
+        </p>
+        <div class="overview-badge-row">
+          <span class="overview-status-badge overview-status-badge--success">
+            <i class="overview-dot overview-dot--success"></i><span id="overview-badge-air-quality">Air Quality: --</span>
+          </span>
+          <span class="overview-status-badge overview-status-badge--info">
+            <i class="overview-dot overview-dot--info"></i><span id="overview-badge-connectivity">Connectivity: --</span>
+          </span>
+          <span class="overview-status-badge overview-status-badge--warning">
+            <i class="overview-dot overview-dot--warning"></i><span id="overview-badge-occupancy">Occupancy: --</span>
+          </span>
+          <span class="overview-status-badge overview-status-badge--accent">
+            <i class="overview-dot overview-dot--accent"></i><span id="overview-badge-uv">Environmental/UV: --</span>
+          </span>
+        </div>
+        @if($smacaIsAdmin)
+          <div class="overview-live-meta">
+            <span id="overview-live-streams-status" class="data-status-pill data-status-pill--live">Live Streams: --</span>
+            <span id="overview-data-freshness" class="overview-chip">Data freshness: --</span>
+            <span id="overview-last-sync" class="last-updated-pill">Last sync: --</span>
+          </div>
+        @else
+          <p class="overview-live-note">Campus conditions remain within normal monitoring thresholds across active zones.</p>
+        @endif
+      </div>
+    </section>
+
+    <aside class="overview-side-stack">
+      <section class="card overview-air-score-card">
+        <div class="card__header">
+          <h3 class="card__title">Air Quality Score</h3>
+        </div>
+        <div class="card__body overview-air-score-body">
+          <div class="overview-gauge">
+            <div class="overview-gauge__ring">
+              <svg class="overview-gauge__svg" viewBox="0 0 132 132" aria-hidden="true">
+                <circle class="overview-gauge__track" cx="66" cy="66" r="52"></circle>
+                <circle id="overview-air-score-progress" class="overview-gauge__progress" cx="66" cy="66" r="52"></circle>
+              </svg>
+              <div class="overview-gauge__center">
+                <div id="overview-air-score-value" class="overview-gauge__value">--</div>
+                <div class="overview-gauge__label">IAQ Index</div>
               </div>
             </div>
           </div>
-          <div class="section-meta">
-            <span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">Live</span>
-            <span class="last-updated-pill" title="Time since last data sync">Last updated: 2 min ago</span>
+          <p id="overview-air-score-meta" class="overview-air-score-meta">Awaiting live IAQ data.</p>
+        </div>
+      </section>
+
+      @if($smacaIsAdmin)
+        <section class="card overview-stability-card">
+          <div class="card__header">
+            <h3 class="card__title">System Stability</h3>
           </div>
-          <!-- Quick Stats Grid -->
-          <div class="grid grid--metrics grid--metrics-4">
-            <div class="stat-card" title="Number of active sensors across all systems">
-              <div class="stat-card__content">
-                <div class="stat-card__label">Total Sensors</div>
-                <div class="stat-card__value">24</div>
-                <div class="stat-card__unit">active</div>
-                <div class="stat-card__meta">Across all systems</div>
-              </div>
-            </div>
-
-            <div class="stat-card" title="Percentage of sensors reporting healthy status">
-              <div class="stat-card__content">
-                <div class="stat-card__label">System Health</div>
-                <div class="stat-card__value">98%</div>
-                <div class="stat-card__unit"></div>
-                <div style="display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2);">
-                  <span class="badge badge--success badge--sm">Optimal</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="stat-card" title="Total data points collected today across all sensors">
-              <div class="stat-card__content">
-                <div class="stat-card__label">Data Points Today</div>
-                <div class="stat-card__value">12.4K</div>
-                <div class="stat-card__unit"></div>
-                <div class="stat-card__meta">Real-time collection</div>
-              </div>
-            </div>
-
-            <div class="stat-card" title="Time since last data refresh from sensors">
-              <div class="stat-card__content">
-                <div class="stat-card__label">Last Update</div>
-                <div class="stat-card__value">2</div>
-                <div class="stat-card__unit">min ago</div>
-                <div class="stat-card__meta">All systems synchronized</div>
-              </div>
-            </div>
+          <div class="card__body">
+            <div class="stat-row"><span class="stat-row__label">Sensors Online</span><span id="overview-sensors-online" class="stat-row__value">--</span></div>
+            <div class="stat-row"><span class="stat-row__label">Data Freshness</span><span id="overview-data-freshness-admin" class="stat-row__value">--</span></div>
+            <div class="stat-row"><span class="stat-row__label">Alert Count (24h)</span><span id="overview-ai-events" class="stat-row__value">--</span></div>
           </div>
+        </section>
+      @endif
+    </aside>
+  </div>
 
-          <!-- General Information Section -->
-          <div class="grid grid-2-1">
-            <div class="card">
-              <div class="card__header">
-                <div class="card__header-icon">
-                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <h3 class="card__title">About SMACA</h3>
-                </div>
-              </div>
-              <div class="card__body">
-                <div class="info-block">
-                  <h4 class="info-block__title">What is SMACA?</h4>
-                  <p class="info-block__content">SMACA (Smart Campus) is an integrated IoT platform for monitoring air quality, occupancy, energy consumption, and environmental conditions in smart buildings and campus facilities.</p>
-                </div>
-                <div class="info-block">
-                  <h4 class="info-block__title">Features</h4>
-                  <ul class="info-block__list">
-                    <li>Real-time air quality monitoring</li>
-                    <li>Occupancy and people flow analysis</li>
-                    <li>Energy consumption metrics</li>
-                    <li>Environmental indicators (UV, temperature)</li>
-                    <li>AI-powered predictions and recommendations</li>
-                    <li>Sensor management</li>
-                  </ul>
-                </div>
-                <div class="info-block">
-                  <h4 class="info-block__title">Quick tips</h4>
-                  <p class="info-block__content"><strong>Time Range:</strong> Use 24h / 7d / 30d in the topbar to filter data. <strong>Export:</strong> Click Export for CSV download. <strong>Alerts:</strong> Shown automatically when issues occur (high CO₂, low battery, weak signal).</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card__header">
-                <div class="card__header-icon">
-                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <h3 class="card__title">System Status</h3>
-                </div>
-              </div>
-              <div class="card__body">
-                <div class="stat-row"><span class="stat-row__label">Connected sensors</span><span id="overview-connected-sensors" class="stat-row__value">24</span></div>
-                <div class="stat-row"><span class="stat-row__label">Active</span><span id="overview-active-sensors" class="stat-row__value" style="color: var(--success);">23</span></div>
-                <div class="stat-row"><span class="stat-row__label">Maintenance</span><span id="overview-maintenance-sensors" class="stat-row__value" style="color: var(--warning);">1</span></div>
-                <div class="stat-row"><span class="stat-row__label">AI Events (24h)</span><span id="overview-ai-events" class="stat-row__value" style="color: var(--accent);">47</span></div>
-                <div style="border-top: 1px solid var(--border); padding-top: var(--space-4); margin-top: var(--space-4);">
-                  <h4 class="info-block__title" style="text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-3);">Quick tips</h4>
-                  <div class="quick-tips">
-                    <div class="quick-tip">
-                      <svg class="quick-tip__icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                      <div><div class="quick-tip__title">CO₂ Levels</div><div class="quick-tip__desc">Good: &lt;800 ppm, Warning: 800-1000 ppm, Danger: &gt;1000 ppm</div></div>
-                    </div>
-                    <div class="quick-tip">
-                      <svg class="quick-tip__icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                      <div><div class="quick-tip__title">Battery</div><div class="quick-tip__desc">&lt;20% = replacement needed</div></div>
-                    </div>
-                    <div class="quick-tip">
-                      <svg class="quick-tip__icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                      <div><div class="quick-tip__title">Signal (RSSI)</div><div class="quick-tip__desc">&gt;-70 dBm strong, -70 to -90 good, &lt;-90 weak</div></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+  <div class="overview-middle-grid {{ $smacaIsAdmin ? '' : 'overview-middle-grid--single' }}">
+    <section class="card overview-trend-card">
+      <div class="card__header">
+        <div class="card__header-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 3.055A9.005 9.005 0 0120.945 11H13V3.055z"></path>
+          </svg>
+          <h3 class="card__title">Campus Trend Overview</h3>
+        </div>
+      </div>
+      <div class="card__body">
+        <div class="overview-chart-shell" aria-label="Campus Trend Overview chart">
+          <div class="overview-chart-shell__legend">
+            <span><i class="overview-dot overview-dot--accent"></i> CO2 (ppm)</span>
+            <span><i class="overview-dot overview-dot--success"></i> Occupancy (count)</span>
+            <span><i class="overview-dot overview-dot--info"></i> Connectivity (% uptime)</span>
+            <span><i class="overview-dot overview-dot--warning"></i> UV Index</span>
           </div>
+          <div id="overview-campus-trend-chart" class="overview-chart-shell__plot overview-live-chart" role="img" aria-label="Campus trend line chart showing CO2, occupancy, and connectivity over time"></div>
+          <p class="overview-chart-shell__helper">Trends are aggregated hourly from live campus telemetry in the selected time range.</p>
+        </div>
+      </div>
+    </section>
 
-          <div class="grid grid-single">
-            <div class="card">
-              <div class="card__header">
-                <h3 class="card__title">Quick Access</h3>
-              </div>
-              <div class="card__body">
-                <div class="quick-links-grid">
-                  <a href="{{ url('/dashboard/iaq') }}" class="btn btn--secondary quick-link" data-section="iaq">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Indoor Air Quality
-                  </a>
-                  <a href="{{ url('/dashboard/occupancy') }}" class="btn btn--secondary quick-link" data-section="occupancy">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
-                    Occupancy
-                  </a>
-                  <a href="{{ url('/dashboard/energy') }}" class="btn btn--secondary quick-link" data-section="energy">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
-                    Energy
-                  </a>
-                  <a href="{{ url('/dashboard/connectivity') }}" class="btn btn--secondary quick-link" data-section="connectivity">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
-                    </svg>
-                    Connectivity
-                  </a>
-                  <a href="{{ url('/dashboard/environmental') }}" class="btn btn--secondary quick-link" data-section="environmental">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
-                    Environmental / UV
-                  </a>
-                  <a href="{{ url('/dashboard/ai-insights') }}" class="btn btn--secondary quick-link" data-section="ai-insights">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                    </svg>
-                    AI Insights
-                  </a>
-                </div>
-              </div>
+    @if($smacaIsAdmin)
+      <aside class="card overview-module-activity-card">
+        <div class="card__header">
+          <div class="card__header-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v18m14-18v18M3 7h18M3 17h18"></path>
+            </svg>
+            <h3 class="card__title">Module Activity</h3>
+          </div>
+        </div>
+        <div class="card__body">
+          <div class="overview-module-activity-list">
+            <div class="overview-module-activity-item">
+              <span class="overview-module-activity-item__label">Air Quality</span>
+              <span id="overview-module-status-iaq" class="overview-module-activity-item__status overview-module-activity-item__status--active">--</span>
+            </div>
+            <div class="overview-module-activity-item">
+              <span class="overview-module-activity-item__label">Environmental / UV</span>
+              <span id="overview-module-status-environmental" class="overview-module-activity-item__status overview-module-activity-item__status--stable">--</span>
+            </div>
+            <div class="overview-module-activity-item">
+              <span class="overview-module-activity-item__label">Occupancy</span>
+              <span id="overview-module-status-occupancy" class="overview-module-activity-item__status overview-module-activity-item__status--warning">--</span>
+            </div>
+            <div class="overview-module-activity-item">
+              <span class="overview-module-activity-item__label">Connectivity</span>
+              <span id="overview-module-status-connectivity" class="overview-module-activity-item__status overview-module-activity-item__status--stable">--</span>
             </div>
           </div>
         </div>
+      </aside>
+    @endif
+  </div>
+
+  <section class="card overview-quick-access">
+    <div class="card__header">
+      <h3 class="card__title">Quick Access Modules</h3>
+    </div>
+    <div class="card__body">
+      <div class="overview-module-grid">
+        <a href="{{ url('/dashboard/iaq') }}" class="overview-module-card" data-section="iaq">
+          <span class="overview-module-card__icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </span>
+          <span class="overview-module-card__title">Air Quality</span>
+          <span class="overview-module-card__desc">View indoor air metrics and trend baselines.</span>
+          <span class="overview-module-card__action">Open module</span>
+        </a>
+        <a href="{{ url('/dashboard/environmental') }}" class="overview-module-card" data-section="environmental">
+          <span class="overview-module-card__icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+          </span>
+          <span class="overview-module-card__title">Environmental / UV</span>
+          <span class="overview-module-card__desc">Track ambient conditions and UV exposure patterns.</span>
+          <span class="overview-module-card__action">Open module</span>
+        </a>
+        <a href="{{ url('/dashboard/occupancy') }}" class="overview-module-card" data-section="occupancy">
+          <span class="overview-module-card__icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+          </span>
+          <span class="overview-module-card__title">Occupancy</span>
+          <span class="overview-module-card__desc">Monitor utilization and movement across spaces.</span>
+          <span class="overview-module-card__action">Open module</span>
+        </a>
+        <a href="{{ url('/dashboard/connectivity') }}" class="overview-module-card" data-section="connectivity">
+          <span class="overview-module-card__icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
+          </span>
+          <span class="overview-module-card__title">Connectivity</span>
+          <span class="overview-module-card__desc">Inspect network reliability and endpoint health.</span>
+          <span class="overview-module-card__action">Open module</span>
+        </a>
+        @if($smacaIsAdmin)
+          <a href="{{ url('/dashboard/energy') }}" class="overview-module-card overview-module-card--admin" data-section="energy">
+            <span class="overview-module-card__icon">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </span>
+            <span class="overview-module-card__title">Energy</span>
+            <span class="overview-module-card__desc">Review usage, peaks, and efficiency indicators.</span>
+            <span class="overview-module-card__action">Open admin module</span>
+          </a>
+          <a href="{{ url('/dashboard/management') }}" class="overview-module-card overview-module-card--admin" data-section="management">
+            <span class="overview-module-card__icon">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </span>
+            <span class="overview-module-card__title">Management</span>
+            <span class="overview-module-card__desc">Maintain sensors, users, and platform operations.</span>
+            <span class="overview-module-card__action">Open admin module</span>
+          </a>
+          <a href="{{ url('/dashboard/ai-insights') }}" class="overview-module-card overview-module-card--admin" data-section="ai-insights">
+            <span class="overview-module-card__icon">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+            </span>
+            <span class="overview-module-card__title">AI Insights</span>
+            <span class="overview-module-card__desc">Discover anomaly signals and predictive recommendations.</span>
+            <span class="overview-module-card__action">Open admin module</span>
+          </a>
+        @endif
+      </div>
+    </div>
+  </section>
+</div>
 @endsection

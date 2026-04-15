@@ -78,10 +78,6 @@ Route::get('/dashboard', function () {
         return $loginRedirect;
     }
 
-    if (session('role') !== 'admin') {
-        return redirect('/dashboard/iaq');
-    }
-
     return view('dashboard.pages.overview', smacaDashboardViewData('overview'));
 });
 

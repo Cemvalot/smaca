@@ -112,7 +112,7 @@ function logSmacaHydratedState(lengths) {
 }
 
 const SMACA_PAGE_BUCKETS = {
-  overview: ['iaq'],
+  overview: ['iaq', 'occupancy', 'environmental'],
   iaq: ['iaq'],
   occupancy: ['occupancy'],
   environmental: ['environmental'],
@@ -885,23 +885,39 @@ function updateOverviewCountersFromApi(overview, sensors) {
   }).length;
   const connectedFallback = sensorRows.length;
   const totalFallback = sensorRows.length;
-  const maintenanceFallback = Math.max(0, totalFallback - activeFromSensors);
   const formatCount = function (value, fallback) {
     const resolved = Number.isFinite(Number(value)) ? Number(value) : Number(fallback);
     return Number.isFinite(resolved) ? String(resolved) : 'Not available';
   };
 
-  const totalSensorsEl = document.getElementById('overview-total-sensors');
-  if (totalSensorsEl) totalSensorsEl.textContent = formatCount(totals.sensors, totalFallback);
-
-  const connectedEl = document.getElementById('overview-connected-sensors');
-  if (connectedEl) connectedEl.textContent = formatCount(totals.connected_sensors, connectedFallback);
-
   const activeEl = document.getElementById('overview-active-sensors');
   if (activeEl) activeEl.textContent = formatCount(totals.active_sensors, activeFromSensors);
+  const activeTrendEl = document.getElementById('overview-active-sensors-trend');
+  if (activeTrendEl) activeTrendEl.textContent = `${formatCount(totals.active_sensors, activeFromSensors)} active now`;
 
-  const maintenanceEl = document.getElementById('overview-maintenance-sensors');
-  if (maintenanceEl) maintenanceEl.textContent = formatCount(totals.maintenance_sensors ?? totals.inactive_sensors, maintenanceFallback);
+  const connectivityHealthEl = document.getElementById('overview-connectivity-health');
+  if (connectivityHealthEl) {
+    const connected = Number.isFinite(Number(totals.connected_sensors)) ? Number(totals.connected_sensors) : connectedFallback;
+    const total = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : totalFallback;
+    connectivityHealthEl.textContent = total > 0 ? `${Math.round((connected / total) * 100)}%` : 'Not available';
+  }
+
+  const occupancyLoadEl = document.getElementById('overview-occupancy-load');
+  if (occupancyLoadEl) {
+    const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) && SMACAState.rawData.occupancy.length > 0
+      ? SMACAState.rawData.occupancy
+      : (typeof SMACAState.getFilteredOccupancy === 'function' ? (SMACAState.getFilteredOccupancy() || []) : []);
+    const latestOccupancy = resolveLatestOccupancyValue(occupancyRows);
+    const fallbackSnapshot = resolveLatestOccupancyFromOverviewSnapshot(overview);
+    const resolvedOccupancy = Number.isFinite(latestOccupancy) ? latestOccupancy : fallbackSnapshot;
+    occupancyLoadEl.textContent = Number.isFinite(resolvedOccupancy) ? String(Math.round(resolvedOccupancy)) : '--';
+    const occupancyTrendEl = document.getElementById('overview-occupancy-trend');
+    if (occupancyTrendEl) {
+      occupancyTrendEl.textContent = Number.isFinite(resolvedOccupancy) ? `${Math.round(resolvedOccupancy)} people detected` : 'No occupancy data';
+    }
+  }
+
+  updateOverviewLiveValues(overview, sensorRows);
 
   const lastRefreshEl = document.getElementById('overview-last-refresh');
   if (lastRefreshEl) {
@@ -914,6 +930,12 @@ function updateOverviewCountersFromApi(overview, sensors) {
       ? `Last updated: ${new Date(latestUpdate).toLocaleString()}`
       : 'Last updated: Not available';
   });
+  const explicitLastSync = document.getElementById('overview-last-sync');
+  if (explicitLastSync) {
+    explicitLastSync.textContent = latestUpdate
+      ? `Last sync: ${new Date(latestUpdate).toLocaleString()}`
+      : 'Last sync: Not available';
+  }
 
   const overviewSection = document.getElementById('overview');
   if (!overviewSection) return;
@@ -1347,6 +1369,9 @@ function renderCurrentPageOnly(timeframe, filteredData) {
 
   if (currentPage === 'overview' || currentPage === 'iaq') {
     renderIAQSection('render-current-page-only', true);
+  }
+  if (currentPage === 'overview') {
+    renderOverviewTrendChart(filteredData, timeframe);
   }
   if (currentPage === 'occupancy') {
     if (!document.getElementById('occupancy')) return;
@@ -2364,14 +2389,6 @@ function updateHeaderCounters(timeframe, filteredData) {
   }
   
   // Update Overview total sensors
-  const overviewCounter = document.getElementById('overview-total-sensors');
-  if (overviewCounter) {
-    const totals = window.SMACADashboardContext?.overview?.totals || {};
-    const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
-    const resolvedTotal = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensors.length;
-    overviewCounter.textContent = Number.isFinite(resolvedTotal) ? String(resolvedTotal) : 'Not available';
-  }
-  
   // Update Overview System Status counters
   updateOverviewSystemStatus();
 }
@@ -2383,23 +2400,20 @@ function updateOverviewSystemStatus() {
   const activeFallback = sensors.filter(s => s.is_active === true || s.is_active === 1 || s.is_active === '1').length;
   const activeSensors = Number.isFinite(Number(totals.active_sensors)) ? Number(totals.active_sensors) : activeFallback;
   const activeCounter = document.getElementById('overview-active-sensors');
-  if (activeCounter) {
-    activeCounter.textContent = activeSensors;
-  }
+  if (activeCounter) activeCounter.textContent = String(activeSensors);
   
   const maintenanceFallback = Math.max(0, sensors.length - activeFallback);
   const maintenanceSensors = Number.isFinite(Number(totals.maintenance_sensors ?? totals.inactive_sensors))
     ? Number(totals.maintenance_sensors ?? totals.inactive_sensors)
     : maintenanceFallback;
-  const maintenanceCounter = document.getElementById('overview-maintenance-sensors');
-  if (maintenanceCounter) {
-    maintenanceCounter.textContent = maintenanceSensors;
-  }
+  const freshnessAdmin = document.getElementById('overview-data-freshness-admin');
+  if (freshnessAdmin) freshnessAdmin.textContent = computeOverviewFreshnessLabel();
   
   const connectedSensors = Number.isFinite(Number(totals.connected_sensors)) ? Number(totals.connected_sensors) : sensors.length;
-  const connectedCounter = document.getElementById('overview-connected-sensors');
-  if (connectedCounter) {
-    connectedCounter.textContent = connectedSensors;
+  const totalSensors = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensors.length;
+  const connectivityHealthCounter = document.getElementById('overview-connectivity-health');
+  if (connectivityHealthCounter) {
+    connectivityHealthCounter.textContent = totalSensors > 0 ? `${Math.round((connectedSensors / totalSensors) * 100)}%` : 'Not available';
   }
   
   // Update AI events (from AI Insights if available)
@@ -2413,4 +2427,591 @@ function updateOverviewSystemStatus() {
       aiEventsCounter.textContent = '47'; // Default value
     }
   }
+  const sensorsOnlineEl = document.getElementById('overview-sensors-online');
+  if (sensorsOnlineEl) {
+    const totalSensors = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensors.length;
+    sensorsOnlineEl.textContent = `${connectedSensors}/${totalSensors}`;
+  }
+}
+
+function updateOverviewLiveValues(overview, sensorRows) {
+  const iaqRows = Array.isArray(SMACAState.rawData?.iaq) ? SMACAState.rawData.iaq : [];
+  const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : [];
+  const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : [];
+  const totals = overview?.totals || {};
+  const connectedSensors = Number.isFinite(Number(totals.connected_sensors)) ? Number(totals.connected_sensors) : sensorRows.length;
+  const totalSensors = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensorRows.length;
+  const connectivityPct = totalSensors > 0 ? Math.round((connectedSensors / totalSensors) * 100) : null;
+
+  const latestCo2 = resolveLatestMetricValue(iaqRows, 'co2');
+  const latestPm25 = resolveLatestMetricValue(iaqRows, 'pm2_5');
+  const latestUv = resolveLatestMetricValue(environmentalRows, 'uv_index');
+  const latestOccupancy = resolveLatestOccupancyValue(occupancyRows);
+
+  const airStatus = evaluateAirQualityStatus(latestCo2, latestPm25);
+  const occupancyStatus = evaluateOccupancyStatus(latestOccupancy);
+  const connectivityStatus = evaluateConnectivityStatus(connectivityPct);
+  const uvStatus = evaluateUvStatus(latestUv);
+
+  const airValueEl = document.getElementById('overview-air-quality-status');
+  if (airValueEl) airValueEl.textContent = airStatus.label;
+  const airTrendEl = document.getElementById('overview-air-quality-trend');
+  if (airTrendEl) {
+    airTrendEl.textContent = Number.isFinite(latestCo2) ? `CO2 ${Math.round(latestCo2)} ppm` : 'No IAQ data';
+  }
+
+  const connectivityTrendEl = document.getElementById('overview-connectivity-trend');
+  if (connectivityTrendEl) {
+    connectivityTrendEl.textContent = Number.isFinite(connectivityPct) ? `${connectivityPct}% uptime` : 'No connectivity data';
+  }
+
+  const badgeAir = document.getElementById('overview-badge-air-quality');
+  if (badgeAir) badgeAir.textContent = `Air Quality: ${airStatus.label}`;
+  const badgeConn = document.getElementById('overview-badge-connectivity');
+  if (badgeConn) badgeConn.textContent = `Connectivity: ${connectivityStatus.label}`;
+  const badgeOcc = document.getElementById('overview-badge-occupancy');
+  if (badgeOcc) badgeOcc.textContent = `Occupancy: ${occupancyStatus.label}`;
+  const badgeUv = document.getElementById('overview-badge-uv');
+  if (badgeUv) badgeUv.textContent = `Environmental/UV: ${uvStatus.label}`;
+
+  const streamsStatus = document.getElementById('overview-live-streams-status');
+  if (streamsStatus) {
+    streamsStatus.textContent = Number.isFinite(connectivityPct) ? `Live Streams: ${connectivityPct}% online` : 'Live Streams: Not available';
+  }
+  const freshnessText = computeOverviewFreshnessLabel();
+  const dataFreshness = document.getElementById('overview-data-freshness');
+  if (dataFreshness) dataFreshness.textContent = `Data freshness: ${freshnessText}`;
+
+  const airScore = computeAirQualityScore(latestCo2, latestPm25);
+  const airScoreValueEl = document.getElementById('overview-air-score-value');
+  if (airScoreValueEl) airScoreValueEl.textContent = Number.isFinite(airScore) ? String(Math.round(airScore)) : '--';
+  const airScoreMeta = document.getElementById('overview-air-score-meta');
+  if (airScoreMeta) {
+    airScoreMeta.textContent = Number.isFinite(latestCo2) && Number.isFinite(latestPm25)
+      ? `CO2 ${Math.round(latestCo2)} ppm and PM2.5 ${latestPm25.toFixed(1)} ug/m3.`
+      : 'Awaiting live IAQ data.';
+  }
+  const airScoreProgress = document.getElementById('overview-air-score-progress');
+  if (airScoreProgress) {
+    const score = Number.isFinite(airScore) ? Math.max(0, Math.min(100, airScore)) : 0;
+    const circumference = 326.73;
+    const offset = circumference - (score / 100) * circumference;
+    airScoreProgress.style.strokeDashoffset = String(offset);
+  }
+
+  setOverviewModuleStatus('overview-module-status-iaq', airStatus.moduleStatus, airStatus.moduleClass);
+  setOverviewModuleStatus('overview-module-status-environmental', uvStatus.moduleStatus, uvStatus.moduleClass);
+  setOverviewModuleStatus('overview-module-status-occupancy', occupancyStatus.moduleStatus, occupancyStatus.moduleClass);
+  setOverviewModuleStatus('overview-module-status-connectivity', connectivityStatus.moduleStatus, connectivityStatus.moduleClass);
+}
+
+function resolveLatestMetricValue(rows, metricKey) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  let latest = null;
+  let latestTime = -Infinity;
+  safeRows.forEach(function (item) {
+    const t = new Date(item?.time || item?.timestamp || 0).getTime();
+    const value = Number(item?.payload?.object?.[metricKey]);
+    if (!Number.isFinite(t) || !Number.isFinite(value) || t < latestTime) return;
+    latestTime = t;
+    latest = value;
+  });
+  return latest;
+}
+
+function evaluateAirQualityStatus(co2, pm25) {
+  if (!Number.isFinite(co2) && !Number.isFinite(pm25)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
+  if ((Number.isFinite(co2) && co2 > 1000) || (Number.isFinite(pm25) && pm25 > 35)) return { label: 'Alert', moduleStatus: 'Warning', moduleClass: 'warning' };
+  if ((Number.isFinite(co2) && co2 > 800) || (Number.isFinite(pm25) && pm25 > 15)) return { label: 'Moderate', moduleStatus: 'Stable', moduleClass: 'stable' };
+  return { label: 'Good', moduleStatus: 'Active', moduleClass: 'active' };
+}
+
+function evaluateOccupancyStatus(occupancy) {
+  if (!Number.isFinite(occupancy)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
+  if (occupancy >= 80) return { label: 'High', moduleStatus: 'Warning', moduleClass: 'warning' };
+  if (occupancy >= 30) return { label: 'Moderate', moduleStatus: 'Stable', moduleClass: 'stable' };
+  return { label: 'Low', moduleStatus: 'Active', moduleClass: 'active' };
+}
+
+function evaluateConnectivityStatus(connectivityPct) {
+  if (!Number.isFinite(connectivityPct)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
+  if (connectivityPct < 80) return { label: 'Unstable', moduleStatus: 'Warning', moduleClass: 'warning' };
+  if (connectivityPct < 95) return { label: 'Degraded', moduleStatus: 'Stable', moduleClass: 'stable' };
+  return { label: 'Stable', moduleStatus: 'Active', moduleClass: 'active' };
+}
+
+function evaluateUvStatus(uv) {
+  if (!Number.isFinite(uv)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
+  if (uv >= 8) return { label: 'High', moduleStatus: 'Warning', moduleClass: 'warning' };
+  if (uv >= 3) return { label: 'Moderate', moduleStatus: 'Stable', moduleClass: 'stable' };
+  return { label: 'Normal', moduleStatus: 'Active', moduleClass: 'active' };
+}
+
+function computeAirQualityScore(co2, pm25) {
+  if (!Number.isFinite(co2) && !Number.isFinite(pm25)) return null;
+  const co2Score = Number.isFinite(co2) ? Math.max(0, Math.min(100, 100 - ((co2 - 400) / 8))) : null;
+  const pmScore = Number.isFinite(pm25) ? Math.max(0, Math.min(100, 100 - (pm25 * 2))) : null;
+  if (Number.isFinite(co2Score) && Number.isFinite(pmScore)) return (co2Score * 0.7) + (pmScore * 0.3);
+  return Number.isFinite(co2Score) ? co2Score : pmScore;
+}
+
+function computeOverviewFreshnessLabel() {
+  const pools = [
+    Array.isArray(SMACAState.rawData?.iaq) ? SMACAState.rawData.iaq : [],
+    Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : [],
+    Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : []
+  ];
+  let latestTime = -Infinity;
+  pools.forEach(function (rows) {
+    rows.forEach(function (row) {
+      const t = new Date(row?.time || row?.timestamp || 0).getTime();
+      if (Number.isFinite(t) && t > latestTime) latestTime = t;
+    });
+  });
+  if (!Number.isFinite(latestTime) || latestTime <= 0) return 'Not available';
+  const seconds = Math.max(0, Math.round((Date.now() - latestTime) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  return `${minutes}m`;
+}
+
+function setOverviewModuleStatus(elementId, text, tone) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove(
+    'overview-module-activity-item__status--active',
+    'overview-module-activity-item__status--stable',
+    'overview-module-activity-item__status--warning'
+  );
+  const safeTone = tone === 'warning' ? 'warning' : tone === 'active' ? 'active' : 'stable';
+  el.classList.add(`overview-module-activity-item__status--${safeTone}`);
+}
+
+function resolveOccupancyValueFromPayload(payload) {
+  const safePayload = payload || {};
+  const totalIn = Number(safePayload.people_total_in);
+  const totalOut = Number(safePayload.people_total_out);
+  const liveOccupancy = Number(safePayload.occupancy);
+  const occupancyCount = Number(safePayload.occupancy_count);
+  const peopleCount = Number(safePayload.people_count);
+  const count = Number(safePayload.count);
+  const peopleIn = Number(safePayload.people_in);
+  const peopleOut = Number(safePayload.people_out);
+
+  if (Number.isFinite(liveOccupancy)) return liveOccupancy;
+  if (Number.isFinite(occupancyCount)) return occupancyCount;
+  if (Number.isFinite(peopleCount)) return peopleCount;
+  if (Number.isFinite(count)) return count;
+  if (Number.isFinite(totalIn) && Number.isFinite(totalOut)) return Math.max(0, totalIn - totalOut);
+  if (Number.isFinite(totalIn)) return totalIn;
+  if (Number.isFinite(peopleIn) && Number.isFinite(peopleOut)) return Math.max(0, peopleIn - peopleOut);
+  if (Number.isFinite(peopleIn)) return peopleIn;
+  return null;
+}
+
+function resolveLatestOccupancyValue(rows) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  let latestValue = null;
+  let latestTime = -Infinity;
+  safeRows.forEach(function (item) {
+    const t = new Date(item?.time || item?.timestamp || 0).getTime();
+    if (!Number.isFinite(t) || t < latestTime) return;
+    const value = resolveOccupancyValueFromPayload(item?.payload?.object);
+    if (!Number.isFinite(value)) return;
+    latestTime = t;
+    latestValue = value;
+  });
+  return latestValue;
+}
+
+function resolveLatestOccupancyFromOverviewSnapshot(overview) {
+  const snapshotRows = Array.isArray(overview?.latest_sensor_snapshot_rows) ? overview.latest_sensor_snapshot_rows : [];
+  let resolved = null;
+  snapshotRows.forEach(function (row) {
+    const value = resolveOccupancyValueFromPayload(row?.payload?.object || row?.payload || row?.object || row);
+    if (Number.isFinite(value)) resolved = value;
+  });
+  return resolved;
+}
+
+function renderOverviewTrendChart(filteredData, timeframe) {
+  const chartEl = document.getElementById('overview-campus-trend-chart');
+  if (!chartEl) return;
+
+  const iaqRows = Array.isArray(SMACAState.rawData?.iaq) && SMACAState.rawData.iaq.length > 0
+    ? SMACAState.rawData.iaq
+    : (filteredData?.iaq || []);
+  const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) && SMACAState.rawData.occupancy.length > 0
+    ? SMACAState.rawData.occupancy
+    : (filteredData?.occupancy || []);
+  const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) && SMACAState.rawData.environmental.length > 0
+    ? SMACAState.rawData.environmental
+    : (filteredData?.environmental || []);
+  const energyRows = Array.isArray(SMACAState.rawData?.energy) && SMACAState.rawData.energy.length > 0
+    ? SMACAState.rawData.energy
+    : (filteredData?.energy || []);
+
+  const allRows = []
+    .concat(iaqRows, occupancyRows, environmentalRows, energyRows)
+    .filter(Boolean);
+
+  const startMs = getOverviewChartStartTimestamp(timeframe);
+  const bucketMs = getOverviewChartBucketMs(timeframe);
+  const bucketCount = getOverviewChartBucketCount(timeframe);
+  const now = Date.now();
+  const endMs = Math.max(now, startMs + (bucketCount - 1) * bucketMs);
+  const buckets = Array.from({ length: bucketCount }, function (_, idx) {
+    return startMs + idx * bucketMs;
+  });
+
+  const co2ByBucket = aggregateMetricByBucket(iaqRows, 'co2', startMs, endMs, bucketMs);
+  const occupancyByBucket = aggregateOccupancyByBucket(occupancyRows, startMs, endMs, bucketMs);
+  const connectivityByBucket = aggregateConnectivityByBucket(allRows, startMs, endMs, bucketMs);
+  const uvByBucket = aggregateMetricByBucket(environmentalRows, 'uv_index', startMs, endMs, bucketMs);
+
+  const co2Series = carryForwardSeries(
+    buckets.map(function (bucket) {
+      const value = co2ByBucket[bucket];
+      return Number.isFinite(value) ? value : null;
+    })
+  );
+  const occupancySeries = carryForwardSeries(
+    buckets.map(function (bucket) {
+      const value = occupancyByBucket[bucket];
+      return Number.isFinite(value) ? value : null;
+    })
+  );
+  const connectivitySeries = carryForwardSeries(
+    buckets.map(function (bucket) {
+      const value = connectivityByBucket[bucket];
+      return Number.isFinite(value) ? value : null;
+    })
+  );
+  const uvSeries = carryForwardSeries(
+    buckets.map(function (bucket) {
+      const value = uvByBucket[bucket];
+      return Number.isFinite(value) ? value : null;
+    })
+  );
+
+  if (!co2Series.some(Number.isFinite) && !occupancySeries.some(Number.isFinite) && !connectivitySeries.some(Number.isFinite) && !uvSeries.some(Number.isFinite)) {
+    renderEmptyState('overview-campus-trend-chart', 'No trend data available for the selected range');
+    return;
+  }
+
+  drawOverviewSvgLineChart(chartEl, {
+    buckets: buckets,
+    series: [
+      { key: 'co2', label: 'CO2', unit: 'ppm', color: '#3b82f6', values: co2Series },
+      { key: 'occupancy', label: 'Occupancy', unit: ' people', color: '#22c55e', values: occupancySeries },
+      { key: 'connectivity', label: 'Connectivity', unit: '%', color: '#06b6d4', values: connectivitySeries },
+      { key: 'uv', label: 'UV', unit: '', color: '#f59e0b', values: uvSeries }
+    ]
+  });
+}
+
+function getOverviewChartBucketMs(timeframe) {
+  if (timeframe === '7d') return 6 * 60 * 60 * 1000;
+  if (timeframe === '30d') return 24 * 60 * 60 * 1000;
+  return 60 * 60 * 1000;
+}
+
+function getOverviewChartBucketCount(timeframe) {
+  if (timeframe === '7d') return 28;
+  if (timeframe === '30d') return 30;
+  return 24;
+}
+
+function getOverviewChartStartTimestamp(timeframe) {
+  const now = new Date();
+  if (timeframe === '7d') {
+    return now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  }
+  if (timeframe === '30d') {
+    return now.getTime() - 30 * 24 * 60 * 60 * 1000;
+  }
+  return now.getTime() - 24 * 60 * 60 * 1000;
+}
+
+function aggregateMetricByBucket(rows, metricKey, startMs, endMs, bucketMs) {
+  const byBucket = {};
+  const safeRows = Array.isArray(rows) ? rows : [];
+  safeRows.forEach(function (item) {
+    const t = new Date(item?.time || item?.timestamp || 0).getTime();
+    const value = Number(item?.payload?.object?.[metricKey]);
+    if (!Number.isFinite(t) || !Number.isFinite(value) || t < startMs || t > endMs) return;
+    const bucket = startMs + Math.floor((t - startMs) / bucketMs) * bucketMs;
+    if (!byBucket[bucket]) byBucket[bucket] = [];
+    byBucket[bucket].push(value);
+  });
+  return Object.keys(byBucket).reduce(function (acc, key) {
+    const values = byBucket[key];
+    acc[Number(key)] = values.reduce(function (sum, v) { return sum + v; }, 0) / values.length;
+    return acc;
+  }, {});
+}
+
+function aggregateOccupancyByBucket(rows, startMs, endMs, bucketMs) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const rawByBucket = {};
+  safeRows.forEach(function (item) {
+    const t = new Date(item?.time || item?.timestamp || 0).getTime();
+    if (!Number.isFinite(t) || t < startMs || t > endMs) return;
+    const resolvedValue = resolveOccupancyValueFromPayload(item?.payload?.object);
+    if (!Number.isFinite(resolvedValue)) return;
+    const bucket = startMs + Math.floor((t - startMs) / bucketMs) * bucketMs;
+    if (!rawByBucket[bucket]) rawByBucket[bucket] = [];
+    rawByBucket[bucket].push(resolvedValue);
+  });
+
+  const avgByBucket = {};
+  Object.keys(rawByBucket).forEach(function (key) {
+    const values = rawByBucket[key];
+    avgByBucket[Number(key)] = values.reduce(function (sum, v) { return sum + v; }, 0) / values.length;
+  });
+
+  return avgByBucket;
+}
+
+function aggregateConnectivityByBucket(rows, startMs, endMs, bucketMs) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+  const totalSensors = Math.max(1, sensors.length);
+  const bucketSensorSet = {};
+
+  safeRows.forEach(function (item) {
+    const t = new Date(item?.time || item?.timestamp || 0).getTime();
+    const sensorId = item?.sensorId;
+    if (!Number.isFinite(t) || t < startMs || t > endMs || sensorId === null || sensorId === undefined) return;
+    const bucket = startMs + Math.floor((t - startMs) / bucketMs) * bucketMs;
+    if (!bucketSensorSet[bucket]) bucketSensorSet[bucket] = new Set();
+    bucketSensorSet[bucket].add(String(sensorId));
+  });
+
+  return Object.keys(bucketSensorSet).reduce(function (acc, key) {
+    const onlineCount = bucketSensorSet[key].size;
+    acc[Number(key)] = Math.max(0, Math.min(100, (onlineCount / totalSensors) * 100));
+    return acc;
+  }, {});
+}
+
+function carryForwardSeries(values) {
+  const result = [];
+  let lastKnown = null;
+  values.forEach(function (value) {
+    if (Number.isFinite(value)) {
+      lastKnown = value;
+      result.push(value);
+    } else {
+      result.push(lastKnown);
+    }
+  });
+  return result;
+}
+
+function normalizeSeriesForOverviewChart(values, strategy) {
+  const safeValues = Array.isArray(values) ? values : [];
+  if (strategy === 'percent') {
+    return safeValues.map(function (value) {
+      if (!Number.isFinite(value)) return null;
+      return Math.max(0, Math.min(100, value));
+    });
+  }
+  const finiteValues = safeValues.filter(Number.isFinite);
+  if (finiteValues.length === 0) {
+    return safeValues.map(function () { return null; });
+  }
+  const min = Math.min(...finiteValues);
+  const max = Math.max(...finiteValues);
+  const range = Math.max(1, max - min);
+  return safeValues.map(function (value) {
+    if (!Number.isFinite(value)) return null;
+    return ((value - min) / range) * 100;
+  });
+}
+
+function drawOverviewSvgLineChart(container, payload) {
+  const width = Math.max(container.clientWidth, 600);
+  const height = Math.max(container.clientHeight, 280);
+  const padding = { top: 18, right: 16, bottom: 34, left: 38 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const bucketCount = payload.buckets.length;
+
+  if (!bucketCount) {
+    renderEmptyState('overview-campus-trend-chart', 'No trend data available');
+    return;
+  }
+
+  const dateFormatter = new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const toPath = function (points) {
+    if (!points.length) return '';
+    if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const current = points[i];
+      const next = points[i + 1];
+      const controlX = (current.x + next.x) / 2;
+      d += ` C ${controlX} ${current.y}, ${controlX} ${next.y}, ${next.x} ${next.y}`;
+    }
+    return d;
+  };
+
+  const xScale = function (idx) {
+    return bucketCount <= 1 ? 0 : (idx / (bucketCount - 1)) * chartWidth;
+  };
+  const yScale = function (value) {
+    return chartHeight - (Math.max(0, Math.min(100, value)) / 100) * chartHeight;
+  };
+
+  const normalizedSeries = payload.series.map(function (series) {
+    const strategy = series.key === 'connectivity' ? 'percent' : 'relative';
+    return normalizeSeriesForOverviewChart(series.values, strategy);
+  });
+
+  const pointsBySeries = payload.series.map(function (series, seriesIndex) {
+    return normalizedSeries[seriesIndex].map(function (value, idx) {
+      return {
+        x: xScale(idx),
+        y: yScale(Number.isFinite(value) ? value : 0),
+        raw: series.values[idx]
+      };
+    });
+  });
+
+  const markerCount = Math.min(6, bucketCount);
+  const xTickIndexes = Array.from({ length: markerCount }, function (_, idx) {
+    return Math.round((idx / Math.max(1, markerCount - 1)) * (bucketCount - 1));
+  });
+  const yTicks = [0, 25, 50, 75, 100];
+
+  const defs = payload.series.map(function (series) {
+    return `
+      <linearGradient id="overview-area-${series.key}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${series.color}" stop-opacity="0.28"></stop>
+        <stop offset="100%" stop-color="${series.color}" stop-opacity="0"></stop>
+      </linearGradient>
+    `;
+  }).join('');
+
+  const yGrid = yTicks.map(function (tick) {
+    const y = yScale(tick);
+    return `<line x1="0" y1="${y}" x2="${chartWidth}" y2="${y}"></line>`;
+  }).join('');
+  const xGrid = xTickIndexes.map(function (idx) {
+    const x = xScale(idx);
+    return `<line x1="${x}" y1="0" x2="${x}" y2="${chartHeight}"></line>`;
+  }).join('');
+  const xLabels = xTickIndexes.map(function (idx) {
+    const x = xScale(idx);
+    return `<text class="chart-label" x="${x}" y="${chartHeight + 18}" text-anchor="middle">${dateFormatter.format(new Date(payload.buckets[idx]))}</text>`;
+  }).join('');
+  const seriesPaths = payload.series.map(function (series, seriesIndex) {
+    const points = pointsBySeries[seriesIndex];
+    const linePath = toPath(points);
+    const areaPath = `${linePath} L ${points[points.length - 1].x} ${chartHeight} L ${points[0].x} ${chartHeight} Z`;
+    return `
+      <path class="chart-area" d="${areaPath}" fill="url(#overview-area-${series.key})"></path>
+      <path class="chart-line" d="${linePath}" stroke="${series.color}" data-series="${series.key}"></path>
+    `;
+  }).join('');
+
+  const hitRects = payload.buckets.map(function (_, idx) {
+    const center = xScale(idx);
+    const nextCenter = idx < bucketCount - 1 ? xScale(idx + 1) : chartWidth;
+    const prevCenter = idx > 0 ? xScale(idx - 1) : 0;
+    const widthAtIdx = Math.max(14, (nextCenter - prevCenter) / 2);
+    const x = Math.max(0, center - widthAtIdx / 2);
+    return `<rect class="chart-hit" data-index="${idx}" x="${x}" y="0" width="${widthAtIdx}" height="${chartHeight}"></rect>`;
+  }).join('');
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="presentation" aria-hidden="true">
+      <defs>${defs}</defs>
+      <g transform="translate(${padding.left}, ${padding.top})">
+        <g class="chart-grid">${yGrid}${xGrid}</g>
+        <g class="chart-axis">
+          <line x1="0" y1="${chartHeight}" x2="${chartWidth}" y2="${chartHeight}"></line>
+          <line x1="0" y1="0" x2="0" y2="${chartHeight}"></line>
+        </g>
+        ${seriesPaths}
+        <line class="chart-focus-line" x1="0" y1="0" x2="0" y2="${chartHeight}"></line>
+        <g>${xLabels}</g>
+        <g>${hitRects}</g>
+      </g>
+    </svg>
+    <div class="overview-chart-tooltip" aria-hidden="true"></div>
+  `;
+
+  const tooltip = container.querySelector('.overview-chart-tooltip');
+  const focusLine = container.querySelector('.chart-focus-line');
+  const hitTargets = Array.from(container.querySelectorAll('.chart-hit'));
+
+  const setHover = function (index) {
+    const x = xScale(index);
+    focusLine.setAttribute('x1', x);
+    focusLine.setAttribute('x2', x);
+    container.classList.add('is-hovering');
+
+    const rows = payload.series.map(function (series, seriesIndex) {
+      const value = pointsBySeries[seriesIndex][index]?.raw;
+      const formatted = Number.isFinite(value)
+        ? (series.key === 'co2'
+          ? `${Math.round(value)} ${series.unit}`
+          : series.key === 'occupancy'
+            ? `${Math.round(value)}${series.unit}`
+            : series.key === 'uv'
+              ? `${value.toFixed(1)}`
+            : `${value.toFixed(1)}${series.unit}`)
+        : 'N/A';
+      return `
+        <div class="overview-chart-tooltip__row">
+          <span class="overview-chart-tooltip__label">
+            <span class="overview-chart-tooltip__swatch" style="background:${series.color}"></span>${series.label}
+          </span>
+          <strong>${formatted}</strong>
+        </div>
+      `;
+    }).join('');
+
+    tooltip.innerHTML = `
+      <div class="overview-chart-tooltip__time">${dateFormatter.format(new Date(payload.buckets[index]))}</div>
+      ${rows}
+    `;
+    tooltip.classList.add('is-visible');
+
+    const rect = container.getBoundingClientRect();
+    const tooltipWidth = tooltip.offsetWidth || 180;
+    const tooltipHeight = tooltip.offsetHeight || 88;
+    const left = Math.min(
+      Math.max(8, padding.left + x + 12),
+      rect.width - tooltipWidth - 8
+    );
+    const top = Math.min(
+      Math.max(8, padding.top + 8),
+      rect.height - tooltipHeight - 8
+    );
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+
+  const clearHover = function () {
+    container.classList.remove('is-hovering');
+    tooltip.classList.remove('is-visible');
+  };
+
+  hitTargets.forEach(function (target) {
+    target.addEventListener('mouseenter', function () {
+      setHover(Number(target.dataset.index));
+    });
+    target.addEventListener('mousemove', function () {
+      setHover(Number(target.dataset.index));
+    });
+  });
+  container.addEventListener('mouseleave', clearHover);
 }

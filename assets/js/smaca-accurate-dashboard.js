@@ -147,6 +147,22 @@ function isFiniteMetric(value) {
   return Number.isFinite(Number(value));
 }
 
+function hexToRgb(color) {
+  const value = String(color || '').trim().replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(value)) return { r: 59, g: 130, b: 246 };
+  return {
+    r: parseInt(value.slice(0, 2), 16),
+    g: parseInt(value.slice(2, 4), 16),
+    b: parseInt(value.slice(4, 6), 16)
+  };
+}
+
+function toRgba(color, alpha) {
+  const rgb = hexToRgb(color);
+  const a = Number.isFinite(Number(alpha)) ? Number(alpha) : 1;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;
+}
+
 function computeIaqDashboardData(normalizedRows, timeframe) {
   const rows = Array.isArray(normalizedRows) ? normalizedRows : [];
   const metrics = ['co2', 'temperature', 'humidity', 'pm2_5', 'pm10', 'tvoc'];
@@ -404,29 +420,32 @@ function bindIaqMetricToggle() {
 }
 
 function getThresholdBandsForMetric(metric) {
+  const softBandA = 'rgba(148, 163, 184, 0.06)';
+  const softBandB = 'rgba(148, 163, 184, 0.04)';
+  const softBandC = 'rgba(148, 163, 184, 0.03)';
   if (metric === 'co2') {
     return [
-      { min: 400, max: 800, color: 'rgba(16,185,129,0.12)' },
-      { min: 800, max: 1000, color: 'rgba(245,158,11,0.12)' },
-      { min: 1000, max: Number.POSITIVE_INFINITY, color: 'rgba(239,68,68,0.12)' }
+      { min: 400, max: 800, color: softBandA },
+      { min: 800, max: 1000, color: softBandB },
+      { min: 1000, max: Number.POSITIVE_INFINITY, color: softBandC }
     ];
   }
   if (metric === 'pm2_5') {
     return [
-      { min: 0, max: 12, color: 'rgba(16,185,129,0.12)' },
-      { min: 12, max: 35, color: 'rgba(245,158,11,0.12)' },
-      { min: 35, max: Number.POSITIVE_INFINITY, color: 'rgba(239,68,68,0.12)' }
+      { min: 0, max: 12, color: softBandA },
+      { min: 12, max: 35, color: softBandB },
+      { min: 35, max: Number.POSITIVE_INFINITY, color: softBandC }
     ];
   }
   if (metric === 'pm10') {
     return [
-      { min: 0, max: 20, color: 'rgba(16,185,129,0.12)' },
-      { min: 20, max: 50, color: 'rgba(245,158,11,0.12)' },
-      { min: 50, max: Number.POSITIVE_INFINITY, color: 'rgba(239,68,68,0.12)' }
+      { min: 0, max: 20, color: softBandA },
+      { min: 20, max: 50, color: softBandB },
+      { min: 50, max: Number.POSITIVE_INFINITY, color: softBandC }
     ];
   }
-  if (metric === 'temperature') return [{ min: 21, max: 25, color: 'rgba(6,182,212,0.12)' }];
-  if (metric === 'humidity') return [{ min: 40, max: 60, color: 'rgba(99,102,241,0.12)' }];
+  if (metric === 'temperature') return [{ min: 21, max: 25, color: softBandA }];
+  if (metric === 'humidity') return [{ min: 40, max: 60, color: softBandA }];
   return [];
 }
 
@@ -526,16 +545,58 @@ function renderIaqMainTrendChart(computed) {
   }
   const yScale = function (v) { return chartHeight - ((v - min) / (max - min || 1)) * chartHeight; };
   const xScale = function (i) { return (i / Math.max(1, series.length - 1)) * chartWidth; };
-  const path = series.map(function (entry, i) {
+  const points = series.map(function (entry, i) {
     const x = xScale(i);
     const y = yScale(Number(entry.value));
-    return `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    return { x: x, y: y, value: Number(entry.value), time: entry.time };
+  });
+  const path = points.map(function (point, i) {
+    return `${i === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
   }).join(' ');
 
   chartEl.innerHTML = '';
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('class', 'chart-svg');
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  const gradientKey = `iaq-main-${metric}-${Date.now()}`;
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const lineGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  lineGradient.setAttribute('id', `${gradientKey}-line`);
+  lineGradient.setAttribute('x1', '0%');
+  lineGradient.setAttribute('y1', '0%');
+  lineGradient.setAttribute('x2', '100%');
+  lineGradient.setAttribute('y2', '0%');
+  const lineStopStart = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  lineStopStart.setAttribute('offset', '0%');
+  lineStopStart.setAttribute('stop-color', toRgba(cfg.color, 0.8));
+  const lineStopMid = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  lineStopMid.setAttribute('offset', '50%');
+  lineStopMid.setAttribute('stop-color', cfg.color);
+  const lineStopEnd = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  lineStopEnd.setAttribute('offset', '100%');
+  lineStopEnd.setAttribute('stop-color', toRgba(cfg.color, 0.85));
+  lineGradient.appendChild(lineStopStart);
+  lineGradient.appendChild(lineStopMid);
+  lineGradient.appendChild(lineStopEnd);
+  defs.appendChild(lineGradient);
+
+  const areaGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  areaGradient.setAttribute('id', `${gradientKey}-area`);
+  areaGradient.setAttribute('x1', '0%');
+  areaGradient.setAttribute('y1', '0%');
+  areaGradient.setAttribute('x2', '0%');
+  areaGradient.setAttribute('y2', '100%');
+  const areaStopTop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  areaStopTop.setAttribute('offset', '0%');
+  areaStopTop.setAttribute('stop-color', toRgba(cfg.color, 0.16));
+  const areaStopBottom = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  areaStopBottom.setAttribute('offset', '100%');
+  areaStopBottom.setAttribute('stop-color', toRgba(cfg.color, 0.02));
+  areaGradient.appendChild(areaStopTop);
+  areaGradient.appendChild(areaStopBottom);
+  defs.appendChild(areaGradient);
+  svg.appendChild(defs);
+
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   g.setAttribute('transform', `translate(${padding.left},${padding.top})`);
 
@@ -586,31 +647,54 @@ function renderIaqMainTrendChart(computed) {
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   line.setAttribute('d', path);
   line.setAttribute('fill', 'none');
-  line.setAttribute('stroke', cfg.color);
+  line.setAttribute('stroke', `url(#${gradientKey}-line)`);
   line.setAttribute('stroke-width', '2.75');
   line.setAttribute('stroke-linejoin', 'round');
   line.setAttribute('stroke-linecap', 'round');
   const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   const areaPath = `${path} L ${xScale(series.length - 1).toFixed(2)} ${chartHeight} L 0 ${chartHeight} Z`;
   area.setAttribute('d', areaPath);
-  area.setAttribute('fill', cfg.color);
-  area.setAttribute('opacity', '0.08');
+  area.setAttribute('fill', `url(#${gradientKey}-area)`);
   g.appendChild(area);
   g.appendChild(line);
 
-  const lastPoint = series[series.length - 1];
-  if (lastPoint) {
-    const cx = xScale(series.length - 1);
-    const cy = yScale(Number(lastPoint.value));
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', String(cx));
-    dot.setAttribute('cy', String(cy));
-    dot.setAttribute('r', '4');
-    dot.setAttribute('fill', cfg.color);
-    dot.setAttribute('stroke', '#0f172a');
-    dot.setAttribute('stroke-width', '1.5');
-    g.appendChild(dot);
-  }
+  const staticMarkerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  points.forEach(function (point, idx) {
+    const markerStep = Math.max(1, Math.floor(points.length / 10));
+    const shouldShow = idx === 0 || idx === points.length - 1 || idx % markerStep === 0;
+    if (!shouldShow) return;
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    marker.setAttribute('cx', String(point.x));
+    marker.setAttribute('cy', String(point.y));
+    marker.setAttribute('r', '2.5');
+    marker.setAttribute('fill', cfg.color);
+    marker.setAttribute('opacity', '0.65');
+    marker.setAttribute('stroke', '#0f172a');
+    marker.setAttribute('stroke-width', '1');
+    staticMarkerGroup.appendChild(marker);
+  });
+  g.appendChild(staticMarkerGroup);
+
+  const focusLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  focusLine.setAttribute('x1', '0');
+  focusLine.setAttribute('y1', '0');
+  focusLine.setAttribute('x2', '0');
+  focusLine.setAttribute('y2', String(chartHeight));
+  focusLine.setAttribute('stroke', 'rgba(148, 163, 184, 0.45)');
+  focusLine.setAttribute('stroke-width', '1');
+  focusLine.setAttribute('stroke-dasharray', '3 3');
+  focusLine.setAttribute('opacity', '0');
+  g.appendChild(focusLine);
+
+  const hoverDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  hoverDot.setAttribute('cx', '0');
+  hoverDot.setAttribute('cy', '0');
+  hoverDot.setAttribute('r', '4');
+  hoverDot.setAttribute('fill', cfg.color);
+  hoverDot.setAttribute('stroke', '#0f172a');
+  hoverDot.setAttribute('stroke-width', '1.5');
+  hoverDot.setAttribute('opacity', '0');
+  g.appendChild(hoverDot);
 
   const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   xAxis.setAttribute('x1', '0');
@@ -649,8 +733,94 @@ function renderIaqMainTrendChart(computed) {
   yAxisUnitLabel.textContent = cfg.unit;
   g.appendChild(yAxisUnitLabel);
 
+  const hitGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  points.forEach(function (point, idx) {
+    const prevX = idx > 0 ? points[idx - 1].x : 0;
+    const nextX = idx < points.length - 1 ? points[idx + 1].x : chartWidth;
+    const hitWidth = Math.max(12, (nextX - prevX) / 2);
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', String(Math.max(0, point.x - hitWidth / 2)));
+    rect.setAttribute('y', '0');
+    rect.setAttribute('width', String(hitWidth));
+    rect.setAttribute('height', String(chartHeight));
+    rect.setAttribute('fill', 'transparent');
+    rect.style.cursor = 'crosshair';
+    rect.dataset.index = String(idx);
+    hitGroup.appendChild(rect);
+  });
+  g.appendChild(hitGroup);
+
   svg.appendChild(g);
   chartEl.appendChild(svg);
+
+  const tooltip = document.createElement('div');
+  tooltip.style.position = 'absolute';
+  tooltip.style.pointerEvents = 'none';
+  tooltip.style.minWidth = '150px';
+  tooltip.style.padding = '10px 12px';
+  tooltip.style.borderRadius = 'var(--r-md)';
+  tooltip.style.border = '1px solid rgba(148, 163, 184, 0.3)';
+  tooltip.style.background = '#111827';
+  tooltip.style.boxShadow = '0 8px 18px rgba(15, 23, 42, 0.24)';
+  tooltip.style.color = 'var(--text)';
+  tooltip.style.fontSize = 'var(--font-size-xs)';
+  tooltip.style.opacity = '0';
+  tooltip.style.transform = 'translateY(4px)';
+  tooltip.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+  tooltip.style.zIndex = '3';
+  chartEl.appendChild(tooltip);
+
+  const formatValue = function (value) {
+    if (!Number.isFinite(value)) return 'N/A';
+    const decimals = Number.isFinite(Number(cfg.decimals)) ? Number(cfg.decimals) : 0;
+    return `${value.toFixed(decimals)} ${cfg.unit}`.trim();
+  };
+
+  const showHoverAt = function (index) {
+    const point = points[index];
+    if (!point) return;
+    focusLine.setAttribute('x1', String(point.x));
+    focusLine.setAttribute('x2', String(point.x));
+    focusLine.setAttribute('opacity', '1');
+    hoverDot.setAttribute('cx', String(point.x));
+    hoverDot.setAttribute('cy', String(point.y));
+    hoverDot.setAttribute('opacity', '1');
+
+    tooltip.innerHTML = `
+      <div style="margin-bottom:8px;color:var(--muted);">${formatTime(point.time, computed.timeframe !== '24h')}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);">
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <span style="width:8px;height:8px;border-radius:999px;background:${cfg.color};"></span>${cfg.label}
+        </span>
+        <strong>${formatValue(point.value)}</strong>
+      </div>
+    `;
+    tooltip.style.opacity = '1';
+    tooltip.style.transform = 'translateY(0)';
+    const tooltipWidth = tooltip.offsetWidth || 160;
+    const tooltipHeight = tooltip.offsetHeight || 72;
+    const left = Math.min(Math.max(8, padding.left + point.x + 12), width - tooltipWidth - 8);
+    const top = Math.min(Math.max(8, padding.top + 8), height - tooltipHeight - 8);
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+
+  const hideHover = function () {
+    focusLine.setAttribute('opacity', '0');
+    hoverDot.setAttribute('opacity', '0');
+    tooltip.style.opacity = '0';
+    tooltip.style.transform = 'translateY(4px)';
+  };
+
+  Array.from(hitGroup.querySelectorAll('rect')).forEach(function (rect) {
+    rect.addEventListener('mouseenter', function () {
+      showHoverAt(Number(rect.dataset.index));
+    });
+    rect.addEventListener('mousemove', function () {
+      showHoverAt(Number(rect.dataset.index));
+    });
+  });
+  chartEl.addEventListener('mouseleave', hideHover);
 }
 
 function renderIaqHourlyHeatStrip(computed) {
