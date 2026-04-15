@@ -469,6 +469,10 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
   const chartHeight = height - padding.top - padding.bottom;
   
   container.innerHTML = '';
+  container.style.position = 'relative';
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = 'position:absolute;pointer-events:none;min-width:150px;padding:8px 10px;border-radius:var(--r-md);border:1px solid rgba(148,163,184,.3);background:#111827;color:var(--text);font-size:var(--font-size-xs);opacity:0;transform:translateY(4px);transition:opacity .15s ease, transform .15s ease;z-index:3;';
+  container.appendChild(tooltip);
   
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('class', 'chart-svg');
@@ -498,6 +502,23 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
     inRect.setAttribute('width', barWidth);
     inRect.setAttribute('height', inBarHeight);
     inRect.setAttribute('fill', '#10b981');
+    inRect.style.cursor = 'pointer';
+    inRect.addEventListener('mouseenter', function () {
+      tooltip.innerHTML = `
+        <div style="color:var(--muted);margin-bottom:4px;">${inData.length <= 7 ? `Day ${i + 1}` : `${i}h`}</div>
+        <div>In: <strong>${Math.round(inVal)}</strong></div>
+        <div>Out: <strong>${Math.round(outVal)}</strong></div>
+      `;
+      tooltip.style.opacity = '1';
+      tooltip.style.transform = 'translateY(0)';
+      const tipW = tooltip.offsetWidth || 150;
+      tooltip.style.left = `${Math.min(Math.max(8, padding.left + x + barWidth + 8), width - tipW - 8)}px`;
+      tooltip.style.top = `${Math.max(8, padding.top + centerY - inBarHeight - 44)}px`;
+    });
+    inRect.addEventListener('mouseleave', function () {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateY(4px)';
+    });
     chartGroup.appendChild(inRect);
     
     // Out bar (downward)
@@ -509,7 +530,51 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
     outRect.setAttribute('width', barWidth);
     outRect.setAttribute('height', outBarHeight);
     outRect.setAttribute('fill', '#ef4444');
+    outRect.style.cursor = 'pointer';
+    outRect.addEventListener('mouseenter', function () {
+      tooltip.innerHTML = `
+        <div style="color:var(--muted);margin-bottom:4px;">${inData.length <= 7 ? `Day ${i + 1}` : `${i}h`}</div>
+        <div>In: <strong>${Math.round(inVal)}</strong></div>
+        <div>Out: <strong>${Math.round(outVal)}</strong></div>
+      `;
+      tooltip.style.opacity = '1';
+      tooltip.style.transform = 'translateY(0)';
+      const tipW = tooltip.offsetWidth || 150;
+      tooltip.style.left = `${Math.min(Math.max(8, padding.left + x + barWidth + 8), width - tipW - 8)}px`;
+      tooltip.style.top = `${Math.max(8, padding.top + centerY + 12)}px`;
+    });
+    outRect.addEventListener('mouseleave', function () {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateY(4px)';
+    });
     chartGroup.appendChild(outRect);
+
+    // Value labels with overlap protection near max/top
+    const isAtMaxIn = inVal >= maxValue;
+    const inLabelY = centerY - inBarHeight - 6;
+    if (inVal > 0 && !isAtMaxIn && inLabelY > 10) {
+      const inValueLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      inValueLabel.setAttribute('x', x + (barWidth / 2));
+      inValueLabel.setAttribute('y', inLabelY);
+      inValueLabel.setAttribute('fill', '#10b981');
+      inValueLabel.setAttribute('font-size', '10');
+      inValueLabel.setAttribute('text-anchor', 'middle');
+      inValueLabel.textContent = String(Math.round(inVal));
+      chartGroup.appendChild(inValueLabel);
+    }
+
+    const isAtMaxOut = outVal >= maxValue;
+    const outLabelY = centerY + outBarHeight + 12;
+    if (outVal > 0 && !isAtMaxOut && outLabelY < chartHeight - 6) {
+      const outValueLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      outValueLabel.setAttribute('x', x + (barWidth / 2));
+      outValueLabel.setAttribute('y', outLabelY);
+      outValueLabel.setAttribute('fill', '#ef4444');
+      outValueLabel.setAttribute('font-size', '10');
+      outValueLabel.setAttribute('text-anchor', 'middle');
+      outValueLabel.textContent = String(Math.round(outVal));
+      chartGroup.appendChild(outValueLabel);
+    }
   });
   
   // Center line
@@ -598,6 +663,10 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   const chartHeight = height - padding.top - padding.bottom;
   
   container.innerHTML = '';
+  container.style.position = 'relative';
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = 'position:absolute;pointer-events:none;min-width:140px;padding:8px 10px;border-radius:var(--r-md);border:1px solid rgba(148,163,184,.3);background:#111827;color:var(--text);font-size:var(--font-size-xs);opacity:0;transform:translateY(4px);transition:opacity .15s ease, transform .15s ease;z-index:3;';
+  container.appendChild(tooltip);
   
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('class', 'chart-svg');
@@ -647,6 +716,47 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   linePath.setAttribute('stroke', '#3b82f6');
   linePath.setAttribute('stroke-width', '2');
   chartGroup.appendChild(linePath);
+
+  // Hover zones and value labels with max overlap protection
+  data.forEach((value, i) => {
+    const x = i * stepWidth;
+    const y = toY(value);
+    const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    hit.setAttribute('x', x);
+    hit.setAttribute('y', 0);
+    hit.setAttribute('width', stepWidth);
+    hit.setAttribute('height', chartHeight);
+    hit.setAttribute('fill', 'transparent');
+    hit.style.cursor = 'crosshair';
+    hit.addEventListener('mouseenter', function () {
+      tooltip.innerHTML = `
+        <div style="color:var(--muted);margin-bottom:4px;">${data.length <= 7 ? `Day ${i + 1}` : `${i}h`}</div>
+        <div>Activity: <strong>${Math.round(value)}</strong></div>
+      `;
+      tooltip.style.opacity = '1';
+      tooltip.style.transform = 'translateY(0)';
+      const tipW = tooltip.offsetWidth || 140;
+      tooltip.style.left = `${Math.min(Math.max(8, padding.left + x + 8), width - tipW - 8)}px`;
+      tooltip.style.top = `${Math.max(8, padding.top + y - 40)}px`;
+    });
+    hit.addEventListener('mouseleave', function () {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateY(4px)';
+    });
+    chartGroup.appendChild(hit);
+
+    const isAtMax = value >= maxValue;
+    if (value > 0 && !isAtMax && y > 12) {
+      const valueLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      valueLabel.setAttribute('x', x + stepWidth / 2);
+      valueLabel.setAttribute('y', y - 6);
+      valueLabel.setAttribute('fill', '#93c5fd');
+      valueLabel.setAttribute('font-size', '10');
+      valueLabel.setAttribute('text-anchor', 'middle');
+      valueLabel.textContent = String(Math.round(value));
+      chartGroup.appendChild(valueLabel);
+    }
+  });
   
   // Draw axes
   const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');

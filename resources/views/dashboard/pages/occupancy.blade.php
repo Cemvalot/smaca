@@ -33,14 +33,14 @@
           </div>
           
           <!-- Domain-Driven Visualizations -->
-          <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6);">
-            <div class="card">
+          <div class="grid occupancy-primary-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6);">
+            <div class="card occupancy-primary-card">
               <div class="card__header">
                 <h3 class="card__title">Flow Over Time (In/Out)</h3>
                 <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is space actually being used?</p>
               </div>
-              <div class="card__body">
-                <div class="chart-placeholder" id="occupancy-flow-chart"></div>
+              <div class="card__body occupancy-primary-card__body">
+                <div class="chart-placeholder occupancy-primary-chart" id="occupancy-flow-chart"></div>
                 <div class="smaca-accordion smaca-accordion--collapsed">
                   <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
                     <span>What is this graph?</span>
@@ -67,13 +67,13 @@
                 </div>
               </div>
             </div>
-            <div class="card">
+            <div class="card occupancy-primary-card">
               <div class="card__header">
                 <h3 class="card__title">Activity Over Time</h3>
                 <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is traffic/movement highest? (entries + exits)</p>
               </div>
-              <div class="card__body">
-                <div class="chart-placeholder" id="occupancy-density-timeline"></div>
+              <div class="card__body occupancy-primary-card__body">
+                <div class="chart-placeholder occupancy-primary-chart" id="occupancy-density-timeline"></div>
                 <div class="smaca-accordion smaca-accordion--collapsed">
                   <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
                     <span>What is this graph?</span>

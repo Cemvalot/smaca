@@ -1,3 +1,20 @@
+@php
+  $smacaAssetVersion = static function (string $relativePath): string {
+    static $versionCache = [];
+
+    if (isset($versionCache[$relativePath])) {
+      return $versionCache[$relativePath];
+    }
+
+    $absolutePath = public_path($relativePath);
+    $version = is_file($absolutePath)
+      ? (string) filemtime($absolutePath)
+      : (string) config('app.version', '1');
+
+    $versionCache[$relativePath] = $version;
+    return $version;
+  };
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,9 +22,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="base-url" content="{{ url('/') }}">
   <title>SMACA Dashboard - Unified IoT Monitoring</title>
-  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v={{ time() }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ time() }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}?v={{ time() }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v={{ $smacaAssetVersion('assets/css/base.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $smacaAssetVersion('assets/css/dashboard.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-dashboard.css') }}">
 </head>
 <body>
   <div class="app">
@@ -139,20 +156,22 @@
     window.SMACA_CURRENT_PAGE = "{{ $smacaPage ?? 'overview' }}";
     window.SMACA_SENSORS = @json($sensors ?? []);
   </script>
-  <script src="{{ asset('assets/js/rbac.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/ui.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/app.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-state-manager.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-trend-calculator.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-alerts-engine.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-api.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-accurate-charts.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/advanced-visualizations.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-dashboard.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-production-features.js') }}?v={{ time() }}"></script>
-  <script src="{{ asset('assets/js/smaca-ai-insights.js') }}?v={{ time() }}"></script>
+  <script defer src="{{ asset('assets/js/rbac.js') }}?v={{ $smacaAssetVersion('assets/js/rbac.js') }}"></script>
+  <script defer src="{{ asset('assets/js/ui.js') }}?v={{ $smacaAssetVersion('assets/js/ui.js') }}"></script>
+  <script defer src="{{ asset('assets/js/app.js') }}?v={{ $smacaAssetVersion('assets/js/app.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-state-manager.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-state-manager.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-trend-calculator.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-trend-calculator.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-alerts-engine.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-alerts-engine.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-csv-export.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-api.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-api.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-data-normalizer.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-accurate-charts.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-accurate-charts.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-accurate-dashboard.js') }}"></script>
+  <script defer src="{{ asset('assets/js/advanced-visualizations.js') }}?v={{ $smacaAssetVersion('assets/js/advanced-visualizations.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-dashboard.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-dashboard.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-production-features.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-production-features.js') }}"></script>
+  @if(($smacaPage ?? 'overview') === 'ai-insights')
+    <script defer src="{{ asset('assets/js/smaca-ai-insights.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-ai-insights.js') }}"></script>
+  @endif
 </body>
 </html>

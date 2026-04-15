@@ -144,7 +144,7 @@ function getRequiredBucketsForCurrentPage() {
 
 function shouldHydrateAllSensorLatestForCurrentPage() {
   const page = getSmacaCurrentPage();
-  return page === 'connectivity' || page === 'management' || page === 'overview';
+  return page === 'connectivity' || page === 'management';
 }
 
 function getCachedTimeseriesKey(sensorId, timeframe, bucket, metric) {
@@ -388,7 +388,11 @@ async function initializeStateFromApi() {
       return;
     }
 
-    await setCurrentSensorAndReload(selectedSensorId, { forceRefresh: true });
+    await setCurrentSensorAndReload(selectedSensorId, {
+      forceRefresh: true,
+      prefetchedOverview: overview,
+      prefetchedSensors: sensors
+    });
     setupSensorSelectionListeners();
   } catch (error) {
     console.error('SMACA API initialization failed:', error);
@@ -565,6 +569,31 @@ function chooseSectionSensors(overview, sensors, preferredSensorId) {
   };
 }
 
+function buildBucketSensorIds(currentPage, bucket, selectedBySection, iaqSensorIds, allSensorIds) {
+  const selected = selectedBySection || {};
+  const allIds = Array.isArray(allSensorIds) ? allSensorIds.filter(Number.isFinite) : [];
+  const iaqIds = Array.isArray(iaqSensorIds) ? iaqSensorIds.filter(Number.isFinite) : [];
+
+  // Keep overview lightweight by sampling representative sensors per module.
+  if (currentPage === 'overview') {
+    if (bucket === 'iaq') {
+      const prioritized = [];
+      const selectedIaq = Number(selected.iaq);
+      if (Number.isFinite(selectedIaq)) prioritized.push(selectedIaq);
+      iaqIds.slice(0, 2).forEach(function (id) {
+        if (!prioritized.includes(id)) prioritized.push(id);
+      });
+      return prioritized;
+    }
+
+    const selectedSensorId = Number(selected[bucket]);
+    return Number.isFinite(selectedSensorId) ? [selectedSensorId] : [];
+  }
+
+  if (bucket === 'iaq') return iaqIds;
+  return allIds;
+}
+
 async function refreshDashboardForSelection(sensorId, timeframe, options) {
   const canonicalSensorId = Number(sensorId);
   const tf = timeframe || SMACAState.currentTimeframe || '24h';
@@ -593,11 +622,22 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
   let refreshSucceeded = false;
 
   try {
-    const [overview, sensorsPayload] = await Promise.all([
-      window.SMACAApi.fetchDashboardOverview(),
-      window.SMACAApi.fetchSensors()
-    ]);
-    const sensors = Array.isArray(sensorsPayload?.rows) ? sensorsPayload.rows : [];
+    const prefetchedOverview = opts.prefetchedOverview || null;
+    const prefetchedSensors = Array.isArray(opts.prefetchedSensors) ? opts.prefetchedSensors : null;
+
+    let overview;
+    let sensors;
+    if (prefetchedOverview && prefetchedSensors) {
+      overview = prefetchedOverview;
+      sensors = prefetchedSensors;
+    } else {
+      const [overviewPayload, sensorsPayload] = await Promise.all([
+        window.SMACAApi.fetchDashboardOverview(),
+        window.SMACAApi.fetchSensors()
+      ]);
+      overview = overviewPayload;
+      sensors = Array.isArray(sensorsPayload?.rows) ? sensorsPayload.rows : [];
+    }
     const selectedBySection = chooseSectionSensors(overview, sensors, canonicalSensorId);
     if (typeof window !== 'undefined') {
       window.SMACADashboardContext.overview = overview || null;
@@ -629,10 +669,22 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     });
 
     const bucketFetchers = {
-      iaq: function () { return fetchAndMapTimeseriesForSensors(iaqSensorIds, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh); },
-      occupancy: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.occupancy, 'occupancy', forceRefresh); },
-      environmental: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.environmental, 'environmental', forceRefresh); },
-      energy: function () { return fetchAndMapTimeseriesForSensors(allSensorIds, tf, SMACA_SECTION_METRICS.energy, 'energy', forceRefresh); }
+      iaq: function () {
+        const ids = buildBucketSensorIds(currentPage, 'iaq', selectedBySection, iaqSensorIds, allSensorIds);
+        return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh);
+      },
+      occupancy: function () {
+        const ids = buildBucketSensorIds(currentPage, 'occupancy', selectedBySection, iaqSensorIds, allSensorIds);
+        return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.occupancy, 'occupancy', forceRefresh);
+      },
+      environmental: function () {
+        const ids = buildBucketSensorIds(currentPage, 'environmental', selectedBySection, iaqSensorIds, allSensorIds);
+        return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.environmental, 'environmental', forceRefresh);
+      },
+      energy: function () {
+        const ids = buildBucketSensorIds(currentPage, 'energy', selectedBySection, iaqSensorIds, allSensorIds);
+        return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.energy, 'energy', forceRefresh);
+      }
     };
 
     const fetchTasks = requiredBuckets.map(function (bucket) {
@@ -1023,7 +1075,8 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, b
     deviceProfileName: latestRow?.device_type || null,
     batteryPct: latestRow?.latest?.battery_pct ?? null,
     lastSeenAt: latestRow?.last_seen_at || latestRow?.latest?.measured_at || null,
-    siteName: latestRow?.site?.name || null
+    siteName: latestRow?.site?.name || null,
+    sensorLocation: latestRow?.sensor_location || sensorMeta?.sensor_location || sensorMeta?.location || null
   };
 
   const pointsByMetric = responses.reduce(function (acc, response) {
@@ -1089,7 +1142,8 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, b
       },
       battery: item?.battery ?? meta.batteryPct,
       lastSeenAt: item?.lastSeenAt || meta.lastSeenAt,
-      siteName: item?.siteName || meta.siteName
+      siteName: item?.siteName || meta.siteName,
+      sensorLocation: item?.sensorLocation || item?.sensor_location || itemSensorMeta?.sensor_location || itemSensorMeta?.location || meta.sensorLocation || null
     };
   }).sort(function (a, b) { return new Date(a.time) - new Date(b.time); });
 
@@ -1850,7 +1904,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
     renderOccupancyChartWhenReady('occupancy-flow-chart', function () {
       if (typeof createFlowBarChart !== 'function') throw new Error('createFlowBarChart unavailable');
       if (safeFlowIn.length === 0 || safeFlowOut.length === 0) throw new Error('empty-flow-arrays');
-      createFlowBarChart('occupancy-flow-chart', safeFlowIn, safeFlowOut, { height: 400, minVisibleBarPx: 3 });
+      createFlowBarChart('occupancy-flow-chart', safeFlowIn, safeFlowOut, { height: 320, minVisibleBarPx: 3 });
     }, function (reason) {
       console.warn('[SMACA] occupancy flow render failed', { reason: reason });
       renderEmptyState('occupancy-flow-chart', 'No occupancy data available');
@@ -1859,7 +1913,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
     renderOccupancyChartWhenReady('occupancy-density-timeline', function () {
       if (typeof createOccupancyDensityTimeline !== 'function') throw new Error('createOccupancyDensityTimeline unavailable');
       if (safeActivityData.length === 0) throw new Error('empty-activity-array');
-      createOccupancyDensityTimeline('occupancy-density-timeline', safeActivityData, { height: 300, minVisiblePointPx: 2 });
+      createOccupancyDensityTimeline('occupancy-density-timeline', safeActivityData, { height: 260, minVisiblePointPx: 2 });
     }, function (reason) {
       console.warn('[SMACA] occupancy activity render failed', { reason: reason });
       renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
@@ -1918,10 +1972,18 @@ function renderOccupancyChartWhenReady(containerId, renderFn, onFailure) {
 function getOccupancyLocationLabel(item, sensorMetaById) {
   const sensorId = Number(item?.sensorId);
   const sensorMeta = Number.isFinite(sensorId) ? sensorMetaById[String(sensorId)] : null;
-  const label = item?.location
+  const payloadLocation = item?.payload?.object?.sensor_location
+    || item?.payload?.object?.location
+    || item?.payload?.sensor_location
+    || item?.payload?.location;
+  const label = payloadLocation
+    || item?.sensorLocation
+    || item?.sensor_location
+    || sensorMeta?.sensor_location
+    || sensorMeta?.location
+    || item?.location
     || item?.siteName
     || sensorMeta?.site?.name
-    || sensorMeta?.location
     || sensorMeta?.name;
   return label ? String(label) : 'Unknown location';
 }
@@ -2001,6 +2063,18 @@ function ensureOccupancyLocationChartContainers() {
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="occupancy-current-by-location-chart"></div>
+        <div class="smaca-accordion smaca-accordion--collapsed">
+          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+            <span>What is this graph?</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="smaca-accordion__body" hidden>
+            <div class="accordion-content">
+              <p><strong>What it shows:</strong> Total movement (entries + exits) per sensor location in the selected period.</p>
+              <p><strong>How to read:</strong> Taller bars indicate higher traffic at that location. Hover to see exact totals.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -2009,6 +2083,18 @@ function ensureOccupancyLocationChartContainers() {
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="occupancy-total-entries-by-location-chart"></div>
+        <div class="smaca-accordion smaca-accordion--collapsed">
+          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+            <span>What is this graph?</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="smaca-accordion__body" hidden>
+            <div class="accordion-content">
+              <p><strong>What it shows:</strong> Maximum cumulative entries recorded for each location.</p>
+              <p><strong>How to read:</strong> Use it to identify locations with sustained high inbound usage.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card" style="grid-column: 1 / -1;">
@@ -2017,10 +2103,25 @@ function ensureOccupancyLocationChartContainers() {
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="occupancy-flow-by-location-chart"></div>
+        <div class="smaca-accordion smaca-accordion--collapsed">
+          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+            <span>What is this graph?</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="smaca-accordion__body" hidden>
+            <div class="accordion-content">
+              <p><strong>What it shows:</strong> Side-by-side comparison of total entries vs exits for each location.</p>
+              <p><strong>How to read:</strong> Green bars are entries and red bars are exits. Hover bars for exact counts.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
   occupancySection.appendChild(grid);
+  if (typeof window !== 'undefined' && window.SMACAUI && typeof window.SMACAUI.initAccordions === 'function') {
+    window.SMACAUI.initAccordions('#occupancy .smaca-accordion');
+  }
 }
 
 function renderOccupancyLocationCharts(occupancyRows) {
@@ -2103,6 +2204,37 @@ function renderLocationBarChart(containerId, labels, values, color) {
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   group.setAttribute('transform', `translate(${padding.left}, ${padding.top})`);
+  const yTicks = 5;
+  for (let i = 0; i < yTicks; i += 1) {
+    const ratio = i / Math.max(1, yTicks - 1);
+    const yValue = maxValue * (1 - ratio);
+    const y = chartHeight * ratio;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', '0');
+    line.setAttribute('y1', String(y));
+    line.setAttribute('x2', String(chartWidth));
+    line.setAttribute('y2', String(y));
+    line.setAttribute('stroke', 'var(--border)');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('opacity', '0.25');
+    group.appendChild(line);
+
+    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    tick.setAttribute('x', '-8');
+    tick.setAttribute('y', String(y));
+    tick.setAttribute('fill', 'var(--muted)');
+    tick.setAttribute('font-size', '10');
+    tick.setAttribute('text-anchor', 'end');
+    tick.setAttribute('dominant-baseline', 'middle');
+    tick.textContent = String(Math.round(yValue));
+    group.appendChild(tick);
+  }
+
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = 'position:absolute;pointer-events:none;min-width:140px;padding:8px 10px;border-radius:var(--r-md);border:1px solid rgba(148,163,184,.3);background:#111827;color:var(--text);font-size:var(--font-size-xs);opacity:0;transform:translateY(4px);transition:opacity .15s ease, transform .15s ease;z-index:3;';
+  container.style.position = 'relative';
+  container.appendChild(tooltip);
+
   safeValues.forEach(function (value, idx) {
     const barHeight = (value / maxValue) * chartHeight;
     const x = idx * barSpace + ((barSpace - barWidth) / 2);
@@ -2114,7 +2246,30 @@ function renderLocationBarChart(containerId, labels, values, color) {
     rect.setAttribute('height', barHeight);
     rect.setAttribute('fill', color || '#3b82f6');
     rect.setAttribute('rx', '4');
+    rect.style.cursor = 'pointer';
+    rect.addEventListener('mouseenter', function () {
+      tooltip.innerHTML = `<div style="color:var(--muted);margin-bottom:4px;">${labels[idx]}</div><strong>${Math.round(value)}</strong>`;
+      tooltip.style.opacity = '1';
+      tooltip.style.transform = 'translateY(0)';
+      const tipW = tooltip.offsetWidth || 140;
+      tooltip.style.left = `${Math.min(Math.max(8, x + padding.left + 8), width - tipW - 8)}px`;
+      tooltip.style.top = `${Math.max(8, y + padding.top - 38)}px`;
+    });
+    rect.addEventListener('mouseleave', function () {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateY(4px)';
+    });
     group.appendChild(rect);
+
+    const valueLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    valueLabel.setAttribute('x', x + (barWidth / 2));
+    valueLabel.setAttribute('y', Math.max(10, y - 6));
+    valueLabel.setAttribute('fill', 'var(--text)');
+    valueLabel.setAttribute('font-size', '10');
+    valueLabel.setAttribute('text-anchor', 'middle');
+    valueLabel.textContent = String(Math.round(value));
+    group.appendChild(valueLabel);
+
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', x + (barWidth / 2));
     label.setAttribute('y', chartHeight + 20);
@@ -2148,6 +2303,37 @@ function renderLocationFlowChart(containerId, labels, inValues, outValues, optio
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   group.setAttribute('transform', `translate(${padding.left}, ${padding.top})`);
+  const yTicks = 5;
+  for (let i = 0; i < yTicks; i += 1) {
+    const ratio = i / Math.max(1, yTicks - 1);
+    const yValue = maxValue * (1 - ratio);
+    const y = chartHeight * ratio;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', '0');
+    line.setAttribute('y1', String(y));
+    line.setAttribute('x2', String(chartWidth));
+    line.setAttribute('y2', String(y));
+    line.setAttribute('stroke', 'var(--border)');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('opacity', '0.25');
+    group.appendChild(line);
+
+    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    tick.setAttribute('x', '-8');
+    tick.setAttribute('y', String(y));
+    tick.setAttribute('fill', 'var(--muted)');
+    tick.setAttribute('font-size', '10');
+    tick.setAttribute('text-anchor', 'end');
+    tick.setAttribute('dominant-baseline', 'middle');
+    tick.textContent = String(Math.round(yValue));
+    group.appendChild(tick);
+  }
+
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = 'position:absolute;pointer-events:none;min-width:160px;padding:8px 10px;border-radius:var(--r-md);border:1px solid rgba(148,163,184,.3);background:#111827;color:var(--text);font-size:var(--font-size-xs);opacity:0;transform:translateY(4px);transition:opacity .15s ease, transform .15s ease;z-index:3;';
+  container.style.position = 'relative';
+  container.appendChild(tooltip);
+
   safeIn.forEach(function (inValue, idx) {
     const outValue = safeOut[idx];
     const baseX = idx * groupSpace + (groupSpace / 2);
@@ -2159,6 +2345,19 @@ function renderLocationFlowChart(containerId, labels, inValues, outValues, optio
     inRect.setAttribute('width', barWidth);
     inRect.setAttribute('height', inHeight);
     inRect.setAttribute('fill', '#10b981');
+    inRect.style.cursor = 'pointer';
+    inRect.addEventListener('mouseenter', function () {
+      tooltip.innerHTML = `<div style="color:var(--muted);margin-bottom:4px;">${labels[idx]}</div><div>In: <strong>${Math.round(inValue)}</strong></div><div>Out: <strong>${Math.round(outValue)}</strong></div>`;
+      tooltip.style.opacity = '1';
+      tooltip.style.transform = 'translateY(0)';
+      const tipW = tooltip.offsetWidth || 160;
+      tooltip.style.left = `${Math.min(Math.max(8, baseX + padding.left + 8), width - tipW - 8)}px`;
+      tooltip.style.top = `${Math.max(8, chartHeight - inHeight + padding.top - 42)}px`;
+    });
+    inRect.addEventListener('mouseleave', function () {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateY(4px)';
+    });
     group.appendChild(inRect);
     const outRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     outRect.setAttribute('x', baseX + 2);
@@ -2166,7 +2365,38 @@ function renderLocationFlowChart(containerId, labels, inValues, outValues, optio
     outRect.setAttribute('width', barWidth);
     outRect.setAttribute('height', outHeight);
     outRect.setAttribute('fill', '#ef4444');
+    outRect.style.cursor = 'pointer';
+    outRect.addEventListener('mouseenter', function () {
+      tooltip.innerHTML = `<div style="color:var(--muted);margin-bottom:4px;">${labels[idx]}</div><div>In: <strong>${Math.round(inValue)}</strong></div><div>Out: <strong>${Math.round(outValue)}</strong></div>`;
+      tooltip.style.opacity = '1';
+      tooltip.style.transform = 'translateY(0)';
+      const tipW = tooltip.offsetWidth || 160;
+      tooltip.style.left = `${Math.min(Math.max(8, baseX + padding.left + 8), width - tipW - 8)}px`;
+      tooltip.style.top = `${Math.max(8, chartHeight - outHeight + padding.top - 42)}px`;
+    });
+    outRect.addEventListener('mouseleave', function () {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateY(4px)';
+    });
     group.appendChild(outRect);
+
+    const inValueLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    inValueLabel.setAttribute('x', baseX - barWidth / 2 - 2);
+    inValueLabel.setAttribute('y', Math.max(10, chartHeight - inHeight - 6));
+    inValueLabel.setAttribute('fill', '#10b981');
+    inValueLabel.setAttribute('font-size', '10');
+    inValueLabel.setAttribute('text-anchor', 'middle');
+    inValueLabel.textContent = String(Math.round(inValue));
+    group.appendChild(inValueLabel);
+
+    const outValueLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    outValueLabel.setAttribute('x', baseX + barWidth / 2 + 2);
+    outValueLabel.setAttribute('y', Math.max(10, chartHeight - outHeight - 6));
+    outValueLabel.setAttribute('fill', '#ef4444');
+    outValueLabel.setAttribute('font-size', '10');
+    outValueLabel.setAttribute('text-anchor', 'middle');
+    outValueLabel.textContent = String(Math.round(outValue));
+    group.appendChild(outValueLabel);
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', baseX);
     label.setAttribute('y', chartHeight + 22);

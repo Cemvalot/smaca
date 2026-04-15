@@ -50,18 +50,27 @@ if (!function_exists('smaca_dashboard_require_admin')) {
 if (!function_exists('smacaDashboardViewData')) {
     function smacaDashboardViewData(string $smacaPage): array
     {
-        $sites = DB::table('sites')
-            ->select(['id', 'name'])
-            ->get();
+        // Only management renders server-side tables that require full datasets.
+        $needsManagementData = $smacaPage === 'management';
 
-        $sensors = DB::table('sensors')
-            ->select(['id', 'site_id', 'name', 'external_id', 'device_type', 'is_active'])
-            ->orderBy('id')
-            ->get();
+        $sites = collect();
+        $sensors = collect();
+        $sensor_latest = collect();
 
-        $sensor_latest = DB::table('sensor_latest')
-            ->select(['sensor_id', 'measured_at', 'battery_pct'])
-            ->get();
+        if ($needsManagementData) {
+            $sites = DB::table('sites')
+                ->select(['id', 'name'])
+                ->get();
+
+            $sensors = DB::table('sensors')
+                ->select(['id', 'site_id', 'name', 'external_id', 'device_type', 'is_active'])
+                ->orderBy('id')
+                ->get();
+
+            $sensor_latest = DB::table('sensor_latest')
+                ->select(['sensor_id', 'measured_at', 'battery_pct'])
+                ->get();
+        }
 
         return [
             'smacaPage' => $smacaPage,
