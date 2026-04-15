@@ -40,17 +40,13 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!form) return;
 
   form.addEventListener('submit', function (e) {
-    e.preventDefault();
     var pwd = document.getElementById('password');
     var confirm = document.getElementById('confirmPassword');
     if (pwd && confirm && pwd.value !== confirm.value) {
+      e.preventDefault();
       alert('Passwords do not match.');
       return;
     }
-    try {
-      localStorage.setItem('smaca_role', 'user');
-    } catch (err) {}
-    window.location.href = '/dashboard';
   });
 });
 

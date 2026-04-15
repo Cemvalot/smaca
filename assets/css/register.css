@@ -170,6 +170,8 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
   padding: 56px 64px;
   background: transparent;
 }

@@ -394,3 +394,47 @@ a:hover {
   color: var(--muted);
   margin-top: var(--space-1);
 }
+
+/* Auth pages: validation & flash */
+.auth-error {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--r-md);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+}
+
+.auth-error-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.auth-error-list li + li {
+  margin-top: var(--space-1);
+}
+
+.auth-success {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--r-md);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+}
+
+.field-error {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--danger);
+}
+
+.form-input.is-invalid {
+  color: var(--text);
+}
+
+.input-wrapper:has(.form-input.is-invalid) {
+  border-color: rgba(239, 68, 68, 0.55);
+}

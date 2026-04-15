@@ -44,18 +44,38 @@
           <p class="form-subtitle">Welcome back to SMACA</p>
         </div>
 
+        @if (session('success'))
+          <div class="auth-success" role="status">
+            {{ session('success') }}
+          </div>
+        @endif
+        @if (session('error'))
+          <div class="auth-error" role="alert">
+            {{ session('error') }}
+          </div>
+        @endif
+        @if ($errors->any())
+          <div class="auth-error" role="alert">
+            <ul class="auth-error-list">
+              @foreach ($errors->all() as $message)
+                <li>{{ $message }}</li>
+              @endforeach
+            </ul>
+          </div>
+        @endif
+
         <form class="auth-form" id="loginForm" method="POST" action="{{ url('/login') }}">
           @csrf
           <div class="form-field">
             <label for="email" class="form-label">Email</label>
             <div class="input-wrapper">
-              <input type="email" id="email" name="email" class="form-input" placeholder="you@company.com" required value="{{ old('email') }}">
+              <input type="email" id="email" name="email" class="form-input @error('email') is-invalid @enderror" placeholder="you@company.com" required value="{{ old('email') }}">
             </div>
           </div>
           <div class="form-field">
             <label for="password" class="form-label">Password</label>
             <div class="input-wrapper input-wrapper--password">
-              <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
+              <input type="password" id="password" name="password" class="form-input @error('password') is-invalid @enderror" placeholder="••••••••" required>
               <button type="button" class="pwd-toggle" aria-label="Toggle password visibility">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
@@ -68,15 +88,6 @@
               <span>Remember me</span>
             </label>
             <a href="#" class="forgot-link">Forgot password?</a>
-          </div>
-          <div class="form-field form-field--role">
-            <label for="role-select" class="form-label">Sign in as (dev)</label>
-            <div class="input-wrapper">
-              <select id="role-select" name="role" class="form-input">
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-              </select>
-            </div>
           </div>
           <button type="submit" class="btn-signin">Sign in</button>
         </form>
