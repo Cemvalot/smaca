@@ -4,13 +4,6 @@
           <p class="topbar__subtitle">Unified IoT monitoring platform</p>
         </div>
         <div class="topbar__actions">
-          <!-- Role Badge -->
-          <span id="role-badge" class="role-badge role-badge--user" aria-label="Current role" title="Your access level: User or Admin">User</span>
-          <!-- System Health Badge -->
-          <div id="system-health-badge" class="system-health-badge" title="Overall system and sensor connectivity status">
-            <span class="system-health-badge__indicator"></span>
-            <span class="system-health-badge__text">Operational</span>
-          </div>
           <!-- Time Range Selector -->
           <div class="time-range-selector">
             <button class="time-range-btn active" data-timeframe="24h" title="Filter data for last 24 hours">24h</button>
