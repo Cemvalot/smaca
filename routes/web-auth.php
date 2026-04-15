@@ -7,16 +7,21 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
 
 if (! function_exists('smaca_password_matches')) {
     /**
-     * Isolated plaintext compare; swap to Hash::check($plain, $stored) after migrating to hashed passwords.
+     * Mixed-mode password check for legacy plaintext + bcrypt hashes.
      */
     function smaca_password_matches(string $plain, string $stored): bool
     {
+        if (Hash::info($stored)['algo'] !== null) {
+            return Hash::check($plain, $stored);
+        }
+
         return hash_equals($stored, $plain);
     }
 }
@@ -65,12 +70,24 @@ Route::post('/login', function (Request $request) {
             ->withErrors(['email' => 'Invalid credentials.']);
     }
 
+    $storedPassword = (string) $user->password;
+    $isHashedPassword = Hash::info($storedPassword)['algo'] !== null;
+    if (! $isHashedPassword) {
+        DB::table('users')
+            ->where('id', $user->id)
+            ->update([
+                'password' => Hash::make($password),
+                'updated_at' => now(),
+            ]);
+    }
+
     RateLimiter::clear($limitKey);
 
     $request->session()->regenerate();
     session([
         'user_id' => $user->id,
         'user_email' => $user->email,
+        'role' => $user->role ?: 'user',
     ]);
 
     return redirect('/dashboard');
@@ -132,7 +149,7 @@ Route::post('/register', function (Request $request) {
             DB::table('users')->insert([
                 'name' => $nameTrimmed,
                 'email' => $emailNormalized,
-                'password' => $request->input('password'),
+                'password' => Hash::make((string) $request->input('password')),
                 'role' => $role,
                 'is_active' => 1,
                 'created_at' => now(),

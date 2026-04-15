@@ -15,6 +15,16 @@
     <main class="main">
       @include('dashboard.partials.topbar')
       <div class="content">
+        @if (session('error'))
+          <div class="auth-error" role="alert" style="margin-bottom: 12px;">
+            {{ session('error') }}
+          </div>
+        @endif
+        @if (session('success'))
+          <div class="auth-success" role="status" style="margin-bottom: 12px;">
+            {{ session('success') }}
+          </div>
+        @endif
         <div id="smaca-page-loading-overlay" class="smaca-page-loading-overlay" aria-live="polite" aria-hidden="true">
           <div class="smaca-page-loading-overlay__panel">
             <div class="smaca-page-loading-overlay__spinner" aria-hidden="true"></div>
