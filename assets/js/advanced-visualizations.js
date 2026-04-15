@@ -637,14 +637,6 @@ function createFlowBarChart(containerId, inData, outData, options = {}) {
   container.appendChild(svg);
   const rectCount = chartGroup.querySelectorAll('rect').length;
   const pathCount = chartGroup.querySelectorAll('path').length;
-  console.log('[SMACA] flow chart helper render', {
-    containerId: containerId,
-    svgExists: !!container.querySelector('svg'),
-    rectCount: rectCount,
-    pathCount: pathCount,
-    maxInputValue: maxValue,
-    points: inData.length
-  });
 }
 
 /**
@@ -831,14 +823,6 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
   container.appendChild(svg);
   const rectCount = chartGroup.querySelectorAll('rect').length;
   const pathCount = chartGroup.querySelectorAll('path').length;
-  console.log('[SMACA] activity chart helper render', {
-    containerId: containerId,
-    svgExists: !!container.querySelector('svg'),
-    rectCount: rectCount,
-    pathCount: pathCount,
-    maxInputValue: maxValue,
-    points: data.length
-  });
 }
 
 // ============================================================================

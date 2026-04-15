@@ -96,19 +96,15 @@ window.SMACADashboardContext = {
 };
 
 function logSmacaSelection(selectedSensorId, timeframe) {
-  console.log('[SMACA]', { selectedSensorId: selectedSensorId, timeframe: timeframe });
 }
 
 function logSmacaSectionSelections(selections) {
-  console.log('[SMACA] selected sensors per section', selections);
 }
 
 function logSmacaFetchedPoints(pointsByMetric) {
-  console.log('[SMACA] fetched points', pointsByMetric);
 }
 
 function logSmacaHydratedState(lengths) {
-  console.log('[SMACA] hydrated state', lengths);
 }
 
 const SMACA_PAGE_BUCKETS = {
@@ -174,9 +170,7 @@ function showDashboardLoadingOverlay(pageName) {
   setDashboardLoadingMessage('Loading data...');
   overlay.classList.add('is-visible');
   overlay.setAttribute('aria-hidden', 'false');
-  console.log('[SMACA] loading overlay shown', { page: pageName || getSmacaCurrentPage() });
   if ((pageName || getSmacaCurrentPage()) === 'iaq') {
-    console.log('[SMACA][IAQ] loading overlay shown');
   }
 }
 
@@ -185,9 +179,7 @@ function hideDashboardLoadingOverlay(pageName) {
   if (!overlay) return;
   overlay.classList.remove('is-visible');
   overlay.setAttribute('aria-hidden', 'true');
-  console.log('[SMACA] loading overlay hidden', { page: pageName || getSmacaCurrentPage() });
   if ((pageName || getSmacaCurrentPage()) === 'iaq') {
-    console.log('[SMACA][IAQ] loading overlay hidden');
   }
 }
 
@@ -291,17 +283,11 @@ function renderIAQSection(reason, allowDeferred) {
   const chartContainer = document.getElementById('iaq-co2-band-chart');
   const kpiContainer = document.getElementById('iaq-kpi-cards');
   const filteredIAQ = SMACAState.getFilteredIAQ();
-  console.log('[SMACA][IAQ] normalized names sample', getIaqNormalizedNameSample(12));
   const iaqSensors = getDetectedIaqSensors();
   const iaqSensorIds = iaqSensors.map(function (sensor) { return Number(sensor?.id); }).filter(Number.isFinite);
   const iaqSensorNames = iaqSensors.map(function (sensor) { return getPrimarySensorTypeName(sensor) || `Sensor ${sensor?.id || 'Unknown'}`; });
-  console.log('[SMACA][IAQ] detected IAQ sensors', {
-    ids: iaqSensorIds,
-    names: iaqSensorNames
-  });
   const isVisible = !!iaqSection && iaqSection.style.display !== 'none';
   const pointsCount = Array.isArray(filteredIAQ) ? filteredIAQ.length : 0;
-  console.log('[SMACA][IAQ] filtered row count', { count: pointsCount });
   if (!iaqSection || !chartContainer) return;
   if (iaqSensorIds.length === 0) {
     renderEmptyState('iaq-co2-band-chart', 'No IAQ sensors available');
@@ -310,7 +296,6 @@ function renderIAQSection(reason, allowDeferred) {
     }
     if (typeof hideDashboardLoadingOverlay === 'function') {
       hideDashboardLoadingOverlay('iaq');
-      console.log('[SMACA][IAQ] loading overlay hidden');
     }
     return;
   }
@@ -321,7 +306,6 @@ function renderIAQSection(reason, allowDeferred) {
     }
     if (typeof hideDashboardLoadingOverlay === 'function') {
       hideDashboardLoadingOverlay('iaq');
-      console.log('[SMACA][IAQ] loading overlay hidden');
     }
     return;
   }
@@ -611,13 +595,6 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
   }
   if ((SMACAState.currentTimeframe || '24h') !== tf) clearSmacaTimeseriesCache();
   if (forceRefresh) clearSmacaTimeseriesCache();
-  console.log('[SMACA] refresh context', {
-    page: currentPage,
-    selectedSensorId: Number.isFinite(canonicalSensorId) ? canonicalSensorId : null,
-    timeframe: tf,
-    requiredBuckets: requiredBuckets
-  });
-  console.log('[SMACA] loading start', { page: currentPage });
   setCurrentPageLoadingState(true);
   let refreshSucceeded = false;
 
@@ -651,22 +628,10 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     const allSensorIds = sensors
       .map(function (sensor) { return Number(sensor?.id); })
       .filter(Number.isFinite);
-    console.log('[SMACA][IAQ] normalized names sample', sensors.slice(0, 12).map(function (sensor) {
-      const rawName = resolveSensorNameForClassification(sensor);
-      return {
-        id: Number(sensor?.id),
-        rawName: rawName || '',
-        normalizedName: normalizeSensorTypeToken(rawName)
-      };
-    }));
     const iaqSensors = sensors.filter(isIaqSensor);
     const iaqSensorIds = iaqSensors
       .map(function (sensor) { return Number(sensor?.id); })
       .filter(Number.isFinite);
-    console.log('[SMACA][IAQ] detected IAQ sensors', {
-      ids: iaqSensorIds,
-      names: iaqSensors.map(function (sensor) { return getPrimarySensorTypeName(sensor) || `Sensor ${sensor?.id || 'Unknown'}`; })
-    });
 
     const bucketFetchers = {
       iaq: function () {
@@ -695,7 +660,6 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
       });
     });
     const fetchedBuckets = await Promise.all(fetchTasks);
-    console.log('[SMACA] fetched buckets count', { page: currentPage, count: fetchedBuckets.length });
 
     const nextHydratedState = {
       iaq: [],
@@ -724,7 +688,6 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     renderCurrentPageFailureState(currentPage);
     throw error;
   } finally {
-    console.log('[SMACA] loading end', { page: currentPage });
     setCurrentPageLoadingState(false);
   }
   if (refreshSucceeded) SMACAState.setTimeframe(tf);
@@ -1226,8 +1189,6 @@ function applyHydratedState(data, shouldNotify) {
       return String(name).trim();
     })
   ));
-  console.log('[SMACA][IAQ] hydrated rows sample', iaqHydratedSample);
-  console.log('[SMACA][IAQ] distinct IAQ sensor names detected', distinctIaqNames);
   if (notify) {
     SMACAState.notifyListeners();
   }
@@ -1540,14 +1501,6 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   const pm25 = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'pm2_5'));
   const pm10 = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'pm10'));
   const tvoc = getAggregatedAverage(getLatestValidMetricPerSensor(liveSeries, 'tvoc'));
-  console.log('[SMACA][IAQ] aggregated widget values', {
-    co2: Number.isFinite(Number(co2)) ? Number(co2) : null,
-    temperature: Number.isFinite(Number(temp)) ? Number(temp) : null,
-    humidity: Number.isFinite(Number(humidity)) ? Number(humidity) : null,
-    pm2_5: Number.isFinite(Number(pm25)) ? Number(pm25) : null,
-    pm10: Number.isFinite(Number(pm10)) ? Number(pm10) : null,
-    tvoc: Number.isFinite(Number(tvoc)) ? Number(tvoc) : null
-  });
 
   const formatMetricValue = (value, decimals) => (
     typeof value === 'number' && Number.isFinite(value) ? value.toFixed(decimals) : 'N/A'
@@ -1647,11 +1600,6 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
   const latestTotalOut = sumLatestMetricAcrossSensors(occupancyRows, 'people_total_out');
   const latestActivity = Number(latestPeopleIn || 0) + Number(latestPeopleOut || 0);
   const occupancyTrendFormatted = SMACATrendCalculator.formatTrend(occupancyTrend);
-  console.log('[SMACA] occupancy cumulative totals', {
-    page: getSmacaCurrentPage(),
-    latestTotalIn: Number.isFinite(Number(latestTotalIn)) ? Number(latestTotalIn) : null,
-    latestTotalOut: Number.isFinite(Number(latestTotalOut)) ? Number(latestTotalOut) : null
-  });
   
   // Update occupancy KPI card if it exists
   const occupancyCard = occupancySection.querySelector('.stat-card');
@@ -1707,23 +1655,108 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   if (!environmentalSection) return;
 
   const uvCounter = document.getElementById('environmental-uv-index');
-  const uvCardValue = environmentalSection.querySelector('.stat-card .stat-card__value');
-  const uvCardMeta = environmentalSection.querySelector('.stat-card .stat-card__meta');
+  const currentUvEl = document.getElementById('env-kpi-current-uv');
+  const currentUvMetaEl = document.getElementById('env-kpi-current-uv-meta');
+  const exposureEl = document.getElementById('env-kpi-exposure');
+  const exposureMetaEl = document.getElementById('env-kpi-exposure-meta');
+  const peakEl = document.getElementById('env-kpi-peak');
+  const peakMetaEl = document.getElementById('env-kpi-peak-meta');
+  const trendEl = document.getElementById('env-kpi-trend');
+  const trendMetaEl = document.getElementById('env-kpi-trend-meta');
+  const summaryCurrentEl = document.getElementById('env-summary-current');
+  const summaryPeakEl = document.getElementById('env-summary-peak');
+  const summaryPeriodEl = document.getElementById('env-summary-period');
+  const summaryGuidanceEl = document.getElementById('env-summary-guidance');
+  const meaningLevelEl = document.getElementById('env-meaning-level');
+  const meaningCopyEl = document.getElementById('env-meaning-copy');
+
+  function getExposureLabel(uvValue) {
+    if (!Number.isFinite(uvValue)) return 'Unavailable';
+    if (uvValue >= 11) return 'Extreme';
+    if (uvValue >= 8) return 'Very High';
+    if (uvValue >= 6) return 'High';
+    if (uvValue >= 3) return 'Moderate';
+    return 'Low';
+  }
+
+  function getExposureGuidance(uvValue) {
+    if (!Number.isFinite(uvValue)) {
+      return {
+        summary: 'No UV guidance available until data is received.',
+        interpretation: 'Live UV data is currently unavailable. Check sensor connectivity and refresh this panel.'
+      };
+    }
+    if (uvValue >= 11) {
+      return {
+        summary: 'Extreme UV: avoid direct sun where possible; full protection is essential.',
+        interpretation: 'UV is in the extreme zone. Keep outdoor exposure brief and use SPF 50+, protective clothing, hat, and UV-blocking eyewear.'
+      };
+    }
+    if (uvValue >= 8) {
+      return {
+        summary: 'Very high UV: minimize direct sun during peak hours.',
+        interpretation: 'UV is very high. Reduce time in direct sunlight, reapply sunscreen often, and prioritize shade around midday.'
+      };
+    }
+    if (uvValue >= 6) {
+      return {
+        summary: 'High UV: protection is strongly recommended outdoors.',
+        interpretation: 'UV is high. Plan outdoor activity for lower UV windows and use sunscreen, hat, and sunglasses.'
+      };
+    }
+    if (uvValue >= 3) {
+      return {
+        summary: 'Moderate UV: basic sun protection is advised.',
+        interpretation: 'UV is moderate. Consider sunscreen and shade for extended outdoor activity, especially around noon.'
+      };
+    }
+    return {
+      summary: 'Low UV: lower risk for most outdoor activity.',
+      interpretation: 'UV is low at the moment. Basic awareness is still recommended for long outdoor stays.'
+    };
+  }
+
+  function getTrendLabel(previousValue, currentValue) {
+    if (!Number.isFinite(previousValue) || !Number.isFinite(currentValue)) {
+      return { title: 'Stable', detail: 'Not enough history for trend' };
+    }
+    const delta = currentValue - previousValue;
+    if (Math.abs(delta) < 0.2) return { title: 'Stable', detail: 'Little change from prior reading' };
+    if (delta > 0) return { title: 'Rising', detail: `+${delta.toFixed(1)} vs previous reading` };
+    return { title: 'Falling', detail: `${delta.toFixed(1)} vs previous reading` };
+  }
+
+  function formatHourRange(timestampMs) {
+    if (!Number.isFinite(timestampMs)) return 'Unavailable';
+    const start = new Date(timestampMs);
+    const end = new Date(timestampMs + (60 * 60 * 1000));
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    return `${pad(start.getHours())}:00-${pad(end.getHours())}:00`;
+  }
+
   const environmentalRows = typeof SMACAState.getFilteredEnvironmental === 'function'
     ? SMACAState.getFilteredEnvironmental()
     : (Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : filteredEnvironmental);
   const latestUv = averageLatestMetricAcrossSensors(environmentalRows, 'uv_index');
   if (latestUv === null) {
     if (uvCounter) uvCounter.textContent = 'No UV data available';
-    if (uvCardValue) uvCardValue.textContent = 'No UV data available';
-    if (uvCardMeta) uvCardMeta.textContent = 'Unsupported by device';
+    if (currentUvEl) currentUvEl.textContent = '--';
+    if (currentUvMetaEl) currentUvMetaEl.textContent = 'No current UV reading';
+    if (exposureEl) exposureEl.textContent = 'Unavailable';
+    if (exposureMetaEl) exposureMetaEl.textContent = 'Sensor data required';
+    if (peakEl) peakEl.textContent = '--';
+    if (peakMetaEl) peakMetaEl.textContent = 'No peak available';
+    if (trendEl) trendEl.textContent = 'Stable';
+    if (trendMetaEl) trendMetaEl.textContent = 'No trend data';
+    if (summaryCurrentEl) summaryCurrentEl.textContent = 'Unavailable';
+    if (summaryPeakEl) summaryPeakEl.textContent = 'Unavailable';
+    if (summaryPeriodEl) summaryPeriodEl.textContent = 'Unavailable';
+    if (summaryGuidanceEl) summaryGuidanceEl.textContent = 'No UV guidance available until data is received.';
+    if (meaningLevelEl) meaningLevelEl.textContent = 'Current interpretation: UV data unavailable';
+    if (meaningCopyEl) meaningCopyEl.textContent = 'Live UV data is currently unavailable. Check sensor connectivity and refresh this panel.';
     renderEmptyState('uv-hourly-chart', 'No UV data available');
     return;
   }
-
-  if (uvCounter) uvCounter.textContent = latestUv.toFixed(1);
-  if (uvCardValue) uvCardValue.textContent = latestUv.toFixed(1);
-  if (uvCardMeta) uvCardMeta.textContent = latestUv >= 8 ? 'Very High' : latestUv >= 6 ? 'High' : latestUv >= 3 ? 'Moderate' : 'Low';
 
   // Keep chart behavior for detail views (selected sensor drill-down).
   const chartRows = (Array.isArray(environmentalRows) ? environmentalRows : [])
@@ -1737,14 +1770,42 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     })
     .sort(function (a, b) { return a.timeMs - b.timeMs; });
   const uvValues = chartRows.map(function (entry) { return entry.uv; });
-  console.log('[SMACA] UV valid points', { page: getSmacaCurrentPage(), count: uvValues.length });
+
+  const latestValue = uvValues.length > 0 ? uvValues[uvValues.length - 1] : latestUv;
+  const previousValue = uvValues.length > 1 ? uvValues[uvValues.length - 2] : null;
+  const peakValue = uvValues.length > 0 ? Math.max.apply(null, uvValues) : latestValue;
+  const strongestEntry = chartRows.reduce(function (maxEntry, entry) {
+    if (!maxEntry || entry.uv > maxEntry.uv) return entry;
+    return maxEntry;
+  }, null);
+  const strongestPeriod = strongestEntry ? formatHourRange(strongestEntry.timeMs) : 'Unavailable';
+  const exposureLabel = getExposureLabel(latestValue);
+  const trend = getTrendLabel(previousValue, latestValue);
+  const guidance = getExposureGuidance(latestValue);
+
+  if (uvCounter) uvCounter.textContent = latestValue.toFixed(1);
+  if (currentUvEl) currentUvEl.textContent = latestValue.toFixed(1);
+  if (currentUvMetaEl) currentUvMetaEl.textContent = `${timeframe || '24h'} monitoring window`;
+  if (exposureEl) exposureEl.textContent = exposureLabel;
+  if (exposureMetaEl) exposureMetaEl.textContent = guidance.summary;
+  if (peakEl) peakEl.textContent = peakValue.toFixed(1);
+  if (peakMetaEl) peakMetaEl.textContent = `Highest recorded in ${timeframe || '24h'}`;
+  if (trendEl) trendEl.textContent = trend.title;
+  if (trendMetaEl) trendMetaEl.textContent = trend.detail;
+  if (summaryCurrentEl) summaryCurrentEl.textContent = `${latestValue.toFixed(1)} (${exposureLabel})`;
+  if (summaryPeakEl) summaryPeakEl.textContent = peakValue.toFixed(1);
+  if (summaryPeriodEl) summaryPeriodEl.textContent = strongestPeriod;
+  if (summaryGuidanceEl) summaryGuidanceEl.textContent = guidance.summary;
+  if (meaningLevelEl) meaningLevelEl.textContent = `Current interpretation: ${exposureLabel} UV exposure`;
+  if (meaningCopyEl) meaningCopyEl.textContent = guidance.interpretation;
 
   const uvGauge = document.getElementById('uv-gauge-chart');
   if (uvGauge && typeof createGaugeChart === 'function') {
-    const gaugeValue = uvValues.length > 0 ? uvValues[uvValues.length - 1] : latestUv;
+    const gaugeValue = latestValue;
     createGaugeChart('uv-gauge-chart', gaugeValue, 11, {
-      size: 200,
-      color: gaugeValue >= 6 ? '#ef4444' : gaugeValue >= 3 ? '#f59e0b' : '#10b981',
+      size: 172,
+      strokeWidth: 16,
+      color: gaugeValue >= 11 ? '#a855f7' : gaugeValue >= 8 ? '#ef4444' : gaugeValue >= 6 ? '#f97316' : gaugeValue >= 3 ? '#f59e0b' : '#10b981',
       label: 'UV Index'
     });
   }
@@ -1765,27 +1826,17 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
 // Update Occupancy charts with filtered data
 function updateOccupancyCharts(filteredOccupancy, timeframe) {
   if (getSmacaCurrentPage() !== 'occupancy') return;
-  console.log('[SMACA] updateOccupancyCharts entered', { page: getSmacaCurrentPage(), timeframe: timeframe });
   ensureOccupancyLocationChartContainers();
   const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
   const hydratedRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : [];
   const fallbackRows = Array.isArray(filteredOccupancy) ? filteredOccupancy : [];
   const occupancyRows = fallbackRows.length > 0 ? fallbackRows : hydratedRows;
-  console.log('[SMACA] occupancy chart source', {
-    page: getSmacaCurrentPage(),
-    filteredCount: fallbackRows.length,
-    hydratedCount: hydratedRows.length,
-    selectedSensorId: selectedSensorId,
-    selectedSensorBypassed: true,
-    usingAllSensorsCount: occupancyRows.length
-  });
   if (!occupancyRows || occupancyRows.length === 0) {
     renderEmptyState('occupancy-flow-chart', 'No occupancy data available');
     renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
     renderEmptyState('occupancy-current-by-location-chart', 'No occupancy data available');
     renderEmptyState('occupancy-total-entries-by-location-chart', 'No occupancy data available');
     renderEmptyState('occupancy-flow-by-location-chart', 'No occupancy data available');
-    console.log('[SMACA] occupancy render empty state', { page: getSmacaCurrentPage() });
     return;
   }
   
@@ -1828,17 +1879,6 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
   });
   
   const sortedBuckets = Object.keys(grouped).sort((a, b) => a - b);
-  console.log('[SMACA] occupancy grouped flow buckets', {
-    page: getSmacaCurrentPage(),
-    buckets: sortedBuckets.length,
-    firstBuckets: sortedBuckets.slice(0, 10).map(function (bucket) {
-      return {
-        bucket: Number(bucket),
-        peopleIn: grouped[bucket]?.in || 0,
-        peopleOut: grouped[bucket]?.out || 0
-      };
-    })
-  });
   sortedBuckets.forEach(bucket => {
     const bucketIn = Number(grouped[bucket]?.in || 0);
     const bucketOut = Number(grouped[bucket]?.out || 0);
@@ -1846,33 +1886,9 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
     flowIn.push(bucketIn);
     flowOut.push(bucketOut);
   });
-  console.log('[SMACA] occupancy grouped activity buckets', {
-    page: getSmacaCurrentPage(),
-    buckets: sortedBuckets.length,
-    firstBuckets: sortedBuckets.slice(0, 10).map(function (bucket, idx) {
-      return {
-        bucket: Number(bucket),
-        activity: activityData[idx] || 0
-      };
-    })
-  });
-  console.log('[SMACA] occupancy chart arrays', {
-    page: getSmacaCurrentPage(),
-    flowInLength: flowIn.length,
-    flowOutLength: flowOut.length,
-    activityLength: activityData.length,
-    flowInHead: flowIn.slice(0, 8),
-    flowOutHead: flowOut.slice(0, 8),
-    activityHead: activityData.slice(0, 8)
-  });
   const safeFlowIn = flowIn.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
   const safeFlowOut = flowOut.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
   const safeActivityData = activityData.map(function (value) { return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0; });
-  console.log('[SMACA] flow/activity arrays ready', {
-    flowInLength: safeFlowIn.length,
-    flowOutLength: safeFlowOut.length,
-    activityLength: safeActivityData.length
-  });
   if (typeof window !== 'undefined') {
     window.__lastOccupancyFlowBuckets = sortedBuckets.slice(0, 200).map(function (bucket, idx) {
       return {
@@ -1906,7 +1922,6 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
       if (safeFlowIn.length === 0 || safeFlowOut.length === 0) throw new Error('empty-flow-arrays');
       createFlowBarChart('occupancy-flow-chart', safeFlowIn, safeFlowOut, { height: 320, minVisibleBarPx: 3 });
     }, function (reason) {
-      console.warn('[SMACA] occupancy flow render failed', { reason: reason });
       renderEmptyState('occupancy-flow-chart', 'No occupancy data available');
     });
 
@@ -1915,12 +1930,10 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
       if (safeActivityData.length === 0) throw new Error('empty-activity-array');
       createOccupancyDensityTimeline('occupancy-density-timeline', safeActivityData, { height: 260, minVisiblePointPx: 2 });
     }, function (reason) {
-      console.warn('[SMACA] occupancy activity render failed', { reason: reason });
       renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
     });
 
     renderOccupancyLocationCharts(occupancyRows);
-    console.log('[SMACA] occupancy render completed', { page: getSmacaCurrentPage(), points: occupancyRows.length });
   }, 120);
 }
 
@@ -1930,19 +1943,11 @@ function renderOccupancyChartWhenReady(containerId, renderFn, onFailure) {
   const tryRender = function () {
     const container = document.getElementById(containerId);
     if (!container) {
-      console.warn('[SMACA] occupancy container missing', { id: containerId, page: getSmacaCurrentPage() });
       if (typeof onFailure === 'function') onFailure('container-missing');
       return;
     }
     const width = Number(container.offsetWidth || 0);
     const height = Number(container.offsetHeight || 0);
-    console.log('[SMACA] occupancy container check', {
-      page: getSmacaCurrentPage(),
-      id: containerId,
-      width: width,
-      height: height,
-      attempt: attempt + 1
-    });
     if (width <= 0 || height <= 0) {
       attempt += 1;
       if (attempt >= maxAttempts) {
@@ -1960,8 +1965,6 @@ function renderOccupancyChartWhenReady(containerId, renderFn, onFailure) {
       renderFn();
       const hasSvg = !!container.querySelector('svg');
       if (!hasSvg) throw new Error('no-svg-appended');
-      console.log('[SMACA] occupancy chart helper completed', { id: containerId });
-      console.log('[SMACA] occupancy chart rendered', { id: containerId, width: width, height: height });
     } catch (error) {
       if (typeof onFailure === 'function') onFailure(error?.message || 'render-error');
     }
@@ -2129,7 +2132,6 @@ function renderOccupancyLocationCharts(occupancyRows) {
   ensureOccupancyLocationChartContainers();
   const byLocation = groupOccupancyByLocation(occupancyRows);
   const locationCount = Object.keys(byLocation).length;
-  console.log('[SMACA] occupancy locations grouped', { page: getSmacaCurrentPage(), locations: locationCount });
   if (locationCount === 0) {
     renderEmptyState('occupancy-current-by-location-chart', 'No data available');
     renderEmptyState('occupancy-total-entries-by-location-chart', 'No data available');
@@ -2487,8 +2489,6 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
       energy_kwh: item?.value ?? null
     };
   });
-  console.log('[SMACA] energy chart input sample', sampleEnergy);
-  console.log('[SMACA] occupancy chart input sample', sampleOccupancy);
 
   const sharedBuckets = Object.keys(groupedEnergy)
     .filter(function (bucket) { return !!groupedOccupancy[bucket]; })
@@ -2512,10 +2512,6 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   const energyData = pairedSeries.map(function (point) { return point.energy; });
   const maxOccupancy = occupancyData.length > 0 ? Math.max.apply(null, occupancyData) : 0;
   const maxEnergy = energyData.length > 0 ? Math.max.apply(null, energyData) : 0;
-  console.log('[SMACA] valid counts', {
-    occupancy: occupancyData.length,
-    energy: energyData.length
-  });
   
   // Update correlation chart (only when energy section visible - avoids wrong size from hidden container)
   setTimeout(() => {

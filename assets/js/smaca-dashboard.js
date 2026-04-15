@@ -280,7 +280,7 @@ function loadAIInsights() {
 function createLineChart(containerId, data, options = {}) {
   const container = document.getElementById(containerId);
   if (!container || !data || !data.length || !data[0].values || !data[0].values.length) return;
-  
+
   const width = container.offsetWidth || 800;
   const height = options.height || 300;
   const padding = { top: 20, right: 20, bottom: 40, left: 50 };
@@ -336,7 +336,7 @@ function createLineChart(containerId, data, options = {}) {
       const y = yScale(value);
       return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
     }).join(' ');
-    
+
     path.setAttribute('d', points);
     path.setAttribute('fill', 'none');
     path.setAttribute('stroke', series.color || '#3b82f6');
@@ -637,7 +637,6 @@ async function loadUsers() {
       users = mockData.users || [];
     }
   } catch (e) {
-    console.warn('Users load failed (API may not be ready):', e.message);
     users = mockData.users || [];
   }
   renderUsersManagementTable([...users].reverse());

@@ -30,7 +30,6 @@ function finalizeIaqPageRenderCleanup() {
     overlay.classList.remove('is-visible');
     overlay.setAttribute('aria-hidden', 'true');
     overlay.style.display = '';
-    console.log('[SMACA][IAQ] loading overlay hidden');
   }
   if (overlayMessage && overlay && !overlay.classList.contains('is-visible')) {
     overlayMessage.textContent = 'Loading data...';
@@ -54,7 +53,6 @@ function finalizeIaqPageRenderCleanup() {
     const el = document.querySelector(selector);
     if (el) el.style.display = 'none';
   });
-  console.log('[SMACA][IAQ] page cleanup completed');
 }
 
 function initAccurateIAQDashboard() {
@@ -86,9 +84,6 @@ function initAccurateIAQDashboard() {
   
   // Get filtered data from state manager
   const filteredIAQ = SMACAState.getFilteredIAQ();
-  console.log('[SMACA][IAQ] chart source count', {
-    filteredRows: Array.isArray(filteredIAQ) ? filteredIAQ.length : 0
-  });
   
   if (!filteredIAQ || filteredIAQ.length === 0) {
     // Show insufficient history message
@@ -111,7 +106,6 @@ function initAccurateIAQDashboard() {
     bindIaqMetricToggle();
     renderIAQDashboard(computed);
     finalizeIaqPageRenderCleanup();
-    console.log('[SMACA][IAQ] render completed');
     
     // Update last rendered timeframe and release lock
     if (typeof window !== 'undefined') {
@@ -230,19 +224,6 @@ function computeIaqDashboardData(normalizedRows, timeframe) {
   }).length;
 
   const summary = evaluateOverallIaqSummary(latestValues, activeSensorCount, latestTimestampMs);
-  console.log('[SMACA][IAQ] aggregated KPI values', {
-    co2: latestValues.co2,
-    temperature: latestValues.temperature,
-    humidity: latestValues.humidity,
-    pm2_5: latestValues.pm2_5,
-    pm10: latestValues.pm10,
-    tvoc: latestValues.tvoc
-  });
-  console.log('[SMACA][IAQ] active sensor count', { activeIaqSensors: activeSensorCount });
-  console.log('[SMACA][IAQ] latest timestamp/freshness', {
-    latestTimestamp: latestTimestampMs ? new Date(latestTimestampMs).toISOString() : null,
-    freshnessMinutes: latestTimestampMs ? Math.max(0, Math.round((Date.now() - latestTimestampMs) / 60000)) : null
-  });
 
   return {
     timeframe: timeframe,
@@ -414,7 +395,6 @@ function bindIaqMetricToggle() {
     toggle.querySelectorAll('button[data-iaq-metric]').forEach(function (btn) {
       btn.classList.toggle('active', btn === button);
     });
-    console.log('[SMACA][IAQ] selected metric for main chart', { metric: metric });
     if (window.__SMACAIaqComputed) renderIaqMainTrendChart(window.__SMACAIaqComputed);
   });
 }
@@ -463,8 +443,6 @@ function renderIaqMainTrendChart(computed) {
   const series = (computed.seriesByMetric?.[metric] || []).filter(function (entry) {
     return Number.isFinite(Number(entry?.value));
   });
-  console.log('[SMACA][IAQ] selected metric for main chart', { metric: metric });
-  console.log('[SMACA][IAQ] main chart point count', { metric: metric, points: series.length });
   if (!series.length) {
     chartEl.innerHTML = '<div style="padding: var(--space-6); text-align:center; color: var(--muted);">No IAQ data available</div>';
     return;
@@ -509,21 +487,6 @@ function renderIaqMainTrendChart(computed) {
   min -= yPadding;
   max += yPadding;
   if (min < 0 && metric !== 'temperature') min = 0;
-  console.log('[SMACA][IAQ][CO2] chart stats', {
-    pointCount: metric === 'co2' ? series.length : null,
-    min: metric === 'co2' ? dataMin : null,
-    max: metric === 'co2' ? dataMax : null,
-    spread: metric === 'co2' ? dataSpread : null,
-    timeframe: metric === 'co2' ? computed.timeframe : null,
-    yDomain: metric === 'co2' ? [min, max] : null
-  });
-  console.log('[SMACA][IAQ] y-axis scaling resolved', {
-    metric: metric,
-    min: dataMin,
-    max: dataMax,
-    spread: dataSpread,
-    yDomain: [min, max]
-  });
   const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
   if (typeof window !== 'undefined' && currentPage === 'iaq') {
     window.__iaqChartData = {
@@ -541,7 +504,6 @@ function renderIaqMainTrendChart(computed) {
       spread: dataSpread,
       yDomain: [min, max]
     };
-    console.log('[SMACA][IAQ] chart debug exposed', window.__iaqChartData);
   }
   const yScale = function (v) { return chartHeight - ((v - min) / (max - min || 1)) * chartHeight; };
   const xScale = function (i) { return (i / Math.max(1, series.length - 1)) * chartWidth; };

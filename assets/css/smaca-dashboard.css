@@ -1516,3 +1516,139 @@
   margin-top: auto;
   flex-shrink: 0;
 }
+
+/* Environmental / UV page polish */
+#environmental {
+  display: grid;
+  gap: var(--space-6);
+}
+
+#environmental #environmental-kpi-grid .stat-card {
+  min-height: 132px;
+}
+
+#environmental #environmental-kpi-grid .stat-card__meta {
+  font-size: var(--font-size-xs);
+}
+
+.environmental-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: var(--space-6);
+}
+
+.environmental-chart-card .card__body {
+  min-height: 360px;
+}
+
+.environmental-chart-placeholder {
+  min-height: 300px;
+}
+
+.chart-tooltip-floating {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.96);
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+}
+
+.chart-tooltip-floating.is-visible {
+  opacity: 1;
+  transform: translateY(-8px);
+}
+
+.environmental-summary-card .card__body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.environmental-bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+.environmental-gauge-body {
+  min-height: 250px;
+  gap: var(--space-4);
+}
+
+.environmental-zone-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.environmental-zone {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.2px;
+}
+
+.environmental-zone--low {
+  background: rgba(16, 185, 129, 0.16);
+  color: #6ee7b7;
+}
+
+.environmental-zone--moderate {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+.environmental-zone--high {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+}
+
+.environmental-zone--very-high {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.environmental-zone--extreme {
+  background: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
+}
+
+.environmental-meaning-card .card__body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.environmental-meaning-level {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+
+@media (max-width: 1200px) {
+  .environmental-main-grid,
+  .environmental-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .environmental-zone-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
