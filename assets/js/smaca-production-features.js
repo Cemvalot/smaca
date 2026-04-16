@@ -2571,22 +2571,68 @@ function renderLocationFlowChart(containerId, labels, inValues, outValues, optio
 // Update Energy charts with filtered data
 function updateEnergyCharts(filteredEnergy, timeframe) {
   const energyRows = Array.isArray(SMACAState.rawData?.energy) ? SMACAState.rawData.energy : filteredEnergy;
+
+  const mainChartId = 'energy-main-combined-chart';
+  const demandChartId = 'energy-demand-trend-chart';
+  const patternChartId = 'energy-usage-pattern-hour-chart';
+  const distributionChartId = 'energy-distribution-location-chart';
+  const shareChartId = 'energy-share-donut-chart';
+  const kpiIds = {
+    total: 'energy-kpi-total',
+    totalMeta: 'energy-kpi-total-meta',
+    peak: 'energy-kpi-peak',
+    peakMeta: 'energy-kpi-peak-meta',
+    avg: 'energy-kpi-avg',
+    avgMeta: 'energy-kpi-avg-meta',
+    topLocation: 'energy-kpi-top-location',
+    topLocationMeta: 'energy-kpi-top-location-meta'
+  };
+
+  const clearContainer = function (id) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  };
+
+  const setEmptyContainer = function (id, message) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">' + message + '</div>';
+  };
+
+  const setKpi = function (valueId, value) {
+    const el = document.getElementById(valueId);
+    if (el) el.textContent = (value == null ? '--' : String(value));
+  };
+
+  const setKpiMeta = function (valueId, value) {
+    const el = document.getElementById(valueId);
+    if (el) el.textContent = (value == null ? '--' : String(value));
+  };
+
+  const timeframeMeta = timeframe === '24h'
+    ? 'Last 24h'
+    : (timeframe === '7d' ? 'Last 7 days' : 'Last 30 days');
+
   if (!energyRows || energyRows.length === 0) {
-    const energyChartEl = document.getElementById('energy-correlation-chart');
-    if (energyChartEl) energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
+    [mainChartId, demandChartId, patternChartId, distributionChartId, shareChartId].forEach(function (id) {
+      setEmptyContainer(id, 'No energy data for selected timeframe.');
+    });
+    setKpi(kpiIds.total, '--'); setKpiMeta(kpiIds.totalMeta, '--');
+    setKpi(kpiIds.peak, '--'); setKpiMeta(kpiIds.peakMeta, '--');
+    setKpi(kpiIds.avg, '--'); setKpiMeta(kpiIds.avgMeta, '--');
+    setKpi(kpiIds.topLocation, '--'); setKpiMeta(kpiIds.topLocationMeta, '--');
     return;
   }
 
   console.debug('[SMACA][ENERGY] timeframe change start', { timeframe: timeframe });
+  console.debug('[SMACA][ENERGY] active timeframe = ' + timeframe);
 
   const adapter = typeof window !== 'undefined' ? window.SMACAHighchartsAdapter : null;
   const hasHighcharts = !!(adapter && typeof adapter.createEnergyMainCombinedChart === 'function' && adapter.hasHighcharts && adapter.hasHighcharts());
 
   if (!hasHighcharts) {
-    const energyChartEl = document.getElementById('energy-correlation-chart');
-    if (energyChartEl) {
-      energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">Highcharts is unavailable, unable to render the energy chart.</div>';
-    }
+    [mainChartId, demandChartId, patternChartId, distributionChartId, shareChartId].forEach(function (id) {
+      setEmptyContainer(id, 'Highcharts is unavailable, unable to render charts.');
+    });
     return;
   }
 
@@ -2607,13 +2653,53 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   const metricUsed = 'energy_kwh';
   const bucketStrategy = 'per-sensor delta using last value in bucket (delta>=0) summed across sensors';
 
-  // Parse raw energy rows into per-sensor point list.
+  const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+  const sensorMetaById = sensors.reduce(function (acc, s) {
+    const id = Number(s?.id);
+    if (Number.isFinite(id)) acc[String(id)] = s;
+    return acc;
+  }, {});
+
+  const isValidRealEnergySensor = function (sensorKey) {
+    const sensorMeta = sensorMetaById[String(sensorKey)];
+    if (!sensorMeta) return false;
+    const sensorLocation = String(sensorMeta?.sensor_location ?? sensorMeta?.location ?? '').trim();
+    const sensorName = String(sensorMeta?.sensor_name ?? sensorMeta?.name ?? '').trim();
+    if (!sensorLocation) return false;
+    if (!sensorName) return false;
+    // Guard against obvious mock/test naming patterns in metadata.
+    const lowercaseName = sensorName.toLowerCase();
+    const lowercaseLocation = sensorLocation.toLowerCase();
+    if (lowercaseName.includes('test') || lowercaseName.includes('mock')) return false;
+    if (lowercaseLocation.includes('test') || lowercaseLocation.includes('mock')) return false;
+    return true;
+  };
+
+  const getEnergyLocationLabel = function (sensorKey, locationHint) {
+    const sensorMeta = sensorMetaById[String(sensorKey)];
+    const label = locationHint
+      || sensorMeta?.sensor_location
+      || sensorMeta?.location
+      || sensorMeta?.site?.name
+      || sensorMeta?.siteName
+      || sensorMeta?.name;
+    return label ? String(label) : 'Unknown location';
+  };
+
+  // Parse raw energy rows into per-sensor point list (real hydrated data only).
   const energyPoints = energyRows
     .map(function (row) {
       return {
         timeMs: new Date(row?.time).getTime(),
         sensorId: row?.sensorId,
-        value: Number(row?.payload?.object?.energy_kwh)
+        value: Number(row?.payload?.object?.energy_kwh),
+        locationHint: row?.payload?.object?.sensor_location
+          || row?.payload?.object?.location
+          || row?.payload?.object?.site
+          || row?.payload?.object?.siteName
+          || row?.payload?.object?.room
+          || row?.payload?.object?.zone
+          || null
       };
     })
     .filter(function (p) {
@@ -2621,20 +2707,44 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
         && p.timeMs >= rangeStartMs && p.timeMs <= rangeEndMs;
     });
 
-  const sensorIds = Array.from(new Set(energyPoints.map(function (p) { return String(p.sensorId); })));
+  const pointsBySensor = energyPoints.reduce(function (acc, p) {
+    const sensorKey = String(p.sensorId);
+    if (!acc[sensorKey]) acc[sensorKey] = [];
+    acc[sensorKey].push(p);
+    return acc;
+  }, {});
+
+  const sensorIds = Object.keys(pointsBySensor).filter(function (sensorKey) {
+    if (!isValidRealEnergySensor(sensorKey)) return false;
+    // Exclude extremely low data volume sensors.
+    return (pointsBySensor[sensorKey] || []).length > 1;
+  });
+  const filteredOutSensorCount = Math.max(0, Object.keys(pointsBySensor).length - sensorIds.length);
+  const allowedSensorSet = sensorIds.reduce(function (acc, sensorKey) {
+    acc[sensorKey] = true;
+    return acc;
+  }, {});
+  const filteredEnergyPoints = energyPoints.filter(function (p) {
+    return !!allowedSensorSet[String(p.sensorId)];
+  });
+  console.debug('[SMACA][ENERGY] sensor quality filter', {
+    timeframe: timeframe,
+    validSensorCount: sensorIds.length,
+    filteredOutSensorCount: filteredOutSensorCount
+  });
   const bucketMin = bucketTimesMs.length ? bucketTimesMs[0] : null;
   const bucketMax = bucketTimesMs.length ? bucketTimesMs[bucketTimesMs.length - 1] : null;
 
   // Track last reading per sensor per bucket.
   const lastBySensorByBucket = {};
-  energyPoints.forEach(function (p) {
+  filteredEnergyPoints.forEach(function (p) {
     const bucketKey = Math.floor(p.timeMs / bucketMs) * bucketMs;
     if (bucketKey < bucketMin || bucketKey > bucketMax) return;
     const sensorKey = String(p.sensorId);
     if (!lastBySensorByBucket[sensorKey]) lastBySensorByBucket[sensorKey] = {};
     const existing = lastBySensorByBucket[sensorKey][bucketKey];
     if (!existing || p.timeMs > existing.timeMs) {
-      lastBySensorByBucket[sensorKey][bucketKey] = { timeMs: p.timeMs, value: p.value };
+      lastBySensorByBucket[sensorKey][bucketKey] = { timeMs: p.timeMs, value: p.value, locationHint: p.locationHint };
     }
   });
 
@@ -2664,13 +2774,6 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   }
 
   const hasAnyEnergy = energyValues.some(function (v) { return Number.isFinite(Number(v)); });
-  if (!hasAnyEnergy) {
-    const energyChartEl = document.getElementById('energy-correlation-chart');
-    if (energyChartEl) {
-      energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">Energy data is unavailable for the selected timeframe.</div>';
-    }
-  }
-
   const trendValues = [];
   let running = 0;
   energyValues.forEach(function (v) {
@@ -2682,6 +2785,256 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     }
   });
 
+  // Aggregate per location using real per-sensor delta across the selected timeframe window.
+  // (This powers both the distribution bar and the share donut.)
+  const bySensorFirstLast = {};
+  filteredEnergyPoints.forEach(function (p) {
+    const sensorKey = String(p.sensorId);
+    if (!bySensorFirstLast[sensorKey]) {
+      bySensorFirstLast[sensorKey] = {
+        first: { timeMs: p.timeMs, value: p.value },
+        last: { timeMs: p.timeMs, value: p.value },
+        locationHint: p.locationHint
+      };
+    } else {
+      const entry = bySensorFirstLast[sensorKey];
+      entry.locationHint = entry.locationHint || p.locationHint || null;
+      if (p.timeMs < entry.first.timeMs) {
+        entry.first = { timeMs: p.timeMs, value: p.value };
+      }
+      if (p.timeMs > entry.last.timeMs) {
+        entry.last = { timeMs: p.timeMs, value: p.value };
+        entry.locationHint = p.locationHint || entry.locationHint || null;
+      }
+    }
+  });
+
+  const locationTotals = {};
+  Object.keys(bySensorFirstLast).forEach(function (sensorKey) {
+    const entry = bySensorFirstLast[sensorKey];
+    if (!entry?.first || !entry?.last) return;
+    const delta = Number(entry.last.value) - Number(entry.first.value);
+    if (!Number.isFinite(delta) || delta < 0) return;
+    const label = getEnergyLocationLabel(sensorKey, entry.locationHint);
+    if (!locationTotals[label]) locationTotals[label] = 0;
+    locationTotals[label] += delta;
+  });
+
+  const locationSorted = Object.keys(locationTotals)
+    .map(function (label) { return { label: label, value: locationTotals[label] }; })
+    .filter(function (e) { return Number.isFinite(Number(e.value)) && e.value > 0; })
+    .sort(function (a, b) { return b.value - a.value; });
+
+  const topN = 6;
+  const topLocations = locationSorted.slice(0, topN);
+  const otherLocations = locationSorted.slice(topN);
+  const otherTotal = otherLocations.reduce(function (s, e) { return s + Number(e.value); }, 0);
+
+  const locationLabels = topLocations.map(function (e) { return e.label; });
+  const locationValues = topLocations.map(function (e) { return e.value; });
+  if (otherLocations.length && Number.isFinite(Number(otherTotal)) && otherTotal > 0) {
+    locationLabels.push('Other');
+    locationValues.push(otherTotal);
+  }
+
+  // Usage pattern by hour (hour-of-day colored columns).
+  const hourBucketCount = timeframe === '24h' ? 24 : (timeframe === '7d' ? 7 * 24 : 30 * 24);
+  const hourlyBucketTimesMs = Array.from({ length: hourBucketCount }, function (_, idx) {
+    const alignedEndHourMs = Math.floor(rangeEndMs / HOUR_MS) * HOUR_MS;
+    return alignedEndHourMs - (hourBucketCount - 1 - idx) * HOUR_MS;
+  });
+
+  const hourlyMin = hourlyBucketTimesMs.length ? hourlyBucketTimesMs[0] : null;
+  const hourlyMax = hourlyBucketTimesMs.length ? hourlyBucketTimesMs[hourlyBucketTimesMs.length - 1] : null;
+
+  // Track last reading per sensor per hourly bucket to compute real deltas.
+  const lastBySensorByHourlyBucket = {};
+  filteredEnergyPoints.forEach(function (p) {
+    const bucketKey = Math.floor(p.timeMs / HOUR_MS) * HOUR_MS;
+    if (bucketKey < hourlyMin || bucketKey > hourlyMax) return;
+    const sensorKey = String(p.sensorId);
+    if (!lastBySensorByHourlyBucket[sensorKey]) lastBySensorByHourlyBucket[sensorKey] = {};
+    const existing = lastBySensorByHourlyBucket[sensorKey][bucketKey];
+    if (!existing || p.timeMs > existing.timeMs) {
+      lastBySensorByHourlyBucket[sensorKey][bucketKey] = { timeMs: p.timeMs, value: p.value };
+    }
+  });
+
+  const hourlyUsageValues = [];
+  for (let i = 0; i < hourlyBucketTimesMs.length; i += 1) {
+    const bucketKey = hourlyBucketTimesMs[i];
+    const prevKey = i > 0 ? hourlyBucketTimesMs[i - 1] : null;
+    let sumDelta = 0;
+    let hasAny = false;
+
+    sensorIds.forEach(function (sensorKey) {
+      if (!prevKey) return;
+      const byBucket = lastBySensorByHourlyBucket[sensorKey];
+      if (!byBucket) return;
+      const curr = byBucket[bucketKey];
+      const prev = byBucket[prevKey];
+      if (!curr || !prev) return;
+      const delta = Number(curr.value) - Number(prev.value);
+      if (Number.isFinite(delta) && delta >= 0) {
+        sumDelta += delta;
+        hasAny = true;
+      }
+    });
+
+    hourlyUsageValues.push(hasAny ? sumDelta : null);
+  }
+
+  const hourCategories = Array.from({ length: 24 }, function (_, h) {
+    return String(h).padStart(2, '0');
+  });
+
+  const usagePatternByHour = hourCategories.map(function (_, hourOfDay) {
+    let sum = 0;
+    let count = 0;
+    hourlyUsageValues.forEach(function (v, idx) {
+      if (!Number.isFinite(Number(v))) return;
+      const bucketHour = new Date(hourlyBucketTimesMs[idx]).getHours();
+      if (bucketHour === hourOfDay) {
+        sum += Number(v);
+        count += 1;
+      }
+    });
+    return count > 0 ? (sum / count) : null;
+  });
+
+  // KPI calculations (real derived values from the selected window).
+  const numericEnergy = energyValues
+    .map(function (v) { return Number(v); })
+    .filter(function (v) { return Number.isFinite(v); });
+
+  const totalEnergy = numericEnergy.reduce(function (s, v) { return s + v; }, 0);
+  const peakEnergy = numericEnergy.length ? Math.max.apply(null, numericEnergy) : null;
+  const avgEnergy = numericEnergy.length ? (totalEnergy / numericEnergy.length) : null;
+
+  let peakLabel = '--';
+  if (peakEnergy != null) {
+    const peakIdx = energyValues.findIndex(function (v) {
+      return Number.isFinite(Number(v)) && Number(v) === peakEnergy;
+    });
+    if (peakIdx >= 0 && bucketTimesMs[peakIdx]) {
+      const t = bucketTimesMs[peakIdx];
+      const dt = new Date(t);
+      peakLabel = timeframe === '24h'
+        ? window.Highcharts.dateFormat('%H:%M', t)
+        : window.Highcharts.dateFormat('%d %b', t);
+    }
+  }
+
+  const topLocationLabel = locationLabels.length ? locationLabels[0] : '--';
+  const topLocationValue = locationValues.length ? locationValues[0] : null;
+
+  setKpi(kpiIds.total, totalEnergy && Number.isFinite(totalEnergy) ? totalEnergy.toFixed(1) : '--');
+  setKpiMeta(kpiIds.totalMeta, timeframeMeta);
+  setKpi(kpiIds.peak, peakEnergy != null && Number.isFinite(peakEnergy) ? Number(peakEnergy).toFixed(1) : '--');
+  setKpiMeta(kpiIds.peakMeta, peakLabel === '--' ? 'Peak bucket' : 'Peak at ' + peakLabel);
+  setKpi(kpiIds.avg, avgEnergy != null && Number.isFinite(avgEnergy) ? Number(avgEnergy).toFixed(1) : '--');
+  setKpiMeta(kpiIds.avgMeta, 'Avg per bucket');
+  setKpi(kpiIds.topLocation, topLocationLabel);
+  setKpiMeta(kpiIds.topLocationMeta, topLocationValue != null && Number.isFinite(topLocationValue) ? topLocationValue.toFixed(1) + ' kWh' : '--');
+
+  // Render charts (real data only).
+  // Avoid clearing chart containers before Highcharts update/recreate; that can detach chart internals.
+
+  if (!hasAnyEnergy) {
+    setEmptyContainer(mainChartId, 'Energy data is unavailable for the selected timeframe.');
+    setEmptyContainer(demandChartId, 'Demand trend is unavailable for the selected timeframe.');
+    setEmptyContainer(patternChartId, 'Usage pattern is unavailable for the selected timeframe.');
+    setEmptyContainer(distributionChartId, 'Energy distribution is unavailable for the selected timeframe.');
+    setEmptyContainer(shareChartId, 'Energy share is unavailable for the selected timeframe.');
+    return;
+  }
+
+  const energyRenderState = (typeof window !== 'undefined')
+    ? (window.__smacaEnergyRenderState = window.__smacaEnergyRenderState || { lastTimeframe: null })
+    : { lastTimeframe: null };
+  const timeframeChanged = !!(energyRenderState.lastTimeframe && energyRenderState.lastTimeframe !== timeframe);
+  let recreatedMainChart = false;
+  if (timeframeChanged && adapter && typeof adapter.destroyChart === 'function') {
+    recreatedMainChart = !!adapter.destroyChart('energy-main-combined');
+  }
+  energyRenderState.lastTimeframe = timeframe;
+
+  console.debug('[SMACA][ENERGY] chart render start', { timeframe: timeframe });
+  console.debug('[SMACA][ENERGY] using recreate path = ' + String(timeframeChanged));
+
+  const mainRendered = adapter.createEnergyMainCombinedChart(mainChartId, {
+    timeframe: timeframe,
+    bucketTimesMs: bucketTimesMs,
+    energyValues: energyValues,
+    trendValues: trendValues
+  });
+  recreatedMainChart = recreatedMainChart || !!(mainRendered && mainRendered.recreated);
+
+  // Enforce a safe lifecycle pass after timeframe transitions.
+  const mainChart = window.__smacaHighchartsStore?.charts?.['energy-main-combined'] || null;
+  if (mainChart) {
+    try { mainChart.redraw(false); } catch (e) {}
+    try { mainChart.reflow(); } catch (e) {}
+    setTimeout(function () {
+      try { mainChart.reflow(); } catch (e) {}
+    }, 0);
+  }
+
+  const demandRendered = adapter.createEnergyDemandTrendChart(demandChartId, {
+    timeframe: timeframe,
+    bucketTimesMs: bucketTimesMs,
+    values: energyValues
+  });
+
+  const patternRendered = adapter.createEnergyUsagePatternHourChart(patternChartId, {
+    timeframe: timeframe,
+    categories: hourCategories,
+    values: usagePatternByHour
+  });
+
+  const distributionRendered = (locationLabels.length && locationValues.length)
+    ? adapter.createEnergyDistributionByLocationChart(distributionChartId, {
+      timeframe: timeframe,
+      categories: locationLabels,
+      values: locationValues
+    })
+    : { ok: false, reason: 'no-location-data' };
+
+  const shareRendered = (locationLabels.length && locationValues.length)
+    ? adapter.createEnergyShareDonutChart(shareChartId, {
+      timeframe: timeframe,
+      labels: locationLabels,
+      values: locationValues
+    })
+    : { ok: false, reason: 'no-location-data' };
+
+  if (!mainRendered || !mainRendered.ok) {
+    setEmptyContainer(mainChartId, 'Unable to render energy chart for the selected timeframe.');
+  }
+  if (!demandRendered || !demandRendered.ok) {
+    setEmptyContainer(demandChartId, 'Unable to render demand trend for the selected timeframe.');
+  }
+  if (!patternRendered || !patternRendered.ok) {
+    setEmptyContainer(patternChartId, 'Unable to render usage pattern for the selected timeframe.');
+  }
+  if (!distributionRendered || !distributionRendered.ok) {
+    setEmptyContainer(distributionChartId, 'Energy distribution unavailable for the selected timeframe.');
+  }
+  if (!shareRendered || !shareRendered.ok) {
+    setEmptyContainer(shareChartId, 'Energy share unavailable for the selected timeframe.');
+  }
+
+  console.debug('[SMACA][ENERGY] renderer = highcharts', { timeframe: timeframe });
+  console.debug('[SMACA][ENERGY] chart render success', { timeframe: timeframe });
+  console.debug('[SMACA][ENERGY] chart update success', { timeframe: timeframe });
+
+  const mainContainer = document.getElementById(mainChartId);
+  const containerWidth = Number(mainContainer?.offsetWidth || 0);
+  const containerHeight = Number(mainContainer?.offsetHeight || 0);
+  const hasUsageSeries = energyValues.some(function (v) { return Number.isFinite(Number(v)); });
+  const hasTrendSeries = trendValues.some(function (v) { return Number.isFinite(Number(v)); });
+  const visibleSeriesCount = (hasUsageSeries ? 1 : 0) + (hasTrendSeries ? 1 : 0);
+
   window.__energyChartDebug = {
     timeframe: timeframe,
     rangeStart: new Date(rangeStartMs).toISOString(),
@@ -2689,36 +3042,22 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     pointCount: bucketCount,
     metricUsed: metricUsed,
     bucketStrategy: bucketStrategy,
+    validSensorCount: sensorIds.length,
+    filteredOutSensorCount: filteredOutSensorCount,
     mainSeries: { data: energyValues },
-    trendSeries: { data: trendValues }
-  };
-
-  if (hasAnyEnergy) {
-    const rendered = adapter.createEnergyMainCombinedChart('energy-correlation-chart', {
+    trendSeries: { data: trendValues },
+    demandTrendSeries: { data: energyValues },
+    usagePatternByHour: { labels: hourCategories, data: usagePatternByHour },
+    locationTotals: { labels: locationLabels, data: locationValues },
+    render: {
       timeframe: timeframe,
-      bucketTimesMs: bucketTimesMs,
-      energyValues: energyValues,
-      trendValues: trendValues
-    });
-
-    if (rendered && rendered.ok) {
-      console.debug('[SMACA][ENERGY] renderer = highcharts', { timeframe: timeframe });
-      console.debug('[SMACA][ENERGY] chart update success', { timeframe: timeframe });
+      usingHighcharts: true,
+      recreated: recreatedMainChart || timeframeChanged,
+      containerWidth: containerWidth,
+      containerHeight: containerHeight,
+      visibleSeriesCount: visibleSeriesCount
     }
-  }
-
-  const energySection = document.querySelector('#energy');
-  if (energySection) {
-    const summaryValue = energySection.querySelector('.card .card__body div div div:nth-child(2)');
-    const totalDelta = getAggregatedEnergyForTimeframe(energyRows);
-    if (summaryValue && Number.isFinite(totalDelta)) {
-      summaryValue.textContent = totalDelta.toFixed(1);
-    }
-    const summaryLabel = energySection.querySelector('.card .card__body div div div:nth-child(3)');
-    if (summaryLabel) {
-      summaryLabel.textContent = timeframe === '24h' ? 'kWh today' : timeframe === '7d' ? 'kWh this week' : 'kWh this month';
-    }
-  }
+  };
 }
 
 // Update header counters based on timeframe

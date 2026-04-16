@@ -723,7 +723,7 @@
               '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + color + ';"></span>' +
               '<span style="font-weight:500;">' + name + '</span>' +
               '</span>' +
-              '<strong style="color:#f8fbff;">' + valueText + '</strong>' +
+              '<strong style="color:#f8fbff;">' + valueText + ' kWh</strong>' +
               '</div>'
             );
           }).join('');
@@ -1271,6 +1271,13 @@
     const energyValues = Array.isArray(params?.energyValues) ? params.energyValues : [];
     const trendValues = Array.isArray(params?.trendValues) ? params.trendValues : [];
 
+    const numericEnergy = energyValues
+      .map(function (v) { return Number(v); })
+      .filter(function (v) { return Number.isFinite(v); });
+    const avgUsage = numericEnergy.length
+      ? (numericEnergy.reduce(function (s, v) { return s + v; }, 0) / numericEnergy.length)
+      : null;
+
     const energySeries = bucketTimesMs.map(function (t, i) {
       const v = Number(energyValues[i]);
       return [Number(t), Number.isFinite(v) ? v : null];
@@ -1311,14 +1318,34 @@
           }
         }
       },
-      yAxis: {
+      yAxis: [{
         title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' } },
         min: 0,
         tickAmount: 5,
         gridLineColor: 'rgba(148, 163, 184, 0.14)',
         gridLineWidth: 1,
-        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' }, x: -4 }
-      },
+        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' }, x: -4 },
+        plotLines: avgUsage !== null
+          ? [{
+              value: avgUsage,
+              color: 'rgba(56, 189, 248, 0.55)',
+              width: 1,
+              dashStyle: 'Dash',
+              zIndex: 2,
+              label: {
+                text: 'Avg',
+                style: { color: 'rgba(148, 163, 184, 0.9)', fontSize: '10px', fontWeight: '500' }
+              }
+            }]
+          : []
+      }, {
+        title: { text: 'Cumulative kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' } },
+        opposite: true,
+        min: 0,
+        tickAmount: 5,
+        gridLineWidth: 0,
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } }
+      }],
       tooltip: {
         shared: true,
         useHTML: true,
@@ -1359,7 +1386,7 @@
       plotOptions: {
         series: { animation: false, states: { inactive: { opacity: 1 } } },
         column: { groupPadding: 0.12, pointPadding: 0.06, borderRadius: 3, borderWidth: 0 },
-        spline: { marker: { enabled: false }, lineWidth: 2.6 }
+        spline: { marker: { enabled: false }, lineWidth: 2.2 }
       },
       series: [
         {
@@ -1367,6 +1394,7 @@
           name: 'Energy usage',
           color: 'rgba(168, 85, 247, 0.85)',
           data: energySeries,
+          yAxis: 0,
           zIndex: 2
         },
         {
@@ -1374,6 +1402,7 @@
           name: 'Cumulative trend',
           color: 'rgba(56, 189, 248, 0.98)',
           data: trendSeries,
+          yAxis: 1,
           zIndex: 3
         }
       ]
@@ -1381,6 +1410,429 @@
 
     return createOrUpdateChart({
       chartKey: 'energy-main-combined',
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateEnergyDemandTrendChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const timeframe = params?.timeframe || '24h';
+    const bucketTimesMs = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
+    const values = Array.isArray(params?.values) ? params.values : [];
+
+    if (!bucketTimesMs.length || bucketTimesMs.length !== values.length) {
+      return { ok: false, reason: 'missing-data' };
+    }
+
+    const series = bucketTimesMs.map(function (t, i) {
+      const v = Number(values[i]);
+      return [Number(t), Number.isFinite(v) ? v : null];
+    });
+
+    const numericValues = values
+      .map(function (v) { return Number(v); })
+      .filter(function (v) { return Number.isFinite(v); });
+    const maxValue = numericValues.length ? Math.max.apply(null, numericValues) : null;
+    const peakIdx = Number.isFinite(maxValue)
+      ? values.findIndex(function (v) { return Number.isFinite(Number(v)) && Number(v) === maxValue; })
+      : -1;
+    const peakPoint = (peakIdx >= 0 && bucketTimesMs[peakIdx] != null && Number.isFinite(Number(values[peakIdx])))
+      ? [Number(bucketTimesMs[peakIdx]), Number(values[peakIdx])]
+      : null;
+
+    const options = {
+      chart: {
+        type: 'areaspline',
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingTop: 14,
+        spacingRight: 10,
+        spacingBottom: 16,
+        spacingLeft: 8
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      time: { useUTC: false },
+      xAxis: {
+        type: 'datetime',
+        tickLength: 0,
+        tickColor: 'rgba(148, 163, 184, 0.22)',
+        lineColor: 'rgba(148, 163, 184, 0.28)',
+        tickPixelInterval: timeframe === '24h' ? 84 : 120,
+        labels: {
+          style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' },
+          autoRotation: [-20, -35],
+          autoRotationLimit: 80,
+          y: 12,
+          formatter: function () {
+            if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            return window.Highcharts.dateFormat('%d %b', this.value);
+          }
+        }
+      },
+      yAxis: {
+        title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' } },
+        min: 0,
+        tickAmount: 5,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        gridLineWidth: 1,
+        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' }, x: -4 }
+      },
+      tooltip: {
+        shared: false,
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const header = timeframe === '24h'
+            ? window.Highcharts.dateFormat('%H:%M', this.x)
+            : window.Highcharts.dateFormat('%d %b', this.x);
+          const value = Number(this.y);
+          const text = Number.isFinite(value) ? value.toFixed(1) : 'N/A';
+          return (
+            '<div style="min-width:170px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:rgba(56,189,248,0.95);box-shadow:0 0 0 2px rgba(56,189,248,0.16);"></span>' +
+            '<span style="font-weight:500;">Energy</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + text + ' kWh</strong>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: { animation: false, states: { inactive: { opacity: 1 } } },
+        areaspline: {
+          lineWidth: 2.3,
+          marker: { enabled: false },
+          fillColor: {
+            linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+            stops: [[0, 'rgba(56, 189, 248, 0.18)'], [1, 'rgba(56, 189, 248, 0.00)']]
+          }
+        }
+      },
+      series: (peakPoint ? [
+        {
+          type: 'areaspline',
+          name: 'Energy',
+          color: 'rgba(56, 189, 248, 0.98)',
+          data: series
+        },
+        {
+          type: 'scatter',
+          name: 'Peak',
+          data: [peakPoint],
+          color: 'rgba(239, 68, 68, 0.98)',
+          marker: {
+            enabled: true,
+            radius: 4.5,
+            lineColor: '#0f172a',
+            lineWidth: 2,
+            fillColor: 'rgba(239, 68, 68, 0.98)'
+          },
+          enableMouseTracking: false,
+          tooltip: { enabled: false },
+          showInLegend: false
+        }
+      ] : [
+        {
+          type: 'areaspline',
+          name: 'Energy',
+          color: 'rgba(56, 189, 248, 0.98)',
+          data: series
+        }
+      ])
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'energy-demand-trend',
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateEnergyUsagePatternHourChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const timeframe = params?.timeframe || '24h';
+    const categories = Array.isArray(params?.categories) ? params.categories : [];
+    const values = Array.isArray(params?.values) ? params.values : [];
+    if (!categories.length || categories.length !== values.length) return { ok: false, reason: 'missing-data' };
+
+    const numericValues = values
+      .map(function (v) { return Number(v); })
+      .filter(function (v) { return Number.isFinite(v); });
+    const minV = numericValues.length ? Math.min.apply(null, numericValues) : 0;
+    const maxV = numericValues.length ? Math.max.apply(null, numericValues) : 1;
+    const spread = (maxV - minV) || 1;
+    const lowCut = minV + spread * 0.33;
+    const midCut = minV + spread * 0.66;
+
+    const getColor = function (v) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return 'rgba(148, 163, 184, 0.35)';
+      if (n <= lowCut) return 'rgba(16, 185, 129, 0.95)'; // green
+      if (n <= midCut) return 'rgba(234, 179, 8, 0.95)'; // amber
+      return 'rgba(239, 68, 68, 0.98)'; // red
+    };
+
+    const data = values.map(function (v, idx) {
+      const n = Number(v);
+      return { x: idx, y: Number.isFinite(n) ? n : null, color: getColor(n) };
+    });
+
+    const options = {
+      chart: {
+        type: 'column',
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingTop: 14,
+        spacingRight: 10,
+        spacingBottom: 20,
+        spacingLeft: 8
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        categories: categories,
+        tickLength: 0,
+        lineColor: 'rgba(148, 163, 184, 0.22)',
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } }
+      },
+      yAxis: {
+        title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' } },
+        min: 0,
+        tickAmount: 5,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        gridLineWidth: 1,
+        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' }, x: -4 }
+      },
+      tooltip: {
+        shared: false,
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const hour = categories[this.point.x] || '--';
+          const value = Number(this.point.y);
+          const text = Number.isFinite(value) ? value.toFixed(1) : 'N/A';
+          const subtitle = timeframe === '24h'
+            ? 'Last 24h by hour'
+            : (timeframe === '7d' ? 'Avg by hour-of-day (last 7d)' : 'Avg by hour-of-day (last 30d)');
+          return (
+            '<div style="min-width:170px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">Hour ' + hour + '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + (this.point.color || '#94a3b8') + ';box-shadow:0 0 0 2px rgba(148,163,184,0.16);"></span>' +
+            '<span style="font-weight:500;">Energy</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + text + ' kWh</strong>' +
+            '</div>' +
+            '<div style="margin-top:6px;color:#94a3b8;font-size:10px;">' + subtitle + '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: { animation: false, states: { hover: { brightness: 0.05 } } },
+        column: { groupPadding: 0.12, pointPadding: 0.06, borderRadius: 3, borderWidth: 0 }
+      },
+      series: [
+        {
+          type: 'column',
+          name: 'Energy',
+          data: data
+        }
+      ]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'energy-usage-pattern-hour',
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateEnergyDistributionByLocationChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const categories = Array.isArray(params?.categories) ? params.categories : [];
+    const values = Array.isArray(params?.values) ? params.values : [];
+    const timeframe = params?.timeframe || '24h';
+
+    if (!categories.length || categories.length !== values.length) return { ok: false, reason: 'missing-data' };
+
+    const options = {
+      chart: {
+        type: 'bar',
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingTop: 14,
+        spacingRight: 10,
+        spacingBottom: 12,
+        spacingLeft: 8
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        title: { text: 'kWh', style: { color: '#94a3b8', fontSize: '10px' } },
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        gridLineWidth: 1,
+        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' } }
+      },
+      yAxis: {
+        title: { text: null },
+        categories: categories,
+        reversed: true,
+        gridLineWidth: 0,
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } }
+      },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const loc = this.point && this.point.category ? this.point.category : 'Location';
+          const value = Number(this.point && Number.isFinite(this.point.y) ? this.point.y : this.y);
+          const text = Number.isFinite(value) ? value.toFixed(1) : 'N/A';
+          const ctx = timeframe === '24h' ? 'Last 24h' : (timeframe === '7d' ? 'Last 7d' : 'Last 30d');
+          return (
+            '<div style="min-width:180px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + ctx + '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:rgba(56,189,248,0.9);box-shadow:0 0 0 2px rgba(56,189,248,0.16);"></span>' +
+            '<span style="font-weight:500;">' + loc + '</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + text + ' kWh</strong>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: { animation: false, borderWidth: 0 },
+        bar: { borderRadius: 4 }
+      },
+      series: [
+        {
+          type: 'bar',
+          name: 'Energy',
+          color: 'rgba(56, 189, 248, 0.85)',
+          data: values
+        }
+      ]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'energy-distribution-location',
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateEnergyShareDonutChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const labels = Array.isArray(params?.labels) ? params.labels : [];
+    const values = Array.isArray(params?.values) ? params.values : [];
+
+    if (!labels.length || labels.length !== values.length) return { ok: false, reason: 'missing-data' };
+
+    const total = values.reduce(function (s, v) {
+      const n = Number(v);
+      return s + (Number.isFinite(n) ? n : 0);
+    }, 0);
+
+    const seriesData = labels.map(function (l, i) {
+      const n = Number(values[i]);
+      return { name: l, y: Number.isFinite(n) ? n : 0 };
+    });
+
+    const options = {
+      chart: {
+        type: 'pie',
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingTop: 10,
+        spacingRight: 10,
+        spacingBottom: 10,
+        spacingLeft: 10
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const v = Number(this.y);
+          const text = Number.isFinite(v) ? v.toFixed(1) : 'N/A';
+          const pct = (total > 0 && Number.isFinite(v)) ? (v / total * 100) : 0;
+          return (
+            '<div style="min-width:170px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">Energy share</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + (this.point.color || '#94a3b8') + ';box-shadow:0 0 0 2px rgba(148,163,184,0.16);"></span>' +
+            '<span style="font-weight:500;">' + this.point.name + '</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + text + ' kWh</strong>' +
+            '</div>' +
+            '<div style="margin-top:6px;color:#94a3b8;font-size:10px;">' + pct.toFixed(0) + '%</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        pie: {
+          innerSize: '62%',
+          borderWidth: 0,
+          dataLabels: {
+            enabled: true,
+            formatter: function () {
+              return this.point.name + '<br/>' + this.percentage.toFixed(0) + '%';
+            },
+            style: { color: '#e2e8f0', textOutline: 'none', fontSize: '10px' }
+          }
+        }
+      },
+      series: [
+        {
+          name: 'Energy share',
+          data: seriesData
+        }
+      ]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'energy-share-donut',
       containerId: containerId,
       options: options
     });
@@ -1404,6 +1856,10 @@
       createOccupancyTopTrafficLocationsChart: createOrUpdateOccupancyTopTrafficLocationsChart,
       createOccupancyPatternHeatmap: createOrUpdateOccupancyPatternHeatmap,
       createEnergyMainCombinedChart: createOrUpdateEnergyMainCombinedChart,
+      createEnergyDemandTrendChart: createOrUpdateEnergyDemandTrendChart,
+      createEnergyUsagePatternHourChart: createOrUpdateEnergyUsagePatternHourChart,
+      createEnergyDistributionByLocationChart: createOrUpdateEnergyDistributionByLocationChart,
+      createEnergyShareDonutChart: createOrUpdateEnergyShareDonutChart,
       destroyIaqTrendHighchart: destroyIaqTrendHighchart
     };
     window.addEventListener('beforeunload', function () {
