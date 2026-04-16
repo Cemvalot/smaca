@@ -3,6 +3,7 @@
 
   const STORE_KEY = '__SMACAHighchartsLoader';
   const DEFAULT_SRC = 'https://code.highcharts.com/12.2.0/highcharts.js';
+  const DEFAULT_MODULES = [];
 
   function getStore() {
     if (!window[STORE_KEY]) {
@@ -21,6 +22,39 @@
       ? window.SMACA_HIGHCHARTS_SRC.trim()
       : '';
     return configured || DEFAULT_SRC;
+  }
+
+  function resolveModules() {
+    const modules = Array.isArray(window.SMACA_HIGHCHARTS_MODULES)
+      ? window.SMACA_HIGHCHARTS_MODULES
+      : DEFAULT_MODULES;
+    return modules
+      .map(function (src) { return typeof src === 'string' ? src.trim() : ''; })
+      .filter(Boolean);
+  }
+
+  function loadScriptOnce(src, dataAttrKey, dataAttrValue) {
+    return new Promise(function (resolve, reject) {
+      const selector = 'script[' + dataAttrKey + '="' + dataAttrValue + '"]';
+      const existing = document.querySelector(selector);
+      if (existing) {
+        existing.addEventListener('load', function () { resolve(); }, { once: true });
+        existing.addEventListener('error', function () { reject(new Error('failed-to-load-script')); }, { once: true });
+        // If it already loaded earlier, resolve on next tick.
+        setTimeout(function () { resolve(); }, 0);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = src;
+      script.defer = true;
+      script.crossOrigin = 'anonymous';
+      script.referrerPolicy = 'strict-origin-when-cross-origin';
+      script.setAttribute(dataAttrKey, dataAttrValue);
+      script.addEventListener('load', function () { resolve(); }, { once: true });
+      script.addEventListener('error', function () { reject(new Error('failed-to-load-script')); }, { once: true });
+      document.head.appendChild(script);
+    });
   }
 
   function emitReady() {
@@ -45,47 +79,32 @@
     if (store.promise) return store.promise;
 
     const src = resolveSource();
+    const modules = resolveModules();
     store.src = src;
     store.state = 'loading';
 
-    const existing = document.querySelector('script[data-smaca-highcharts-loader="1"]');
-    if (existing) {
-      store.promise = new Promise(function (resolve, reject) {
-        existing.addEventListener('load', function () {
+    store.promise = new Promise(function (resolve, reject) {
+      loadScriptOnce(src, 'data-smaca-highcharts-loader', '1')
+        .then(function () {
+          // Load optional modules sequentially so they can attach to Highcharts.
+          return modules.reduce(function (chain, moduleSrc, idx) {
+            return chain.then(function () {
+              return loadScriptOnce(moduleSrc, 'data-smaca-highcharts-module', String(idx));
+            });
+          }, Promise.resolve());
+        })
+        .then(function () {
           store.state = 'ready';
+          store.error = null;
           emitReady();
           resolve(window.Highcharts);
-        }, { once: true });
-        existing.addEventListener('error', function () {
+        })
+        .catch(function () {
           store.state = 'failed';
           store.error = 'failed-to-load-highcharts';
           emitFailed(store.error);
           reject(new Error(store.error));
-        }, { once: true });
-      });
-      return store.promise;
-    }
-
-    store.promise = new Promise(function (resolve, reject) {
-      const script = document.createElement('script');
-      script.src = src;
-      script.defer = true;
-      script.crossOrigin = 'anonymous';
-      script.referrerPolicy = 'strict-origin-when-cross-origin';
-      script.dataset.smacaHighchartsLoader = '1';
-      script.addEventListener('load', function () {
-        store.state = 'ready';
-        store.error = null;
-        emitReady();
-        resolve(window.Highcharts);
-      }, { once: true });
-      script.addEventListener('error', function () {
-        store.state = 'failed';
-        store.error = 'failed-to-load-highcharts';
-        emitFailed(store.error);
-        reject(new Error(store.error));
-      }, { once: true });
-      document.head.appendChild(script);
+        });
     });
 
     return store.promise;

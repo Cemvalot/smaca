@@ -70,9 +70,13 @@ function initAccurateIAQDashboard() {
   
   // Get current timeframe
   const currentTimeframe = SMACAState.currentTimeframe;
+  const lastRendered = typeof window !== 'undefined' ? window.lastRenderedTimeframe : null;
+  if (typeof window !== 'undefined' && lastRendered !== currentTimeframe) {
+    console.debug('[SMACA][IAQ] timeframe change start', { from: lastRendered, to: currentTimeframe });
+  }
+  console.debug('[SMACA][IAQ] active timeframe = ' + currentTimeframe);
   
   // Skip if timeframe hasn't changed and we've already rendered
-  const lastRendered = typeof window !== 'undefined' ? window.lastRenderedTimeframe : null;
   if (lastRendered === currentTimeframe && lastRendered !== null) {
     return;
   }
@@ -135,9 +139,15 @@ function getIaqMetricConfig() {
 }
 
 function getBucketMsForTimeframe(timeframe) {
-  if (timeframe === '7d') return 6 * 60 * 60 * 1000;
+  if (timeframe === '7d') return 24 * 60 * 60 * 1000;
   if (timeframe === '30d') return 24 * 60 * 60 * 1000;
   return 60 * 60 * 1000;
+}
+
+function getTimeframeWindowMs(timeframe) {
+  if (timeframe === '7d') return 7 * 24 * 60 * 60 * 1000;
+  if (timeframe === '30d') return 30 * 24 * 60 * 60 * 1000;
+  return 24 * 60 * 60 * 1000;
 }
 
 function isFiniteMetric(value) {
@@ -160,16 +170,40 @@ function toRgba(color, alpha) {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;
 }
 
+function parseUtcMs(value) {
+  if (value === null || value === undefined) return NaN;
+  if (typeof value === 'number') return value;
+  const raw = String(value).trim();
+  if (!raw) return NaN;
+  const hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
+  const normalized = hasTz ? raw : raw.replace(' ', 'T') + 'Z';
+  const ms = new Date(normalized).getTime();
+  return Number.isFinite(ms) ? ms : NaN;
+}
+
 function computeIaqDashboardData(normalizedRows, timeframe) {
   const rows = Array.isArray(normalizedRows) ? normalizedRows : [];
   const metrics = ['co2', 'temperature', 'humidity', 'pm2_5', 'pm10', 'tvoc'];
   const bucketMs = getBucketMsForTimeframe(timeframe);
+  const windowMs = getTimeframeWindowMs(timeframe);
+  const windowEndMs = Date.now();
+  const windowStartMs = windowEndMs - windowMs;
+  const sortedRaw = rows
+    .map(function (row) { return { row: row, timeMs: parseUtcMs(row?.time) }; })
+    .filter(function (item) { return Number.isFinite(item.timeMs); })
+    .sort(function (a, b) { return a.timeMs - b.timeMs; });
+  const firstRawPoint = sortedRaw.length ? new Date(sortedRaw[0].timeMs).toISOString() : null;
+  const filteredPairs = sortedRaw.filter(function (item) {
+    return item.timeMs >= windowStartMs && item.timeMs <= windowEndMs;
+  });
+  const firstFilteredPoint = filteredPairs.length ? new Date(filteredPairs[0].timeMs).toISOString() : null;
+  const effectiveRows = filteredPairs.map(function (item) { return item.row; });
   const grouped = {};
   let latestTimestampMs = 0;
   const latestPerSensor = {};
 
-  rows.forEach(function (row) {
-    const timeMs = new Date(row?.time).getTime();
+  effectiveRows.forEach(function (row) {
+    const timeMs = parseUtcMs(row?.time);
     if (!Number.isFinite(timeMs)) return;
     latestTimestampMs = Math.max(latestTimestampMs, timeMs);
     const sensorId = row?.sensorId;
@@ -230,13 +264,17 @@ function computeIaqDashboardData(normalizedRows, timeframe) {
 
   return {
     timeframe: timeframe,
-    rows: rows,
+    rows: effectiveRows,
     seriesByMetric: seriesByMetric,
     latestValues: latestValues,
     previousValues: previousValues,
     activeSensorCount: activeSensorCount,
     latestTimestampMs: latestTimestampMs,
-    summary: summary
+    summary: summary,
+    rangeStart: new Date(windowStartMs).toISOString(),
+    rangeEnd: new Date(windowEndMs).toISOString(),
+    firstRawPoint: firstRawPoint,
+    firstFilteredPoint: firstFilteredPoint
   };
 }
 
@@ -541,6 +579,7 @@ function renderIaqMainTrendChart(computed) {
   if (typeof window !== 'undefined' && window.SMACAHighchartsAdapter && window.SMACAHighchartsAdapter.hasHighcharts()) {
     // Strict guard: when Highcharts is available, clear any previous fallback artifacts first.
     clearFallbackArtifacts();
+    console.debug('[SMACA][IAQ] chart update start', { timeframe: computed.timeframe, metric: metric });
     const highchartsSeries = series.map(function (entry) {
       return [new Date(entry.time).getTime(), Number(entry.value)];
     }).filter(function (point) {
@@ -560,15 +599,27 @@ function renderIaqMainTrendChart(computed) {
       renderer = 'highcharts';
       setIaqRendererState('highcharts');
       console.debug('[SMACA][IAQ] renderer = highcharts');
+      console.debug('[SMACA][IAQ] chart update success', {
+        timeframe: computed.timeframe,
+        metric: metric,
+        pointCount: highchartsSeries.length,
+        recreated: !!rendered.recreated
+      });
       if (typeof window !== 'undefined' && window.__iaqHighchartsDebug) {
         window.__iaqHighchartsDebug.usingHighcharts = true;
       }
       const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
       if (typeof window !== 'undefined' && currentPage === 'iaq') {
+        const firstAggregatedPoint = series.length ? (series[0]?.time || null) : null;
         window.__iaqChartData = {
           selectedMetric: metric,
           timeframe: computed.timeframe,
           pointCount: series.length,
+          rangeStart: computed.rangeStart || null,
+          rangeEnd: computed.rangeEnd || null,
+          firstRawPoint: computed.firstRawPoint || null,
+          firstFilteredPoint: computed.firstFilteredPoint || null,
+          firstAggregatedPoint: firstAggregatedPoint,
           series: series.map(function (entry) {
             return {
               time: entry?.time || null,
@@ -596,10 +647,16 @@ function renderIaqMainTrendChart(computed) {
   // Fallback legacy SVG rendering when Highcharts is unavailable.
   const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
   if (typeof window !== 'undefined' && currentPage === 'iaq') {
+    const firstAggregatedPoint = series.length ? (series[0]?.time || null) : null;
     window.__iaqChartData = {
       selectedMetric: metric,
       timeframe: computed.timeframe,
       pointCount: series.length,
+      rangeStart: computed.rangeStart || null,
+      rangeEnd: computed.rangeEnd || null,
+      firstRawPoint: computed.firstRawPoint || null,
+      firstFilteredPoint: computed.firstFilteredPoint || null,
+      firstAggregatedPoint: firstAggregatedPoint,
       series: series.map(function (entry) {
         return {
           time: entry?.time || null,
@@ -898,28 +955,90 @@ function renderIaqMainTrendChart(computed) {
 function renderIaqHourlyHeatStrip(computed) {
   const container = document.getElementById('iaq-hourly-heatstrip-panel');
   if (!container) return;
-  const metric = 'co2';
-  const series = (computed.seriesByMetric?.[metric] || []).slice(-24);
-  if (!series.length) {
-    container.innerHTML = '<div class="card"><div class="card__body"><div style="color: var(--muted); text-align:center;">No IAQ data available</div></div></div>';
+  const timeframe = computed?.timeframe || '24h';
+  const is24h = timeframe === '24h';
+  const panelTitle = is24h
+    ? 'CO2 Hourly Pattern (24h)'
+    : (timeframe === '7d' ? 'CO2 Hour-of-Day Pattern (Last 7 Days)' : 'CO2 Hour-of-Day Pattern (Last 30 Days)');
+  const panelHelp = is24h
+    ? 'Average CO2 by hour for the last 24 hours.'
+    : (timeframe === '7d'
+      ? 'Average CO2 by hour-of-day across the last 7 days.'
+      : 'Average CO2 by hour-of-day across the last 30 days.');
+  const rows = Array.isArray(computed?.rows) ? computed.rows : [];
+  let categories = [];
+  let values = [];
+  let sourceRangeStart = computed?.rangeStart || null;
+  let sourceRangeEnd = computed?.rangeEnd || null;
+
+  if (is24h) {
+    // Rolling last-24-hours buckets (hourly), in chronological order.
+    const HOUR_MS = 60 * 60 * 1000;
+    const nowMs = Date.now();
+    const endBucketMs = Math.floor(nowMs / HOUR_MS) * HOUR_MS;
+    const startBucketMs = endBucketMs - (23 * HOUR_MS);
+    sourceRangeStart = new Date(startBucketMs).toISOString();
+    sourceRangeEnd = new Date(endBucketMs + HOUR_MS).toISOString();
+    const buckets = Array.from({ length: 24 }).map(function (_, idx) {
+      return { startMs: startBucketMs + (idx * HOUR_MS), sum: 0, count: 0 };
+    });
+    rows.forEach(function (row) {
+      const timeMs = new Date(row?.time).getTime();
+      const v = Number(row?.co2);
+      if (!Number.isFinite(timeMs) || !Number.isFinite(v)) return;
+      if (timeMs < startBucketMs || timeMs >= endBucketMs + HOUR_MS) return;
+      const idx = Math.floor((timeMs - startBucketMs) / HOUR_MS);
+      if (idx < 0 || idx > 23) return;
+      buckets[idx].sum += v;
+      buckets[idx].count += 1;
+    });
+    categories = buckets.map(function (b) {
+      const d = new Date(b.startMs);
+      const hh = String(d.getHours()).padStart(2, '0');
+      return hh + ':00';
+    });
+    values = buckets.map(function (b) { return b.count ? (b.sum / b.count) : null; });
+  } else {
+    // Hour-of-day aggregation across the active window (7d/30d).
+    categories = Array.from({ length: 24 }).map(function (_, i) { return String(i).padStart(2, '0'); });
+    const buckets = Array.from({ length: 24 }).map(function () { return { sum: 0, count: 0 }; });
+    rows.forEach(function (row) {
+      const timeMs = new Date(row?.time).getTime();
+      const v = Number(row?.co2);
+      if (!Number.isFinite(timeMs) || !Number.isFinite(v)) return;
+      const hour = new Date(timeMs).getHours();
+      if (!Number.isFinite(hour) || hour < 0 || hour > 23) return;
+      buckets[hour].sum += v;
+      buckets[hour].count += 1;
+    });
+    values = buckets.map(function (b) { return b.count ? (b.sum / b.count) : null; });
+  }
+
+  const anyData = values.some(function (v) { return Number.isFinite(Number(v)); });
+  if (!anyData) {
+    container.innerHTML = '<div class="card"><div class="card__body"><div style="color: var(--muted); text-align:center;">No CO2 hourly pattern available</div></div></div>';
     return;
   }
-  const values = series.map(function (entry) { return Number(entry.value); });
-  const min = Math.min.apply(null, values);
-  const max = Math.max.apply(null, values);
-  const range = max - min || 1;
-  const cells = series.map(function (entry) {
-    const val = Number(entry.value);
-    const ratio = (val - min) / range;
-    const hue = 120 - (ratio * 120);
-    const color = `hsl(${hue.toFixed(0)} 75% 45%)`;
-    return `<div title="${formatTime(entry.time, true)} - ${val.toFixed(0)} ppm" style="height:16px;border-radius:4px;background:${color};"></div>`;
-  }).join('');
+
+  if (typeof window !== 'undefined') {
+    window.__iaqPatternDebug = {
+      timeframe: timeframe,
+      pointCount: values.filter(function (v) { return Number.isFinite(Number(v)); }).length,
+      hours: categories,
+      values: values,
+      sourceRangeStart: sourceRangeStart,
+      sourceRangeEnd: sourceRangeEnd
+    };
+  }
+
   container.innerHTML = `
     <div class="card">
-      <div class="card__header"><h3 class="card__title">CO2 Hourly Pattern</h3></div>
+      <div class="card__header">
+        <h3 class="card__title">${panelTitle}</h3>
+        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">${panelHelp}</p>
+      </div>
       <div class="card__body">
-        <div style="display:grid;grid-template-columns:repeat(${series.length}, minmax(8px,1fr));gap:4px;">${cells}</div>
+        <div id="iaq-co2-hourly-heatmap" style="height: 170px;"></div>
         <div class="smaca-accordion smaca-accordion--collapsed" style="margin-top: var(--space-4);">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
             <span>What is this pattern?</span>
@@ -927,15 +1046,54 @@ function renderIaqHourlyHeatStrip(computed) {
           </button>
           <div class="smaca-accordion__body" hidden>
             <div class="accordion-content">
-              <p><strong>What it shows:</strong> Aggregated CO2 behavior by hour slots across the selected timeframe.</p>
-              <p><strong>How to read:</strong> Stronger/darker color blocks indicate consistently higher CO2 during those hours.</p>
-              <p><strong>Why useful:</strong> Use recurring hot hours to identify ventilation or occupancy patterns and pre-emptively improve air exchange.</p>
+              <p><strong>What it shows:</strong> Average CO2 by hour-of-day (00–23) across the selected timeframe.</p>
+              <p><strong>How to read:</strong> Hotter colors indicate higher average CO2 during those hours.</p>
+              <p><strong>Why useful:</strong> Use recurring peak hours to pre-emptively improve ventilation and validate scheduling changes.</p>
             </div>
           </div>
         </div>
       </div>
     </div>
   `;
+
+  const canHeatmap = typeof window !== 'undefined'
+    && window.SMACAHighchartsAdapter
+    && typeof window.SMACAHighchartsAdapter.createIaqHeatstripHighchart === 'function'
+    && typeof window.SMACAHighchartsAdapter.hasHeatmapModule === 'function'
+    && window.SMACAHighchartsAdapter.hasHeatmapModule();
+
+  if (canHeatmap) {
+    const rendered = window.SMACAHighchartsAdapter.createIaqHeatstripHighchart('iaq-co2-hourly-heatmap', {
+      timeframe: timeframe,
+      categories: categories,
+      values: values,
+      sourceRangeStart: sourceRangeStart,
+      sourceRangeEnd: sourceRangeEnd
+    });
+    if (rendered && rendered.ok) {
+      console.debug('[SMACA][IAQ] pattern update success', { timeframe: timeframe, recreated: !!rendered.recreated });
+    }
+  } else {
+    // Fallback: keep a lightweight strip if heatmap module is unavailable.
+    const target = document.getElementById('iaq-co2-hourly-heatmap');
+    if (target) {
+      const numeric = values.map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); });
+      const min = numeric.length ? Math.min.apply(null, numeric) : 0;
+      const max = numeric.length ? Math.max.apply(null, numeric) : 1;
+      const range = max - min || 1;
+      const cells = values.map(function (v, hour) {
+        const val = Number(v);
+        const ratio = Number.isFinite(val) ? (val - min) / range : 0;
+        const hue = 120 - (ratio * 120);
+        const color = Number.isFinite(val) ? `hsl(${hue.toFixed(0)} 75% 45%)` : 'rgba(148, 163, 184, 0.18)';
+        const label = categories[hour] || String(hour).padStart(2, '0');
+        const title = Number.isFinite(val) ? `${label} — ${val.toFixed(0)} ppm` : `${label} — N/A`;
+        return `<div title="${title}" style="height:16px;border-radius:4px;background:${color};"></div>`;
+      }).join('');
+      target.innerHTML = `<div style="display:grid;grid-template-columns:repeat(${categories.length}, minmax(8px,1fr));gap:4px;">${cells}</div>`;
+    }
+  }
+
   if (typeof window !== 'undefined' && window.SMACAUI && typeof window.SMACAUI.initAccordions === 'function') {
     window.SMACAUI.initAccordions('#iaq-hourly-heatstrip-panel .smaca-accordion');
   }

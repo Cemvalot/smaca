@@ -24,15 +24,29 @@ const SMACAState = {
       return [];
     }
     
-    const cutoffTime = Date.now() - this.getTimeframeMs(timeframe);
+    const parseUtcMs = (value) => {
+      if (value === null || value === undefined) return NaN;
+      if (typeof value === 'number') return value;
+      const raw = String(value).trim();
+      if (!raw) return NaN;
+      // If timestamp has no timezone, treat as UTC.
+      const hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
+      const normalized = hasTz
+        ? raw
+        : raw.replace(' ', 'T') + 'Z';
+      const ms = new Date(normalized).getTime();
+      return Number.isFinite(ms) ? ms : NaN;
+    };
+
     const now = Date.now();
+    const cutoffTime = now - this.getTimeframeMs(timeframe);
     
     const filtered = dataArray.filter(item => {
-      const itemTime = new Date(item.time || item.timestamp).getTime();
-      return itemTime >= cutoffTime;
+      const itemTime = parseUtcMs(item.time || item.timestamp);
+      return Number.isFinite(itemTime) && itemTime >= cutoffTime && itemTime <= now;
     }).sort((a, b) => {
-      const timeA = new Date(a.time || a.timestamp).getTime();
-      const timeB = new Date(b.time || b.timestamp).getTime();
+      const timeA = parseUtcMs(a.time || a.timestamp);
+      const timeB = parseUtcMs(b.time || b.timestamp);
       return timeA - timeB;
     });
     
@@ -97,8 +111,11 @@ const SMACAState = {
     // Keep only last 30 days of data
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     this.rawData[type] = this.rawData[type].filter(item => {
-      const itemTime = new Date(item.timestamp).getTime();
-      return itemTime >= thirtyDaysAgo;
+      const raw = item.timestamp;
+      const hasTz = typeof raw === 'string' && (/[zZ]$|[+-]\d{2}:\d{2}$/.test(raw));
+      const normalized = hasTz ? raw : (String(raw || '').trim().replace(' ', 'T') + 'Z');
+      const itemTime = new Date(normalized).getTime();
+      return Number.isFinite(itemTime) && itemTime >= thirtyDaysAgo;
     });
     
     
@@ -130,8 +147,11 @@ const SMACAState = {
     // Keep only last 30 days of data
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     this.rawData[type] = this.rawData[type].filter(item => {
-      const itemTime = new Date(item.timestamp).getTime();
-      return itemTime >= thirtyDaysAgo;
+      const raw = item.timestamp;
+      const hasTz = typeof raw === 'string' && (/[zZ]$|[+-]\d{2}:\d{2}$/.test(raw));
+      const normalized = hasTz ? raw : (String(raw || '').trim().replace(' ', 'T') + 'Z');
+      const itemTime = new Date(normalized).getTime();
+      return Number.isFinite(itemTime) && itemTime >= thirtyDaysAgo;
     });
     
     const afterCount = this.rawData[type].length;

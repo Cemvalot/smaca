@@ -156,6 +156,9 @@
     window.SMACA_CURRENT_PAGE = "{{ $smacaPage ?? 'overview' }}";
     window.SMACA_SENSORS = @json($sensors ?? []);
     window.SMACA_HIGHCHARTS_SRC = "https://code.highcharts.com/12.2.0/highcharts.js";
+    window.SMACA_HIGHCHARTS_MODULES = [
+      "https://code.highcharts.com/12.2.0/modules/heatmap.js"
+    ];
   </script>
   <script defer src="{{ asset('assets/js/rbac.js') }}?v={{ $smacaAssetVersion('assets/js/rbac.js') }}"></script>
   <script defer src="{{ asset('assets/js/ui.js') }}?v={{ $smacaAssetVersion('assets/js/ui.js') }}"></script>

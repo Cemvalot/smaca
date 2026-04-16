@@ -5,7 +5,8 @@
       backgroundColor: 'transparent'
     },
     title: { text: null },
-    credits: { enabled: false }
+    credits: { enabled: false },
+    accessibility: { enabled: false }
   };
 
   function hasHighcharts() {
@@ -68,13 +69,28 @@
 
     const options = mergeOptions(DEFAULT_CHART_OPTIONS, params.options || {});
     const existingChart = getChartByKey(chartKey);
-    const isFirstRender = !existingChart;
+    const needsRecreate = !!(existingChart && existingChart.renderTo && existingChart.renderTo !== container);
+    const isFirstRender = !existingChart || needsRecreate;
+    if (needsRecreate) {
+      try { existingChart.destroy(); } catch (e) {}
+      delete store.charts[chartKey];
+    }
+
     if (isFirstRender) {
       store.charts[chartKey] = window.Highcharts.chart(container, options);
     } else {
       existingChart.update(options, true, false, false);
     }
-    return { ok: true, initialized: isFirstRender, chartKey: chartKey };
+
+    // Ensure charts recover correctly when containers were hidden/resized.
+    const chart = store.charts[chartKey];
+    if (chart && typeof chart.reflow === 'function') {
+      setTimeout(function () {
+        try { chart.reflow(); } catch (e) {}
+      }, 0);
+    }
+
+    return { ok: true, initialized: isFirstRender, chartKey: chartKey, recreated: needsRecreate };
   }
 
   function getIaqMetricUiConfig(metric) {
@@ -148,10 +164,12 @@
   function getIaqBandColorByMetric(metric, bandIndex) {
     const palettes = {
       co2: ['rgba(16, 185, 129, 0.10)', 'rgba(245, 158, 11, 0.10)', 'rgba(239, 68, 68, 0.10)'],
-      pm2_5: ['rgba(16, 185, 129, 0.10)', 'rgba(245, 158, 11, 0.10)', 'rgba(239, 68, 68, 0.10)'],
-      pm10: ['rgba(16, 185, 129, 0.10)', 'rgba(245, 158, 11, 0.10)', 'rgba(239, 68, 68, 0.10)'],
-      temperature: ['rgba(34, 197, 94, 0.10)'],
-      humidity: ['rgba(6, 182, 212, 0.10)'],
+      // PM bands use WHO-style thresholds: low/medium/high, but keep very subtle opacity.
+      pm2_5: ['rgba(22, 163, 74, 0.05)', 'rgba(234, 179, 8, 0.05)', 'rgba(239, 68, 68, 0.05)'],
+      pm10: ['rgba(22, 163, 74, 0.05)', 'rgba(234, 179, 8, 0.05)', 'rgba(239, 68, 68, 0.05)'],
+      // Temperature/humidity handled explicitly in buildMetricPlotBands for better semantic zones.
+      temperature: ['rgba(22, 163, 74, 0.05)'],
+      humidity: ['rgba(22, 163, 74, 0.05)'],
       tvoc: ['rgba(236, 72, 153, 0.08)', 'rgba(244, 114, 182, 0.06)', 'rgba(244, 114, 182, 0.04)']
     };
     const items = palettes[metric] || [];
@@ -159,6 +177,26 @@
   }
 
   function buildMetricPlotBands(metric, yMin, yMax) {
+    // Semantic comfort / warning zones for metrics where "good vs bad" isn't symmetric.
+    if (metric === 'temperature') {
+      const comfortLow = 21;
+      const comfortHigh = 24;
+      return [
+        { from: yMin, to: Math.min(yMax, comfortLow), color: 'rgba(56, 189, 248, 0.05)' }, // cool (blue)
+        { from: Math.max(yMin, comfortLow), to: Math.min(yMax, comfortHigh), color: 'rgba(22, 163, 74, 0.05)' }, // comfort (green)
+        { from: Math.max(yMin, comfortHigh), to: yMax, color: 'rgba(249, 115, 22, 0.05)' } // warm (orange)
+      ].filter(function (band) { return band.to > band.from; });
+    }
+    if (metric === 'humidity') {
+      const idealLow = 40;
+      const idealHigh = 60;
+      return [
+        { from: yMin, to: Math.min(yMax, idealLow), color: 'rgba(234, 179, 8, 0.05)' }, // too dry (warn)
+        { from: Math.max(yMin, idealLow), to: Math.min(yMax, idealHigh), color: 'rgba(22, 163, 74, 0.05)' }, // ideal (green)
+        { from: Math.max(yMin, idealHigh), to: yMax, color: 'rgba(239, 68, 68, 0.05)' } // too humid (warn)
+      ].filter(function (band) { return band.to > band.from; });
+    }
+
     const rawBands = getIaqMetricPlotBands(metric, yMin, yMax);
     return rawBands.map(function (band, index) {
       return {
@@ -182,6 +220,9 @@
       : [];
     const resolvedPlotBands = isCo2 ? co2PlotBands : plotBands;
     const co2LineColor = '#60a5fa';
+    const seriesLineColor = isCo2 ? co2LineColor : cfg.color;
+    const seriesLineWidth = isCo2 ? 3 : 2.35;
+    const fillTopAlpha = isCo2 ? 0.22 : 0.12;
     const seriesData = Array.isArray(params.seriesData) ? params.seriesData : [];
     const latestPoint = seriesData.length ? seriesData[seriesData.length - 1] : null;
     const maxPoint = seriesData.length
@@ -260,9 +301,9 @@
           autoRotation: [-20, -35],
           autoRotationLimit: 80,
           formatter: function () {
-            return params.timeframe === '24h'
-              ? window.Highcharts.dateFormat('%H:%M', this.value)
-              : window.Highcharts.dateFormat('%d %b %H:%M', this.value);
+            if (params.timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (params.timeframe === '7d') return window.Highcharts.dateFormat('%d %b', this.value);
+            return window.Highcharts.dateFormat('%d %b', this.value);
           }
         }
       },
@@ -317,7 +358,9 @@
           return (
             '<div style="min-width:140px;">' +
             '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' +
-            window.Highcharts.dateFormat(params.timeframe === '24h' ? '%H:%M' : '%d %b %H:%M', this.x) +
+            (params.timeframe === '24h'
+              ? window.Highcharts.dateFormat('%H:%M', this.x)
+              : window.Highcharts.dateFormat('%d %b', this.x)) +
             '</div>' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
             '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
@@ -333,7 +376,7 @@
       plotOptions: {
         series: {
           animation: false,
-          lineWidth: isCo2 ? 3 : 2.8,
+          lineWidth: seriesLineWidth,
           marker: { enabled: false },
           states: { hover: { lineWidthPlus: 0.35 } },
           turboThreshold: 0
@@ -354,12 +397,12 @@
       series: [{
         type: 'areaspline',
         name: cfg.label,
-        color: isCo2 ? co2LineColor : cfg.color,
+        color: seriesLineColor,
         fillColor: {
           linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
           stops: [
-            [0, toRgba(isCo2 ? co2LineColor : cfg.color, isCo2 ? 0.18 : 0.22)],
-            [1, toRgba(isCo2 ? co2LineColor : cfg.color, 0)]
+            [0, toRgba(seriesLineColor, fillTopAlpha)],
+            [1, toRgba(seriesLineColor, 0)]
           ]
         },
         data: params.seriesData
@@ -381,6 +424,139 @@
 
   function destroyIaqTrendHighchart() {
     destroyChart('iaq-trend-main');
+  }
+
+  function hasHeatmapModule() {
+    return hasHighcharts()
+      && window.Highcharts
+      && window.Highcharts.seriesTypes
+      && typeof window.Highcharts.seriesTypes.heatmap !== 'undefined';
+  }
+
+  function createOrUpdateIaqCo2HourlyHeatmap(containerId, params) {
+    if (!hasHeatmapModule()) return { ok: false, reason: 'missing-heatmap-module' };
+    const container = document.getElementById(containerId);
+    if (!container) return { ok: false, reason: 'missing-container' };
+    const timeframe = params?.timeframe || '24h';
+    const categories = Array.isArray(params?.categories) && params.categories.length
+      ? params.categories
+      : Array.from({ length: 24 }).map(function (_, i) { return String(i).padStart(2, '0'); });
+    const values = Array.isArray(params?.values) ? params.values : (Array.isArray(params?.hourlyValues) ? params.hourlyValues : []);
+    const maxValue = values.reduce(function (m, v) { return Math.max(m, Number(v)); }, Number.NEGATIVE_INFINITY);
+    const worstHour = Number.isFinite(maxValue) ? values.findIndex(function (v) { return Number(v) === maxValue; }) : -1;
+
+    const points = categories.map(function (_, hourIdx) {
+      const v = Number(values[hourIdx]);
+      const isWorst = hourIdx === worstHour && Number.isFinite(v);
+      return {
+        x: hourIdx,
+        y: 0,
+        value: Number.isFinite(v) ? v : null,
+        borderColor: isWorst ? 'rgba(248, 250, 252, 0.55)' : 'rgba(148, 163, 184, 0.18)',
+        borderWidth: isWorst ? 1.5 : 0.75
+      };
+    });
+
+    const options = {
+      chart: {
+        type: 'heatmap',
+        animation: false,
+        backgroundColor: 'transparent',
+        marginTop: 10,
+        marginBottom: 44,
+        spacingLeft: 8,
+        spacingRight: 10
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: {
+        enabled: true,
+        align: 'center',
+        verticalAlign: 'bottom',
+        layout: 'horizontal',
+        symbolWidth: 220,
+        itemStyle: { color: '#94a3b8', fontSize: '10px' }
+      },
+      xAxis: {
+        categories: categories,
+        tickLength: 0,
+        lineColor: 'rgba(148, 163, 184, 0.22)',
+        labels: {
+          style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' }
+        }
+      },
+      yAxis: {
+        categories: ['CO2'],
+        title: { text: null },
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } },
+        gridLineWidth: 0
+      },
+      colorAxis: {
+        min: 400,
+        max: Math.max(1200, Number.isFinite(maxValue) ? maxValue : 1200),
+        stops: [
+          [0, '#16a34a'],
+          [0.5, '#eab308'],
+          [1, '#ef4444']
+        ],
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } }
+      },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const hour = categories[this.point.x] || '--';
+          const value = Number(this.point.value);
+          const text = Number.isFinite(value) ? value.toFixed(0) + ' ppm' : 'N/A';
+          const context = timeframe === '24h'
+            ? 'Last 24h'
+            : (timeframe === '7d' ? 'Last 7d' : 'Last 30d');
+          return (
+            '<div style="min-width:140px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' +
+            (timeframe === '24h' ? ('Bucket: ' + hour) : ('Hour: ' + hour + ':00')) +
+            ' · ' + context +
+            '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,0.16);"></span>' +
+            '<span style="font-weight:500;">CO2 avg</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + text + '</strong>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: {
+          animation: false,
+          states: { hover: { brightness: 0.05 } }
+        }
+      },
+      series: [{
+        type: 'heatmap',
+        name: 'CO2 (ppm)',
+        borderRadius: 4,
+        nullColor: 'rgba(148, 163, 184, 0.10)',
+        data: points,
+        dataLabels: {
+          enabled: false
+        }
+      }]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'iaq-co2-hourly-heatmap',
+      containerId: containerId,
+      options: options
+    });
   }
 
   function createOrUpdateIaqTrendHighchart(containerId, params) {
@@ -430,13 +606,14 @@
   if (typeof window !== 'undefined') {
     window.SMACAHighchartsAdapter = {
       hasHighcharts: hasHighcharts,
+      hasHeatmapModule: hasHeatmapModule,
       getDefaultOptions: function () { return mergeOptions({}, DEFAULT_CHART_OPTIONS); },
       createOrUpdateChart: createOrUpdateChart,
       destroyChart: destroyChart,
       destroyAllCharts: destroyAllCharts,
       createIaqTrendHighchart: createOrUpdateIaqTrendHighchart,
       createIaqSparklineHighchart: function () { return null; },
-      createIaqHeatstripHighchart: function () { return null; },
+      createIaqHeatstripHighchart: createOrUpdateIaqCo2HourlyHeatmap,
       destroyIaqTrendHighchart: destroyIaqTrendHighchart
     };
     window.addEventListener('beforeunload', function () {
