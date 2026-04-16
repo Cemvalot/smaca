@@ -5,256 +5,48 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
+require_once __DIR__ . '/smaca-api-helpers.php';
+require_once __DIR__ . '/smaca-ingest.php';
+
 if (!function_exists('smacaApiMetricWhitelist')) {
     function smacaApiMetricWhitelist(): array
     {
-        return [
-            'battery_pct',
-            'co2_ppm',
-            'temperature_c',
-            'humidity_rh',
-            'pm2_5_ugm3',
-            'pm10_ugm3',
-            'energy_kwh',
-            'uv_index',
-            'people_in',
-            'people_out',
-            'people_total_in',
-            'people_total_out',
-            'tvoc_index',
-        ];
+        return smacaApiMetricWhitelist_impl();
     }
 }
 
 if (!function_exists('smacaApiParseTimeframe')) {
     function smacaApiParseTimeframe(?string $timeframe): array
     {
-        $resolved = $timeframe ?: '24h';
-        $nowAthens = Carbon::now('Europe/Athens');
-
-        return match ($resolved) {
-            '24h' => ['24h', $nowAthens->copy()->subHours(24)],
-            '7d' => ['7d', $nowAthens->copy()->subDays(7)],
-            '30d' => ['30d', $nowAthens->copy()->subDays(30)],
-            default => [null, null],
-        };
+        return smacaApiParseTimeframe_impl($timeframe);
     }
 }
 
 if (!function_exists('smacaApiIso')) {
     function smacaApiIso($value): ?string
     {
-        if (empty($value)) {
-            return null;
-        }
-        try {
-            return Carbon::parse($value, 'Europe/Athens')->toISOString();
-        } catch (\Throwable $e) {
-            return null;
-        }
+        return smacaApiIso_impl($value);
     }
 }
 
 if (!function_exists('smacaApiSnapshotFromRow')) {
     function smacaApiSnapshotFromRow(object $row): array
     {
-        return [
-            'measured_at' => smacaApiIso($row->measured_at ?? null),
-            'battery_pct' => $row->battery_pct ?? null,
-            'co2_ppm' => $row->co2_ppm ?? null,
-            'temperature_c' => $row->temperature_c ?? null,
-            'humidity_rh' => $row->humidity_rh ?? null,
-            'pm2_5_ugm3' => $row->pm2_5_ugm3 ?? null,
-            'pm10_ugm3' => $row->pm10_ugm3 ?? null,
-            'energy_kwh' => $row->energy_kwh ?? null,
-            'uv_index' => $row->uv_index ?? null,
-            'people_in' => $row->people_in ?? null,
-            'people_out' => $row->people_out ?? null,
-            'people_total_in' => $row->people_total_in ?? null,
-            'people_total_out' => $row->people_total_out ?? null,
-        ];
+        return smacaApiSnapshotFromRow_impl($row);
     }
 }
 
 if (!function_exists('smacaReadingsHasColumn')) {
     function smacaReadingsHasColumn(string $column): bool
     {
-        return DB::getSchemaBuilder()->hasColumn('readings', $column);
+        return smacaReadingsHasColumn_impl($column);
     }
 }
 
 if (!function_exists('smacaHandleIngest')) {
     function smacaHandleIngest(Request $request)
     {
-        $nowAthens = Carbon::now('Europe/Athens');
-
-        // αισθητήρες στέλνουν κυρίως sensor_id στο querystring
-        $sensorUid = $request->input('sensor_id', $request->input('sensor_uid'));
-
-        if (empty($sensorUid)) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'sensor_id or sensor_uid is required',
-            ], 422);
-        }
-
-        $sensor = DB::table('sensors as s')
-            ->leftJoin('sites as si', 'si.id', '=', 's.site_id')
-            ->select([
-                's.id',
-                's.external_id',
-                's.name',
-                's.site_id',
-                'si.name as site_name',
-                'si.address as site_address',
-            ])
-            ->where('s.external_id', (string) $sensorUid)
-            ->first();
-
-        if (!$sensor && is_numeric($sensorUid)) {
-            $sensor = DB::table('sensors as s')
-                ->leftJoin('sites as si', 'si.id', '=', 's.site_id')
-                ->select([
-                    's.id',
-                    's.external_id',
-                    's.name',
-                    's.site_id',
-                    'si.name as site_name',
-                    'si.address as site_address',
-                ])
-                ->where('s.id', (int) $sensorUid)
-                ->first();
-        }
-
-        if (!$sensor) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Sensor not found',
-                'incoming_sensor' => $sensorUid,
-            ], 404);
-        }
-
-        if ($request->filled('measured_at')) {
-            try {
-                $measuredAt = Carbon::parse($request->input('measured_at'), 'Europe/Athens');
-            } catch (\Throwable $e) {
-                return response()->json([
-                    'ok' => false,
-                    'message' => 'Invalid measured_at timestamp',
-                ], 422);
-            }
-        } else {
-            $measuredAt = $nowAthens;
-        }
-
-        $readingMetricFields = [
-            'battery_pct',
-            'co2_ppm',
-            'temperature_c',
-            'humidity_rh',
-            'pressure_hpa',
-            'tvoc_index',
-            'pm2_5_ugm3',
-            'pm10_ugm3',
-            'light_level',
-            'pir',
-            'people_in',
-            'people_out',
-            'people_total_in',
-            'people_total_out',
-            'uv_index',
-            'gpio_in1',
-            'gpio_in2',
-            'energy_kwh',
-            'current_a',
-            'power_factor',
-            'frequency_hz',
-            'max_demand_kw',
-            'meter_serial',
-        ];
-
-        $metricValues = [];
-        foreach ($readingMetricFields as $field) {
-            if (smacaReadingsHasColumn($field)) {
-                $metricValues[$field] = $request->input($field);
-            }
-        }
-
-        $readingBase = [
-            'sensor_uid' => (string) $sensor->external_id,
-            'measured_at' => $measuredAt,
-            'message_uid' => $request->input('message_uid'),
-            'created_at' => $nowAthens,
-            'updated_at' => $nowAthens,
-        ];
-
-        if (smacaReadingsHasColumn('sensor_name')) {
-            $readingBase['sensor_name'] = $request->input('sensor_name', $sensor->name ?? null);
-        }
-
-        if (smacaReadingsHasColumn('sensor_location')) {
-            $readingBase['sensor_location'] = $request->input(
-                'sensor_location',
-                ($sensor->site_name ?? null) ?: ($sensor->site_address ?? null)
-            );
-        }
-
-        $readingInsert = array_merge($readingBase, $metricValues);
-
-        $readingId = DB::table('readings')->insertGetId($readingInsert);
-
-        DB::table('sensors')
-            ->where('id', $sensor->id)
-            ->update([
-                'last_seen_at' => $measuredAt,
-                'updated_at' => $nowAthens,
-            ]);
-
-        DB::table('sensor_latest')->upsert([
-            [
-                'sensor_id' => $sensor->id,
-                'reading_id' => $readingId,
-                'measured_at' => $measuredAt,
-                'battery_pct' => $metricValues['battery_pct'] ?? null,
-                'co2_ppm' => $metricValues['co2_ppm'] ?? null,
-                'temperature_c' => $metricValues['temperature_c'] ?? null,
-                'humidity_rh' => $metricValues['humidity_rh'] ?? null,
-                'pm2_5_ugm3' => $metricValues['pm2_5_ugm3'] ?? null,
-                'pm10_ugm3' => $metricValues['pm10_ugm3'] ?? null,
-                'energy_kwh' => $metricValues['energy_kwh'] ?? null,
-                'uv_index' => $metricValues['uv_index'] ?? null,
-                'people_in' => $metricValues['people_in'] ?? null,
-                'people_out' => $metricValues['people_out'] ?? null,
-                'people_total_in' => $metricValues['people_total_in'] ?? null,
-                'people_total_out' => $metricValues['people_total_out'] ?? null,
-                'created_at' => $nowAthens,
-                'updated_at' => $nowAthens,
-            ],
-        ], ['sensor_id'], [
-            'reading_id',
-            'measured_at',
-            'battery_pct',
-            'co2_ppm',
-            'temperature_c',
-            'humidity_rh',
-            'pm2_5_ugm3',
-            'pm10_ugm3',
-            'energy_kwh',
-            'uv_index',
-            'people_in',
-            'people_out',
-            'people_total_in',
-            'people_total_out',
-            'updated_at',
-        ]);
-
-        return response()->json([
-            'ok' => true,
-            'sensor_id' => $sensor->id,
-            'sensor_uid' => $sensor->external_id,
-            'reading_id' => $readingId,
-            'measured_at' => $measuredAt->toISOString(),
-        ], 201);
+        return smacaHandleIngest_impl($request);
     }
 }
 
