@@ -1,6 +1,80 @@
 ;(function () {
+  const DEFAULT_CHART_OPTIONS = {
+    chart: {
+      animation: false,
+      backgroundColor: 'transparent'
+    },
+    title: { text: null },
+    credits: { enabled: false }
+  };
+
   function hasHighcharts() {
     return typeof window !== 'undefined' && typeof window.Highcharts !== 'undefined';
+  }
+
+  function ensureChartStore() {
+    if (typeof window === 'undefined') return null;
+    if (!window.__smacaHighchartsStore) {
+      window.__smacaHighchartsStore = {
+        charts: {}
+      };
+    }
+    return window.__smacaHighchartsStore;
+  }
+
+  function mergeOptions(baseOptions, overrideOptions) {
+    if (!hasHighcharts()) {
+      return overrideOptions || baseOptions || {};
+    }
+    return window.Highcharts.merge(baseOptions || {}, overrideOptions || {});
+  }
+
+  function getChartByKey(chartKey) {
+    const store = ensureChartStore();
+    if (!store || !store.charts) return null;
+    return store.charts[chartKey] || null;
+  }
+
+  function destroyChart(chartKey) {
+    const store = ensureChartStore();
+    if (!store || !store.charts || !store.charts[chartKey]) return false;
+    try {
+      store.charts[chartKey].destroy();
+    } catch (err) {
+      // No-op: destroy best effort.
+    }
+    delete store.charts[chartKey];
+    return true;
+  }
+
+  function destroyAllCharts() {
+    const store = ensureChartStore();
+    if (!store || !store.charts) return;
+    Object.keys(store.charts).forEach(function (chartKey) {
+      destroyChart(chartKey);
+    });
+  }
+
+  function createOrUpdateChart(params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const chartKey = String(params?.chartKey || '').trim();
+    if (!chartKey) return { ok: false, reason: 'missing-chart-key' };
+    const containerId = String(params?.containerId || '').trim();
+    if (!containerId) return { ok: false, reason: 'missing-container-id' };
+    const container = document.getElementById(containerId);
+    if (!container) return { ok: false, reason: 'missing-container' };
+    const store = ensureChartStore();
+    if (!store) return { ok: false, reason: 'missing-window' };
+
+    const options = mergeOptions(DEFAULT_CHART_OPTIONS, params.options || {});
+    const existingChart = getChartByKey(chartKey);
+    const isFirstRender = !existingChart;
+    if (isFirstRender) {
+      store.charts[chartKey] = window.Highcharts.chart(container, options);
+    } else {
+      existingChart.update(options, true, false, false);
+    }
+    return { ok: true, initialized: isFirstRender, chartKey: chartKey };
   }
 
   function getIaqMetricUiConfig(metric) {
@@ -55,9 +129,108 @@
     }).filter(Boolean);
   }
 
+  function hexToRgb(color) {
+    const value = String(color || '').trim().replace('#', '');
+    if (!/^[0-9a-fA-F]{6}$/.test(value)) return { r: 59, g: 130, b: 246 };
+    return {
+      r: parseInt(value.slice(0, 2), 16),
+      g: parseInt(value.slice(2, 4), 16),
+      b: parseInt(value.slice(4, 6), 16)
+    };
+  }
+
+  function toRgba(color, alpha) {
+    const rgb = hexToRgb(color);
+    const a = Number.isFinite(Number(alpha)) ? Number(alpha) : 1;
+    return 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', ' + a + ')';
+  }
+
+  function getIaqBandColorByMetric(metric, bandIndex) {
+    const palettes = {
+      co2: ['rgba(16, 185, 129, 0.10)', 'rgba(245, 158, 11, 0.10)', 'rgba(239, 68, 68, 0.10)'],
+      pm2_5: ['rgba(16, 185, 129, 0.10)', 'rgba(245, 158, 11, 0.10)', 'rgba(239, 68, 68, 0.10)'],
+      pm10: ['rgba(16, 185, 129, 0.10)', 'rgba(245, 158, 11, 0.10)', 'rgba(239, 68, 68, 0.10)'],
+      temperature: ['rgba(34, 197, 94, 0.10)'],
+      humidity: ['rgba(6, 182, 212, 0.10)'],
+      tvoc: ['rgba(236, 72, 153, 0.08)', 'rgba(244, 114, 182, 0.06)', 'rgba(244, 114, 182, 0.04)']
+    };
+    const items = palettes[metric] || [];
+    return items[bandIndex] || 'rgba(148, 163, 184, 0.08)';
+  }
+
+  function buildMetricPlotBands(metric, yMin, yMax) {
+    const rawBands = getIaqMetricPlotBands(metric, yMin, yMax);
+    return rawBands.map(function (band, index) {
+      return {
+        from: band.from,
+        to: band.to,
+        color: getIaqBandColorByMetric(metric, index)
+      };
+    });
+  }
+
   function createIaqTrendHighchartOptions(params) {
     const cfg = getIaqMetricUiConfig(params.metric);
-    const plotBands = getIaqMetricPlotBands(params.metric, params.yDomain.min, params.yDomain.max);
+    const isCo2 = params.metric === 'co2';
+    const plotBands = buildMetricPlotBands(params.metric, params.yDomain.min, params.yDomain.max);
+    const co2PlotBands = isCo2
+      ? [
+          { from: Math.max(params.yDomain.min, 400), to: Math.min(params.yDomain.max, 800), color: 'rgba(22, 163, 74, 0.05)' },
+          { from: Math.max(params.yDomain.min, 800), to: Math.min(params.yDomain.max, 1000), color: 'rgba(234, 179, 8, 0.05)' },
+          { from: Math.max(params.yDomain.min, 1000), to: params.yDomain.max, color: 'rgba(239, 68, 68, 0.05)' }
+        ].filter(function (band) { return band.to > band.from; })
+      : [];
+    const resolvedPlotBands = isCo2 ? co2PlotBands : plotBands;
+    const co2LineColor = '#60a5fa';
+    const seriesData = Array.isArray(params.seriesData) ? params.seriesData : [];
+    const latestPoint = seriesData.length ? seriesData[seriesData.length - 1] : null;
+    const maxPoint = seriesData.length
+      ? seriesData.reduce(function (currentMax, point) {
+          if (!currentMax) return point;
+          return Number(point[1]) > Number(currentMax[1]) ? point : currentMax;
+        }, null)
+      : null;
+    const hasDistinctMaxPoint = isCo2 && latestPoint && maxPoint && latestPoint[0] !== maxPoint[0];
+    const highlightSeries = isCo2
+      ? [
+          latestPoint
+            ? {
+                type: 'scatter',
+                name: 'Latest',
+                data: [latestPoint],
+                color: co2LineColor,
+                marker: {
+                  enabled: true,
+                  radius: 3,
+                  lineColor: '#0f172a',
+                  lineWidth: 1.25,
+                  fillColor: '#93c5fd'
+                },
+                enableMouseTracking: false,
+                showInLegend: false,
+                states: { hover: { enabled: false } }
+              }
+            : null,
+          hasDistinctMaxPoint
+            ? {
+                type: 'scatter',
+                name: 'Peak',
+                data: [maxPoint],
+                color: '#f59e0b',
+                marker: {
+                  enabled: true,
+                  radius: 2.5,
+                  lineColor: '#0f172a',
+                  lineWidth: 1,
+                  fillColor: '#fcd34d'
+                },
+                enableMouseTracking: false,
+                showInLegend: false,
+                states: { hover: { enabled: false } }
+              }
+            : null
+        ].filter(Boolean)
+      : [];
     return {
       chart: {
         type: 'areaspline',
@@ -74,10 +247,18 @@
       time: { useUTC: false },
       xAxis: {
         type: 'datetime',
-        lineColor: 'rgba(148, 163, 184, 0.35)',
-        tickColor: 'rgba(148, 163, 184, 0.35)',
+        lineColor: 'rgba(148, 163, 184, 0.28)',
+        tickColor: 'rgba(148, 163, 184, 0.22)',
+        tickLength: 4,
+        tickPixelInterval: params.timeframe === '24h' ? 84 : 120,
         labels: {
-          style: { color: '#94a3b8', fontSize: '10px' },
+          style: {
+            color: '#94a3b8',
+            fontSize: '10px',
+            textOutline: 'none'
+          },
+          autoRotation: [-20, -35],
+          autoRotationLimit: 80,
           formatter: function () {
             return params.timeframe === '24h'
               ? window.Highcharts.dateFormat('%H:%M', this.value)
@@ -86,39 +267,65 @@
         }
       },
       yAxis: {
-        title: { text: cfg.unit, style: { color: '#94a3b8', fontSize: '10px', fontWeight: '500' } },
+        title: {
+          text: cfg.unit,
+          style: {
+            color: '#7c8ca2',
+            fontSize: '10px',
+            fontWeight: '500',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em'
+          }
+        },
         min: params.yDomain.min,
         max: params.yDomain.max,
-        gridLineColor: 'rgba(148, 163, 184, 0.22)',
+        tickAmount: 5,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        gridLineWidth: 1,
         labels: {
-          style: { color: '#94a3b8', fontSize: '10px' },
+          style: {
+            color: '#a7b4c5',
+            fontSize: '10px',
+            textOutline: 'none'
+          },
+          x: -4,
           formatter: function () {
             return cfg.decimals > 0 ? Number(this.value).toFixed(cfg.decimals) : String(Math.round(this.value));
           }
         },
-        plotBands: plotBands
+        plotBands: resolvedPlotBands
       },
       tooltip: {
         shared: false,
         outside: false,
         useHTML: true,
-        backgroundColor: '#111827',
-        borderColor: 'rgba(148, 163, 184, 0.35)',
-        borderRadius: 8,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
         shadow: false,
-        style: { color: '#e2e8f0', fontSize: '11px' },
+        padding: 10,
+        style: {
+          color: '#e2e8f0',
+          fontSize: '11px'
+        },
         formatter: function () {
           const value = Number(this.y);
           const valueText = Number.isFinite(value)
             ? value.toFixed(cfg.decimals)
             : 'N/A';
           return (
-            '<div style="margin-bottom:6px;color:#94a3b8;">' +
+            '<div style="min-width:140px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' +
             window.Highcharts.dateFormat(params.timeframe === '24h' ? '%H:%M' : '%d %b %H:%M', this.x) +
             '</div>' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">' +
-            '<span><span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + cfg.color + ';margin-right:6px;"></span>' + cfg.label + '</span>' +
-            '<strong>' + valueText + ' ' + cfg.unit + '</strong>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + cfg.color + ';box-shadow:0 0 0 2px ' + toRgba(cfg.color, 0.16) + ';"></span>' +
+            '<span style="font-weight:500;">' + cfg.label + '</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + valueText + ' ' + cfg.unit + '</strong>' +
+            '</div>' +
             '</div>'
           );
         }
@@ -126,13 +333,13 @@
       plotOptions: {
         series: {
           animation: false,
-          lineWidth: 2.75,
+          lineWidth: isCo2 ? 3 : 2.8,
           marker: { enabled: false },
-          states: { hover: { lineWidthPlus: 0 } },
+          states: { hover: { lineWidthPlus: 0.35 } },
           turboThreshold: 0
         },
         areaspline: {
-          fillOpacity: 0.13
+          fillOpacity: 1
         }
       },
       responsive: {
@@ -147,29 +354,33 @@
       series: [{
         type: 'areaspline',
         name: cfg.label,
-        color: cfg.color,
+        color: isCo2 ? co2LineColor : cfg.color,
+        fillColor: {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+          stops: [
+            [0, toRgba(isCo2 ? co2LineColor : cfg.color, isCo2 ? 0.18 : 0.22)],
+            [1, toRgba(isCo2 ? co2LineColor : cfg.color, 0)]
+          ]
+        },
         data: params.seriesData
-      }]
+      }].concat(highlightSeries)
     };
   }
 
   function ensureIaqChartStore() {
-    if (typeof window === 'undefined') return null;
-    if (!window.__smacaIaqHighcharts) {
-      window.__smacaIaqHighcharts = {
-        chart: null,
+    const rootStore = ensureChartStore();
+    if (!rootStore) return null;
+    if (!rootStore.iaqTrendMeta) {
+      rootStore.iaqTrendMeta = {
         lastMetric: null,
         lastTimeframe: null
       };
     }
-    return window.__smacaIaqHighcharts;
+    return rootStore.iaqTrendMeta;
   }
 
   function destroyIaqTrendHighchart() {
-    const store = ensureIaqChartStore();
-    if (!store || !store.chart) return;
-    store.chart.destroy();
-    store.chart = null;
+    destroyChart('iaq-trend-main');
   }
 
   function createOrUpdateIaqTrendHighchart(containerId, params) {
@@ -177,19 +388,23 @@
     const container = document.getElementById(containerId);
     if (!container) return { ok: false, reason: 'missing-container' };
     const store = ensureIaqChartStore();
-    if (!store) return { ok: false, reason: 'missing-window' };
+    if (!store) return { ok: false, reason: 'missing-store' };
     const options = createIaqTrendHighchartOptions(params);
-    const isFirstRender = !store.chart;
+    const rendered = createOrUpdateChart({
+      chartKey: 'iaq-trend-main',
+      containerId: containerId,
+      options: options
+    });
+    if (!rendered.ok) return rendered;
+    const isFirstRender = !!rendered.initialized;
 
     if (isFirstRender) {
-      store.chart = window.Highcharts.chart(container, options);
       console.info('Highcharts chart initialized', {
         metric: params.metric,
         timeframe: params.timeframe,
         pointCount: params.seriesData.length
       });
     } else {
-      store.chart.update(options, true, false, false);
       const reason = store.lastMetric !== params.metric
         ? 'metric change'
         : (store.lastTimeframe !== params.timeframe ? 'timeframe change' : 'data refresh');
@@ -209,19 +424,23 @@
 
     store.lastMetric = params.metric;
     store.lastTimeframe = params.timeframe;
-    return { ok: true, initialized: isFirstRender };
+    return { ok: true, initialized: isFirstRender, chartKey: 'iaq-trend-main' };
   }
 
   if (typeof window !== 'undefined') {
     window.SMACAHighchartsAdapter = {
       hasHighcharts: hasHighcharts,
+      getDefaultOptions: function () { return mergeOptions({}, DEFAULT_CHART_OPTIONS); },
+      createOrUpdateChart: createOrUpdateChart,
+      destroyChart: destroyChart,
+      destroyAllCharts: destroyAllCharts,
       createIaqTrendHighchart: createOrUpdateIaqTrendHighchart,
       createIaqSparklineHighchart: function () { return null; },
       createIaqHeatstripHighchart: function () { return null; },
       destroyIaqTrendHighchart: destroyIaqTrendHighchart
     };
     window.addEventListener('beforeunload', function () {
-      destroyIaqTrendHighchart();
+      destroyAllCharts();
     });
   }
 })();

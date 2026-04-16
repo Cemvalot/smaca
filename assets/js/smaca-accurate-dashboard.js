@@ -471,7 +471,7 @@ function renderIaqMainTrendChart(computed) {
   const dataMax = Math.max.apply(null, values);
   const dataSpread = dataMax - dataMin;
   const scalingByMetric = {
-    co2: { minVisualRange: 20, paddingRatio: 0.2, minPadding: 4 },
+    co2: { minVisualRange: 12, paddingRatio: 0.05, minPadding: 1 },
     temperature: { minVisualRange: 1.5, paddingRatio: 0.18, minPadding: 0.3 },
     humidity: { minVisualRange: 8, paddingRatio: 0.16, minPadding: 1.5 },
     pm2_5: { minVisualRange: 5, paddingRatio: 0.2, minPadding: 0.8 },
@@ -524,7 +524,23 @@ function renderIaqMainTrendChart(computed) {
     };
   }
 
+  function setIaqRendererState(rendererName) {
+    chartEl.dataset.smacaIaqRenderer = rendererName;
+    if (typeof window !== 'undefined') {
+      window.__SMACA_IaqMainChartRenderer = rendererName;
+    }
+  }
+
+  function clearFallbackArtifacts() {
+    chartEl.querySelectorAll('svg.chart-svg, [data-smaca-iaq-fallback-tooltip="1"]').forEach(function (node) {
+      node.remove();
+    });
+  }
+
+  let renderer = 'fallback';
   if (typeof window !== 'undefined' && window.SMACAHighchartsAdapter && window.SMACAHighchartsAdapter.hasHighcharts()) {
+    // Strict guard: when Highcharts is available, clear any previous fallback artifacts first.
+    clearFallbackArtifacts();
     const highchartsSeries = series.map(function (entry) {
       return [new Date(entry.time).getTime(), Number(entry.value)];
     }).filter(function (point) {
@@ -541,6 +557,9 @@ function renderIaqMainTrendChart(computed) {
       seriesData: highchartsSeries
     });
     if (rendered && rendered.ok) {
+      renderer = 'highcharts';
+      setIaqRendererState('highcharts');
+      console.debug('[SMACA][IAQ] renderer = highcharts');
       if (typeof window !== 'undefined' && window.__iaqHighchartsDebug) {
         window.__iaqHighchartsDebug.usingHighcharts = true;
       }
@@ -567,6 +586,13 @@ function renderIaqMainTrendChart(computed) {
     }
   }
 
+  // Strict guard: fallback must own the container alone.
+  if (typeof window !== 'undefined' && window.SMACAHighchartsAdapter && typeof window.SMACAHighchartsAdapter.destroyIaqTrendHighchart === 'function') {
+    window.SMACAHighchartsAdapter.destroyIaqTrendHighchart();
+  }
+  setIaqRendererState('fallback');
+  console.debug('[SMACA][IAQ] renderer = fallback');
+
   // Fallback legacy SVG rendering when Highcharts is unavailable.
   const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
   if (typeof window !== 'undefined' && currentPage === 'iaq') {
@@ -584,7 +610,8 @@ function renderIaqMainTrendChart(computed) {
       max: dataMax,
       spread: dataSpread,
       yDomain: [min, max],
-      usingHighcharts: false
+      usingHighcharts: false,
+      renderer: renderer
     };
   }
   const yScale = function (v) { return chartHeight - ((v - min) / (max - min || 1)) * chartHeight; };
@@ -798,6 +825,7 @@ function renderIaqMainTrendChart(computed) {
   chartEl.appendChild(svg);
 
   const tooltip = document.createElement('div');
+  tooltip.dataset.smacaIaqFallbackTooltip = '1';
   tooltip.style.position = 'absolute';
   tooltip.style.pointerEvents = 'none';
   tooltip.style.minWidth = '150px';
