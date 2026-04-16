@@ -1264,6 +1264,128 @@
     });
   }
 
+  function createOrUpdateEnergyMainCombinedChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const timeframe = params?.timeframe || '24h';
+    const bucketTimesMs = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
+    const energyValues = Array.isArray(params?.energyValues) ? params.energyValues : [];
+    const trendValues = Array.isArray(params?.trendValues) ? params.trendValues : [];
+
+    const energySeries = bucketTimesMs.map(function (t, i) {
+      const v = Number(energyValues[i]);
+      return [Number(t), Number.isFinite(v) ? v : null];
+    });
+    const trendSeries = bucketTimesMs.map(function (t, i) {
+      const v = Number(trendValues[i]);
+      return [Number(t), Number.isFinite(v) ? v : null];
+    });
+
+    const options = {
+      chart: {
+        type: 'column',
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingTop: 18,
+        spacingRight: 10,
+        spacingBottom: 18,
+        spacingLeft: 8
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      time: { useUTC: false },
+      xAxis: {
+        type: 'datetime',
+        tickLength: 0,
+        tickColor: 'rgba(148, 163, 184, 0.22)',
+        tickPixelInterval: timeframe === '24h' ? 84 : 120,
+        lineColor: 'rgba(148, 163, 184, 0.28)',
+        labels: {
+          style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' },
+          autoRotation: [-20, -35],
+          autoRotationLimit: 80,
+          y: 12,
+          formatter: function () {
+            if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            return window.Highcharts.dateFormat('%d %b', this.value);
+          }
+        }
+      },
+      yAxis: {
+        title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' } },
+        min: 0,
+        tickAmount: 5,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        gridLineWidth: 1,
+        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' }, x: -4 }
+      },
+      tooltip: {
+        shared: true,
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const header = timeframe === '24h'
+            ? window.Highcharts.dateFormat('%H:%M', this.x)
+            : window.Highcharts.dateFormat('%d %b', this.x);
+          const rows = (this.points || []).map(function (p) {
+            const name = p.series && p.series.name ? p.series.name : 'Series';
+            const value = Number(p.y);
+            const color = p.color || '#94a3b8';
+            const valueText = Number.isFinite(value) ? String(value.toFixed(1)) : 'N/A';
+            return (
+              '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:6px;">' +
+              '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+              '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + color + ';"></span>' +
+              '<span style="font-weight:500;">' + name + '</span>' +
+              '</span>' +
+              '<strong style="color:#f8fbff;">' + valueText + '</strong>' +
+              '</div>'
+            );
+          }).join('');
+          return (
+            '<div style="min-width:190px;">' +
+            '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+            rows +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: { animation: false, states: { inactive: { opacity: 1 } } },
+        column: { groupPadding: 0.12, pointPadding: 0.06, borderRadius: 3, borderWidth: 0 },
+        spline: { marker: { enabled: false }, lineWidth: 2.6 }
+      },
+      series: [
+        {
+          type: 'column',
+          name: 'Energy usage',
+          color: 'rgba(168, 85, 247, 0.85)',
+          data: energySeries,
+          zIndex: 2
+        },
+        {
+          type: 'spline',
+          name: 'Cumulative trend',
+          color: 'rgba(56, 189, 248, 0.98)',
+          data: trendSeries,
+          zIndex: 3
+        }
+      ]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'energy-main-combined',
+      containerId: containerId,
+      options: options
+    });
+  }
+
   if (typeof window !== 'undefined') {
     window.SMACAHighchartsAdapter = {
       hasHighcharts: hasHighcharts,
@@ -1281,6 +1403,7 @@
       createOccupancyLocationInOutFlowChart: createOrUpdateOccupancyLocationInOutFlow,
       createOccupancyTopTrafficLocationsChart: createOrUpdateOccupancyTopTrafficLocationsChart,
       createOccupancyPatternHeatmap: createOrUpdateOccupancyPatternHeatmap,
+      createEnergyMainCombinedChart: createOrUpdateEnergyMainCombinedChart,
       destroyIaqTrendHighchart: destroyIaqTrendHighchart
     };
     window.addEventListener('beforeunload', function () {

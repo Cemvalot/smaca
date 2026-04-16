@@ -2577,117 +2577,135 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     return;
   }
 
-  // Build explicit numeric series from hydrated payloads.
-  const timeInterval = timeframe === '24h' ? 60 * 60 * 1000 :
-                        timeframe === '7d' ? 24 * 60 * 60 * 1000 :
-                        24 * 60 * 60 * 1000;
-  const filteredOccupancy = typeof SMACAState?.getFilteredOccupancy === 'function'
-    ? SMACAState.getFilteredOccupancy()
-    : (Array.isArray(SMACAState?.rawData?.occupancy) ? SMACAState.rawData.occupancy : []);
+  console.debug('[SMACA][ENERGY] timeframe change start', { timeframe: timeframe });
 
+  const adapter = typeof window !== 'undefined' ? window.SMACAHighchartsAdapter : null;
+  const hasHighcharts = !!(adapter && typeof adapter.createEnergyMainCombinedChart === 'function' && adapter.hasHighcharts && adapter.hasHighcharts());
+
+  if (!hasHighcharts) {
+    const energyChartEl = document.getElementById('energy-correlation-chart');
+    if (energyChartEl) {
+      energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">Highcharts is unavailable, unable to render the energy chart.</div>';
+    }
+    return;
+  }
+
+  console.debug('[SMACA][ENERGY] chart update start', { timeframe: timeframe });
+
+  const HOUR_MS = 60 * 60 * 1000;
+  const DAY_MS = 24 * HOUR_MS;
+  const bucketMs = timeframe === '24h' ? HOUR_MS : DAY_MS;
+  const bucketCount = timeframe === '24h' ? 24 : (timeframe === '7d' ? 7 : 30);
+
+  const rangeEndMs = Date.now();
+  const rangeStartMs = rangeEndMs - (timeframe === '24h' ? (24 * HOUR_MS) : (timeframe === '7d' ? (7 * DAY_MS) : (30 * DAY_MS)));
+  const alignedEndBucketMs = Math.floor(rangeEndMs / bucketMs) * bucketMs;
+  const bucketTimesMs = Array.from({ length: bucketCount }, function (_, idx) {
+    return alignedEndBucketMs - (bucketCount - 1 - idx) * bucketMs;
+  });
+
+  const metricUsed = 'energy_kwh';
+  const bucketStrategy = 'per-sensor delta using last value in bucket (delta>=0) summed across sensors';
+
+  // Parse raw energy rows into per-sensor point list.
   const energyPoints = energyRows
     .map(function (row) {
-      const time = row?.time;
-      const timeMs = new Date(time).getTime();
-      const energyValue = Number(row?.payload?.object?.energy_kwh);
-      return { time: time, timeMs: timeMs, value: energyValue };
-    })
-    .filter(function (point) {
-      return point.time && Number.isFinite(point.timeMs) && Number.isFinite(point.value);
-    });
-
-  const occupancyPoints = filteredOccupancy
-    .map(function (row) {
-      const time = row?.time;
-      const timeMs = new Date(time).getTime();
-      const peopleIn = Number(row?.payload?.object?.people_in);
-      const peopleOut = Number(row?.payload?.object?.people_out);
-      const activity = peopleIn + peopleOut;
       return {
-        time: time,
-        timeMs: timeMs,
-        people_in: peopleIn,
-        people_out: peopleOut,
-        value: activity
+        timeMs: new Date(row?.time).getTime(),
+        sensorId: row?.sensorId,
+        value: Number(row?.payload?.object?.energy_kwh)
       };
     })
-    .filter(function (point) {
-      return point.time && Number.isFinite(point.timeMs) && Number.isFinite(point.value);
+    .filter(function (p) {
+      return Number.isFinite(p?.timeMs) && Number.isFinite(Number(p?.sensorId)) && Number.isFinite(p?.value)
+        && p.timeMs >= rangeStartMs && p.timeMs <= rangeEndMs;
     });
 
-  const groupedEnergy = {};
-  energyPoints.forEach(function (point) {
-    const bucket = Math.floor(point.timeMs / timeInterval) * timeInterval;
-    if (!groupedEnergy[bucket]) groupedEnergy[bucket] = { sum: 0, count: 0 };
-    groupedEnergy[bucket].sum += point.value;
-    groupedEnergy[bucket].count += 1;
+  const sensorIds = Array.from(new Set(energyPoints.map(function (p) { return String(p.sensorId); })));
+  const bucketMin = bucketTimesMs.length ? bucketTimesMs[0] : null;
+  const bucketMax = bucketTimesMs.length ? bucketTimesMs[bucketTimesMs.length - 1] : null;
+
+  // Track last reading per sensor per bucket.
+  const lastBySensorByBucket = {};
+  energyPoints.forEach(function (p) {
+    const bucketKey = Math.floor(p.timeMs / bucketMs) * bucketMs;
+    if (bucketKey < bucketMin || bucketKey > bucketMax) return;
+    const sensorKey = String(p.sensorId);
+    if (!lastBySensorByBucket[sensorKey]) lastBySensorByBucket[sensorKey] = {};
+    const existing = lastBySensorByBucket[sensorKey][bucketKey];
+    if (!existing || p.timeMs > existing.timeMs) {
+      lastBySensorByBucket[sensorKey][bucketKey] = { timeMs: p.timeMs, value: p.value };
+    }
   });
 
-  const groupedOccupancy = {};
-  occupancyPoints.forEach(function (point) {
-    const bucket = Math.floor(point.timeMs / timeInterval) * timeInterval;
-    if (!groupedOccupancy[bucket]) groupedOccupancy[bucket] = { sum: 0, count: 0 };
-    groupedOccupancy[bucket].sum += point.value;
-    groupedOccupancy[bucket].count += 1;
-  });
+  // Energy usage per bucket = summed positive deltas between consecutive buckets.
+  const energyValues = [];
+  for (let i = 0; i < bucketTimesMs.length; i += 1) {
+    const bucketKey = bucketTimesMs[i];
+    const prevKey = i > 0 ? bucketTimesMs[i - 1] : null;
+    let sumDelta = 0;
+    let hasAny = false;
 
-  const sampleOccupancy = occupancyPoints.slice(0, 3).map(function (item) {
-    return {
-      time: item?.time || null,
-      people_in: item?.people_in ?? null,
-      people_out: item?.people_out ?? null,
-      activity: item?.value ?? null
-    };
-  });
-  const sampleEnergy = energyPoints.slice(0, 3).map(function (item) {
-    return {
-      time: item?.time || null,
-      energy_kwh: item?.value ?? null
-    };
-  });
-
-  const sharedBuckets = Object.keys(groupedEnergy)
-    .filter(function (bucket) { return !!groupedOccupancy[bucket]; })
-    .map(function (bucket) { return Number(bucket); })
-    .filter(Number.isFinite)
-    .sort(function (a, b) { return a - b; });
-
-  const pairedSeries = sharedBuckets
-    .map(function (bucket) {
-      const energyAvg = groupedEnergy[bucket].count > 0 ? groupedEnergy[bucket].sum / groupedEnergy[bucket].count : NaN;
-      const occupancyAvg = groupedOccupancy[bucket].count > 0 ? groupedOccupancy[bucket].sum / groupedOccupancy[bucket].count : NaN;
-      const energyValue = Number(energyAvg);
-      const occupancyValue = Number(occupancyAvg);
-      return { occupancy: occupancyValue, energy: energyValue };
-    })
-    .filter(function (point) {
-      return Number.isFinite(point.occupancy) && Number.isFinite(point.energy);
+    sensorIds.forEach(function (sensorKey) {
+      if (!prevKey) return;
+      const byBucket = lastBySensorByBucket[sensorKey];
+      if (!byBucket) return;
+      const curr = byBucket[bucketKey];
+      const prev = byBucket[prevKey];
+      if (!curr || !prev) return;
+      const delta = Number(curr.value) - Number(prev.value);
+      if (Number.isFinite(delta) && delta >= 0) {
+        sumDelta += delta;
+        hasAny = true;
+      }
     });
 
-  const occupancyData = pairedSeries.map(function (point) { return point.occupancy; });
-  const energyData = pairedSeries.map(function (point) { return point.energy; });
-  const maxOccupancy = occupancyData.length > 0 ? Math.max.apply(null, occupancyData) : 0;
-  const maxEnergy = energyData.length > 0 ? Math.max.apply(null, energyData) : 0;
-  
-  // Update correlation chart (only when energy section visible - avoids wrong size from hidden container)
-  setTimeout(() => {
-    const energySection = document.querySelector('#energy');
-    if (energySection && energySection.style.display === 'none') return;
+    energyValues.push(hasAny ? sumDelta : null);
+  }
+
+  const hasAnyEnergy = energyValues.some(function (v) { return Number.isFinite(Number(v)); });
+  if (!hasAnyEnergy) {
     const energyChartEl = document.getElementById('energy-correlation-chart');
-    if (!energyChartEl) return;
-
-    const svg = energyChartEl.querySelector('svg');
-    if (svg) svg.remove();
-
-    if (occupancyData.length === 0 || energyData.length === 0 || !Number.isFinite(maxOccupancy) || !Number.isFinite(maxEnergy) || maxOccupancy <= 0 || maxEnergy <= 0) {
-      energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">No data for selected timeframe</div>';
-      return;
+    if (energyChartEl) {
+      energyChartEl.innerHTML = '<div style="color: var(--muted); text-align: center; padding: var(--space-6);">Energy data is unavailable for the selected timeframe.</div>';
     }
+  }
 
-    if (typeof createDualAxisChart === 'function') {
-      createDualAxisChart('energy-correlation-chart', occupancyData, energyData, { height: 400 });
+  const trendValues = [];
+  let running = 0;
+  energyValues.forEach(function (v) {
+    if (Number.isFinite(Number(v))) {
+      running += Number(v);
+      trendValues.push(running);
+    } else {
+      trendValues.push(null);
     }
-  }, 200);
+  });
+
+  window.__energyChartDebug = {
+    timeframe: timeframe,
+    rangeStart: new Date(rangeStartMs).toISOString(),
+    rangeEnd: new Date(rangeEndMs).toISOString(),
+    pointCount: bucketCount,
+    metricUsed: metricUsed,
+    bucketStrategy: bucketStrategy,
+    mainSeries: { data: energyValues },
+    trendSeries: { data: trendValues }
+  };
+
+  if (hasAnyEnergy) {
+    const rendered = adapter.createEnergyMainCombinedChart('energy-correlation-chart', {
+      timeframe: timeframe,
+      bucketTimesMs: bucketTimesMs,
+      energyValues: energyValues,
+      trendValues: trendValues
+    });
+
+    if (rendered && rendered.ok) {
+      console.debug('[SMACA][ENERGY] renderer = highcharts', { timeframe: timeframe });
+      console.debug('[SMACA][ENERGY] chart update success', { timeframe: timeframe });
+    }
+  }
 
   const energySection = document.querySelector('#energy');
   if (energySection) {

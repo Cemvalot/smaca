@@ -25,8 +25,8 @@
                   <div style="font-size: 11px; color: var(--muted);">kWh today</div>
                 </div>
                 <div style="flex: 1; border-left: 1px solid var(--border); padding-left: var(--space-6);">
-                  <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Idle energy periods highlighted below</div>
-                  <div style="font-size: 12px; color: #f59e0b;">Low occupancy + high energy = waste</div>
+                  <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Executive view of energy usage</div>
+                  <div style="font-size: 12px; color: #38bdf8;">Columns show bucket usage; spline shows cumulative trend</div>
                 </div>
               </div>
             </div>
@@ -35,8 +35,8 @@
           <!-- Domain-Driven Visualization -->
           <div class="card">
             <div class="card__header">
-              <h3 class="card__title">Occupancy vs Energy Correlation</h3>
-              <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: Are we wasting energy during low occupancy? (Red zones = idle waste)</p>
+              <h3 class="card__title">Energy Usage Over Time</h3>
+              <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: How does energy consumption trend during the selected timeframe?</p>
             </div>
             <div class="card__body">
               <div class="chart-placeholder" id="energy-correlation-chart"></div>
@@ -47,20 +47,10 @@
                 </button>
                 <div class="smaca-accordion__body" hidden>
                   <div class="accordion-content">
-                    <p><strong>Y-axis Left (Blue):</strong></p>
-                    <ul>
-                      <li><strong>Values (0 to max):</strong> Number of people present (occupancy)</li>
-                      <li><strong>Blue line:</strong> Occupancy trend over time</li>
-                      <li><strong>Scale:</strong> Adjusted to show occupancy range (e.g., 0–25 people)</li>
-                    </ul>
-                    <p><strong>Y-axis Right (Orange):</strong></p>
-                    <ul>
-                      <li><strong>Values (0 to max):</strong> Energy consumption (kWh or similar unit)</li>
-                      <li><strong>Orange line:</strong> Energy consumption trend over time</li>
-                      <li><strong>Scale:</strong> Adjusted to show energy range (e.g., 0–200 kWh)</li>
-                    </ul>
-                    <p><strong>X-axis (Horizontal):</strong> Time periods — each point represents one interval (e.g., hourly). Both lines share the same X-axis to compare trends.</p>
-                    <p><strong>How to read:</strong> <span class="legend-dot" style="background:#3b82f6;"></span> Blue line = Occupancy (people). <span class="legend-dot" style="background:#f59e0b;"></span> Orange line = Energy (kWh). <strong>Parallel movement</strong> = energy use proportional to occupancy (efficient). <strong>Divergence</strong> = energy stays high while occupancy drops = waste. <strong>Red highlighted areas</strong> = low occupancy (&lt;20%) but high energy (&gt;30% of max) — potential waste.</p>
+                    <p><strong>Columns (Energy usage):</strong> Energy consumption aggregated into the selected bucket size.</p>
+                    <p><strong>Spline (Cumulative trend):</strong> Running total across the buckets for quick executive trend reading.</p>
+                    <p><strong>X-axis:</strong> 24h uses hourly buckets; 7d/30d uses daily buckets.</p>
+                    <p><strong>How to read:</strong> Use the column peaks to spot consumption bursts, and follow the spline to see whether overall usage is trending up or down.</p>
                   </div>
                 </div>
               </div>
