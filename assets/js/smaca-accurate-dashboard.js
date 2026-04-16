@@ -1038,7 +1038,21 @@ function renderIaqHourlyHeatStrip(computed) {
         <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">${panelHelp}</p>
       </div>
       <div class="card__body">
-        <div id="iaq-co2-hourly-heatmap" style="height: 170px;"></div>
+        <div id="iaq-co2-hourly-heatmap" style="height: 165px; margin-bottom: var(--space-2);"></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap: var(--space-4); padding: 0 var(--space-1) var(--space-2);">
+          <div style="display:flex; align-items:center; gap: var(--space-2); min-width: 90px;">
+            <span style="width: 14px; height: 10px; background:#16a34a; border-radius:4px; display:inline-block;"></span>
+            <span style="font-size: 11px; color: var(--muted);">Low (good)</span>
+          </div>
+          <div style="flex:1; display:flex; align-items:center; justify-content:center; gap: var(--space-2);">
+            <span style="width: 14px; height: 10px; background:#eab308; border-radius:4px; display:inline-block;"></span>
+            <span style="font-size: 11px; color: var(--muted);">Medium (caution)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap: var(--space-2); min-width: 90px; justify-content:flex-end;">
+            <span style="width: 14px; height: 10px; background:#ef4444; border-radius:4px; display:inline-block;"></span>
+            <span style="font-size: 11px; color: var(--muted);">High (elevated)</span>
+          </div>
+        </div>
         <div class="smaca-accordion smaca-accordion--collapsed" style="margin-top: var(--space-4);">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
             <span>What is this pattern?</span>

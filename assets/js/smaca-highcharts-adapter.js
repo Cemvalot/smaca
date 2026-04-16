@@ -442,8 +442,13 @@
       ? params.categories
       : Array.from({ length: 24 }).map(function (_, i) { return String(i).padStart(2, '0'); });
     const values = Array.isArray(params?.values) ? params.values : (Array.isArray(params?.hourlyValues) ? params.hourlyValues : []);
-    const maxValue = values.reduce(function (m, v) { return Math.max(m, Number(v)); }, Number.NEGATIVE_INFINITY);
-    const worstHour = Number.isFinite(maxValue) ? values.findIndex(function (v) { return Number(v) === maxValue; }) : -1;
+    const numericValues = values
+      .map(function (v) { return Number(v); })
+      .filter(function (v) { return Number.isFinite(v); });
+    const maxValue = numericValues.length ? Math.max.apply(null, numericValues) : null;
+    const worstHour = Number.isFinite(maxValue)
+      ? values.findIndex(function (v) { return Number.isFinite(Number(v)) && Number(v) === maxValue; })
+      : -1;
 
     const points = categories.map(function (_, hourIdx) {
       const v = Number(values[hourIdx]);
@@ -462,33 +467,31 @@
         type: 'heatmap',
         animation: false,
         backgroundColor: 'transparent',
-        marginTop: 10,
-        marginBottom: 44,
+        marginTop: 0,
+        marginBottom: 10,
         spacingLeft: 8,
-        spacingRight: 10
+        spacingRight: 10,
+        spacingTop: 2,
+        spacingBottom: 6
       },
       title: { text: null },
       credits: { enabled: false },
       legend: {
-        enabled: true,
-        align: 'center',
-        verticalAlign: 'bottom',
-        layout: 'horizontal',
-        symbolWidth: 220,
-        itemStyle: { color: '#94a3b8', fontSize: '10px' }
+        enabled: false
       },
       xAxis: {
         categories: categories,
         tickLength: 0,
         lineColor: 'rgba(148, 163, 184, 0.22)',
         labels: {
-          style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' }
+          style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' },
+          y: 10
         }
       },
       yAxis: {
         categories: ['CO2'],
         title: { text: null },
-        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } },
+        labels: { enabled: false },
         gridLineWidth: 0
       },
       colorAxis: {
@@ -499,7 +502,8 @@
           [0.5, '#eab308'],
           [1, '#ef4444']
         ],
-        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } }
+        visible: false,
+        labels: { enabled: false }
       },
       tooltip: {
         useHTML: true,
@@ -603,6 +607,663 @@
     return { ok: true, initialized: isFirstRender, chartKey: 'iaq-trend-main' };
   }
 
+  function createOrUpdateOccupancyMainCombinedChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const times = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
+    const inValues = Array.isArray(params?.peopleIn) ? params.peopleIn : [];
+    const outValues = Array.isArray(params?.peopleOut) ? params.peopleOut : [];
+    const timeframe = params?.timeframe || '24h';
+
+    const inSeries = times.map(function (t, i) {
+      const v = Number(inValues[i]);
+      return [Number(t), Number.isFinite(v) ? v : null];
+    });
+    const outSeries = times.map(function (t, i) {
+      const v = Number(outValues[i]);
+      return [Number(t), Number.isFinite(v) ? v : null];
+    });
+
+    const netSeries = times.map(function (t, i) {
+      const inV = Number(inValues[i]);
+      const outV = Number(outValues[i]);
+      const hasIn = Number.isFinite(inV);
+      const hasOut = Number.isFinite(outV);
+      if (!hasIn && !hasOut) return [Number(t), null];
+      const net = (hasIn ? inV : 0) - (hasOut ? outV : 0);
+      return [Number(t), Number.isFinite(net) ? net : null];
+    });
+
+    const numericIn = inValues.map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); });
+    const numericOut = outValues.map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); });
+    const numericNet = netSeries.map(function (p) { return Number(p?.[1]); }).filter(function (v) { return Number.isFinite(v); });
+    const maxColumns = Math.max(1, numericIn.length ? Math.max.apply(null, numericIn) : 1, numericOut.length ? Math.max.apply(null, numericOut) : 1);
+    const maxNetAbs = numericNet.length ? Math.max.apply(null, numericNet.map(function (v) { return Math.abs(v); })) : 0;
+    const yPad = 0.1;
+    const axisMax = Math.max(maxColumns, maxNetAbs) * (1 + yPad);
+    const axisMin = -maxNetAbs * (1 + yPad);
+
+    const options = {
+      chart: {
+        type: 'column',
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingTop: 26,
+        spacingRight: 10,
+        spacingBottom: 16,
+        spacingLeft: 8
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: {
+        enabled: true,
+        align: 'left',
+        verticalAlign: 'top',
+        layout: 'horizontal',
+        x: 0,
+        y: 8,
+        itemStyle: { color: '#94a3b8', fontSize: '11px' },
+        itemHoverStyle: { color: '#e2e8f0' }
+      },
+      time: { useUTC: false },
+      xAxis: {
+        type: 'datetime',
+        lineColor: 'rgba(148, 163, 184, 0.28)',
+        tickColor: 'rgba(148, 163, 184, 0.22)',
+        tickLength: 0,
+        tickPixelInterval: timeframe === '24h' ? 84 : 120,
+        labels: {
+          style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' },
+          autoRotation: [-20, -35],
+          autoRotationLimit: 80,
+          y: 12,
+          formatter: function () {
+            if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            return window.Highcharts.dateFormat('%d %b', this.value);
+          }
+        }
+      },
+      yAxis: {
+        title: {
+          text: 'People',
+          style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' }
+        },
+        min: axisMin,
+        max: axisMax,
+        tickAmount: 5,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        gridLineWidth: 1,
+        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' }, x: -4 }
+      },
+      tooltip: {
+        shared: true,
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const header = timeframe === '24h'
+            ? window.Highcharts.dateFormat('%H:%M', this.x)
+            : window.Highcharts.dateFormat('%d %b', this.x);
+          const rows = (this.points || []).map(function (p) {
+            const name = p.series && p.series.name ? p.series.name : 'Series';
+            const value = Number(p.y);
+            let valueText = 'N/A';
+            if (Number.isFinite(value)) {
+              const rounded = Math.round(value);
+              valueText = name === 'Net Flow' ? (rounded > 0 ? ('+' + rounded) : String(rounded)) : String(rounded);
+            }
+            const color = p.color || '#94a3b8';
+            return (
+              '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:6px;">' +
+              '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+              '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + color + ';"></span>' +
+              '<span style="font-weight:500;">' + name + '</span>' +
+              '</span>' +
+              '<strong style="color:#f8fbff;">' + valueText + '</strong>' +
+              '</div>'
+            );
+          }).join('');
+          return (
+            '<div style="min-width:170px;">' +
+            '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+            rows +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: {
+          animation: false,
+          borderWidth: 0,
+          states: { inactive: { opacity: 1 } }
+        },
+        column: {
+          grouping: true,
+          groupPadding: 0.12,
+          pointPadding: 0.06,
+          borderRadius: 3
+        }
+      },
+      series: [{
+        type: 'column',
+        name: 'People In',
+        color: 'rgba(16, 185, 129, 0.85)',
+        data: inSeries
+      }, {
+        type: 'column',
+        name: 'People Out',
+        color: 'rgba(249, 115, 22, 0.85)',
+        data: outSeries
+      }, {
+        type: 'spline',
+        name: 'Net Flow',
+        color: 'rgba(125, 211, 252, 0.98)',
+        lineWidth: 3.2,
+        marker: { enabled: false },
+        data: netSeries,
+        states: { hover: { lineWidthPlus: 0.25 } },
+        tooltip: { valueSuffix: ' ppl' }
+      }]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'occupancy-main-combined',
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateOccupancyActivityTrend(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const times = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
+    const values = Array.isArray(params?.values)
+      ? params.values
+      : (Array.isArray(params?.presence) ? params.presence : (Array.isArray(params?.activity) ? params.activity : []));
+    const timeframe = params?.timeframe || '24h';
+    const seriesName = params?.seriesName || 'Activity';
+    const seriesColor = params?.color || '#93c5fd';
+    const series = times.map(function (t, i) {
+      const v = Number(values[i]);
+      return [Number(t), Number.isFinite(v) ? v : null];
+    });
+
+    // Highlight peak period with a subtle marker.
+    const numericValues = values.map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); });
+    const maxValue = numericValues.length ? Math.max.apply(null, numericValues) : null;
+    const peakIdx = Number.isFinite(maxValue)
+      ? values.findIndex(function (v) { return Number.isFinite(Number(v)) && Number(v) === maxValue; })
+      : -1;
+    const peakPoint = (peakIdx >= 0 && Array.isArray(times) && times[peakIdx] != null && Number.isFinite(Number(values[peakIdx])))
+      ? [Number(times[peakIdx]), Number(values[peakIdx])]
+      : null;
+
+    const options = {
+      chart: {
+        type: 'areaspline',
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingTop: 16,
+        spacingRight: 10,
+        spacingBottom: 18,
+        spacingLeft: 8
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      time: { useUTC: false },
+      xAxis: {
+        type: 'datetime',
+        lineColor: 'rgba(148, 163, 184, 0.28)',
+        tickColor: 'rgba(148, 163, 184, 0.22)',
+        tickLength: 0,
+        tickPixelInterval: timeframe === '24h' ? 84 : 120,
+        labels: {
+          style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' },
+          autoRotation: [-20, -35],
+          autoRotationLimit: 80,
+          y: 12,
+          formatter: function () {
+            if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            return window.Highcharts.dateFormat('%d %b', this.value);
+          }
+        }
+      },
+      yAxis: {
+        title: { text: null },
+        min: 0,
+        tickAmount: 5,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        gridLineWidth: 1,
+        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' }, x: -4 }
+      },
+      tooltip: {
+        shared: false,
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const header = timeframe === '24h'
+            ? window.Highcharts.dateFormat('%H:%M', this.x)
+            : window.Highcharts.dateFormat('%d %b', this.x);
+          const value = Number(this.y);
+          const text = Number.isFinite(value) ? String(Math.round(value)) : 'N/A';
+          return (
+            '<div style="min-width:160px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + seriesColor + ';box-shadow:0 0 0 2px rgba(147,197,253,0.16);"></span>' +
+            '<span style="font-weight:500;">' + seriesName + '</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + text + '</strong>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: {
+          animation: false,
+          marker: { enabled: false },
+          states: { hover: { lineWidthPlus: 0.2 } },
+          turboThreshold: 0
+        },
+        areaspline: { fillOpacity: 1 }
+      },
+      series: [{
+        type: 'areaspline',
+        name: seriesName,
+        color: seriesColor,
+        lineWidth: 2.6,
+        fillColor: {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+          stops: [[0, 'rgba(147, 197, 253, 0.18)'], [1, 'rgba(147, 197, 253, 0.00)']]
+        },
+        data: series
+      }].concat(peakPoint ? [{
+        type: 'scatter',
+        name: 'Peak',
+        data: [peakPoint],
+        color: seriesColor,
+        marker: {
+          enabled: true,
+          radius: 4.5,
+          lineColor: '#0f172a',
+          lineWidth: 2,
+          fillColor: seriesColor
+        },
+        enableMouseTracking: false,
+        showInLegend: false,
+        tooltip: { enabled: false },
+        states: { hover: { enabled: false } }
+      }] : [])
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'occupancy-activity-trend',
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateOccupancyLocationComparison(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const categories = Array.isArray(params?.categories) ? params.categories : [];
+    const series = Array.isArray(params?.values) ? params.values : [];
+    const title = params?.seriesName || 'Activity';
+
+    const options = {
+      chart: { type: 'column', animation: false, backgroundColor: 'transparent', spacingLeft: 8, spacingRight: 10, spacingTop: 10, spacingBottom: 10 },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        categories: categories,
+        lineColor: 'rgba(148, 163, 184, 0.22)',
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } }
+      },
+      yAxis: {
+        title: { text: null },
+        min: 0,
+        tickAmount: 4,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' } }
+      },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const value = Number(this.y);
+          const text = Number.isFinite(value) ? String(Math.round(value)) : 'N/A';
+          return (
+            '<div style="min-width:170px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + (this.key || 'Location') + '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="font-weight:500;color:#dbe7f5;">' + title + '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + text + '</strong>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: { animation: false, borderWidth: 0, borderRadius: 3 }
+      },
+      series: [{
+        type: 'column',
+        name: title,
+        color: params?.color || '#3b82f6',
+        data: series.map(function (v) { return Number.isFinite(Number(v)) ? Number(v) : null; })
+      }]
+    };
+
+    return createOrUpdateChart({
+      chartKey: String(params?.chartKey || 'occupancy-location-activity'),
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateOccupancyLocationInOutFlow(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const categories = Array.isArray(params?.categories) ? params.categories : [];
+    const peopleIn = Array.isArray(params?.peopleIn) ? params.peopleIn : [];
+    const peopleOut = Array.isArray(params?.peopleOut) ? params.peopleOut : [];
+    const chartKey = String(params?.chartKey || 'occupancy-location-flow');
+
+    const options = {
+      chart: { type: 'column', animation: false, backgroundColor: 'transparent', spacingLeft: 8, spacingRight: 10, spacingTop: 10, spacingBottom: 10 },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: true },
+      xAxis: {
+        categories: categories,
+        lineColor: 'rgba(148, 163, 184, 0.22)',
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } }
+      },
+      yAxis: {
+        title: { text: null },
+        min: 0,
+        tickAmount: 4,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        labels: { style: { color: '#a7b4c5', fontSize: '10px', textOutline: 'none' } }
+      },
+      tooltip: {
+        shared: true,
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const cat = this.x || this.key || 'Location';
+          const inPoint = (this.points || []).find(function (p) { return p.series && p.series.name === 'People In'; });
+          const outPoint = (this.points || []).find(function (p) { return p.series && p.series.name === 'People Out'; });
+          const inVal = inPoint ? Number(inPoint.y) : null;
+          const outVal = outPoint ? Number(outPoint.y) : null;
+          const net = (Number.isFinite(inVal) ? inVal : 0) - (Number.isFinite(outVal) ? outVal : 0);
+          return (
+            '<div style="min-width:190px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + cat + '</div>' +
+            '<div style="display:flex;flex-direction:column;gap:6px;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:rgba(16, 185, 129, 0.85);"></span>' +
+            '<span style="font-weight:500;">People In</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + (Number.isFinite(inVal) ? Math.round(inVal) : 'N/A') + '</strong>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:rgba(249, 115, 22, 0.85);"></span>' +
+            '<span style="font-weight:500;">People Out</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + (Number.isFinite(outVal) ? Math.round(outVal) : 'N/A') + '</strong>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:4px;padding-top:6px;border-top:1px solid rgba(148, 163, 184, 0.18);">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#93a7bf;">' +
+            '<span style="font-weight:500;">Net (In - Out)</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + Math.round(net) + '</strong>' +
+            '</div>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: { animation: false, borderWidth: 0, borderRadius: 3 }
+      },
+      series: [
+        {
+          type: 'column',
+          name: 'People In',
+          color: 'rgba(16, 185, 129, 0.85)',
+          data: peopleIn.map(function (v) { return Number.isFinite(Number(v)) ? Number(v) : null; })
+        },
+        {
+          type: 'column',
+          name: 'People Out',
+          color: 'rgba(249, 115, 22, 0.85)',
+          data: peopleOut.map(function (v) { return Number.isFinite(Number(v)) ? Number(v) : null; })
+        }
+      ]
+    };
+
+    return createOrUpdateChart({
+      chartKey: chartKey,
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateOccupancyTopTrafficLocationsChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const categories = Array.isArray(params?.categories) ? params.categories : [];
+    const values = Array.isArray(params?.values) ? params.values : [];
+    const timeframe = params?.timeframe || '24h';
+    const seriesName = params?.seriesName || 'Top Traffic';
+    const color = params?.color || 'rgba(16, 185, 129, 0.85)';
+
+    if (!categories.length || categories.length !== values.length) return { ok: false, reason: 'missing-data' };
+
+    const seriesData = values.map(function (v) {
+      const num = Number(v);
+      return Number.isFinite(num) ? num : null;
+    });
+
+    const options = {
+      chart: {
+        type: 'bar',
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingTop: 10,
+        spacingRight: 10,
+        spacingBottom: 10,
+        spacingLeft: 8
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        title: { text: null },
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        gridLineWidth: 1,
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } }
+      },
+      yAxis: {
+        categories: categories,
+        title: { text: null },
+        gridLineWidth: 0,
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } },
+        reversed: false
+      },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const loc = this.point && this.point.category ? this.point.category : 'Location';
+          const value = Number(this.point && this.point.y != null ? this.point.y : this.y);
+          const text = Number.isFinite(value) ? String(Math.round(value)) : 'N/A';
+          const context = timeframe === '24h' ? 'Last 24h' : (timeframe === '7d' ? 'Last 7d' : 'Last 30d');
+          return (
+            '<div style="min-width:170px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + loc + '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + (color || '#3b82f6') + ';"></span>' +
+            '<span style="font-weight:500;">' + seriesName + '</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + text + '</strong>' +
+            '</div>' +
+            '<div style="margin-top:6px;color:#94a3b8;font-size:10px;">' + context + '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: { animation: false, borderWidth: 0, borderRadius: 4, groupPadding: 0.14 }
+      },
+      series: [{
+        type: 'bar',
+        name: seriesName,
+        color: color,
+        data: seriesData
+      }]
+    };
+
+    return createOrUpdateChart({
+      chartKey: String(params?.chartKey || 'occupancy-top-traffic-locations'),
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateOccupancyPatternHeatmap(containerId, params) {
+    if (!hasHeatmapModule()) return { ok: false, reason: 'missing-heatmap-module' };
+    const timeframe = params?.timeframe || '24h';
+    const categories = Array.isArray(params?.categories) && params.categories.length ? params.categories : [];
+    const values = Array.isArray(params?.values) ? params.values : [];
+    const numericValues = values
+      .map(function (v) { return Number(v); })
+      .filter(function (v) { return Number.isFinite(v); });
+    const maxValue = numericValues.length ? Math.max.apply(null, numericValues) : null;
+    const worstIdx = Number.isFinite(maxValue)
+      ? values.findIndex(function (v) { return Number.isFinite(Number(v)) && Number(v) === maxValue; })
+      : -1;
+
+    const subtitleText = timeframe === '24h'
+      ? 'Last 24 hours'
+      : (timeframe === '7d'
+        ? 'Average by hour-of-day (last 7 days)'
+        : 'Average by hour-of-day (last 30 days)');
+
+    const points = categories.map(function (_, idx) {
+      const v = Number(values[idx]);
+      const isWorst = idx === worstIdx && Number.isFinite(v);
+      return {
+        x: idx,
+        y: 0,
+        value: Number.isFinite(v) ? v : null,
+        borderColor: isWorst ? 'rgba(248, 250, 252, 0.55)' : 'rgba(148, 163, 184, 0.18)',
+        borderWidth: isWorst ? 1.5 : 0.75
+      };
+    });
+
+    const options = {
+      chart: { type: 'heatmap', animation: false, backgroundColor: 'transparent', marginTop: 0, marginBottom: 10, spacingLeft: 8, spacingRight: 10, spacingTop: 2, spacingBottom: 6 },
+      title: { text: null },
+      subtitle: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        categories: categories,
+        tickLength: 0,
+        lineColor: 'rgba(148, 163, 184, 0.22)',
+        labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' }, y: 10 }
+      },
+      yAxis: {
+        categories: ['Activity'],
+        title: { text: null },
+        labels: { enabled: false },
+        gridLineWidth: 0
+      },
+      colorAxis: {
+        min: 0,
+        max: Math.max(1, Number.isFinite(maxValue) ? maxValue : 1),
+        stops: [[0, '#16a34a'], [0.5, '#eab308'], [1, '#ef4444']],
+        labels: { enabled: false },
+        visible: false
+      },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const label = categories[this.point.x] || '--';
+          const value = Number(this.point.value);
+          const text = Number.isFinite(value) ? String(Math.round(value)) : 'N/A';
+          const context = timeframe === '24h' ? 'Last 24h' : (timeframe === '7d' ? 'Last 7d' : 'Last 30d');
+          const hourText = timeframe === '24h'
+            ? (String(label).includes(':') ? String(label) : (String(label) + ':00'))
+            : (String(label) + ':00');
+          return (
+            '<div style="min-width:160px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' +
+            ('Hour: ' + hourText) +
+            ' · ' + context +
+            '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
+            '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:#93c5fd;box-shadow:0 0 0 2px rgba(147,197,253,0.16);"></span>' +
+            '<span style="font-weight:500;">Activity</span>' +
+            '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + text + '</strong>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: { series: { animation: false, states: { hover: { brightness: 0.05 } } } },
+      series: [{ type: 'heatmap', name: 'Activity', borderRadius: 4, nullColor: 'rgba(148, 163, 184, 0.10)', data: points, dataLabels: { enabled: false } }]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'occupancy-pattern-heatmap',
+      containerId: containerId,
+      options: options
+    });
+  }
+
   if (typeof window !== 'undefined') {
     window.SMACAHighchartsAdapter = {
       hasHighcharts: hasHighcharts,
@@ -614,6 +1275,12 @@
       createIaqTrendHighchart: createOrUpdateIaqTrendHighchart,
       createIaqSparklineHighchart: function () { return null; },
       createIaqHeatstripHighchart: createOrUpdateIaqCo2HourlyHeatmap,
+      createOccupancyMainCombinedChart: createOrUpdateOccupancyMainCombinedChart,
+      createOccupancyActivityTrendChart: createOrUpdateOccupancyActivityTrend,
+      createOccupancyLocationComparisonChart: createOrUpdateOccupancyLocationComparison,
+      createOccupancyLocationInOutFlowChart: createOrUpdateOccupancyLocationInOutFlow,
+      createOccupancyTopTrafficLocationsChart: createOrUpdateOccupancyTopTrafficLocationsChart,
+      createOccupancyPatternHeatmap: createOrUpdateOccupancyPatternHeatmap,
       destroyIaqTrendHighchart: destroyIaqTrendHighchart
     };
     window.addEventListener('beforeunload', function () {

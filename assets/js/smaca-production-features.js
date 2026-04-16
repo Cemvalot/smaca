@@ -1645,7 +1645,13 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
   const summaryLabel = occupancySection.querySelector('.card .card__body div div div:first-child');
   if (summaryLabel) summaryLabel.textContent = 'Current Activity';
   const summarySubLabel = occupancySection.querySelector('.card .card__body div div div:nth-child(3)');
-  if (summarySubLabel) summarySubLabel.textContent = `Cumulative entries: ${Number.isFinite(Number(latestTotalIn)) ? Math.round(Number(latestTotalIn)) : 'N/A'} | exits: ${Number.isFinite(Number(latestTotalOut)) ? Math.round(Number(latestTotalOut)) : 'N/A'}`;
+  if (summarySubLabel) {
+    const netCumulative = Number.isFinite(Number(latestTotalIn)) && Number.isFinite(Number(latestTotalOut))
+      ? (Number(latestTotalIn) - Number(latestTotalOut))
+      : null;
+    summarySubLabel.textContent =
+      `Cumulative entries: ${Number.isFinite(Number(latestTotalIn)) ? Math.round(Number(latestTotalIn)) : 'N/A'} | exits: ${Number.isFinite(Number(latestTotalOut)) ? Math.round(Number(latestTotalOut)) : 'N/A'} | net: ${Number.isFinite(Number(netCumulative)) ? Math.round(Number(netCumulative)) : 'N/A'}`;
+  }
   const occupancyCounter = document.getElementById('occupancy-current-count');
   if (occupancyCounter) {
     occupancyCounter.textContent = Number.isFinite(latestActivity) ? String(Math.round(latestActivity)) : 'No occupancy data available';
@@ -1830,6 +1836,7 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
 // Update Occupancy charts with filtered data
 function updateOccupancyCharts(filteredOccupancy, timeframe) {
   if (getSmacaCurrentPage() !== 'occupancy') return;
+  console.debug('[SMACA][OCCUPANCY] timeframe change start', { timeframe: timeframe });
   ensureOccupancyLocationChartContainers();
   const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
   const hydratedRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : [];
@@ -1838,94 +1845,303 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
   if (!occupancyRows || occupancyRows.length === 0) {
     renderEmptyState('occupancy-flow-chart', 'No occupancy data available');
     renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
-    renderEmptyState('occupancy-current-by-location-chart', 'No occupancy data available');
-    renderEmptyState('occupancy-total-entries-by-location-chart', 'No occupancy data available');
-    renderEmptyState('occupancy-flow-by-location-chart', 'No occupancy data available');
+    renderEmptyState('occupancy-top-traffic-locations-chart', 'No occupancy data available');
     return;
   }
   
-  // Convert filtered data to chart format
-  const activityData = [];
-  const flowIn = [];
-  const flowOut = [];
-  
-  // Group by hour based on timeframe
-  const timeInterval = timeframe === '24h' ? 60 * 60 * 1000 : // 1 hour
-                        timeframe === '7d' ? 24 * 60 * 60 * 1000 : // 1 day
-                        24 * 60 * 60 * 1000; // 1 day for 30d
-  
+  const parseUtcMs = function (value) {
+    if (value === null || value === undefined) return NaN;
+    if (typeof value === 'number') return value;
+    const raw = String(value).trim();
+    if (!raw) return NaN;
+    const hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
+    const normalized = hasTz ? raw : raw.replace(' ', 'T') + 'Z';
+    const ms = new Date(normalized).getTime();
+    return Number.isFinite(ms) ? ms : NaN;
+  };
+
+  const adapter = typeof window !== 'undefined' ? window.SMACAHighchartsAdapter : null;
+  const hasHighcharts = !!(adapter && typeof adapter.createOccupancyMainCombinedChart === 'function' && adapter.hasHighcharts && adapter.hasHighcharts());
+  const hasHeatmapModule = !!(adapter && adapter.hasHeatmapModule && adapter.hasHeatmapModule());
+
+  console.debug('[SMACA][OCCUPANCY] chart update start', { timeframe: timeframe });
+
+  const HOUR_MS = 60 * 60 * 1000;
+  const DAY_MS = 24 * HOUR_MS;
+  const bucketMs = timeframe === '24h' ? HOUR_MS : DAY_MS;
+  const bucketCount = timeframe === '24h' ? 24 : (timeframe === '7d' ? 7 : 30);
+
+  const rangeEndMs = Date.now();
+  const rangeStartMs = rangeEndMs - (bucketMs * bucketCount);
+
+  // Align to full bucket boundaries so the chart is consistent across refreshes.
+  const alignedEndBucketMs = Math.floor(rangeEndMs / bucketMs) * bucketMs;
+  const bucketTimesMs = Array.from({ length: bucketCount }, function (_, idx) {
+    return alignedEndBucketMs - (bucketCount - 1 - idx) * bucketMs;
+  });
+
   const grouped = {};
-  const normalizedPreview = [];
-  occupancyRows.forEach(function (item, idx) {
-    const time = new Date(item?.time || item?.timestamp || 0).getTime();
+  occupancyRows.forEach(function (item) {
+    const timeMs = parseUtcMs(item?.time || item?.timestamp || 0);
+    if (!Number.isFinite(timeMs)) return;
+    if (timeMs < bucketTimesMs[0] || timeMs > bucketTimesMs[bucketTimesMs.length - 1] + bucketMs) return;
+
     const peopleIn = Number(item?.payload?.object?.people_in);
     const peopleOut = Number(item?.payload?.object?.people_out);
     const peopleTotalIn = Number(item?.payload?.object?.people_total_in);
     const peopleTotalOut = Number(item?.payload?.object?.people_total_out);
-    if (normalizedPreview.length < 3) {
-      normalizedPreview.push({
-        sensorId: item?.sensorId ?? null,
-        timeMs: Number.isFinite(time) ? time : null,
-        peopleIn: Number.isFinite(peopleIn) ? peopleIn : null,
-        peopleOut: Number.isFinite(peopleOut) ? peopleOut : null,
-        peopleTotalIn: Number.isFinite(peopleTotalIn) ? peopleTotalIn : null,
-        peopleTotalOut: Number.isFinite(peopleTotalOut) ? peopleTotalOut : null
-      });
+
+    const bucketKey = Math.floor(timeMs / bucketMs) * bucketMs;
+    if (!grouped[bucketKey]) grouped[bucketKey] = { in: 0, out: 0, totalIn: null, totalOut: null };
+    if (Number.isFinite(peopleIn)) grouped[bucketKey].in += peopleIn;
+    if (Number.isFinite(peopleOut)) grouped[bucketKey].out += peopleOut;
+    if (Number.isFinite(peopleTotalIn)) {
+      grouped[bucketKey].totalIn = grouped[bucketKey].totalIn === null ? peopleTotalIn : Math.max(grouped[bucketKey].totalIn, peopleTotalIn);
     }
-    if (!Number.isFinite(time)) return;
-    const bucket = Math.floor(time / timeInterval) * timeInterval;
-    
-    if (!grouped[bucket]) grouped[bucket] = { in: 0, out: 0 };
-
-    grouped[bucket].in += Number.isFinite(peopleIn) ? peopleIn : 0;
-    grouped[bucket].out += Number.isFinite(peopleOut) ? peopleOut : 0;
-
+    if (Number.isFinite(peopleTotalOut)) {
+      grouped[bucketKey].totalOut = grouped[bucketKey].totalOut === null ? peopleTotalOut : Math.max(grouped[bucketKey].totalOut, peopleTotalOut);
+    }
   });
-  
-  const sortedBuckets = Object.keys(grouped).sort((a, b) => a - b);
-  sortedBuckets.forEach(bucket => {
-    const bucketIn = Number(grouped[bucket]?.in || 0);
-    const bucketOut = Number(grouped[bucket]?.out || 0);
-    activityData.push(Math.max(0, bucketIn + bucketOut));
-    flowIn.push(bucketIn);
-    flowOut.push(bucketOut);
+
+  const peopleIn = bucketTimesMs.map(function (t) {
+    return grouped[t] ? Number(grouped[t].in) : null;
   });
-  const safeFlowIn = flowIn.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
-  const safeFlowOut = flowOut.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
+  const peopleOut = bucketTimesMs.map(function (t) {
+    return grouped[t] ? Number(grouped[t].out) : null;
+  });
+  const activityData = bucketTimesMs.map(function (t) {
+    if (!grouped[t]) return null;
+    const v = Number(grouped[t].in) + Number(grouped[t].out);
+    return Number.isFinite(v) ? Math.max(0, v) : null;
+  });
+
+  const safeFlowIn = peopleIn.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
+  const safeFlowOut = peopleOut.map(function (value) { return Number.isFinite(Number(value)) ? Number(value) : 0; });
   const safeActivityData = activityData.map(function (value) { return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0; });
+
+  // Pattern heatmap inputs
+  let patternCategories = [];
+  let patternValues = [];
+  if (timeframe === '24h') {
+    patternCategories = Array.from({ length: 24 }, function (_, h) { return String(h).padStart(2, '0'); });
+    patternValues = Array.from({ length: 24 }, function () { return null; });
+    bucketTimesMs.forEach(function (t, idx) {
+      const hour = new Date(t).getUTCHours();
+      if (Number.isFinite(hour) && hour >= 0 && hour <= 23) {
+        patternValues[hour] = activityData[idx];
+      }
+    });
+  } else {
+    const cellSums = {};
+    occupancyRows.forEach(function (item) {
+      const timeMs = parseUtcMs(item?.time || item?.timestamp || 0);
+      if (!Number.isFinite(timeMs)) return;
+      if (timeMs < rangeStartMs || timeMs > rangeEndMs) return;
+
+      const peopleInVal = Number(item?.payload?.object?.people_in);
+      const peopleOutVal = Number(item?.payload?.object?.people_out);
+      const hasIn = Number.isFinite(peopleInVal);
+      const hasOut = Number.isFinite(peopleOutVal);
+      if (!hasIn && !hasOut) return;
+
+      const activity = (hasIn ? peopleInVal : 0) + (hasOut ? peopleOutVal : 0);
+      if (!Number.isFinite(activity)) return;
+
+      const dayKey = Math.floor(timeMs / DAY_MS) * DAY_MS;
+      const hourOfDay = new Date(timeMs).getUTCHours();
+      const cellKey = String(dayKey) + '|' + String(hourOfDay);
+      if (!cellSums[cellKey]) cellSums[cellKey] = 0;
+      cellSums[cellKey] += activity;
+    });
+
+    const hourSum = Array.from({ length: 24 }, function () { return 0; });
+    const hourCount = Array.from({ length: 24 }, function () { return 0; });
+    Object.keys(cellSums).forEach(function (cellKey) {
+      const parts = String(cellKey).split('|');
+      const hour = Number(parts[1]);
+      if (!Number.isFinite(hour) || hour < 0 || hour > 23) return;
+      const v = Number(cellSums[cellKey]);
+      if (!Number.isFinite(v)) return;
+      hourSum[hour] += v;
+      hourCount[hour] += 1;
+    });
+
+    patternCategories = Array.from({ length: 24 }, function (_, h) { return String(h).padStart(2, '0'); });
+    patternValues = patternCategories.map(function (_, idx) {
+      return hourCount[idx] > 0 ? (hourSum[idx] / hourCount[idx]) : null;
+    });
+  }
+
+  // High-level debug KPIs (no mock/demo values)
+  const totalIn = safeFlowIn.reduce(function (s, v) { return s + (Number.isFinite(Number(v)) ? Number(v) : 0); }, 0);
+  const totalOut = safeFlowOut.reduce(function (s, v) { return s + (Number.isFinite(Number(v)) ? Number(v) : 0); }, 0);
+  const netFlow = totalIn - totalOut;
+
+  const byLocation = groupOccupancyByLocation(occupancyRows);
+  const locationLabelsCount = Object.keys(byLocation).length;
+  const entriesByLocation = getTotalEntriesPerLocation(byLocation)
+    .sort(function (a, b) { return Number(b.totalEntries) - Number(a.totalEntries); });
+
+  const topLocation = entriesByLocation.length ? entriesByLocation[0].location : null;
+  const topLocationValue = entriesByLocation.length ? entriesByLocation[0].totalEntries : null;
+
+  let peakHour = null;
+  let peakValue = null;
+  let peakHourLabel = null;
+  if (Array.isArray(patternValues) && patternValues.length) {
+    const numericPattern = patternValues
+      .map(function (v) { return v === null ? null : Number(v); });
+    const maxIdx = numericPattern.reduce(function (best, v, idx) {
+      if (!Number.isFinite(v)) return best;
+      if (best === null) return idx;
+      return v > numericPattern[best] ? idx : best;
+    }, null);
+    if (maxIdx !== null && maxIdx !== undefined) {
+      const hour = patternCategories[maxIdx] || '--';
+      peakHour = hour;
+      peakValue = Number.isFinite(numericPattern[maxIdx]) ? numericPattern[maxIdx] : null;
+      peakHourLabel = hour + ':00 UTC';
+    }
+  }
+
   if (typeof window !== 'undefined') {
-    window.__lastOccupancyFlowBuckets = sortedBuckets.slice(0, 200).map(function (bucket, idx) {
-      return {
-        bucket: Number(bucket),
-        peopleIn: flowIn[idx] || 0,
-        peopleOut: flowOut[idx] || 0
-      };
-    });
-    window.__lastOccupancyActivityBuckets = sortedBuckets.slice(0, 200).map(function (bucket, idx) {
-      return {
-        bucket: Number(bucket),
-        activity: activityData[idx] || 0
-      };
-    });
-    window.__lastOccupancyChartArrays = {
-      source: {
-        filteredCount: fallbackRows.length,
-        hydratedCount: hydratedRows.length,
-        selectedSensorBypassed: true
-      },
-      flowIn: safeFlowIn.slice(),
-      flowOut: safeFlowOut.slice(),
-      activity: safeActivityData.slice()
+    window.__occupancyChartDebug = {
+      timeframe: timeframe,
+      pointCount: bucketTimesMs.length,
+      peakHour: peakHour,
+      peakValue: Number.isFinite(Number(peakValue)) ? Number(peakValue) : null,
+      locationSummary: {
+        locationCount: locationLabelsCount,
+        topLocation: topLocation,
+        topLocationValue: topLocationValue
+      }
     };
   }
 
   // Update charts after layout is measurable.
   setTimeout(function () {
+    const occupancySection = document.querySelector('#occupancy');
+    const heroLabel = occupancySection ? occupancySection.querySelector('.section-hero__stat-label') : null;
+    if (heroLabel && peakHourLabel) {
+      const topLocShort = topLocation ? String(topLocation).slice(0, 28) : 'N/A';
+      heroLabel.textContent = 'Recent movements · peak ' + peakHourLabel + ' · top ' + topLocShort;
+    }
+
+    if (hasHighcharts) {
+      console.debug('[SMACA][OCCUPANCY] renderer = highcharts');
+      try {
+        adapter.createOccupancyMainCombinedChart('occupancy-flow-chart', {
+          timeframe: timeframe,
+          bucketTimesMs: bucketTimesMs,
+          peopleIn: peopleIn,
+          peopleOut: peopleOut
+        });
+
+        const densityContainer = document.getElementById('occupancy-density-timeline');
+        if (densityContainer) {
+          const patternLegend = `
+            <div style="margin-top: var(--space-2); display:flex; align-items:center; justify-content:space-between; gap: var(--space-4); padding: 0 var(--space-1);">
+              <div style="display:flex; align-items:center; gap: var(--space-2); min-width: 90px;">
+                <span style="width: 16px; height: 10px; background: #16a34a; border-radius: 3px; display:inline-block;"></span>
+                <span style="font-size: 11px; color: var(--muted);">Low</span>
+              </div>
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap: var(--space-3);">
+                <span style="width: 16px; height: 10px; background: #eab308; border-radius: 3px; display:inline-block;"></span>
+                <span style="font-size: 11px; color: var(--muted);">Medium</span>
+              </div>
+              <div style="display:flex; align-items:center; gap: var(--space-2); min-width: 90px; justify-content:flex-end;">
+                <span style="width: 16px; height: 10px; background: #ef4444; border-radius: 3px; display:inline-block;"></span>
+                <span style="font-size: 11px; color: var(--muted);">High</span>
+              </div>
+            </div>
+          `;
+
+          densityContainer.innerHTML = `
+            <div id="occupancy-activity-trend-chart" style="width: 100%; height: 240px; min-height: 240px;"></div>
+            <div style="width: 100%; margin-top: var(--space-6);">
+              <div id="occupancy-occupancy-pattern-heatmap-chart" style="width: 100%; height: 190px; min-height: 190px;"></div>
+              ${patternLegend}
+            </div>
+          `;
+
+          adapter.createOccupancyActivityTrendChart('occupancy-activity-trend-chart', {
+            timeframe: timeframe,
+            bucketTimesMs: bucketTimesMs,
+            values: activityData,
+            seriesName: 'Movement intensity',
+            color: '#60a5fa'
+          });
+
+          const patternElId = 'occupancy-occupancy-pattern-heatmap-chart';
+          const heatOk = hasHeatmapModule && typeof adapter.createOccupancyPatternHeatmap === 'function';
+          if (heatOk) {
+            adapter.createOccupancyPatternHeatmap(patternElId, {
+              timeframe: timeframe,
+              categories: patternCategories,
+              values: patternValues
+            });
+          } else {
+            const heatEl = document.getElementById(patternElId);
+            if (heatEl) heatEl.textContent = 'Pattern heatmap unavailable (heatmap module not loaded).';
+          }
+        }
+
+        // Top Traffic Locations (merged)
+        const byLoc = groupOccupancyByLocation(occupancyRows);
+        const locCount = Object.keys(byLoc).length;
+        if (locCount > 1) {
+          const topN = 7;
+          const entries = getTotalEntriesPerLocation(byLoc)
+            .sort(function (a, b) { return Number(b.totalEntries) - Number(a.totalEntries); })
+            .slice(0, topN);
+
+          if (entries.length) {
+            adapter.createOccupancyTopTrafficLocationsChart('occupancy-top-traffic-locations-chart', {
+              chartKey: 'occupancy-top-traffic-locations',
+              timeframe: timeframe,
+              categories: entries.map(function (i) { return i.location; }),
+              values: entries.map(function (i) { return i.totalEntries; }),
+              seriesName: 'Total entries',
+              color: 'rgba(16, 185, 129, 0.85)'
+            });
+          } else {
+            renderEmptyState('occupancy-top-traffic-locations-chart', 'No location data available');
+          }
+        } else {
+          const el = document.getElementById('occupancy-top-traffic-locations-chart');
+          if (el) el.innerHTML = '';
+        }
+
+        console.debug('[SMACA][OCCUPANCY] chart update success', { timeframe: timeframe });
+      } catch (e) {
+        console.debug('[SMACA][OCCUPANCY] highcharts renderer failed, falling back', e);
+        renderOccupancyChartWhenReady('occupancy-flow-chart', function () {
+          if (typeof createFlowBarChart !== 'function') throw new Error('createFlowBarChart unavailable');
+          if (safeFlowIn.length === 0 || safeFlowOut.length === 0) throw new Error('empty-flow-arrays');
+          createFlowBarChart('occupancy-flow-chart', safeFlowIn, safeFlowOut, { height: 320, minVisibleBarPx: 3 });
+        }, function () {
+          renderEmptyState('occupancy-flow-chart', 'No occupancy data available');
+        });
+
+        renderOccupancyChartWhenReady('occupancy-density-timeline', function () {
+          if (typeof createOccupancyDensityTimeline !== 'function') throw new Error('createOccupancyDensityTimeline unavailable');
+          if (safeActivityData.length === 0) throw new Error('empty-activity-array');
+          createOccupancyDensityTimeline('occupancy-density-timeline', safeActivityData, { height: 260, minVisiblePointPx: 2 });
+        }, function () {
+          renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
+        });
+
+        renderOccupancyLocationCharts(occupancyRows);
+      }
+      return;
+    }
+
+    console.debug('[SMACA][OCCUPANCY] renderer = fallback');
     renderOccupancyChartWhenReady('occupancy-flow-chart', function () {
       if (typeof createFlowBarChart !== 'function') throw new Error('createFlowBarChart unavailable');
       if (safeFlowIn.length === 0 || safeFlowOut.length === 0) throw new Error('empty-flow-arrays');
       createFlowBarChart('occupancy-flow-chart', safeFlowIn, safeFlowOut, { height: 320, minVisibleBarPx: 3 });
-    }, function (reason) {
+    }, function () {
       renderEmptyState('occupancy-flow-chart', 'No occupancy data available');
     });
 
@@ -1933,7 +2149,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
       if (typeof createOccupancyDensityTimeline !== 'function') throw new Error('createOccupancyDensityTimeline unavailable');
       if (safeActivityData.length === 0) throw new Error('empty-activity-array');
       createOccupancyDensityTimeline('occupancy-density-timeline', safeActivityData, { height: 260, minVisiblePointPx: 2 });
-    }, function (reason) {
+    }, function () {
       renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
     });
 
@@ -2057,59 +2273,19 @@ function getTotalEntriesPerLocation(itemsByLocation) {
 function ensureOccupancyLocationChartContainers() {
   const occupancySection = document.getElementById('occupancy');
   if (!occupancySection) return;
-  if (document.getElementById('occupancy-current-by-location-chart')) return;
+  if (document.getElementById('occupancy-top-traffic-locations-chart')) return;
   const grid = document.createElement('div');
   grid.className = 'grid';
   grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
   grid.style.gap = 'var(--space-6)';
   grid.style.marginTop = 'var(--space-6)';
   grid.innerHTML = `
-    <div class="card">
-      <div class="card__header">
-        <h3 class="card__title">Activity by Location</h3>
-      </div>
-      <div class="card__body">
-        <div class="chart-placeholder" id="occupancy-current-by-location-chart"></div>
-        <div class="smaca-accordion smaca-accordion--collapsed">
-          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>What is this graph?</span>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-          </button>
-          <div class="smaca-accordion__body" hidden>
-            <div class="accordion-content">
-              <p><strong>What it shows:</strong> Total movement (entries + exits) per sensor location in the selected period.</p>
-              <p><strong>How to read:</strong> Taller bars indicate higher traffic at that location. Hover to see exact totals.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card__header">
-        <h3 class="card__title">Cumulative Entries by Location</h3>
-      </div>
-      <div class="card__body">
-        <div class="chart-placeholder" id="occupancy-total-entries-by-location-chart"></div>
-        <div class="smaca-accordion smaca-accordion--collapsed">
-          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>What is this graph?</span>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-          </button>
-          <div class="smaca-accordion__body" hidden>
-            <div class="accordion-content">
-              <p><strong>What it shows:</strong> Maximum cumulative entries recorded for each location.</p>
-              <p><strong>How to read:</strong> Use it to identify locations with sustained high inbound usage.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
     <div class="card" style="grid-column: 1 / -1;">
       <div class="card__header">
-        <h3 class="card__title">Flow by Location (In/Out)</h3>
+        <h3 class="card__title">Top Traffic Locations</h3>
       </div>
       <div class="card__body">
-        <div class="chart-placeholder" id="occupancy-flow-by-location-chart"></div>
+        <div class="chart-placeholder" id="occupancy-top-traffic-locations-chart"></div>
         <div class="smaca-accordion smaca-accordion--collapsed">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
             <span>What is this graph?</span>
@@ -2117,8 +2293,8 @@ function ensureOccupancyLocationChartContainers() {
           </button>
           <div class="smaca-accordion__body" hidden>
             <div class="accordion-content">
-              <p><strong>What it shows:</strong> Side-by-side comparison of total entries vs exits for each location.</p>
-              <p><strong>How to read:</strong> Green bars are entries and red bars are exits. Hover bars for exact counts.</p>
+              <p><strong>What it shows:</strong> Highest cumulative entries by location in the selected timeframe.</p>
+              <p><strong>How to read:</strong> Longer bars mean more inbound activity. Hover to see exact totals.</p>
             </div>
           </div>
         </div>
@@ -2136,60 +2312,36 @@ function renderOccupancyLocationCharts(occupancyRows) {
   ensureOccupancyLocationChartContainers();
   const byLocation = groupOccupancyByLocation(occupancyRows);
   const locationCount = Object.keys(byLocation).length;
+  const chartId = 'occupancy-top-traffic-locations-chart';
+  const chartEl = document.getElementById(chartId);
+  if (chartEl) chartEl.innerHTML = '';
+
   if (locationCount === 0) {
-    renderEmptyState('occupancy-current-by-location-chart', 'No data available');
-    renderEmptyState('occupancy-total-entries-by-location-chart', 'No data available');
-    renderEmptyState('occupancy-flow-by-location-chart', 'No data available');
+    renderEmptyState(chartId, 'No data available');
     return;
   }
 
-  const currentByLocation = getActivityPerLocation(byLocation);
-  const entriesByLocation = getTotalEntriesPerLocation(byLocation);
-  const flowByLocation = getFlowTotalsPerLocation(byLocation);
-
-  if (currentByLocation.length > 0) {
-    renderLocationBarChart(
-      'occupancy-current-by-location-chart',
-      currentByLocation.map(function (item) { return item.location; }),
-      currentByLocation.map(function (item) { return item.activity; }),
-      '#3b82f6'
-    );
-  } else {
-    renderEmptyState('occupancy-current-by-location-chart', 'No data available');
-  }
-
-  if (entriesByLocation.length > 0) {
-    renderLocationBarChart(
-      'occupancy-total-entries-by-location-chart',
-      entriesByLocation.map(function (item) { return item.location; }),
-      entriesByLocation.map(function (item) { return item.totalEntries; }),
-      '#10b981'
-    );
-  } else {
-    renderEmptyState('occupancy-total-entries-by-location-chart', 'No data available');
-  }
-
-  if (flowByLocation.length > 0) {
-    renderLocationFlowChart(
-      'occupancy-flow-by-location-chart',
-      flowByLocation.map(function (item) { return item.location; }),
-      flowByLocation.map(function (item) { return item.peopleIn; }),
-      flowByLocation.map(function (item) { return item.peopleOut; }),
-      { height: 360 }
-    );
-  } else {
-    renderEmptyState('occupancy-flow-by-location-chart', 'No data available');
-  }
   if (locationCount === 1) {
-    const chartEl = document.getElementById('occupancy-current-by-location-chart');
-    if (chartEl && !chartEl.querySelector('[data-one-location-note]')) {
-      const note = document.createElement('div');
-      note.setAttribute('data-one-location-note', 'true');
-      note.style.cssText = 'font-size: var(--font-size-xs); color: var(--muted); text-align: center; margin-top: var(--space-2);';
-      note.textContent = 'Only one location available';
-      chartEl.appendChild(note);
-    }
+    // Requirement: if only one location exists, do not render a misleading comparison chart.
+    return;
   }
+
+  const topN = 7;
+  const entries = getTotalEntriesPerLocation(byLocation)
+    .sort(function (a, b) { return Number(b.totalEntries) - Number(a.totalEntries); })
+    .slice(0, topN);
+
+  if (!entries.length) {
+    renderEmptyState(chartId, 'No location data available');
+    return;
+  }
+
+  renderLocationBarChart(
+    chartId,
+    entries.map(function (item) { return item.location; }),
+    entries.map(function (item) { return item.totalEntries; }),
+    '#10b981'
+  );
 }
 
 function renderLocationBarChart(containerId, labels, values, color) {

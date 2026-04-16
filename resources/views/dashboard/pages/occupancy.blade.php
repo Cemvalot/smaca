@@ -37,7 +37,7 @@
             <div class="card occupancy-primary-card">
               <div class="card__header">
                 <h3 class="card__title">Flow Over Time (In/Out)</h3>
-                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is space actually being used?</p>
+                  <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is traffic actually highest?</p>
               </div>
               <div class="card__body occupancy-primary-card__body">
                 <div class="chart-placeholder occupancy-primary-chart" id="occupancy-flow-chart"></div>
@@ -50,18 +50,17 @@
                     <div class="accordion-content">
                       <p><strong>Y-axis (Vertical):</strong></p>
                       <ul>
-                        <li><strong>Center line (0):</strong> Baseline — no movement</li>
-                        <li><strong>Upward (green bars):</strong> People entering the space</li>
-                        <li><strong>Downward (red bars):</strong> People leaving the space</li>
-                        <li><strong>Bar height:</strong> Number of people (scaled to max value)</li>
+                        <li><strong>Green columns:</strong> People entering</li>
+                        <li><strong>Orange columns:</strong> People leaving</li>
+                        <li><strong>Blue activity line:</strong> Overall activity (in + out)</li>
+                        <li><strong>Column height:</strong> Number of people in the bucket</li>
                       </ul>
                       <p><strong>X-axis (Horizontal):</strong></p>
                       <ul>
-                        <li><strong>Time periods:</strong> Each bar represents one time interval (e.g., hourly)</li>
-                        <li><strong>Range:</strong> Typically 24 hours (00:00 to 23:00)</li>
-                        <li><strong>Pattern:</strong> Shows when people enter vs. exit throughout the day</li>
+                        <li><strong>Time periods:</strong> Each bucket represents one time interval</li>
+                        <li><strong>Interpretation:</strong> Use column heights + activity line to spot bursts</li>
                       </ul>
-                      <p><strong>How to read:</strong> <span class="legend-dot" style="background:#10b981;"></span> <strong>Green bars (↑):</strong> People entering — shows arrival patterns. <span class="legend-dot" style="background:#ef4444;"></span> <strong>Red bars (↓):</strong> People leaving — shows departure patterns. Example: If a green bar reaches 5 units upward, it means 5 people entered during that time period.</p>
+                      <p><strong>How to read:</strong> Compare the green and orange columns to see whether the building is dominated by arrivals or departures. The blue line highlights when overall movement is strongest.</p>
                     </div>
                   </div>
                 </div>
@@ -70,7 +69,7 @@
             <div class="card occupancy-primary-card">
               <div class="card__header">
                 <h3 class="card__title">Activity Over Time</h3>
-                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is traffic/movement highest? (entries + exits)</p>
+                  <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is occupancy highest, and how does it repeat by hour?</p>
               </div>
               <div class="card__body occupancy-primary-card__body">
                 <div class="chart-placeholder occupancy-primary-chart" id="occupancy-density-timeline"></div>
@@ -83,18 +82,10 @@
                     <div class="accordion-content">
                       <p><strong>Y-axis (Vertical):</strong></p>
                       <ul>
-                        <li><strong>Values (0 to max):</strong> Total number of people present in the space</li>
-                        <li><strong>Each number:</strong> Represents the occupancy count at that moment</li>
-                        <li><strong>Blue area:</strong> Filled area below the line shows occupancy density</li>
-                        <li><strong>Step pattern:</strong> Values change in discrete steps (not smooth curves)</li>
+                        <li><strong>Blue area:</strong> Estimated people present in the bucket</li>
+                        <li><strong>Peak regions:</strong> Indicate higher occupancy density over time</li>
                       </ul>
-                      <p><strong>X-axis (Horizontal):</strong></p>
-                      <ul>
-                        <li><strong>Time periods:</strong> Each step represents one time interval (e.g., hourly)</li>
-                        <li><strong>Range:</strong> Typically 24 hours (00:00 to 23:00)</li>
-                        <li><strong>Step chart:</strong> Values remain constant within each interval, then jump to next value</li>
-                      </ul>
-                      <p><strong>How to read:</strong> Higher blue area = more people present. Flat sections = occupancy stayed constant. Vertical jumps = sudden changes (people entering or leaving). Example: If the line is at Y=7, it means 7 people were present during that entire time period.</p>
+                      <p><strong>Pattern heatmap (below the area):</strong> Recurring activity by hour-of-day. Hover a cell to see the aggregated activity for that hour.</p>
                     </div>
                   </div>
                 </div>
