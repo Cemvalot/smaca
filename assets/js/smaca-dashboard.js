@@ -1091,16 +1091,20 @@ document.addEventListener('DOMContentLoaded', function() {
         detail: { sectionId: 'iaq' }
       }));
     } else if (currentPage === 'energy') {
-      if (typeof SMACAState !== 'undefined' && SMACAState && typeof updateEnergyCharts === 'function') {
-        const energy = SMACAState.getFilteredEnergy ? SMACAState.getFilteredEnergy() : [];
-        updateEnergyCharts(energy, SMACAState.currentTimeframe || '24h');
-      } else if (typeof loadEnergyData === 'function') {
+      // Production path is owned by smaca-production-features.js; legacy loaders are only for non-production.
+      if (!(typeof SMACAState !== 'undefined' && SMACAState)) {
+        if (typeof loadEnergyData === 'function') {
         loadEnergyData();
+        }
       }
     } else if (currentPage === 'connectivity') {
-      if (typeof loadConnectivityData === 'function') loadConnectivityData();
+      if (!(typeof SMACAState !== 'undefined' && SMACAState)) {
+        if (typeof loadConnectivityData === 'function') loadConnectivityData();
+      }
     } else if (currentPage === 'environmental') {
-      if (typeof loadEnvironmentalData === 'function') loadEnvironmentalData();
+      if (!(typeof SMACAState !== 'undefined' && SMACAState)) {
+        if (typeof loadEnvironmentalData === 'function') loadEnvironmentalData();
+      }
     } else if (currentPage === 'ai-insights') {
       if (typeof loadEnhancedAIInsights === 'function') {
         loadEnhancedAIInsights();

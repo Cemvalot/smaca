@@ -1278,7 +1278,9 @@ function updateSystemHealthBadge() {
   const badge = document.getElementById('system-health-badge');
   if (!badge) return;
   
-  const sensors = (typeof mockData !== 'undefined' && mockData.sensors) ? mockData.sensors : [];
+  const sensors = (typeof window !== 'undefined' && Array.isArray(window.SMACA_SENSORS))
+    ? window.SMACA_SENSORS
+    : ((typeof mockData !== 'undefined' && Array.isArray(mockData.sensors)) ? mockData.sensors : []);
   const now = Date.now();
   const fifteenMinutesAgo = now - (15 * 60 * 1000);
   
@@ -1324,7 +1326,9 @@ function updateAlertsPanel() {
     environmental: SMACAState.getFilteredEnvironmental()
   };
   
-  const sensors = (typeof mockData !== 'undefined' && mockData.sensors) ? mockData.sensors : [];
+  const sensors = (typeof window !== 'undefined' && Array.isArray(window.SMACA_SENSORS))
+    ? window.SMACA_SENSORS
+    : ((typeof mockData !== 'undefined' && Array.isArray(mockData.sensors)) ? mockData.sensors : []);
   const alerts = SMACAAlertsEngine.checkRules(filteredData, sensors);
   
   if (alerts.length === 0) {

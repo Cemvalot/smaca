@@ -361,7 +361,9 @@ function renderAIAlerts() {
     occupancy: SMACAState.getFilteredOccupancy(),
     environmental: SMACAState.getFilteredEnvironmental()
   };
-  const sensors = mockData.sensors || [];
+  const sensors = (typeof window !== 'undefined' && Array.isArray(window.SMACA_SENSORS))
+    ? window.SMACA_SENSORS
+    : (typeof mockData !== 'undefined' && Array.isArray(mockData.sensors) ? mockData.sensors : []);
   const alerts = SMACAAlertsEngine.checkRules(filteredData, sensors);
   
   if (alerts.length === 0) {
@@ -415,7 +417,9 @@ function updateActiveEventsCount() {
     occupancy: SMACAState.getFilteredOccupancy(),
     environmental: SMACAState.getFilteredEnvironmental()
   };
-  const sensors = mockData.sensors || [];
+  const sensors = (typeof window !== 'undefined' && Array.isArray(window.SMACA_SENSORS))
+    ? window.SMACA_SENSORS
+    : (typeof mockData !== 'undefined' && Array.isArray(mockData.sensors) ? mockData.sensors : []);
   const alerts = SMACAAlertsEngine.checkRules(filteredData, sensors);
   
   const countEl = document.getElementById('active-events-count');

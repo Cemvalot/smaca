@@ -86,6 +86,9 @@ function initAccurateIAQDashboard() {
   const filteredIAQ = SMACAState.getFilteredIAQ();
   
   if (!filteredIAQ || filteredIAQ.length === 0) {
+    if (typeof window !== 'undefined' && window.SMACAHighchartsAdapter && typeof window.SMACAHighchartsAdapter.destroyIaqTrendHighchart === 'function') {
+      window.SMACAHighchartsAdapter.destroyIaqTrendHighchart();
+    }
     // Show insufficient history message
     const chartPlaceholders = document.querySelectorAll('#iaq .chart-placeholder');
     chartPlaceholders.forEach(placeholder => {
@@ -444,6 +447,9 @@ function renderIaqMainTrendChart(computed) {
     return Number.isFinite(Number(entry?.value));
   });
   if (!series.length) {
+    if (typeof window !== 'undefined' && window.SMACAHighchartsAdapter && typeof window.SMACAHighchartsAdapter.destroyIaqTrendHighchart === 'function') {
+      window.SMACAHighchartsAdapter.destroyIaqTrendHighchart();
+    }
     chartEl.innerHTML = '<div style="padding: var(--space-6); text-align:center; color: var(--muted);">No IAQ data available</div>';
     return;
   }
@@ -487,6 +493,81 @@ function renderIaqMainTrendChart(computed) {
   min -= yPadding;
   max += yPadding;
   if (min < 0 && metric !== 'temperature') min = 0;
+
+  // Export IAQ metric + threshold definitions for shared chart helpers (Highcharts adapter).
+  // Keeps the Highcharts layer consistent with the accurate IAQ dashboard logic.
+  if (typeof window !== 'undefined') {
+    if (!window.__SMACA_IaqMetricConfig) {
+      window.__SMACA_IaqMetricConfig = getIaqMetricConfig();
+    }
+    if (!window.__SMACA_IaqThresholdBandsByMetric) {
+      window.__SMACA_IaqThresholdBandsByMetric = {
+        co2: getThresholdBandsForMetric('co2'),
+        temperature: getThresholdBandsForMetric('temperature'),
+        humidity: getThresholdBandsForMetric('humidity'),
+        pm2_5: getThresholdBandsForMetric('pm2_5'),
+        pm10: getThresholdBandsForMetric('pm10'),
+        tvoc: getThresholdBandsForMetric('tvoc')
+      };
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.__iaqHighchartsDebug = {
+      metric: metric,
+      pointCount: series.length,
+      min: dataMin,
+      max: dataMax,
+      spread: dataSpread,
+      yDomain: [min, max],
+      usingHighcharts: false
+    };
+  }
+
+  if (typeof window !== 'undefined' && window.SMACAHighchartsAdapter && window.SMACAHighchartsAdapter.hasHighcharts()) {
+    const highchartsSeries = series.map(function (entry) {
+      return [new Date(entry.time).getTime(), Number(entry.value)];
+    }).filter(function (point) {
+      return Number.isFinite(point[0]) && Number.isFinite(point[1]);
+    });
+    if (!highchartsSeries.length) {
+      chartEl.innerHTML = '<div style="padding: var(--space-6); text-align:center; color: var(--muted);">No IAQ data available</div>';
+      return;
+    }
+    const rendered = window.SMACAHighchartsAdapter.createIaqTrendHighchart('iaq-co2-band-chart', {
+      metric: metric,
+      timeframe: computed.timeframe,
+      yDomain: { min: min, max: max },
+      seriesData: highchartsSeries
+    });
+    if (rendered && rendered.ok) {
+      if (typeof window !== 'undefined' && window.__iaqHighchartsDebug) {
+        window.__iaqHighchartsDebug.usingHighcharts = true;
+      }
+      const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
+      if (typeof window !== 'undefined' && currentPage === 'iaq') {
+        window.__iaqChartData = {
+          selectedMetric: metric,
+          timeframe: computed.timeframe,
+          pointCount: series.length,
+          series: series.map(function (entry) {
+            return {
+              time: entry?.time || null,
+              value: Number(entry?.value)
+            };
+          }),
+          min: dataMin,
+          max: dataMax,
+          spread: dataSpread,
+          yDomain: [min, max],
+          usingHighcharts: true
+        };
+      }
+      return;
+    }
+  }
+
+  // Fallback legacy SVG rendering when Highcharts is unavailable.
   const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
   if (typeof window !== 'undefined' && currentPage === 'iaq') {
     window.__iaqChartData = {
@@ -502,7 +583,8 @@ function renderIaqMainTrendChart(computed) {
       min: dataMin,
       max: dataMax,
       spread: dataSpread,
-      yDomain: [min, max]
+      yDomain: [min, max],
+      usingHighcharts: false
     };
   }
   const yScale = function (v) { return chartHeight - ((v - min) / (max - min || 1)) * chartHeight; };
