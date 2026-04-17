@@ -723,7 +723,7 @@
               '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + color + ';"></span>' +
               '<span style="font-weight:500;">' + name + '</span>' +
               '</span>' +
-              '<strong style="color:#f8fbff;">' + valueText + ' kWh</strong>' +
+              '<strong style="color:#f8fbff;">' + valueText + ' ppl</strong>' +
               '</div>'
             );
           }).join('');
