@@ -10,12 +10,18 @@
                 </div>
                 <p class="section-hero__subtitle">Sensor, user and system settings</p>
               </div>
-              <div class="section-hero__stat"><div id="management-total-sensors" class="section-hero__stat-value">{{ $sensors->count() }}</div><div class="section-hero__stat-label">Total sensors</div></div>
+              <div class="management-hero-meta">
+                <div class="section-hero__stat"><div id="management-total-sensors" class="section-hero__stat-value">{{ $sensors->count() }}</div><div class="section-hero__stat-label">Total sensors</div></div>
+                <div class="management-admin-meta">
+                  <div class="management-admin-meta__title">Administrator Session</div>
+                  <div id="management-last-sync-meta" class="management-admin-meta__sync">Last sync: -- sec ago</div>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Summary Cards -->
-          <div class="grid grid--metrics grid--metrics-4" style="margin-bottom: var(--space-6);">
+          <div class="grid grid--metrics grid--metrics-5 management-kpi-grid" style="margin-bottom: var(--space-6);">
             <div class="stat-card" title="Total number of sensors in the system">
               <div class="stat-card__content">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
@@ -53,15 +59,27 @@
                 <div class="stat-card__unit"></div>
               </div>
             </div>
-            <div class="stat-card" title="Active AI-generated insights and alerts">
+            <div class="stat-card" title="Open AI-generated insights and alerts">
               <div class="stat-card__content">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-                  <div class="stat-card__label">AI Events</div>
+                  <div class="stat-card__label">Open AI Events</div>
                   <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                   </svg>
                 </div>
-                <div class="stat-card__value" id="ai-events-count">5</div>
+                <div class="stat-card__value" id="ai-events-open-count">6</div>
+                <div class="stat-card__unit"></div>
+              </div>
+            </div>
+            <div class="stat-card" title="Users with active session or recent successful login activity">
+              <div class="stat-card__content">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                  <div class="stat-card__label">Active Users Today</div>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-1a4 4 0 00-4-4h-1M9 20H4v-1a4 4 0 014-4h1m8-5a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                  </svg>
+                </div>
+                <div class="stat-card__value" id="management-active-users-today">18</div>
                 <div class="stat-card__unit"></div>
               </div>
             </div>
@@ -76,10 +94,14 @@
           <!-- Tabs Navigation -->
           <div class="management-tabs-bar">
             <button class="management-tab active" data-tab="sensors" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--text); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid var(--accent); margin-bottom: -1px;">Sensors</button>
-            <button class="management-tab" data-tab="ai-events" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">AI Events</button>
-            <button class="management-tab" data-tab="users" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">Users</button>
+            <button class="management-tab" data-tab="ai-events" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">Smart Alerts</button>
+            <button class="management-tab" data-tab="users" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">Access Control</button>
+            <button class="management-tab" data-tab="system-health" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">System Health</button>
             <button class="management-tab" data-tab="settings" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">Settings</button>
           </div>
+
+          <div class="management-admin-layout">
+            <div>
 
           <!-- Sensors Management Tab -->
           <div id="management-sensors-tab" class="management-tab-content">
@@ -170,9 +192,9 @@
             </div>
           </div>
 
-          <!-- AI Events Management Tab -->
+          <!-- Smart Alerts Tab -->
           <div id="management-ai-events-tab" class="management-tab-content" style="display: none;">
-            <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">AI Events Management</h3>
+            <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">Smart Alerts</h3>
             <div class="card" style="overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
               <div class="card__body" style="padding: 0;">
                 <table class="ai-events-table" style="width: 100%; border-collapse: collapse;">
@@ -184,89 +206,69 @@
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Severity</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Date</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <tr class="ai-events-row">
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">prediction</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Expected occupancy</td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Central Library</td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--info">low</span></td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">open</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
-                    </tr>
-                    <tr class="ai-events-row">
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">alert</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Low sensor battery</td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Conference Room</td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--danger">critical</span></td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">acknowledged</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
-                    </tr>
-                    <tr class="ai-events-row">
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">recommendation</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Ventilation optimization</td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Amphitheater A</td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--warning">medium</span></td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">open</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
-                    </tr>
-                    <tr class="ai-events-row">
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">prediction</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Expected consumption increase</td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Building A</td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--info">low</span></td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">acknowledged</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
-                    </tr>
-                    <tr class="ai-events-row">
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">alert</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">High temperature</td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">IT Lab</td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--high">high</span></td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">open</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
-                    </tr>
-                    <tr class="ai-events-row">
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">anomaly</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Abnormally high CO₂ levels</td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">Room B2</td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--danger">critical</span></td>
-                      <td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">acknowledged</span></td>
-                      <td style="padding: var(--space-3) var(--space-4); color: var(--text);">4/11/2025</td>
-                    </tr>
-                  </tbody>
+                  <tbody id="management-smart-alerts-body"></tbody>
                 </table>
               </div>
             </div>
           </div>
-          <!-- Users Management Tab -->
+          <!-- Access Control Tab -->
           <div id="management-users-tab" class="management-tab-content" style="display: none;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
-              <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0;">Users Management</h3>
+              <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0;">Access Control</h3>
               <button id="add-user-btn" class="btn btn--primary" style="display: flex; align-items: center; gap: var(--space-2);">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
-                Add User
+                Invite User
               </button>
+            </div>
+            <div class="grid grid--metrics grid--metrics-4" style="margin-bottom: var(--space-4);">
+              <article class="stat-card">
+                <div class="stat-card__content">
+                  <div class="stat-card__label">Total Users</div>
+                  <div class="stat-card__value" id="access-total-users">24</div>
+                </div>
+              </article>
+              <article class="stat-card">
+                <div class="stat-card__content">
+                  <div class="stat-card__label">Admins</div>
+                  <div class="stat-card__value" id="access-admin-users">5</div>
+                </div>
+              </article>
+              <article class="stat-card">
+                <div class="stat-card__content">
+                  <div class="stat-card__label">Standard Users</div>
+                  <div class="stat-card__value" id="access-standard-users">19</div>
+                </div>
+              </article>
+              <article class="stat-card">
+                <div class="stat-card__content">
+                  <div class="stat-card__label">Recent Logins</div>
+                  <div class="stat-card__value" id="access-recent-logins">17</div>
+                </div>
+              </article>
             </div>
             <div class="card" style="overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
               <div class="card__body" style="padding: 0;">
+                <div id="access-role-summary" class="access-role-summary">
+                  <span class="badge badge--danger badge--sm" style="text-transform:none;">admin: 5</span>
+                  <span class="badge badge--success badge--sm" style="text-transform:none;">user: 16</span>
+                  <span class="badge badge--info badge--sm" style="text-transform:none;">viewer: 3</span>
+                </div>
                 <table id="users-management-table" style="width: 100%; border-collapse: collapse;">
                   <thead>
                     <tr style="background: var(--surface-2); border-bottom: 2px solid var(--border);">
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Name</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Email</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Role</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Last Login</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Actions</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
                     </tr>
                   </thead>
-                  <tbody id="users-management-table-body">
-                    <!-- Users loaded from API/database via loadUsers() -->
-                  </tbody>
+                  <tbody id="users-management-table-body"></tbody>
                 </table>
                 <div id="users-empty-state" class="users-empty-state" style="display: none; padding: var(--space-8); text-align: center; color: var(--muted);">
                   <p style="margin: 0;">No users yet. Users will appear here when the database is connected.</p>
@@ -274,12 +276,76 @@
               </div>
             </div>
           </div>
+          <div id="management-system-health-tab" class="management-tab-content" style="display: none;">
+            <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">System Health</h3>
+            <div class="grid grid--metrics grid--metrics-4" style="margin-bottom: var(--space-4);">
+              <article class="stat-card management-status-card">
+                <div class="stat-card__content">
+                  <div class="stat-card__label">API Status</div>
+                  <div id="system-health-api-status" class="stat-card__value">--</div>
+                  <div class="stat-card__meta">Platform API availability</div>
+                </div>
+              </article>
+              <article class="stat-card management-status-card">
+                <div class="stat-card__content">
+                  <div class="stat-card__label">Database Status</div>
+                  <div id="system-health-db" class="stat-card__value">--</div>
+                  <div class="stat-card__meta">Metadata persistence layer</div>
+                </div>
+              </article>
+              <article class="stat-card management-status-card">
+                <div class="stat-card__content">
+                  <div class="stat-card__label">Queue / Jobs</div>
+                  <div id="system-health-queue" class="stat-card__value">--</div>
+                  <div class="stat-card__meta">Background tasks processing</div>
+                </div>
+              </article>
+              <article class="stat-card management-status-card">
+                <div class="stat-card__content">
+                  <div class="stat-card__label">Telemetry / Ingestion</div>
+                  <div id="system-health-ingestion-status" class="stat-card__value">--</div>
+                  <div class="stat-card__meta">Sensor ingestion pipeline</div>
+                </div>
+              </article>
+            </div>
+            <div class="card">
+              <div class="card__header">
+                <h4 class="card__title" style="font-size: var(--font-size-lg);">Operational Snapshot</h4>
+              </div>
+              <div class="card__body">
+                <div class="stat-row"><span class="stat-row__label">Sensors online / offline</span><span id="system-health-sensors" class="stat-row__value">-- / --</span></div>
+                <div class="stat-row"><span class="stat-row__label">Last ingestion</span><span id="system-health-last-ingestion" class="stat-row__value">Not available</span></div>
+                <div class="stat-row"><span class="stat-row__label">Uptime</span><span id="system-health-uptime" class="stat-row__value">--</span></div>
+                <div class="stat-row"><span class="stat-row__label">Pending jobs</span><span id="system-health-pending-jobs" class="stat-row__value">--</span></div>
+                <div class="stat-row"><span class="stat-row__label">Open incidents</span><span id="system-health-open-incidents" class="stat-row__value">--</span></div>
+                <div class="stat-row"><span class="stat-row__label">Storage usage</span><span id="system-health-storage" class="stat-row__value">--</span></div>
+              </div>
+            </div>
+          </div>
           <div id="management-settings-tab" class="management-tab-content" style="display: none;">
             <div class="card">
               <div class="card__body">
-                <p style="color: var(--muted);">System settings coming soon...</p>
+                <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">Platform Preferences</h3>
+                <div class="stat-row"><span class="stat-row__label">Timezone</span><span id="settings-pref-timezone" class="stat-row__value">Europe/Athens</span></div>
+                <div class="stat-row"><span class="stat-row__label">Refresh interval</span><span id="settings-pref-refresh" class="stat-row__value">60s</span></div>
+                <div class="stat-row"><span class="stat-row__label">Notification email</span><span id="settings-pref-email" class="stat-row__value">ops@smaca.io</span></div>
+                <div class="stat-row"><span class="stat-row__label">Export defaults</span><span id="settings-pref-export" class="stat-row__value">CSV + JSON</span></div>
+                <div class="stat-row"><span class="stat-row__label">Session timeout</span><span id="settings-pref-session-timeout" class="stat-row__value">30 min</span></div>
+                <button type="button" id="management-export-defaults-btn" class="btn btn--secondary" style="margin-top: var(--space-4);">Export Defaults</button>
               </div>
             </div>
+          </div>
+            </div>
+            <aside class="management-critical-panel card">
+              <div class="card__header">
+                <h3 class="card__title">Critical Issues</h3>
+              </div>
+              <div class="card__body">
+                <div id="management-critical-issues-list" class="quick-tips">
+                  <div class="quick-tip"><span>•</span><span>No critical issues detected</span></div>
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
 @endsection

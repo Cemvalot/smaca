@@ -69,9 +69,21 @@
     }));
   }
 
+  function applyGlobalHighchartsOptions() {
+    if (typeof window.Highcharts === 'undefined' || typeof window.Highcharts.setOptions !== 'function') {
+      return;
+    }
+    window.Highcharts.setOptions({
+      accessibility: {
+        enabled: false
+      }
+    });
+  }
+
   function loadHighcharts() {
     const store = getStore();
     if (typeof window.Highcharts !== 'undefined') {
+      applyGlobalHighchartsOptions();
       store.state = 'ready';
       if (!store.src) store.src = resolveSource();
       return Promise.resolve(window.Highcharts);
@@ -94,6 +106,7 @@
           }, Promise.resolve());
         })
         .then(function () {
+          applyGlobalHighchartsOptions();
           store.state = 'ready';
           store.error = null;
           emitReady();

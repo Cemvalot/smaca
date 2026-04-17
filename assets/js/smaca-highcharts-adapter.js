@@ -13,6 +13,15 @@
     return typeof window !== 'undefined' && typeof window.Highcharts !== 'undefined';
   }
 
+  function ensureAccessibilityDisabled() {
+    if (!hasHighcharts() || typeof window.Highcharts.setOptions !== 'function') return;
+    window.Highcharts.setOptions({
+      accessibility: {
+        enabled: false
+      }
+    });
+  }
+
   function ensureChartStore() {
     if (typeof window === 'undefined') return null;
     if (!window.__smacaHighchartsStore) {
@@ -58,6 +67,7 @@
 
   function createOrUpdateChart(params) {
     if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    ensureAccessibilityDisabled();
     const chartKey = String(params?.chartKey || '').trim();
     if (!chartKey) return { ok: false, reason: 'missing-chart-key' };
     const containerId = String(params?.containerId || '').trim();

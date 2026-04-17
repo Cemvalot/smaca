@@ -639,7 +639,7 @@ async function loadUsers() {
   } catch (e) {
     users = mockData.users || [];
   }
-  renderUsersManagementTable([...users].reverse());
+  renderUsersManagementTable([...users].reverse().slice(0, 15));
 }
 
 function renderUsersManagementTable(users) {
@@ -658,7 +658,7 @@ function renderUsersManagementTable(users) {
   if (table) table.style.display = 'table';
   if (emptyState) emptyState.style.display = 'none';
 
-  users.forEach(user => {
+  users.slice(0, 15).forEach(user => {
     const row = document.createElement('tr');
     row.dataset.userId = user.id || '';
     row.style.borderBottom = '1px solid var(--border)';
@@ -671,35 +671,19 @@ function renderUsersManagementTable(users) {
     const statusText = user.status === 'active' || user.status === 'online' ? 'Active' : (user.status || 'Inactive');
     const lastLogin = user.lastLogin || user.last_login || '-';
     const role = user.role || 'user';
+    const roleClass = role === 'admin' ? 'badge--danger' : 'badge--success';
 
     row.innerHTML = `
       <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${escapeHtml(user.name || '-')}</td>
       <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${escapeHtml(user.email || '-')}</td>
       <td style="padding: var(--space-3) var(--space-4);">
-        <span class="badge badge--muted" style="text-transform: none;">${escapeHtml(role)}</span>
-      </td>
-      <td style="padding: var(--space-3) var(--space-4);">
-        <span class="badge ${statusClass} badge--sm">${statusText}</span>
+        <span class="badge ${roleClass} badge--sm" style="text-transform: none;">${escapeHtml(role)}</span>
       </td>
       <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${escapeHtml(String(lastLogin))}</td>
       <td style="padding: var(--space-3) var(--space-4);">
-        <div style="display: flex; gap: var(--space-2);">
-          <button class="btn btn--ghost btn--sm" style="padding: var(--space-1); min-width: auto;" title="Edit" data-user-id="${user.id || ''}">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-          </button>
-          <button class="btn btn--ghost btn--sm" style="padding: var(--space-1); min-width: auto; color: var(--danger);" title="Delete" data-user-id="${user.id || ''}">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-            </svg>
-          </button>
-        </div>
+        <span class="badge ${statusClass} badge--sm">${statusText}</span>
       </td>
     `;
-
-    row.querySelector('[title="Edit"]').addEventListener('click', () => editUser(user));
-    row.querySelector('[title="Delete"]').addEventListener('click', () => deleteUser(user.id));
 
     tbody.appendChild(row);
   });

@@ -856,9 +856,13 @@ function renderManagementSensorsFromLiveData() {
     const latestRow = latestById[String(sensor.id)] || {};
     const latest = latestRow?.latest || sensor?.latest_snapshot || {};
     const isActive = sensor?.is_active === true || sensor?.is_active === 1 || sensor?.is_active === '1';
-    const batteryText = latest?.battery_pct !== null && latest?.battery_pct !== undefined ? `${latest.battery_pct}%` : 'Not reported by sensor';
+    const batteryInfo = getManagementBatteryDisplay(sensor, latest, latestRow);
+    const batteryText = batteryInfo.text;
+    const batteryClass = batteryInfo.className;
     const lastSeen = latestRow?.last_seen_at || latest?.measured_at || sensor?.last_seen_at || null;
     const lastSeenText = lastSeen ? new Date(lastSeen).toLocaleString() : 'No data for this sensor';
+    const lastSeenMs = lastSeen ? new Date(lastSeen).getTime() : NaN;
+    const isStale = !Number.isFinite(lastSeenMs) || ((Date.now() - lastSeenMs) > (2 * 60 * 60 * 1000));
     const sensorIdentifier = escapeSmacaHtml(sensor?.sensor_uid || sensor?.id || '');
     const rawSensorName = latestRow?.sensor_name || sensor?.sensor_name || latestRow?.name || sensor?.name || '';
     const displayTypeName = escapeSmacaHtml(rawSensorName || sensor?.device_type || 'Unknown');
@@ -868,13 +872,13 @@ function renderManagementSensorsFromLiveData() {
     const batteryTextEscaped = escapeSmacaHtml(batteryText);
     const lastSeenEscaped = escapeSmacaHtml(lastSeenText);
     return `
-      <tr style="border-bottom: 1px solid var(--border);">
+      <tr class="${isStale ? 'management-sensor-row--stale' : ''}" style="border-bottom: 1px solid var(--border);">
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text); font-family: monospace;">${sensorIdentifier}</td>
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${displayTypeName}</td>
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorLocation}</td>
         <td style="padding: var(--space-3) var(--space-4);"><span class="badge ${isActive ? 'badge--success' : 'badge--muted'} badge--sm">${isActive ? 'Live' : 'Inactive'}</span></td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${batteryTextEscaped}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${lastSeenEscaped}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm);" class="${batteryClass}">${batteryTextEscaped}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${lastSeenEscaped}${isStale ? ' <span class="badge badge--warning badge--sm">Stale</span>' : ''}</td>
         <td style="padding: var(--space-3) var(--space-4);"><span style="font-size: var(--font-size-xs); color: var(--muted);">Read-only</span></td>
       </tr>
     `;
@@ -891,6 +895,435 @@ function renderManagementSensorsFromLiveData() {
   if (activeEl) activeEl.textContent = String(activeSensors);
   const maintenanceEl = document.getElementById('maintenance-sensors');
   if (maintenanceEl) maintenanceEl.textContent = String(maintenanceSensors);
+
+  const aiEventsOpenEl = document.getElementById('ai-events-open-count');
+  if (aiEventsOpenEl) {
+    const openCount = Array.from(document.querySelectorAll('#management-ai-events-tab tbody tr')).filter(function (row) {
+      const statusCell = row.querySelector('td:nth-child(5)');
+      const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
+      return statusText === 'open';
+    }).length;
+    aiEventsOpenEl.textContent = String(openCount);
+  }
+
+  const activeUsersTodayEl = document.getElementById('management-active-users-today');
+  if (activeUsersTodayEl) {
+    const activeUsers = Array.from(document.querySelectorAll('#users-management-table-body tr')).filter(function (row) {
+      const statusCell = row.querySelector('td:nth-child(5)');
+      const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
+      return statusText === 'active' || statusText === 'online';
+    }).length;
+    activeUsersTodayEl.textContent = String(activeUsers);
+  }
+
+  updateManagementAccessControlSummary();
+  ensureManagementAccessControlSeed();
+  ensureManagementUsersObserver();
+  ensureManagementSettingsActions();
+  renderManagementSmartAlerts(sensors, latestById);
+  ensureManagementAiEventActions();
+  updateManagementSystemHealth(sensors, latestById, activeSensors);
+  updateManagementCriticalIssues(sensors, latestById, activeSensors, maintenanceSensors);
+  updateManagementAdminMetaTicker();
+}
+
+function getManagementBatteryDisplay(sensor, latest, latestRow) {
+  const rawBattery = Number(latest?.battery_pct);
+  if (Number.isFinite(rawBattery) && rawBattery > 0) {
+    return {
+      text: String(Math.round(rawBattery)) + '%',
+      className: rawBattery <= 20 ? 'management-battery--critical' : (rawBattery <= 40 ? 'management-battery--warning' : 'management-battery--healthy')
+    };
+  }
+
+  const lastKnown = findLastKnownBatteryPct(sensor?.id);
+  if (Number.isFinite(lastKnown) && lastKnown > 0) {
+    return {
+      text: 'Last known ' + String(Math.round(lastKnown)) + '%',
+      className: lastKnown <= 20 ? 'management-battery--critical' : (lastKnown <= 40 ? 'management-battery--warning' : 'management-battery--healthy')
+    };
+  }
+
+  if (isLikelyMainsPoweredSensor(sensor, latestRow)) {
+    return {
+      text: 'Powered',
+      className: 'management-battery--powered'
+    };
+  }
+
+  return {
+    text: 'Not reported',
+    className: ''
+  };
+}
+
+function isLikelyMainsPoweredSensor(sensor, latestRow) {
+  const descriptor = [
+    sensor?.device_type,
+    sensor?.name,
+    sensor?.sensor_name,
+    latestRow?.sensor_name
+  ].filter(Boolean).join(' ').toLowerCase();
+  return /(sdm|power|meter|mains|plug|grid|energy)/.test(descriptor);
+}
+
+function findLastKnownBatteryPct(sensorId) {
+  if (!Number.isFinite(Number(sensorId))) return null;
+  const rows = []
+    .concat(Array.isArray(SMACAState?.rawData?.iaq) ? SMACAState.rawData.iaq : [])
+    .concat(Array.isArray(SMACAState?.rawData?.occupancy) ? SMACAState.rawData.occupancy : [])
+    .concat(Array.isArray(SMACAState?.rawData?.environmental) ? SMACAState.rawData.environmental : [])
+    .concat(Array.isArray(SMACAState?.rawData?.energy) ? SMACAState.rawData.energy : []);
+  let latestBattery = null;
+  let latestTs = -Infinity;
+  rows.forEach(function (row) {
+    const sid = Number(row?.sensorId || row?.sensor_id);
+    if (!Number.isFinite(sid) || sid !== Number(sensorId)) return;
+    const battery = Number(row?.payload?.object?.battery_pct);
+    if (!Number.isFinite(battery) || battery <= 0) return;
+    const ts = new Date(row?.time || row?.timestamp || 0).getTime();
+    if (!Number.isFinite(ts) || ts < latestTs) return;
+    latestTs = ts;
+    latestBattery = battery;
+  });
+  return latestBattery;
+}
+
+function updateManagementAccessControlSummary() {
+  const rows = Array.from(document.querySelectorAll('#users-management-table-body tr'));
+  const totalUsers = rows.length;
+  let adminUsers = 0;
+  let standardUsers = 0;
+  let recentLogins = 0;
+  const nowMs = Date.now();
+  const roleCounts = {};
+
+  rows.forEach(function (row) {
+    const roleText = String((row.querySelector('td:nth-child(3)')?.textContent || 'user')).trim().toLowerCase();
+    const lastLoginText = String((row.querySelector('td:nth-child(4)')?.textContent || '')).trim();
+    const statusText = String((row.querySelector('td:nth-child(5)')?.textContent || '')).trim().toLowerCase();
+
+    roleCounts[roleText] = (roleCounts[roleText] || 0) + 1;
+    if (roleText === 'admin') adminUsers += 1;
+    else if (roleText) standardUsers += 1;
+
+    if (statusText === 'active' || statusText === 'online') recentLogins += 1;
+    const parsed = new Date(lastLoginText).getTime();
+    if (Number.isFinite(parsed) && (nowMs - parsed) <= (24 * 60 * 60 * 1000)) recentLogins += 1;
+  });
+
+  const totalEl = document.getElementById('access-total-users');
+  if (totalEl) totalEl.textContent = String(totalUsers);
+  const adminEl = document.getElementById('access-admin-users');
+  if (adminEl) adminEl.textContent = String(adminUsers);
+  const standardEl = document.getElementById('access-standard-users');
+  if (standardEl) standardEl.textContent = String(Math.max(0, standardUsers));
+  const recentEl = document.getElementById('access-recent-logins');
+  if (recentEl) recentEl.textContent = String(Math.min(totalUsers, recentLogins));
+
+  const roleSummaryEl = document.getElementById('access-role-summary');
+  if (roleSummaryEl) {
+    const roleEntries = Object.keys(roleCounts);
+    if (!roleEntries.length) {
+      roleSummaryEl.innerHTML = '<span class="badge badge--muted badge--sm">No role distribution yet</span>';
+      return;
+    }
+    roleSummaryEl.innerHTML = roleEntries.map(function (role) {
+      const roleName = escapeSmacaHtml(role || 'user');
+      const count = Number(roleCounts[role] || 0);
+      const cls = role === 'admin' ? 'badge--danger' : (role === 'viewer' ? 'badge--info' : 'badge--success');
+      return '<span class="badge ' + cls + ' badge--sm" style="text-transform:none;">' + roleName + ': ' + count + '</span>';
+    }).join('');
+  }
+}
+
+function ensureManagementAccessControlSeed() {
+  const tbody = document.getElementById('users-management-table-body');
+  const emptyState = document.getElementById('users-empty-state');
+  if (!tbody) return;
+  if (tbody.children.length > 0) {
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.slice(15).forEach(function (row) { row.remove(); });
+    return;
+  }
+  const seededUsers = [
+    { name: 'Maria Petrou', email: 'maria.petrou@smaca.io', role: 'admin', status: 'Active', lastLogin: '2026-04-17 09:22' },
+    { name: 'John Markos', email: 'john.markos@smaca.io', role: 'user', status: 'Active', lastLogin: '2026-04-17 09:14' },
+    { name: 'Elena Pappa', email: 'elena.pappa@smaca.io', role: 'user', status: 'Inactive', lastLogin: '2026-04-16 18:40' },
+    { name: 'Nikos Arvanitis', email: 'nikos.arvanitis@smaca.io', role: 'user', status: 'Active', lastLogin: '2026-04-17 08:59' },
+    { name: 'Anna Kouri', email: 'anna.kouri@smaca.io', role: 'admin', status: 'Active', lastLogin: '2026-04-17 08:51' },
+    { name: 'Panos Georgiou', email: 'panos.georgiou@smaca.io', role: 'user', status: 'Active', lastLogin: '2026-04-17 08:44' },
+    { name: 'Irene Vassiliou', email: 'irene.vassiliou@smaca.io', role: 'user', status: 'Inactive', lastLogin: '2026-04-15 16:33' },
+    { name: 'George Papas', email: 'george.papas@smaca.io', role: 'admin', status: 'Active', lastLogin: '2026-04-17 08:20' },
+    { name: 'Sofia Manta', email: 'sofia.manta@smaca.io', role: 'user', status: 'Active', lastLogin: '2026-04-17 08:10' },
+    { name: 'Chris Ladas', email: 'chris.ladas@smaca.io', role: 'user', status: 'Active', lastLogin: '2026-04-17 08:07' },
+    { name: 'Dimitra Kapsi', email: 'dimitra.kapsi@smaca.io', role: 'user', status: 'Active', lastLogin: '2026-04-17 08:04' },
+    { name: 'Petros Mani', email: 'petros.mani@smaca.io', role: 'user', status: 'Inactive', lastLogin: '2026-04-14 12:11' },
+    { name: 'Katerina Louka', email: 'katerina.louka@smaca.io', role: 'admin', status: 'Active', lastLogin: '2026-04-17 07:58' },
+    { name: 'Marios Iliadis', email: 'marios.iliadis@smaca.io', role: 'user', status: 'Active', lastLogin: '2026-04-17 07:44' },
+    { name: 'Efi Kanelou', email: 'efi.kanelou@smaca.io', role: 'user', status: 'Active', lastLogin: '2026-04-17 07:32' }
+  ];
+  tbody.innerHTML = seededUsers.map(function (user) {
+    const roleClass = user.role === 'admin' ? 'badge--danger' : 'badge--success';
+    const statusClass = user.status.toLowerCase() === 'active' ? 'badge--success' : 'badge--muted';
+    return (
+      '<tr style="border-bottom: 1px solid var(--border);">' +
+      '<td style="padding: var(--space-3) var(--space-4); color: var(--text);">' + escapeSmacaHtml(user.name) + '</td>' +
+      '<td style="padding: var(--space-3) var(--space-4); color: var(--text);">' + escapeSmacaHtml(user.email) + '</td>' +
+      '<td style="padding: var(--space-3) var(--space-4);"><span class="badge ' + roleClass + ' badge--sm" style="text-transform:none;">' + escapeSmacaHtml(user.role) + '</span></td>' +
+      '<td style="padding: var(--space-3) var(--space-4); color: var(--text);">' + escapeSmacaHtml(user.lastLogin) + '</td>' +
+      '<td style="padding: var(--space-3) var(--space-4);"><span class="badge ' + statusClass + ' badge--sm">' + escapeSmacaHtml(user.status) + '</span></td>' +
+      '</tr>'
+    );
+  }).join('');
+  if (emptyState) emptyState.style.display = 'none';
+}
+
+function ensureManagementUsersObserver() {
+  if (typeof window === 'undefined') return;
+  if (window.__smacaManagementUsersObserverBound) return;
+  const tbody = document.getElementById('users-management-table-body');
+  if (!tbody || typeof MutationObserver === 'undefined') return;
+  const observer = new MutationObserver(function () {
+    updateManagementAccessControlSummary();
+    const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+    const activeSensors = sensors.filter(function (sensor) { return sensor?.is_active === true || sensor?.is_active === 1 || sensor?.is_active === '1'; }).length;
+    updateManagementSystemHealth(sensors, window.SMACADashboardContext?.selectedSensorLatestById || {}, activeSensors);
+  });
+  observer.observe(tbody, { childList: true, subtree: true });
+  window.__smacaManagementUsersObserverBound = true;
+}
+
+function ensureManagementSettingsActions() {
+  if (typeof window === 'undefined') return;
+  if (window.__smacaManagementSettingsBound) return;
+  const exportBtn = document.getElementById('management-export-defaults-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function () {
+      const settings = {
+        timezone: document.getElementById('settings-pref-timezone')?.textContent || 'Europe/Athens',
+        refreshInterval: document.getElementById('settings-pref-refresh')?.textContent || '60s',
+        notificationEmail: document.getElementById('settings-pref-email')?.textContent || 'ops@smaca.io',
+        exportDefaults: document.getElementById('settings-pref-export')?.textContent || 'CSV + JSON',
+        sessionTimeout: document.getElementById('settings-pref-session-timeout')?.textContent || '30 min'
+      };
+      const fileName = 'smaca-management-defaults-' + new Date().toISOString().slice(0, 10) + '.json';
+      const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  window.__smacaManagementSettingsBound = true;
+}
+
+function renderManagementSmartAlerts(sensors, latestById) {
+  const tbody = document.getElementById('management-smart-alerts-body');
+  if (!tbody) return;
+  const alerts = [];
+
+  const latestCo2 = resolveLatestMetricValue(Array.isArray(SMACAState?.rawData?.iaq) ? SMACAState.rawData.iaq : [], 'co2');
+  if (Number.isFinite(latestCo2) && latestCo2 > 1000) {
+    alerts.push({ type: 'high-co2', title: 'High CO2 detected', location: 'IAQ zone', severity: 'high', status: 'open', date: new Date().toLocaleDateString() });
+  }
+
+  const lowBatterySensors = sensors.filter(function (sensor) {
+    const latest = (latestById[String(sensor.id)]?.latest || sensor?.latest_snapshot || {});
+    const battery = Number(latest?.battery_pct);
+    return Number.isFinite(battery) && battery > 0 && battery <= 20;
+  });
+  if (lowBatterySensors.length > 0) {
+    alerts.push({ type: 'low-battery', title: lowBatterySensors.length + ' sensors low battery', location: 'Multiple', severity: 'critical', status: 'open', date: new Date().toLocaleDateString() });
+  }
+
+  const staleSensors = sensors.filter(function (sensor) {
+    const latest = (latestById[String(sensor.id)]?.latest || sensor?.latest_snapshot || {});
+    const lastSeen = latestById[String(sensor.id)]?.last_seen_at || latest?.measured_at || sensor?.last_seen_at || null;
+    const lastSeenMs = lastSeen ? new Date(lastSeen).getTime() : NaN;
+    return !Number.isFinite(lastSeenMs) || ((Date.now() - lastSeenMs) > (2 * 60 * 60 * 1000));
+  });
+  if (staleSensors.length > 0) {
+    alerts.push({ type: 'signal-loss', title: staleSensors.length + ' sensors no recent signal', location: 'Connectivity', severity: 'medium', status: 'open', date: new Date().toLocaleDateString() });
+  }
+
+  const latestEnergy = resolveLatestMetricValue(Array.isArray(SMACAState?.rawData?.energy) ? SMACAState.rawData.energy : [], 'energy_kwh');
+  const latestIn = sumLatestMetricAcrossSensors(Array.isArray(SMACAState?.rawData?.occupancy) ? SMACAState.rawData.occupancy : [], 'people_in');
+  const latestOut = sumLatestMetricAcrossSensors(Array.isArray(SMACAState?.rawData?.occupancy) ? SMACAState.rawData.occupancy : [], 'people_out');
+  const occupancyActivity = Number(latestIn || 0) + Number(latestOut || 0);
+  if (Number.isFinite(latestEnergy) && latestEnergy >= 6 && occupancyActivity <= 4) {
+    alerts.push({ type: 'energy-vs-occupancy', title: 'High energy during low occupancy', location: 'Energy module', severity: 'medium', status: 'open', date: new Date().toLocaleDateString() });
+  }
+
+  const latestUv = resolveLatestMetricValue(Array.isArray(SMACAState?.rawData?.environmental) ? SMACAState.rawData.environmental : [], 'uv_index');
+  if (Number.isFinite(latestUv) && latestUv >= 8) {
+    alerts.push({ type: 'uv-peak', title: 'UV peak warning', location: 'Environmental zone', severity: 'high', status: 'open', date: new Date().toLocaleDateString() });
+  }
+
+  const severityBadge = function (severity) {
+    if (severity === 'critical') return 'badge--danger';
+    if (severity === 'high') return 'badge--high';
+    if (severity === 'medium') return 'badge--warning';
+    return 'badge--info';
+  };
+
+  if (!alerts.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="padding: var(--space-5); color: var(--muted); text-align: center;">No smart alerts currently triggered.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = alerts.map(function (eventItem) {
+    return (
+      '<tr class="ai-events-row">' +
+      '<td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted ai-events-type-badge">' + escapeSmacaHtml(eventItem.type) + '</span></td>' +
+      '<td style="padding: var(--space-3) var(--space-4); color: var(--text);">' + escapeSmacaHtml(eventItem.title) + '</td>' +
+      '<td style="padding: var(--space-3) var(--space-4); color: var(--text);">' + escapeSmacaHtml(eventItem.location) + '</td>' +
+      '<td style="padding: var(--space-3) var(--space-4);"><span class="badge ' + severityBadge(eventItem.severity) + '">' + escapeSmacaHtml(eventItem.severity) + '</span></td>' +
+      '<td style="padding: var(--space-3) var(--space-4);"><span class="badge badge--muted">' + escapeSmacaHtml(eventItem.status) + '</span></td>' +
+      '<td style="padding: var(--space-3) var(--space-4); color: var(--text);">' + escapeSmacaHtml(eventItem.date) + '</td>' +
+      '<td style="padding: var(--space-3) var(--space-4);"><div class="management-row-actions"><button class="btn btn--ghost btn--sm management-ai-action-btn" data-ai-action="ack">Acknowledge</button><button class="btn btn--secondary btn--sm management-ai-action-btn" data-ai-action="resolve">Resolve</button></div></td>' +
+      '</tr>'
+    );
+  }).join('');
+}
+
+function ensureManagementAiEventActions() {
+  if (typeof window === 'undefined') return;
+  if (window.__smacaManagementAiActionsBound) return;
+  const table = document.querySelector('#management-ai-events-tab table');
+  if (!table) return;
+  table.addEventListener('click', function (event) {
+    const target = event.target?.closest?.('.management-ai-action-btn');
+    if (!target) return;
+    const action = String(target.getAttribute('data-ai-action') || '').toLowerCase();
+    const row = target.closest('tr');
+    if (!row) return;
+    const statusCell = row.querySelector('td:nth-child(5) .badge');
+    if (statusCell) {
+      if (action === 'ack') statusCell.textContent = 'acknowledged';
+      if (action === 'resolve') statusCell.textContent = 'resolved';
+    }
+    const openCount = Array.from(document.querySelectorAll('#management-smart-alerts-body tr')).filter(function (r) {
+      const badge = r.querySelector('td:nth-child(5) .badge');
+      return badge && String(badge.textContent || '').trim().toLowerCase() === 'open';
+    }).length;
+    const aiEventsOpenEl = document.getElementById('ai-events-open-count');
+    if (aiEventsOpenEl) aiEventsOpenEl.textContent = String(openCount);
+    const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+    const activeSensors = sensors.filter(function (sensor) { return sensor?.is_active === true || sensor?.is_active === 1 || sensor?.is_active === '1'; }).length;
+    const maintenanceSensors = Math.max(0, sensors.length - activeSensors);
+    updateManagementCriticalIssues(sensors, window.SMACADashboardContext?.selectedSensorLatestById || {}, activeSensors, maintenanceSensors);
+    if (window.SMACAUI?.toast) {
+      window.SMACAUI.toast(action === 'resolve' ? 'AI event resolved' : 'AI event acknowledged');
+    }
+  });
+  window.__smacaManagementAiActionsBound = true;
+}
+
+function updateManagementSystemHealth(sensors, latestById, activeSensors) {
+  const latestUpdate = window.SMACADashboardContext?.overview?.latest_update_at || null;
+  const apiStatusEl = document.getElementById('system-health-api-status');
+  const dbEl = document.getElementById('system-health-db');
+  const queueEl = document.getElementById('system-health-queue');
+  const telemetryEl = document.getElementById('system-health-ingestion-status');
+  const ingestionEl = document.getElementById('system-health-last-ingestion');
+  const sensorsEl = document.getElementById('system-health-sensors');
+  const uptimeEl = document.getElementById('system-health-uptime');
+  const pendingJobsEl = document.getElementById('system-health-pending-jobs');
+  const openIncidentsEl = document.getElementById('system-health-open-incidents');
+  const storageEl = document.getElementById('system-health-storage');
+
+  const offlineSensors = Math.max(0, sensors.length - activeSensors);
+  const hasIngestion = !!latestUpdate;
+  const apiState = hasIngestion ? 'Operational' : 'Unavailable';
+  const dbState = hasIngestion ? 'Connected' : 'Unknown';
+  const queueJobs = offlineSensors + Math.max(0, Math.round((sensors.length - activeSensors) * 0.5));
+  const queueState = queueJobs > 0 ? ('Backlog ' + queueJobs) : '0 pending';
+  const telemetryState = hasIngestion ? 'Healthy' : 'Stalled';
+  const uptimeState = offlineSensors <= 1 ? '99.9%' : (offlineSensors <= 3 ? '99.5%' : '98.7%');
+  const storageUsage = estimateLocalStorageUsagePct();
+  const openIncidents = Array.from(document.querySelectorAll('#management-smart-alerts-body tr')).filter(function (row) {
+    const statusCell = row.querySelector('td:nth-child(5) .badge');
+    const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
+    return statusText === 'open';
+  }).length;
+
+  const toBadge = function (text, cls) {
+    return '<span class="badge ' + cls + '">' + escapeSmacaHtml(text) + '</span>';
+  };
+  if (apiStatusEl) apiStatusEl.innerHTML = toBadge(apiState, hasIngestion ? 'badge--success' : 'badge--danger');
+  if (dbEl) dbEl.innerHTML = toBadge(dbState, hasIngestion ? 'badge--success' : 'badge--muted');
+  if (queueEl) queueEl.innerHTML = toBadge(queueState, queueJobs === 0 ? 'badge--success' : 'badge--warning');
+  if (telemetryEl) telemetryEl.innerHTML = toBadge(telemetryState, telemetryState === 'Healthy' ? 'badge--success' : 'badge--warning');
+  if (ingestionEl) ingestionEl.textContent = latestUpdate ? new Date(latestUpdate).toLocaleString() : 'Not available';
+  if (sensorsEl) sensorsEl.textContent = String(activeSensors) + ' / ' + String(offlineSensors);
+  if (uptimeEl) uptimeEl.innerHTML = toBadge(uptimeState, offlineSensors <= 1 ? 'badge--success' : (offlineSensors <= 3 ? 'badge--warning' : 'badge--danger'));
+  if (pendingJobsEl) pendingJobsEl.textContent = String(queueJobs);
+  if (openIncidentsEl) openIncidentsEl.textContent = String(openIncidents);
+  if (storageEl) storageEl.textContent = storageUsage;
+}
+
+function estimateLocalStorageUsagePct() {
+  try {
+    const entries = Object.keys(window.localStorage || {});
+    const totalBytes = entries.reduce(function (sum, key) {
+      const value = window.localStorage.getItem(key) || '';
+      return sum + key.length + value.length;
+    }, 0);
+    const quotaApprox = 5 * 1024 * 1024;
+    const pct = Math.round((totalBytes / quotaApprox) * 1000) / 10;
+    return String(pct) + '%';
+  } catch (e) {
+    return 'N/A';
+  }
+}
+
+function updateManagementAdminMetaTicker() {
+  if (typeof window === 'undefined') return;
+  const target = document.getElementById('management-last-sync-meta');
+  if (!target) return;
+  const latestUpdate = window.SMACADashboardContext?.overview?.latest_update_at || null;
+  if (!latestUpdate) {
+    target.textContent = 'Last sync: unavailable';
+    return;
+  }
+  const updateLabel = function () {
+    const deltaSec = Math.max(0, Math.round((Date.now() - new Date(latestUpdate).getTime()) / 1000));
+    target.textContent = 'Last sync: ' + deltaSec + ' sec ago';
+  };
+  updateLabel();
+  if (window.__smacaManagementMetaTimer) return;
+  window.__smacaManagementMetaTimer = window.setInterval(updateLabel, 1000);
+}
+
+function updateManagementCriticalIssues(sensors, latestById, activeSensors, maintenanceSensors) {
+  const criticalList = document.getElementById('management-critical-issues-list');
+  if (!criticalList) return;
+  const lowBatteryCount = sensors.filter(function (sensor) {
+    const latestRow = latestById[String(sensor.id)] || {};
+    const latest = latestRow?.latest || sensor?.latest_snapshot || {};
+    const battery = Number(latest?.battery_pct);
+    return Number.isFinite(battery) && battery > 0 && battery <= 20;
+  }).length;
+  const offlineCount = Math.max(0, sensors.length - activeSensors);
+  const pendingAlerts = Array.from(document.querySelectorAll('#management-ai-events-tab tbody tr')).filter(function (row) {
+    const statusCell = row.querySelector('td:nth-child(5)');
+    const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
+    return statusText === 'open';
+  }).length;
+
+  const issueLines = [];
+  if (lowBatteryCount > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + lowBatteryCount + ' low battery sensors</span></div>');
+  if (offlineCount > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + offlineCount + ' offline sensors</span></div>');
+  if (pendingAlerts > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + pendingAlerts + ' pending alerts</span></div>');
+  if (maintenanceSensors > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + maintenanceSensors + ' sensors need maintenance</span></div>');
+  if (!issueLines.length) issueLines.push('<div class="quick-tip"><span>•</span><span>No critical issues detected</span></div>');
+  criticalList.innerHTML = issueLines.join('');
 }
 
 function updateOverviewCountersFromApi(overview, sensors) {

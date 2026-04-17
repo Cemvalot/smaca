@@ -3,226 +3,220 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SMACA – Smart Campus IoT & AI Platform</title>
+  <title>SMACA - Smart Building Intelligence Platform</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/landing.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/landing.css?v=' . time()) }}">
 </head>
 <body class="landing-page">
-  <nav class="nav">
-    <a href="{{ url('/landing') }}" class="nav__logo">SMACA</a>
-    <a href="{{ url('/login') }}" class="btn btn--ghost">Sign in</a>
+  <nav class="navbar navbar-expand-lg smaca-nav sticky-top">
+    <div class="container">
+      <a class="navbar-brand nav__logo" href="{{ url('/landing') }}">SMACA</a>
+      <div class="d-flex gap-2">
+        <a href="{{ url('/dashboard') }}" class="btn btn-sm btn-soft">View Platform</a>
+        <a href="{{ url('/login') }}" class="btn btn-sm btn-primary">Sign In</a>
+      </div>
+    </div>
   </nav>
-  <!-- Hero -->
+
   <section class="hero scroll-reveal">
-    <div class="hero__inner">
-      <div class="hero__content">
-        <h1 class="hero__headline">Smart Monitoring for Intelligent Campuses</h1>
-        <p class="hero__subheadline">Real-time IoT data, AI-driven insights, and unified building intelligence in one platform.</p>
-        <div class="hero__ctas">
-          <a href="{{ url('/login') }}" class="btn btn--primary">Request Demo</a>
-          <a href="{{ url('/dashboard') }}" class="btn btn--secondary">View Dashboard</a>
+    <div class="container">
+      <div class="row align-items-center g-4 g-xl-5">
+        <div class="col-lg-6">
+          <p class="eyebrow mb-2">SMACA</p>
+          <h1 class="hero__headline">Smart Building Intelligence for Modern Campuses</h1>
+          <p class="hero__subheadline">Monitor air quality, occupancy, energy and environmental conditions in real time from one intelligent platform.</p>
+          <div class="d-flex flex-wrap gap-3 mb-3">
+            <a href="{{ url('/dashboard') }}" class="btn btn-dark btn-lg">View Platform</a>
+            <a href="{{ url('/login') }}" class="btn btn-outline-dark btn-lg">Request Demo</a>
+          </div>
+          <div class="hero__badges">
+            <span class="badge badge--smaca">Universities</span>
+            <span class="badge badge--smaca">Public Buildings</span>
+            <span class="badge badge--smaca">Municipal Facilities</span>
+          </div>
         </div>
-        <div class="hero__badges">
-          <span class="badge">Real-time Data</span>
-          <span class="badge">AI Powered</span>
-          <span class="badge">Secure Architecture</span>
-        </div>
-      </div>
-      <div class="hero__viz">
-        <div class="viz-bars">
-          <div class="viz-bar"></div>
-          <div class="viz-bar viz-bar--short"></div>
-          <div class="viz-bar viz-bar--shorter"></div>
-        </div>
-        <div class="viz-nodes">
-          <span class="viz-node"></span>
-          <span class="viz-node"></span>
-          <span class="viz-node"></span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- What is SMACA -->
-  <section class="section scroll-reveal">
-    <div class="section__inner section--two-col">
-      <div class="section__content">
-        <h2 class="section__title">What is SMACA</h2>
-        <p class="section__text">SMACA is a unified IoT monitoring platform designed for smart buildings and campus environments. It aggregates environmental, energy, occupancy and connectivity data into a single, actionable interface.</p>
-      </div>
-      <div class="section__diagram">
-        <span class="diag-box">Sensors</span>
-        <span class="diag-arrow">→</span>
-        <span class="diag-box">Platform</span>
-        <span class="diag-arrow">→</span>
-        <span class="diag-box">AI Engine</span>
-        <span class="diag-arrow">→</span>
-        <span class="diag-box diag-box--accent">Dashboard</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- Core Modules -->
-  <section class="section scroll-reveal">
-    <div class="section__inner">
-      <h2 class="section__title">Core Modules</h2>
-      <div class="modules-grid">
-        <div class="card clay scroll-reveal" style="--delay: 0">
-          <span class="card__icon">🌬️</span>
-          <h3 class="card__title">Indoor Air Quality</h3>
-          <p class="card__desc">CO₂, humidity, temperature and environmental health indicators.</p>
-        </div>
-        <div class="card clay scroll-reveal" style="--delay: 1">
-          <span class="card__icon">⚡</span>
-          <h3 class="card__title">Energy Monitoring</h3>
-          <p class="card__desc">Energy consumption, max demand, power factor and usage patterns.</p>
-        </div>
-        <div class="card clay scroll-reveal" style="--delay: 2">
-          <span class="card__icon">👥</span>
-          <h3 class="card__title">Occupancy Analytics</h3>
-          <p class="card__desc">Presence detection, movement flow and space utilization.</p>
-        </div>
-        <div class="card clay scroll-reveal" style="--delay: 3">
-          <span class="card__icon">📶</span>
-          <h3 class="card__title">Connectivity Monitoring</h3>
-          <p class="card__desc">Signal strength, transmission quality and device health.</p>
-        </div>
-        <div class="card clay scroll-reveal" style="--delay: 4">
-          <span class="card__icon">☀️</span>
-          <h3 class="card__title">Environmental / UV</h3>
-          <p class="card__desc">UV index and environmental conditions.</p>
-        </div>
-        <div class="card clay scroll-reveal" style="--delay: 5">
-          <span class="card__icon">🧠</span>
-          <h3 class="card__title">AI Insights</h3>
-          <p class="card__desc">Predictive analytics, anomaly detection and smart recommendations.</p>
+        <div class="col-lg-6">
+          <div class="hero-preview">
+            <div class="metric-head d-flex justify-content-between align-items-center mb-2">
+              <strong class="small">Operations Overview</strong>
+              <span class="chip">Live</span>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-4">
+                <div class="kpi-mini">
+                  <span class="kpi-mini__label">CO2</span>
+                  <strong id="kpiCo2">632 ppm</strong>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="kpi-mini">
+                  <span class="kpi-mini__label">Occupancy</span>
+                  <strong id="kpiOccupancy">71%</strong>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="kpi-mini">
+                  <span class="kpi-mini__label">Energy</span>
+                  <strong id="kpiEnergy">324 kW</strong>
+                </div>
+              </div>
+            </div>
+            <div id="heroChart" class="hero-chart" aria-label="Live monitoring chart"></div>
+            <div class="alerts-list mt-2">
+              <div class="alert-item">
+                <span class="alert-tag alert-tag--medium">Alert</span>
+                <p>Lecture Hall A exceeded comfort threshold for 12 minutes.</p>
+              </div>
+              <div class="alert-item">
+                <span class="alert-tag alert-tag--low">Info</span>
+                <p>Energy profile remains 3% below weekly baseline.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- How it Works -->
-  <section class="section scroll-reveal">
-    <div class="section__inner">
-      <h2 class="section__title">How it Works</h2>
-      <div class="steps">
-        <div class="step clay scroll-reveal" style="--delay: 0">
-          <span class="step__num">1</span>
-          <p class="step__text">Sensors collect data</p>
+  <section class="section section--tight scroll-reveal">
+    <div class="container">
+      <div class="row g-3">
+        <div class="col-6 col-md-3"><div class="trust-card"><strong>31</strong><span>Sensors</span></div></div>
+        <div class="col-6 col-md-3"><div class="trust-card"><strong>4</strong><span>Modules</span></div></div>
+        <div class="col-6 col-md-3"><div class="trust-card"><strong>24/7</strong><span>Monitoring</span></div></div>
+        <div class="col-6 col-md-3"><div class="trust-card"><strong>Live</strong><span>Alerts</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section scroll-reveal" id="modules">
+    <div class="container">
+      <div class="section-head mb-4">
+        <h2 class="section__title mb-2">Core Modules</h2>
+        <p class="section__text mb-0">A focused toolkit for real-time operational visibility.</p>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-6 col-xl-3">
+          <a class="module-card module-card-link" href="{{ url('/dashboard/iaq') }}">
+            <span class="card__icon">🌬️</span>
+            <h3 class="card__title">Air Quality</h3>
+            <p class="card__desc">Track CO2, temperature, humidity, and comfort trends in every monitored zone.</p>
+          </a>
         </div>
-        <div class="step clay scroll-reveal" style="--delay: 1">
-          <span class="step__num">2</span>
-          <p class="step__text">Data normalized & validated</p>
+        <div class="col-md-6 col-xl-3">
+          <a class="module-card module-card-link" href="{{ url('/dashboard/occupancy') }}">
+            <span class="card__icon">👥</span>
+            <h3 class="card__title">Occupancy</h3>
+            <p class="card__desc">Understand movement patterns, room utilization, and peak crowding periods.</p>
+          </a>
         </div>
-        <div class="step clay scroll-reveal" style="--delay: 2">
-          <span class="step__num">3</span>
-          <p class="step__text">AI engine analyzes trends</p>
+        <div class="col-md-6 col-xl-3">
+          <a class="module-card module-card-link" href="{{ url('/dashboard/energy') }}">
+            <span class="card__icon">⚡</span>
+            <h3 class="card__title">Energy</h3>
+            <p class="card__desc">Monitor demand, identify inefficiencies, and balance usage across schedules.</p>
+          </a>
         </div>
-        <div class="step clay scroll-reveal" style="--delay: 3">
-          <span class="step__num">4</span>
-          <p class="step__text">Dashboard delivers actionable insights</p>
+        <div class="col-md-6 col-xl-3">
+          <a class="module-card module-card-link" href="{{ url('/dashboard/environmental') }}">
+            <span class="card__icon">☀️</span>
+            <h3 class="card__title">Environment</h3>
+            <p class="card__desc">Follow ambient conditions, UV exposure, and environmental comfort indicators.</p>
+          </a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Role-based Access -->
   <section class="section scroll-reveal">
-    <div class="section__inner">
-      <h2 class="section__title">Role-based Access</h2>
-      <div class="roles-compare">
-        <div class="role-card clay scroll-reveal" style="--delay: 0">
-          <h3 class="role-card__title">USER</h3>
-          <ul class="role-card__list">
-            <li>View dashboards</li>
-            <li>Monitor live metrics</li>
-            <li>View alerts</li>
-            <li>Access building insights</li>
+    <div class="container">
+      <div class="row g-4 align-items-stretch">
+        <div class="col-lg-5">
+          <p class="eyebrow mb-2">Platform Showcase</p>
+          <h2 class="section__title">See what operators monitor every day</h2>
+          <p class="section__text mb-3">A clear, unified interface for teams managing campuses and public facilities.</p>
+          <ul class="platform-bullets">
+            <li>Live metrics</li>
+            <li>Trend charts</li>
+            <li>Alerts</li>
+            <li>Multi-building visibility</li>
           </ul>
         </div>
-        <div class="role-card clay scroll-reveal" style="--delay: 1">
-          <h3 class="role-card__title">ADMIN</h3>
-          <ul class="role-card__list">
-            <li><span class="lock-icon">🔒</span> Manage sensors</li>
-            <li><span class="lock-icon">🔒</span> Configure thresholds</li>
-            <li><span class="lock-icon">🔒</span> Manage users & roles</li>
-            <li><span class="lock-icon">🔒</span> Export reports</li>
-            <li><span class="lock-icon">🔒</span> System settings</li>
-          </ul>
+        <div class="col-lg-7">
+          <div class="platform-preview">
+            <div class="preview-toolbar">
+              <span class="tag">Campus Group A</span>
+              <span class="tag">Today</span>
+              <span class="tag tag--live">Synced</span>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-sm-4"><div class="summary-box"><span>Avg CO2</span><strong>618 ppm</strong></div></div>
+              <div class="col-sm-4"><div class="summary-box"><span>Occupancy Peak</span><strong>182 users</strong></div></div>
+              <div class="col-sm-4"><div class="summary-box"><span>Energy Drift</span><strong>+3.2%</strong></div></div>
+            </div>
+            <div id="platformChart" class="platform-chart mb-3" aria-label="Platform trend chart"></div>
+            <div class="alerts-list">
+              <div class="alert-item">
+                <span class="alert-tag alert-tag--medium">Medium</span>
+                <p>Building A floor 2 reached CO2 threshold during peak class hours.</p>
+              </div>
+              <div class="alert-item">
+                <span class="alert-tag alert-tag--low">Low</span>
+                <p>Energy draw in administration block remains above baseline by 3.8%.</p>
+              </div>
+              <div class="alert-item">
+                <span class="alert-tag alert-tag--high">High</span>
+                <p>Occupancy spike detected in main auditorium above configured capacity.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Use Cases -->
-  <section class="section scroll-reveal">
-    <div class="section__inner">
-      <h2 class="section__title">Use Cases</h2>
-      <div class="use-cases">
-        <div class="card clay scroll-reveal" style="--delay: 0">
-          <h3 class="card__title">Universities</h3>
-          <p class="card__desc">Optimize lecture halls, monitor air quality and reduce energy waste.</p>
-        </div>
-        <div class="card clay scroll-reveal" style="--delay: 1">
-          <h3 class="card__title">Research Institutions</h3>
-          <p class="card__desc">Ensure environmental compliance and data traceability.</p>
-        </div>
-        <div class="card clay scroll-reveal" style="--delay: 2">
-          <h3 class="card__title">Smart Buildings</h3>
-          <p class="card__desc">Improve operational efficiency and sustainability.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Security & Architecture -->
-  <section class="section scroll-reveal">
-    <div class="section__inner">
-      <h2 class="section__title">Security & Architecture</h2>
-      <ul class="security-list clay scroll-reveal">
-        <li>Role-based access control</li>
-        <li>Secure data handling</li>
-        <li>Scalable architecture</li>
-        <li>API-ready design</li>
-      </ul>
-      <div class="arch-diagram clay scroll-reveal"></div>
-    </div>
-  </section>
-
-  <!-- Data Transparency -->
-  <section class="section scroll-reveal">
-    <div class="section__inner">
-      <h2 class="section__title">Data Transparency</h2>
-      <div class="data-metrics clay scroll-reveal">
-        <span>kWh</span>
-        <span>CO₂ ppm</span>
-        <span>Occupancy count</span>
-        <span>Signal strength</span>
-        <span>UV Index</span>
-      </div>
-      <p class="data-note scroll-reveal">All data is timestamped and traceable.</p>
-    </div>
-  </section>
-
-  <!-- CTA -->
   <section class="section cta-section scroll-reveal">
-    <div class="section__inner cta__inner">
-      <h2 class="cta__headline">Bring Intelligence to Your Campus Infrastructure</h2>
-      <div class="cta__buttons">
-        <a href="{{ url('/login') }}" class="btn btn--primary btn--lg">Request Demo</a>
-        <a href="{{ url('/login') }}" class="btn btn--secondary btn--lg">Contact Us</a>
+    <div class="container">
+      <div class="text-center mb-4">
+        <h2 class="section__title mb-2">Predictive Intelligence</h2>
+        <p class="section__text mb-0">Actionable intelligence to move from reactive response to proactive operations.</p>
+      </div>
+      <div class="predictive-panel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="h6 mb-0">AI Insight Feed</h3>
+          <span id="confidenceLabel" class="chip chip--accent">Confidence: 91%</span>
+        </div>
+        <div class="progress smaca-progress mb-3" role="progressbar" aria-label="Model confidence">
+          <div id="confidenceBar" class="progress-bar" style="width: 91%">91%</div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4"><div class="insight-card"><h4>Detect anomalies early</h4><p>Identify unusual conditions before they escalate operationally.</p></div></div>
+          <div class="col-md-4"><div class="insight-card"><h4>Recommend actions</h4><p>Receive practical next-step guidance for facility teams.</p></div></div>
+          <div class="col-md-4"><div class="insight-card"><h4>Forecast operational impact</h4><p>Estimate comfort and energy outcomes before decisions are made.</p></div></div>
+        </div>
+        <div id="logStream" class="log-stream mt-3" aria-live="polite"></div>
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
+  <section class="section cta-section scroll-reveal">
+    <div class="container text-center">
+      <h2 class="cta__headline">Ready to modernize your building operations?</h2>
+      <div class="d-flex justify-content-center flex-wrap gap-3">
+        <a href="{{ url('/login') }}" class="btn btn-dark btn-lg">Request Demo</a>
+        <a href="{{ url('/login') }}" class="btn btn-outline-dark btn-lg">Sign In</a>
+      </div>
+    </div>
+  </section>
+
   <footer class="footer">
-    <div class="footer__inner">
+    <div class="container d-flex flex-column flex-lg-row justify-content-between gap-3">
       <div class="footer__brand">
         <strong>SMACA</strong>
-        <span>Smart Campus IoT and AI Platform</span>
+        <span>Smart Building Intelligence Platform</span>
       </div>
-      <nav class="footer__links">
+      <nav class="footer__links d-flex flex-wrap gap-3">
         <a href="#">Platform</a>
         <a href="#">Documentation</a>
         <a href="#">Privacy</a>
@@ -232,6 +226,8 @@
     </div>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
   <script src="{{ asset('assets/js/landing.js') }}"></script>
 </body>
 </html>
