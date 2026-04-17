@@ -1,11 +1,32 @@
 // SMACA API helpers (plain JS, framework-free)
 (function () {
   function getBaseUrl() {
-    return (window.SMACA_BASE_URL || '').replace(/\/+$/, '');
+    const configuredBase = (window.SMACA_BASE_URL || '').trim();
+    if (!configuredBase) return '';
+    if (typeof window === 'undefined' || !window.location) {
+      return configuredBase.replace(/\/+$/, '');
+    }
+
+    try {
+      const resolved = new URL(configuredBase, window.location.origin);
+      if (resolved.origin === window.location.origin) return '';
+      if (resolved.protocol !== window.location.protocol) {
+        return '';
+      }
+      return resolved.href.replace(/\/+$/, '');
+    } catch (error) {
+      return configuredBase.replace(/\/+$/, '');
+    }
   }
 
-  async function fetchJson(path) {
-    const url = `${getBaseUrl()}${path}`;
+  function isNetworkLoadError(error) {
+    if (!error) return false;
+    if (error instanceof TypeError) return true;
+    const message = String(error.message || error);
+    return /load failed|failed to fetch|networkerror/i.test(message);
+  }
+
+  async function requestJson(url) {
     const response = await fetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
@@ -27,6 +48,19 @@
     }
 
     return data;
+  }
+
+  async function fetchJson(path) {
+    const baseUrl = getBaseUrl();
+    const url = `${baseUrl}${path}`;
+    try {
+      return await requestJson(url);
+    } catch (error) {
+      if (baseUrl && isNetworkLoadError(error)) {
+        return requestJson(path);
+      }
+      throw error;
+    }
   }
 
   function toNumberOrNull(value) {
