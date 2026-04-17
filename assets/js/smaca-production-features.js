@@ -665,8 +665,14 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
 
     const bucketFetchers = {
       iaq: function () {
-        const ids = buildBucketSensorIds(currentPage, 'iaq', selectedBySection, iaqSensorIds, allSensorIds);
-        return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh);
+        const prioritizedIds = buildBucketSensorIds(currentPage, 'iaq', selectedBySection, iaqSensorIds, allSensorIds);
+        const remainingIaqIds = iaqSensorIds.filter(function (id) { return !prioritizedIds.includes(id); });
+        return fetchAndMapTimeseriesForSensors(prioritizedIds, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh)
+          .then(function (result) {
+            if (Array.isArray(result?.items) && result.items.length > 0) return result;
+            if (remainingIaqIds.length === 0) return result;
+            return fetchAndMapTimeseriesForSensors(iaqSensorIds, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh);
+          });
       },
       occupancy: function () {
         const ids = buildBucketSensorIds(currentPage, 'occupancy', selectedBySection, iaqSensorIds, allSensorIds);
@@ -3751,8 +3757,8 @@ function updateOverviewLiveValues(overview, sensorRows) {
   const totalSensors = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensorRows.length;
   const connectivityPct = totalSensors > 0 ? Math.round((connectedSensors / totalSensors) * 100) : null;
 
-  const latestCo2 = resolveLatestMetricValue(iaqRows, 'co2');
-  const latestPm25 = resolveLatestMetricValue(iaqRows, 'pm2_5');
+  const latestCo2 = resolveLatestIaqMetricForOverview('co2', iaqRows, overview, sensorRows);
+  const latestPm25 = resolveLatestIaqMetricForOverview('pm2_5', iaqRows, overview, sensorRows);
   const latestUv = resolveLatestMetricValue(environmentalRows, 'uv_index');
   const latestOccupancy = resolveLatestOccupancyValue(occupancyRows);
 
@@ -3795,9 +3801,15 @@ function updateOverviewLiveValues(overview, sensorRows) {
   if (airScoreValueEl) airScoreValueEl.textContent = Number.isFinite(airScore) ? String(Math.round(airScore)) : '--';
   const airScoreMeta = document.getElementById('overview-air-score-meta');
   if (airScoreMeta) {
-    airScoreMeta.textContent = Number.isFinite(latestCo2) && Number.isFinite(latestPm25)
-      ? `CO2 ${Math.round(latestCo2)} ppm and PM2.5 ${latestPm25.toFixed(1)} ug/m3.`
-      : 'Awaiting live IAQ data.';
+    if (Number.isFinite(latestCo2) && Number.isFinite(latestPm25)) {
+      airScoreMeta.textContent = `CO2 ${Math.round(latestCo2)} ppm and PM2.5 ${latestPm25.toFixed(1)} ug/m3.`;
+    } else if (Number.isFinite(latestCo2)) {
+      airScoreMeta.textContent = `CO2 ${Math.round(latestCo2)} ppm.`;
+    } else if (Number.isFinite(latestPm25)) {
+      airScoreMeta.textContent = `PM2.5 ${latestPm25.toFixed(1)} ug/m3.`;
+    } else {
+      airScoreMeta.textContent = 'Awaiting live IAQ data.';
+    }
   }
   const airScoreProgress = document.getElementById('overview-air-score-progress');
   if (airScoreProgress) {
@@ -3825,6 +3837,60 @@ function resolveLatestMetricValue(rows, metricKey) {
     latest = value;
   });
   return latest;
+}
+
+function extractLatestMetricFromOverviewSnapshotRows(overview, sensorRows, metricKey) {
+  const snapshotRows = Array.isArray(overview?.latest_sensor_snapshot_rows) ? overview.latest_sensor_snapshot_rows : [];
+  const sensors = Array.isArray(sensorRows) ? sensorRows : [];
+  const metricMap = { co2: 'co2_ppm', pm2_5: 'pm2_5_ugm3' };
+  const sourceMetric = metricMap[metricKey] || metricKey;
+  const sensorById = sensors.reduce(function (acc, sensor) {
+    const sid = Number(sensor?.id);
+    if (Number.isFinite(sid)) acc[String(sid)] = sensor;
+    return acc;
+  }, {});
+  let latest = null;
+  let latestTime = -Infinity;
+  snapshotRows.forEach(function (row) {
+    const sid = Number(row?.sensor_id);
+    const sensor = Number.isFinite(sid) ? sensorById[String(sid)] : null;
+    if (sensor && !isIaqSensor(sensor)) return;
+    const t = new Date(row?.measured_at || row?.latest?.measured_at || row?.last_seen_at || 0).getTime();
+    const value = Number(row?.[sourceMetric] ?? row?.latest?.[sourceMetric]);
+    if (!Number.isFinite(t) || !Number.isFinite(value) || t < latestTime) return;
+    latestTime = t;
+    latest = value;
+  });
+  return latest;
+}
+
+function extractLatestMetricFromSensorLatestReadings(sensorRows, metricKey) {
+  const sensors = Array.isArray(sensorRows) ? sensorRows : [];
+  const latestById = window.SMACADashboardContext?.selectedSensorLatestById || {};
+  const metricMap = { co2: 'co2_ppm', pm2_5: 'pm2_5_ugm3' };
+  const sourceMetric = metricMap[metricKey] || metricKey;
+  let latest = null;
+  let latestTime = -Infinity;
+  sensors.forEach(function (sensor) {
+    if (!isIaqSensor(sensor)) return;
+    const sid = Number(sensor?.id);
+    if (!Number.isFinite(sid)) return;
+    const latestRow = latestById[String(sid)] || null;
+    const t = new Date(latestRow?.latest?.measured_at || latestRow?.last_seen_at || 0).getTime();
+    const value = Number(latestRow?.latest?.[sourceMetric]);
+    if (!Number.isFinite(t) || !Number.isFinite(value) || t < latestTime) return;
+    latestTime = t;
+    latest = value;
+  });
+  return latest;
+}
+
+function resolveLatestIaqMetricForOverview(metricKey, iaqRows, overview, sensorRows) {
+  const fromHydrated = resolveLatestMetricValue(iaqRows, metricKey);
+  if (Number.isFinite(fromHydrated)) return fromHydrated;
+  const fromLatestReadings = extractLatestMetricFromSensorLatestReadings(sensorRows, metricKey);
+  if (Number.isFinite(fromLatestReadings)) return fromLatestReadings;
+  return extractLatestMetricFromOverviewSnapshotRows(overview, sensorRows, metricKey);
 }
 
 function evaluateAirQualityStatus(co2, pm25) {
