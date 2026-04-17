@@ -3854,7 +3854,7 @@ function extractLatestMetricFromOverviewSnapshotRows(overview, sensorRows, metri
   snapshotRows.forEach(function (row) {
     const sid = Number(row?.sensor_id);
     const sensor = Number.isFinite(sid) ? sensorById[String(sid)] : null;
-    if (sensor && !isIaqSensor(sensor)) return;
+    if (!isIaqSensor(sensor)) return;
     const t = new Date(row?.measured_at || row?.latest?.measured_at || row?.last_seen_at || 0).getTime();
     const value = Number(row?.[sourceMetric] ?? row?.latest?.[sourceMetric]);
     if (!Number.isFinite(t) || !Number.isFinite(value) || t < latestTime) return;
