@@ -354,12 +354,27 @@ async function initializeStateFromApi() {
   }
 
   try {
-    const [overview, sensorsPayload] = await Promise.all([
+    const apiResults = await Promise.allSettled([
       window.SMACAApi.fetchDashboardOverview(),
       window.SMACAApi.fetchSensors()
     ]);
-
+    const overviewResult = apiResults[0];
+    const sensorsResult = apiResults[1];
+    const overview = overviewResult?.status === 'fulfilled' ? overviewResult.value : null;
+    const sensorsPayload = sensorsResult?.status === 'fulfilled' ? sensorsResult.value : { rows: [] };
     const sensors = Array.isArray(sensorsPayload?.rows) ? sensorsPayload.rows : [];
+
+    if (overviewResult?.status === 'rejected') {
+      console.warn('SMACA dashboard overview request failed during initialization:', overviewResult.reason);
+    }
+    if (sensorsResult?.status === 'rejected') {
+      console.warn('SMACA sensors request failed during initialization:', sensorsResult.reason);
+    }
+
+    if (!overview && sensors.length === 0) {
+      throw overviewResult?.reason || sensorsResult?.reason || new Error('Unable to initialize SMACA API state.');
+    }
+
     hydrateLegacySensorsForUi(sensors, overview);
     if (typeof window !== 'undefined') {
       window.SMACADashboardContext.overview = overview || null;
@@ -610,12 +625,25 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
       overview = prefetchedOverview;
       sensors = prefetchedSensors;
     } else {
-      const [overviewPayload, sensorsPayload] = await Promise.all([
+      const apiResults = await Promise.allSettled([
         window.SMACAApi.fetchDashboardOverview(),
         window.SMACAApi.fetchSensors()
       ]);
-      overview = overviewPayload;
+      const overviewResult = apiResults[0];
+      const sensorsResult = apiResults[1];
+      overview = overviewResult?.status === 'fulfilled' ? overviewResult.value : null;
+      const sensorsPayload = sensorsResult?.status === 'fulfilled' ? sensorsResult.value : { rows: [] };
       sensors = Array.isArray(sensorsPayload?.rows) ? sensorsPayload.rows : [];
+
+      if (overviewResult?.status === 'rejected') {
+        console.warn('SMACA dashboard overview request failed during refresh:', overviewResult.reason);
+      }
+      if (sensorsResult?.status === 'rejected') {
+        console.warn('SMACA sensors request failed during refresh:', sensorsResult.reason);
+      }
+      if (!overview && sensors.length === 0) {
+        throw overviewResult?.reason || sensorsResult?.reason || new Error('Unable to refresh SMACA dashboard data.');
+      }
     }
     const selectedBySection = chooseSectionSensors(overview, sensors, canonicalSensorId);
     if (typeof window !== 'undefined') {
