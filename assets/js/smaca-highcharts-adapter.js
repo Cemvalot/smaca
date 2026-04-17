@@ -1264,6 +1264,336 @@
     });
   }
 
+  function getUvCategory(uvValue) {
+    const uv = Number(uvValue);
+    if (!Number.isFinite(uv)) return 'Unavailable';
+    if (uv >= 11) return 'Extreme';
+    if (uv >= 8) return 'Very High';
+    if (uv >= 6) return 'High';
+    if (uv >= 3) return 'Moderate';
+    return 'Low';
+  }
+
+  function getUvColor(uvValue) {
+    const uv = Number(uvValue);
+    if (!Number.isFinite(uv)) return '#64748b';
+    if (uv >= 11) return '#a855f7';
+    if (uv >= 8) return '#ef4444';
+    if (uv >= 6) return '#f97316';
+    if (uv >= 3) return '#f59e0b';
+    return '#10b981';
+  }
+
+  function createOrUpdateUvMainTrendChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const timeframe = params?.timeframe || '24h';
+    const times = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
+    const values = Array.isArray(params?.values) ? params.values : [];
+    const series = times.map(function (t, i) {
+      const v = Number(values[i]);
+      return [Number(t), Number.isFinite(v) ? Number(v.toFixed(2)) : null];
+    });
+    const numericValues = values.map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); });
+    const yMaxData = numericValues.length ? Math.max.apply(null, numericValues) : 12;
+    const yMax = Math.max(12, Math.ceil(yMaxData + 1));
+    const latestValue = numericValues.length ? numericValues[numericValues.length - 1] : null;
+    const seriesColor = getUvColor(latestValue);
+
+    const options = {
+      chart: {
+        type: 'areaspline',
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingTop: 22,
+        spacingRight: 12,
+        spacingBottom: 22,
+        spacingLeft: 10
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      time: { useUTC: false },
+      xAxis: {
+        type: 'datetime',
+        lineColor: 'rgba(148, 163, 184, 0.28)',
+        tickColor: 'rgba(148, 163, 184, 0.22)',
+        tickLength: 0,
+        tickPixelInterval: timeframe === '24h' ? 84 : 120,
+        labels: {
+          style: { color: '#94a3b8', fontSize: '11px', textOutline: 'none' },
+          autoRotation: [-20, -35],
+          autoRotationLimit: 80,
+          y: 12,
+          formatter: function () {
+            if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            return window.Highcharts.dateFormat('%d %b', this.value);
+          }
+        }
+      },
+      yAxis: {
+        min: 0,
+        max: yMax,
+        tickAmount: 6,
+        title: {
+          text: 'UV Index',
+          style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }
+        },
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        labels: { style: { color: '#a7b4c5', fontSize: '11px', textOutline: 'none' }, x: -4 },
+        plotBands: [
+          { from: 0, to: 3, color: 'rgba(16, 185, 129, 0.08)' },
+          { from: 3, to: 6, color: 'rgba(245, 158, 11, 0.08)' },
+          { from: 6, to: 8, color: 'rgba(249, 115, 22, 0.08)' },
+          { from: 8, to: 11, color: 'rgba(239, 68, 68, 0.08)' },
+          { from: 11, to: yMax, color: 'rgba(168, 85, 247, 0.08)' }
+        ]
+      },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const header = timeframe === '24h'
+            ? window.Highcharts.dateFormat('%d %b %H:%M', this.x)
+            : window.Highcharts.dateFormat('%d %b', this.x);
+          const uv = Number(this.y);
+          const category = getUvCategory(uv);
+          const valueText = Number.isFinite(uv) ? uv.toFixed(1) : 'N/A';
+          return (
+            '<div style="min-width:180px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">' +
+            '<span style="font-weight:500;color:#dbe7f5;">UV Index</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + valueText + '</strong>' +
+            '</div>' +
+            '<div style="margin-top:6px;display:flex;align-items:center;gap:6px;">' +
+            '<span style="display:inline-block;width:7px;height:7px;border-radius:999px;background:' + getUvColor(uv) + ';"></span>' +
+            '<span style="color:' + getUvColor(uv) + ';font-weight:700;letter-spacing:0.02em;">Category: ' + category + '</span>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        series: {
+          animation: false,
+          marker: {
+            enabled: false,
+            states: {
+              hover: {
+                enabled: true,
+                radius: 3.2,
+                lineWidth: 1.4,
+                lineColor: '#0f172a'
+              }
+            }
+          },
+          turboThreshold: 0
+        }
+      },
+      series: [{
+        type: 'areaspline',
+        name: 'UV Index',
+        color: seriesColor,
+        lineWidth: 3.6,
+        states: {
+          hover: {
+            lineWidthPlus: 0.2,
+            halo: {
+              size: 7,
+              opacity: 0.16
+            }
+          }
+        },
+        fillColor: {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+          stops: [[0, toRgba(seriesColor, 0.24)], [1, toRgba(seriesColor, 0.015)]]
+        },
+        data: series
+      }]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'uv-main-trend',
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateUvPatternChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const timeframe = params?.timeframe || '24h';
+    const categories = Array.isArray(params?.categories) ? params.categories : [];
+    const values = Array.isArray(params?.values) ? params.values : [];
+    const points = categories.map(function (label, idx) {
+      const uv = Number(values[idx]);
+      return {
+        y: Number.isFinite(uv) ? Number(uv.toFixed(2)) : null,
+        color: getUvColor(uv),
+        custom: {
+          category: getUvCategory(uv),
+          hourLabel: label
+        }
+      };
+    });
+
+    const options = {
+      chart: { type: 'column', animation: false, backgroundColor: 'transparent', spacingLeft: 10, spacingRight: 12, spacingTop: 12, spacingBottom: 12 },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        categories: categories,
+        lineColor: 'rgba(148, 163, 184, 0.22)',
+        labels: { style: { color: '#94a3b8', fontSize: '11px', textOutline: 'none' } }
+      },
+      yAxis: {
+        title: { text: 'UV Index', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '600' } },
+        min: 0,
+        tickAmount: 5,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        labels: { style: { color: '#a7b4c5', fontSize: '11px', textOutline: 'none' } }
+      },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const uv = Number(this.y);
+          const uvText = Number.isFinite(uv) ? uv.toFixed(1) : 'N/A';
+          const hourText = this.point?.custom?.hourLabel || this.key || '--';
+          const category = this.point?.custom?.category || 'Unavailable';
+          const subtitle = timeframe === '24h' ? 'Last 24 hours' : (timeframe === '7d' ? 'Hourly avg (7 days)' : 'Hourly avg (30 days)');
+          return (
+            '<div style="min-width:180px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + hourText + ' · ' + subtitle + '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">' +
+            '<span style="font-weight:500;color:#dbe7f5;">UV Index</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + uvText + '</strong>' +
+            '</div>' +
+            '<div style="margin-top:6px;display:flex;align-items:center;gap:6px;">' +
+            '<span style="display:inline-block;width:7px;height:7px;border-radius:999px;background:' + getUvColor(uv) + ';"></span>' +
+            '<span style="color:' + getUvColor(uv) + ';font-weight:700;letter-spacing:0.02em;">Category: ' + category + '</span>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        column: {
+          animation: false,
+          borderWidth: 0,
+          borderRadius: 3,
+          pointPadding: 0.08,
+          groupPadding: 0.12
+        }
+      },
+      series: [{
+        type: 'column',
+        name: 'Hourly UV',
+        data: points
+      }]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'uv-hourly-pattern',
+      containerId: containerId,
+      options: options
+    });
+  }
+
+  function createOrUpdateUvDailyComparisonChart(containerId, params) {
+    if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
+    const categories = Array.isArray(params?.categories) ? params.categories : [];
+    const values = Array.isArray(params?.values) ? params.values : [];
+    const metricLabel = params?.metricLabel || 'Daily peak UV';
+    const points = values.map(function (v) {
+      const uv = Number(v);
+      return {
+        y: Number.isFinite(uv) ? Number(uv.toFixed(2)) : null,
+        color: getUvColor(uv),
+        custom: { category: getUvCategory(uv) }
+      };
+    });
+
+    const options = {
+      chart: { type: 'column', animation: false, backgroundColor: 'transparent', spacingLeft: 10, spacingRight: 12, spacingTop: 12, spacingBottom: 10 },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        categories: categories,
+        lineColor: 'rgba(148, 163, 184, 0.22)',
+        labels: { style: { color: '#94a3b8', fontSize: '11px', textOutline: 'none' } }
+      },
+      yAxis: {
+        title: { text: 'UV Index', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '600' } },
+        min: 0,
+        tickAmount: 5,
+        gridLineColor: 'rgba(148, 163, 184, 0.14)',
+        labels: { style: { color: '#a7b4c5', fontSize: '11px', textOutline: 'none' } }
+      },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
+        borderColor: 'rgba(148, 163, 184, 0.26)',
+        borderWidth: 1,
+        borderRadius: 10,
+        shadow: false,
+        padding: 10,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        formatter: function () {
+          const uv = Number(this.y);
+          const uvText = Number.isFinite(uv) ? uv.toFixed(1) : 'N/A';
+          const category = this.point?.custom?.category || 'Unavailable';
+          return (
+            '<div style="min-width:180px;">' +
+            '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + (this.key || 'Day') + '</div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">' +
+            '<span style="font-weight:500;color:#dbe7f5;">' + metricLabel + '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + uvText + '</strong>' +
+            '</div>' +
+            '<div style="margin-top:6px;display:flex;align-items:center;gap:6px;">' +
+            '<span style="display:inline-block;width:7px;height:7px;border-radius:999px;background:' + getUvColor(uv) + ';"></span>' +
+            '<span style="color:' + getUvColor(uv) + ';font-weight:700;letter-spacing:0.02em;">Category: ' + category + '</span>' +
+            '</div>' +
+            '</div>'
+          );
+        }
+      },
+      plotOptions: {
+        column: {
+          animation: false,
+          borderWidth: 0,
+          borderRadius: 3,
+          pointPadding: 0.1,
+          groupPadding: 0.12
+        }
+      },
+      series: [{
+        type: 'column',
+        name: metricLabel,
+        data: points
+      }]
+    };
+
+    return createOrUpdateChart({
+      chartKey: 'uv-daily-comparison',
+      containerId: containerId,
+      options: options
+    });
+  }
+
   function createOrUpdateEnergyMainCombinedChart(containerId, params) {
     if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
     const timeframe = params?.timeframe || '24h';
@@ -1860,6 +2190,9 @@
       createEnergyUsagePatternHourChart: createOrUpdateEnergyUsagePatternHourChart,
       createEnergyDistributionByLocationChart: createOrUpdateEnergyDistributionByLocationChart,
       createEnergyShareDonutChart: createOrUpdateEnergyShareDonutChart,
+      createUvMainTrendChart: createOrUpdateUvMainTrendChart,
+      createUvPatternChart: createOrUpdateUvPatternChart,
+      createUvDailyComparisonChart: createOrUpdateUvDailyComparisonChart,
       destroyIaqTrendHighchart: destroyIaqTrendHighchart
     };
     window.addEventListener('beforeunload', function () {

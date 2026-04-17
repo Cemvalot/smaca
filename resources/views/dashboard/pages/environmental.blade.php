@@ -48,10 +48,10 @@
           <div class="environmental-main-grid">
             <section class="card environmental-chart-card">
               <div class="card__header">
-                <h3 class="card__title">Hourly UV Index</h3>
+                <h3 class="card__title">UV Trend</h3>
               </div>
               <div class="card__body">
-                <div class="chart-placeholder environmental-chart-placeholder" id="uv-hourly-chart"></div>
+                <div class="chart-placeholder environmental-chart-placeholder" id="uv-main-chart"></div>
                 <div class="smaca-accordion smaca-accordion--collapsed">
                   <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
                     <span>What is this graph?</span>
@@ -59,8 +59,8 @@
                   </button>
                   <div class="smaca-accordion__body" hidden>
                     <div class="accordion-content">
-                      <p>This chart shows UV intensity over time. Hover any point to see the exact UV index and hour.</p>
-                      <p>The vertical numbers represent UV strength (0 to 11+), and the horizontal labels represent time.</p>
+                      <p>This chart shows UV behavior across the selected monitoring window.</p>
+                      <p>Colored background zones map UV risk bands from Low (0-2) to Extreme (11+).</p>
                     </div>
                   </div>
                 </div>
@@ -69,11 +69,11 @@
 
             <aside class="card environmental-summary-card">
               <div class="card__header">
-                <h3 class="card__title">UV Summary</h3>
+                <h3 class="card__title">UV Advisory</h3>
               </div>
               <div class="card__body">
                 <div class="stat-row"><span class="stat-row__label">Current UV Level</span><span id="env-summary-current" class="stat-row__value">6.5 (High)</span></div>
-                <div class="stat-row"><span class="stat-row__label">Peak Today</span><span id="env-summary-peak" class="stat-row__value">8.2</span></div>
+                <div class="stat-row"><span class="stat-row__label">Peak in Window</span><span id="env-summary-peak" class="stat-row__value">8.2</span></div>
                 <div class="stat-row"><span class="stat-row__label">Strongest Exposure Period</span><span id="env-summary-period" class="stat-row__value">11:00–14:00</span></div>
                 <div class="prediction-insight">
                   <svg class="prediction-insight__icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22a10 10 0 100-20 10 10 0 000 20z"></path></svg>
@@ -86,10 +86,10 @@
           <div class="environmental-bottom-grid">
             <section class="card">
               <div class="card__header">
-                <h3 class="card__title">UV Index Gauge</h3>
+                <h3 class="card__title">Hourly UV Pattern</h3>
               </div>
-              <div class="card__body card__body--flex-center environmental-gauge-body">
-                <div id="uv-gauge-chart"></div>
+              <div class="card__body environmental-pattern-body">
+                <div class="chart-placeholder" id="uv-pattern-chart"></div>
                 <div class="environmental-zone-grid" aria-label="UV exposure zones">
                   <span class="environmental-zone environmental-zone--low">Low (0-2)</span>
                   <span class="environmental-zone environmental-zone--moderate">Moderate (3-5)</span>
@@ -102,19 +102,20 @@
 
             <section class="card environmental-meaning-card">
               <div class="card__header">
-                <h3 class="card__title">What does this mean?</h3>
+                <h3 class="card__title">Daily UV Comparison</h3>
               </div>
               <div class="card__body">
+                <div class="chart-placeholder" id="uv-daily-comparison-chart"></div>
                 <p id="env-meaning-level" class="environmental-meaning-level">Current interpretation: High UV exposure</p>
-                <p id="env-meaning-copy" class="info-block__content">Protection is recommended now. Reduce unprotected direct sun time and prioritize shade during midday periods.</p>
+                <p id="env-meaning-copy" class="info-block__content">Daily peak UV highlights the highest exposure pressure each day so risk windows are easier to compare.</p>
                 <div class="smaca-accordion smaca-accordion--collapsed">
                   <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-                    <span>How to read hourly UV trend</span>
+                    <span>How to read daily comparison</span>
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                   </button>
                   <div class="smaca-accordion__body" hidden>
                     <div class="accordion-content">
-                      <p>Use the hourly chart to identify safer windows for outdoor activity. Values below 3 are generally lower risk; 6 and above require stronger sun protection.</p>
+                      <p>Each bar shows that day's highest UV index. Taller bars mean stronger protection is needed that day.</p>
                     </div>
                   </div>
                 </div>

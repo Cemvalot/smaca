@@ -1539,6 +1539,7 @@
 
 .environmental-chart-card .card__body {
   min-height: 360px;
+  padding-top: var(--space-4);
 }
 
 .environmental-chart-placeholder {
@@ -1573,15 +1574,53 @@
   gap: var(--space-3);
 }
 
+.environmental-summary-card .card__header,
+.environmental-chart-card .card__header,
+.environmental-meaning-card .card__header {
+  padding-bottom: var(--space-3);
+}
+
+.environmental-summary-card .card__title,
+.environmental-chart-card .card__title,
+.environmental-meaning-card .card__title {
+  letter-spacing: 0.01em;
+  font-weight: 650;
+}
+
+.environmental-summary-card .stat-row__label {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.02em;
+}
+
+.environmental-summary-card .stat-row__value {
+  font-weight: 650;
+}
+
+.environmental-summary-card .prediction-insight {
+  margin-top: var(--space-1);
+  border: 1px solid rgba(245, 158, 11, 0.16);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.09) 0%, rgba(245, 158, 11, 0.02) 100%);
+}
+
 .environmental-bottom-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-6);
 }
 
-.environmental-gauge-body {
-  min-height: 250px;
+.environmental-pattern-body {
+  min-height: 300px;
+  display: grid;
   gap: var(--space-4);
+}
+
+#uv-pattern-chart {
+  min-height: 220px;
+}
+
+#uv-daily-comparison-chart {
+  min-height: 220px;
 }
 
 .environmental-zone-grid {
@@ -1631,6 +1670,7 @@
 .environmental-meaning-card .card__body {
   display: grid;
   gap: var(--space-3);
+  padding-top: var(--space-4);
 }
 
 .environmental-meaning-level {
@@ -1638,6 +1678,10 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--text);
+}
+
+#uv-main-chart .highcharts-graph {
+  filter: drop-shadow(0 4px 10px rgba(249, 115, 22, 0.16));
 }
 
 @media (max-width: 1200px) {

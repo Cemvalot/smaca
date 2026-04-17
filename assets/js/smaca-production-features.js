@@ -213,7 +213,9 @@ function renderCurrentPageFailureState(page) {
     renderEmptyState('occupancy-density-timeline', 'No occupancy data available');
   }
   if (page === 'environmental') {
-    renderEmptyState('uv-hourly-chart', 'No UV data available');
+    renderEmptyState('uv-main-chart', 'No UV data available');
+    renderEmptyState('uv-pattern-chart', 'No UV data available');
+    renderEmptyState('uv-daily-comparison-chart', 'No UV data available');
   }
   if (page === 'energy') {
     renderEmptyState('energy-correlation-chart', 'No data available');
@@ -1663,6 +1665,8 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   if (getSmacaCurrentPage() !== 'environmental') return;
   const environmentalSection = document.querySelector('#environmental');
   if (!environmentalSection) return;
+  const tf = timeframe || '24h';
+  console.debug('[SMACA][UV] timeframe change start', { timeframe: tf });
 
   const uvCounter = document.getElementById('environmental-uv-index');
   const currentUvEl = document.getElementById('env-kpi-current-uv');
@@ -1744,10 +1748,46 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     return `${pad(start.getHours())}:00-${pad(end.getHours())}:00`;
   }
 
-  const environmentalRows = typeof SMACAState.getFilteredEnvironmental === 'function'
-    ? SMACAState.getFilteredEnvironmental()
-    : (Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : filteredEnvironmental);
-  const latestUv = averageLatestMetricAcrossSensors(environmentalRows, 'uv_index');
+  const parseUtcMs = function (value) {
+    if (value === null || value === undefined) return NaN;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+    const raw = String(value).trim();
+    if (!raw) return NaN;
+    const hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
+    const normalized = hasTz ? raw : raw.replace(' ', 'T') + 'Z';
+    const ms = new Date(normalized).getTime();
+    return Number.isFinite(ms) ? ms : NaN;
+  };
+
+  const HOUR_MS = 60 * 60 * 1000;
+  const DAY_MS = 24 * HOUR_MS;
+  const bucketMs = tf === '24h' ? HOUR_MS : DAY_MS;
+  const bucketCount = tf === '24h' ? 24 : (tf === '7d' ? 7 : 30);
+  const rangeEndMs = Date.now();
+  const rangeStartMs = rangeEndMs - (bucketMs * bucketCount);
+  const alignedEndBucketMs = Math.floor(rangeEndMs / bucketMs) * bucketMs;
+  const bucketTimesMs = Array.from({ length: bucketCount }, function (_, idx) {
+    return alignedEndBucketMs - ((bucketCount - 1 - idx) * bucketMs);
+  });
+
+  const rawRows = Array.isArray(SMACAState.rawData?.environmental)
+    ? SMACAState.rawData.environmental
+    : (Array.isArray(filteredEnvironmental) ? filteredEnvironmental : []);
+  const filteredRows = rawRows
+    .map(function (item) {
+      const timeMs = parseUtcMs(item?.time || item?.timestamp || item?.payload?.time);
+      const uv = Number(item?.payload?.object?.uv_index);
+      return { timeMs: timeMs, uv: uv };
+    })
+    .filter(function (entry) {
+      return Number.isFinite(entry.timeMs)
+        && Number.isFinite(entry.uv)
+        && entry.timeMs >= rangeStartMs
+        && entry.timeMs <= rangeEndMs;
+    })
+    .sort(function (a, b) { return a.timeMs - b.timeMs; });
+
+  const latestUv = filteredRows.length ? filteredRows[filteredRows.length - 1].uv : null;
   if (latestUv === null) {
     if (uvCounter) uvCounter.textContent = 'No UV data available';
     if (currentUvEl) currentUvEl.textContent = '--';
@@ -1764,27 +1804,69 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     if (summaryGuidanceEl) summaryGuidanceEl.textContent = 'No UV guidance available until data is received.';
     if (meaningLevelEl) meaningLevelEl.textContent = 'Current interpretation: UV data unavailable';
     if (meaningCopyEl) meaningCopyEl.textContent = 'Live UV data is currently unavailable. Check sensor connectivity and refresh this panel.';
-    renderEmptyState('uv-hourly-chart', 'No UV data available');
+    renderEmptyState('uv-main-chart', 'No UV data available');
+    renderEmptyState('uv-pattern-chart', 'No UV data available');
+    renderEmptyState('uv-daily-comparison-chart', 'No UV data available');
     return;
   }
 
-  // Keep chart behavior for detail views (selected sensor drill-down).
-  const chartRows = (Array.isArray(environmentalRows) ? environmentalRows : [])
-    .map(function (item) {
-      const timeMs = new Date(item?.time || item?.timestamp || 0).getTime();
-      const uv = Number(item?.payload?.object?.uv_index);
-      return { timeMs: timeMs, uv: uv };
-    })
-    .filter(function (entry) {
-      return Number.isFinite(entry.timeMs) && Number.isFinite(entry.uv);
-    })
-    .sort(function (a, b) { return a.timeMs - b.timeMs; });
-  const uvValues = chartRows.map(function (entry) { return entry.uv; });
+  const bucketMap = {};
+  filteredRows.forEach(function (entry) {
+    const bucketTime = Math.floor(entry.timeMs / bucketMs) * bucketMs;
+    if (!bucketMap[bucketTime]) bucketMap[bucketTime] = [];
+    bucketMap[bucketTime].push(entry.uv);
+  });
+  const mainSeries = bucketTimesMs.map(function (bucketTime) {
+    const points = bucketMap[bucketTime] || [];
+    if (!points.length) return null;
+    const sum = points.reduce(function (acc, value) { return acc + value; }, 0);
+    return sum / points.length;
+  });
 
-  const latestValue = uvValues.length > 0 ? uvValues[uvValues.length - 1] : latestUv;
-  const previousValue = uvValues.length > 1 ? uvValues[uvValues.length - 2] : null;
-  const peakValue = uvValues.length > 0 ? Math.max.apply(null, uvValues) : latestValue;
-  const strongestEntry = chartRows.reduce(function (maxEntry, entry) {
+  const patternSums = Array.from({ length: 24 }, function () { return 0; });
+  const patternCounts = Array.from({ length: 24 }, function () { return 0; });
+  filteredRows.forEach(function (entry) {
+    const hour = new Date(entry.timeMs).getHours();
+    if (!Number.isFinite(hour) || hour < 0 || hour > 23) return;
+    patternSums[hour] += entry.uv;
+    patternCounts[hour] += 1;
+  });
+  const patternCategories = Array.from({ length: 24 }, function (_, hour) {
+    return String(hour).padStart(2, '0');
+  });
+  const patternSeries = patternCategories.map(function (_, hour) {
+    return patternCounts[hour] > 0 ? (patternSums[hour] / patternCounts[hour]) : null;
+  });
+
+  const dailyPeakByDay = {};
+  filteredRows.forEach(function (entry) {
+    const d = new Date(entry.timeMs);
+    const key = [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, '0'),
+      String(d.getDate()).padStart(2, '0')
+    ].join('-');
+    if (!dailyPeakByDay[key] || entry.uv > dailyPeakByDay[key]) dailyPeakByDay[key] = entry.uv;
+  });
+  const dailyComparisonCategories = Object.keys(dailyPeakByDay).sort(function (a, b) {
+    return new Date(a + 'T00:00:00').getTime() - new Date(b + 'T00:00:00').getTime();
+  }).map(function (dayKey) {
+    const d = new Date(dayKey + 'T00:00:00');
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return day + '/' + month;
+  });
+  const dailyComparisonSeries = Object.keys(dailyPeakByDay).sort(function (a, b) {
+    return new Date(a + 'T00:00:00').getTime() - new Date(b + 'T00:00:00').getTime();
+  }).map(function (dayKey) {
+    return Number(dailyPeakByDay[dayKey]);
+  });
+
+  const validMainSeries = mainSeries.filter(function (v) { return Number.isFinite(Number(v)); }).map(Number);
+  const latestValue = validMainSeries.length ? validMainSeries[validMainSeries.length - 1] : latestUv;
+  const previousValue = validMainSeries.length > 1 ? validMainSeries[validMainSeries.length - 2] : null;
+  const peakValue = validMainSeries.length ? Math.max.apply(null, validMainSeries) : latestValue;
+  const strongestEntry = filteredRows.reduce(function (maxEntry, entry) {
     if (!maxEntry || entry.uv > maxEntry.uv) return entry;
     return maxEntry;
   }, null);
@@ -1795,11 +1877,11 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
 
   if (uvCounter) uvCounter.textContent = latestValue.toFixed(1);
   if (currentUvEl) currentUvEl.textContent = latestValue.toFixed(1);
-  if (currentUvMetaEl) currentUvMetaEl.textContent = `${timeframe || '24h'} monitoring window`;
+  if (currentUvMetaEl) currentUvMetaEl.textContent = `${tf} monitoring window`;
   if (exposureEl) exposureEl.textContent = exposureLabel;
   if (exposureMetaEl) exposureMetaEl.textContent = guidance.summary;
   if (peakEl) peakEl.textContent = peakValue.toFixed(1);
-  if (peakMetaEl) peakMetaEl.textContent = `Highest recorded in ${timeframe || '24h'}`;
+  if (peakMetaEl) peakMetaEl.textContent = `Peak in ${tf} window`;
   if (trendEl) trendEl.textContent = trend.title;
   if (trendMetaEl) trendMetaEl.textContent = trend.detail;
   if (summaryCurrentEl) summaryCurrentEl.textContent = `${latestValue.toFixed(1)} (${exposureLabel})`;
@@ -1808,29 +1890,55 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   if (summaryGuidanceEl) summaryGuidanceEl.textContent = guidance.summary;
   if (meaningLevelEl) meaningLevelEl.textContent = `Current interpretation: ${exposureLabel} UV exposure`;
   if (meaningCopyEl) meaningCopyEl.textContent = guidance.interpretation;
-
-  const uvGauge = document.getElementById('uv-gauge-chart');
-  if (uvGauge && typeof createGaugeChart === 'function') {
-    const gaugeValue = latestValue;
-    createGaugeChart('uv-gauge-chart', gaugeValue, 11, {
-      size: 172,
-      strokeWidth: 16,
-      color: gaugeValue >= 11 ? '#a855f7' : gaugeValue >= 8 ? '#ef4444' : gaugeValue >= 6 ? '#f97316' : gaugeValue >= 3 ? '#f59e0b' : '#10b981',
-      label: 'UV Index'
+  const adapter = typeof window !== 'undefined' ? window.SMACAHighchartsAdapter : null;
+  const hasHighcharts = !!(adapter
+    && typeof adapter.createUvMainTrendChart === 'function'
+    && typeof adapter.createUvPatternChart === 'function'
+    && typeof adapter.createUvDailyComparisonChart === 'function'
+    && adapter.hasHighcharts
+    && adapter.hasHighcharts());
+  console.debug('[SMACA][UV] chart update start', { timeframe: tf });
+  if (hasHighcharts) {
+    console.debug('[SMACA][UV] renderer = highcharts');
+    adapter.createUvMainTrendChart('uv-main-chart', {
+      timeframe: tf,
+      bucketTimesMs: bucketTimesMs,
+      values: mainSeries
     });
-  }
-  const uvHourly = document.getElementById('uv-hourly-chart');
-  if (uvHourly && typeof createLineChart === 'function') {
-    if (uvValues.length === 0) {
-      renderEmptyState('uv-hourly-chart', 'No UV data available');
-      return;
+    adapter.createUvPatternChart('uv-pattern-chart', {
+      timeframe: tf,
+      categories: patternCategories,
+      values: patternSeries
+    });
+    if (dailyComparisonSeries.length > 0) {
+      adapter.createUvDailyComparisonChart('uv-daily-comparison-chart', {
+        timeframe: tf,
+        categories: dailyComparisonCategories,
+        values: dailyComparisonSeries,
+        metricLabel: 'Daily peak UV'
+      });
+    } else {
+      renderEmptyState('uv-daily-comparison-chart', 'No daily UV data available');
     }
-    createLineChart('uv-hourly-chart', [{
-      label: 'UV Index',
-      values: uvValues,
-      color: '#f97316'
-    }], { height: 300, legend: true });
+  } else {
+    renderEmptyState('uv-main-chart', 'UV chart unavailable (Highcharts not loaded)');
+    renderEmptyState('uv-pattern-chart', 'UV chart unavailable (Highcharts not loaded)');
+    renderEmptyState('uv-daily-comparison-chart', 'UV chart unavailable (Highcharts not loaded)');
   }
+
+  if (typeof window !== 'undefined') {
+    window.__uvChartDebug = {
+      timeframe: tf,
+      rangeStart: new Date(rangeStartMs).toISOString(),
+      rangeEnd: new Date(rangeEndMs).toISOString(),
+      pointCount: filteredRows.length,
+      metricUsed: 'uv_index',
+      mainSeries: mainSeries,
+      patternSeries: patternSeries,
+      dailyComparisonSeries: dailyComparisonSeries
+    };
+  }
+  console.debug('[SMACA][UV] chart update success', { timeframe: tf, points: filteredRows.length });
 }
 
 // Update Occupancy charts with filtered data
