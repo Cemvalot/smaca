@@ -570,10 +570,11 @@ function chooseSectionSensors(overview, sensors, preferredSensorId) {
   };
 }
 
-function buildBucketSensorIds(currentPage, bucket, selectedBySection, iaqSensorIds, allSensorIds) {
+function buildBucketSensorIds(currentPage, bucket, selectedBySection, iaqSensorIds, occupancySensorIds, allSensorIds) {
   const selected = selectedBySection || {};
   const allIds = Array.isArray(allSensorIds) ? allSensorIds.filter(Number.isFinite) : [];
   const iaqIds = Array.isArray(iaqSensorIds) ? iaqSensorIds.filter(Number.isFinite) : [];
+  const occupancyIds = Array.isArray(occupancySensorIds) ? occupancySensorIds.filter(Number.isFinite) : [];
 
   // Keep overview lightweight by sampling representative sensors per module.
   if (currentPage === 'overview') {
@@ -585,6 +586,9 @@ function buildBucketSensorIds(currentPage, bucket, selectedBySection, iaqSensorI
         if (!prioritized.includes(id)) prioritized.push(id);
       });
       return prioritized;
+    }
+    if (bucket === 'occupancy') {
+      return occupancyIds.length > 0 ? occupancyIds : [];
     }
 
     const selectedSensorId = Number(selected[bucket]);
@@ -662,10 +666,14 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     const iaqSensorIds = iaqSensors
       .map(function (sensor) { return Number(sensor?.id); })
       .filter(Number.isFinite);
+    const occupancySensorIds = sensors
+      .filter(isOccupancySensor)
+      .map(function (sensor) { return Number(sensor?.id); })
+      .filter(Number.isFinite);
 
     const bucketFetchers = {
       iaq: function () {
-        const prioritizedIds = buildBucketSensorIds(currentPage, 'iaq', selectedBySection, iaqSensorIds, allSensorIds);
+        const prioritizedIds = buildBucketSensorIds(currentPage, 'iaq', selectedBySection, iaqSensorIds, occupancySensorIds, allSensorIds);
         const remainingIaqIds = iaqSensorIds.filter(function (id) { return !prioritizedIds.includes(id); });
         return fetchAndMapTimeseriesForSensors(prioritizedIds, tf, SMACA_SECTION_METRICS.iaq, 'iaq', forceRefresh)
           .then(function (result) {
@@ -675,15 +683,15 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
           });
       },
       occupancy: function () {
-        const ids = buildBucketSensorIds(currentPage, 'occupancy', selectedBySection, iaqSensorIds, allSensorIds);
+        const ids = buildBucketSensorIds(currentPage, 'occupancy', selectedBySection, iaqSensorIds, occupancySensorIds, allSensorIds);
         return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.occupancy, 'occupancy', forceRefresh);
       },
       environmental: function () {
-        const ids = buildBucketSensorIds(currentPage, 'environmental', selectedBySection, iaqSensorIds, allSensorIds);
+        const ids = buildBucketSensorIds(currentPage, 'environmental', selectedBySection, iaqSensorIds, occupancySensorIds, allSensorIds);
         return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.environmental, 'environmental', forceRefresh);
       },
       energy: function () {
-        const ids = buildBucketSensorIds(currentPage, 'energy', selectedBySection, iaqSensorIds, allSensorIds);
+        const ids = buildBucketSensorIds(currentPage, 'energy', selectedBySection, iaqSensorIds, occupancySensorIds, allSensorIds);
         return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.energy, 'energy', forceRefresh);
       }
     };
@@ -1461,16 +1469,21 @@ function updateOverviewCountersFromApi(overview, sensors) {
 
   const occupancyLoadEl = document.getElementById('overview-occupancy-load');
   if (occupancyLoadEl) {
-    const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) && SMACAState.rawData.occupancy.length > 0
-      ? SMACAState.rawData.occupancy
-      : (typeof SMACAState.getFilteredOccupancy === 'function' ? (SMACAState.getFilteredOccupancy() || []) : []);
-    const latestOccupancy = resolveLatestOccupancyValue(occupancyRows);
+    const timeframe = SMACAState?.currentTimeframe || '24h';
+    const occupancyRows = (typeof SMACAState.getFilteredOccupancy === 'function')
+      ? (SMACAState.getFilteredOccupancy() || [])
+      : (Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : []);
+    const latestOccupancy = resolveOverviewOccupancyLoadByTimeframe(occupancyRows, timeframe);
     const fallbackSnapshot = resolveLatestOccupancyFromOverviewSnapshot(overview);
     const resolvedOccupancy = Number.isFinite(latestOccupancy) ? latestOccupancy : fallbackSnapshot;
     occupancyLoadEl.textContent = Number.isFinite(resolvedOccupancy) ? String(Math.round(resolvedOccupancy)) : '--';
     const occupancyTrendEl = document.getElementById('overview-occupancy-trend');
     if (occupancyTrendEl) {
-      occupancyTrendEl.textContent = Number.isFinite(resolvedOccupancy) ? `${Math.round(resolvedOccupancy)} people detected` : 'No occupancy data';
+      if (Number.isFinite(resolvedOccupancy)) {
+        occupancyTrendEl.textContent = `Net ${Math.round(resolvedOccupancy)} (IN-OUT, ${timeframe})`;
+      } else {
+        occupancyTrendEl.textContent = 'No occupancy data';
+      }
     }
   }
 
@@ -3824,7 +3837,9 @@ function updateOverviewSystemStatus() {
 function updateOverviewLiveValues(overview, sensorRows) {
   const iaqRows = Array.isArray(SMACAState.rawData?.iaq) ? SMACAState.rawData.iaq : [];
   const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : [];
-  const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : [];
+  const occupancyRows = (typeof SMACAState.getFilteredOccupancy === 'function')
+    ? (SMACAState.getFilteredOccupancy() || [])
+    : (Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : []);
   const totals = overview?.totals || {};
   const connectedSensors = Number.isFinite(Number(totals.connected_sensors)) ? Number(totals.connected_sensors) : sensorRows.length;
   const totalSensors = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensorRows.length;
@@ -4050,36 +4065,92 @@ function resolveOccupancyValueFromPayload(payload) {
   if (Number.isFinite(occupancyCount)) return occupancyCount;
   if (Number.isFinite(peopleCount)) return peopleCount;
   if (Number.isFinite(count)) return count;
-  if (Number.isFinite(totalIn) && Number.isFinite(totalOut)) return Math.max(0, totalIn - totalOut);
-  if (Number.isFinite(totalIn)) return totalIn;
   if (Number.isFinite(peopleIn) && Number.isFinite(peopleOut)) return Math.max(0, peopleIn - peopleOut);
   if (Number.isFinite(peopleIn)) return peopleIn;
+  // Cumulative totals are used only as last-resort fallback for legacy payloads.
+  if (Number.isFinite(totalIn) && Number.isFinite(totalOut)) return Math.max(0, totalIn - totalOut);
+  if (Number.isFinite(totalIn)) return totalIn;
   return null;
 }
 
 function resolveLatestOccupancyValue(rows) {
   const safeRows = Array.isArray(rows) ? rows : [];
-  let latestValue = null;
-  let latestTime = -Infinity;
+  const latestBySensor = new Map();
+  let fallbackLatestValue = null;
+  let fallbackLatestTime = -Infinity;
   safeRows.forEach(function (item) {
     const t = new Date(item?.time || item?.timestamp || 0).getTime();
-    if (!Number.isFinite(t) || t < latestTime) return;
+    if (!Number.isFinite(t)) return;
     const value = resolveOccupancyValueFromPayload(item?.payload?.object);
     if (!Number.isFinite(value)) return;
-    latestTime = t;
-    latestValue = value;
+    const sensorKey = item?.sensorId ?? item?.sensor_id ?? item?.sensorUid ?? item?.sensor_uid ?? null;
+    if (sensorKey !== null && sensorKey !== undefined && String(sensorKey).trim() !== '') {
+      const normalizedKey = String(sensorKey).trim();
+      const existing = latestBySensor.get(normalizedKey);
+      if (!existing || t >= existing.time) {
+        latestBySensor.set(normalizedKey, { time: t, value: value });
+      }
+      return;
+    }
+    if (t >= fallbackLatestTime) {
+      fallbackLatestTime = t;
+      fallbackLatestValue = value;
+    }
   });
-  return latestValue;
+  if (latestBySensor.size > 0) {
+    let total = 0;
+    latestBySensor.forEach(function (entry) {
+      total += Number(entry.value) || 0;
+    });
+    return total;
+  }
+  return fallbackLatestValue;
+}
+
+function resolveOverviewOccupancyLoadByTimeframe(rows, timeframe) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  if (safeRows.length === 0) return null;
+  const totals = safeRows.reduce(function (acc, item) {
+    const payload = item?.payload?.object || {};
+    const inValue = Number(payload.people_in ?? payload.period_in);
+    const outValue = Number(payload.people_out ?? payload.period_out);
+    if (Number.isFinite(inValue)) acc.in += inValue;
+    if (Number.isFinite(outValue)) acc.out += outValue;
+    return acc;
+  }, { in: 0, out: 0 });
+
+  if (!Number.isFinite(totals.in) && !Number.isFinite(totals.out)) return null;
+  const net = totals.in - totals.out;
+  return Number.isFinite(net) ? Math.max(0, net) : null;
 }
 
 function resolveLatestOccupancyFromOverviewSnapshot(overview) {
   const snapshotRows = Array.isArray(overview?.latest_sensor_snapshot_rows) ? overview.latest_sensor_snapshot_rows : [];
-  let resolved = null;
+  let fallbackValue = null;
+  const latestBySensor = new Map();
   snapshotRows.forEach(function (row) {
     const value = resolveOccupancyValueFromPayload(row?.payload?.object || row?.payload || row?.object || row);
-    if (Number.isFinite(value)) resolved = value;
+    if (!Number.isFinite(value)) return;
+    const sensorKey = row?.sensor_id ?? row?.sensorId ?? row?.sensor_uid ?? row?.sensorUid ?? null;
+    if (sensorKey === null || sensorKey === undefined || String(sensorKey).trim() === '') {
+      fallbackValue = value;
+      return;
+    }
+    const normalizedKey = String(sensorKey).trim();
+    const measuredAtMs = new Date(row?.measured_at || row?.time || row?.timestamp || 0).getTime();
+    const existing = latestBySensor.get(normalizedKey);
+    if (!existing || (!Number.isFinite(existing.time) && Number.isFinite(measuredAtMs)) || (Number.isFinite(measuredAtMs) && measuredAtMs >= existing.time)) {
+      latestBySensor.set(normalizedKey, { time: measuredAtMs, value: value });
+    }
   });
-  return resolved;
+  if (latestBySensor.size > 0) {
+    let total = 0;
+    latestBySensor.forEach(function (entry) {
+      total += Number(entry.value) || 0;
+    });
+    return total;
+  }
+  return fallbackValue;
 }
 
 function renderOverviewTrendChart(filteredData, timeframe) {
