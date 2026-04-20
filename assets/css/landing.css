@@ -232,8 +232,9 @@ html {
 
 .card__icon {
   font-size: 1.6rem;
-  margin-bottom: 0.55rem;
+  margin: 0 auto 0.55rem;
   display: block;
+  filter: brightness(0) invert(1);
 }
 
 .card__title {

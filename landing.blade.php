@@ -28,12 +28,10 @@
           <p class="hero__subheadline">Monitor air quality, occupancy, energy and environmental conditions in real time from one intelligent platform.</p>
           <div class="d-flex flex-wrap gap-3 mb-3">
             <a href="{{ url('/dashboard') }}" class="btn btn-dark btn-lg">View Platform</a>
-            <a href="{{ url('/login') }}" class="btn btn-outline-dark btn-lg">Request Demo</a>
           </div>
           <div class="hero__badges">
             <span class="badge badge--smaca">Universities</span>
             <span class="badge badge--smaca">Public Buildings</span>
-            <span class="badge badge--smaca">Municipal Facilities</span>
           </div>
         </div>
         <div class="col-lg-6">
@@ -99,28 +97,28 @@
       <div class="row g-4">
         <div class="col-md-6 col-xl-3">
           <a class="module-card module-card-link" href="{{ url('/dashboard/iaq') }}">
-            <span class="card__icon">🌬️</span>
+            <img src="{{ asset('assets/indoorairquality.png') }}" alt="Air Quality" class="card__icon" style="width: 32px; height: 32px; object-fit: contain;">
             <h3 class="card__title">Air Quality</h3>
             <p class="card__desc">Track CO2, temperature, humidity, and comfort trends in every monitored zone.</p>
           </a>
         </div>
         <div class="col-md-6 col-xl-3">
           <a class="module-card module-card-link" href="{{ url('/dashboard/occupancy') }}">
-            <span class="card__icon">👥</span>
+            <img src="{{ asset('assets/occupancy.png') }}" alt="Occupancy" class="card__icon" style="width: 32px; height: 32px; object-fit: contain;">
             <h3 class="card__title">Occupancy</h3>
             <p class="card__desc">Understand movement patterns, room utilization, and peak crowding periods.</p>
           </a>
         </div>
         <div class="col-md-6 col-xl-3">
           <a class="module-card module-card-link" href="{{ url('/dashboard/energy') }}">
-            <span class="card__icon">⚡</span>
+            <img src="{{ asset('assets/energy.png') }}" alt="Energy" class="card__icon" style="width: 32px; height: 32px; object-fit: contain;">
             <h3 class="card__title">Energy</h3>
             <p class="card__desc">Monitor demand, identify inefficiencies, and balance usage across schedules.</p>
           </a>
         </div>
         <div class="col-md-6 col-xl-3">
           <a class="module-card module-card-link" href="{{ url('/dashboard/environmental') }}">
-            <span class="card__icon">☀️</span>
+            <img src="{{ asset('assets/uv.png') }}" alt="Environment UV" class="card__icon" style="width: 32px; height: 32px; object-fit: contain;">
             <h3 class="card__title">Environment</h3>
             <p class="card__desc">Follow ambient conditions, UV exposure, and environmental comfort indicators.</p>
           </a>
@@ -204,7 +202,6 @@
     <div class="container text-center">
       <h2 class="cta__headline">Ready to modernize your building operations?</h2>
       <div class="d-flex justify-content-center flex-wrap gap-3">
-        <a href="{{ url('/login') }}" class="btn btn-dark btn-lg">Request Demo</a>
         <a href="{{ url('/login') }}" class="btn btn-outline-dark btn-lg">Sign In</a>
       </div>
     </div>
