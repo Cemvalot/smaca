@@ -2725,16 +2725,16 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
         const densityContainer = document.getElementById('occupancy-density-timeline');
         if (densityContainer) {
           const patternLegend = `
-            <div style="margin-top: var(--space-2); display:flex; align-items:center; justify-content:space-between; gap: var(--space-4); padding: 0 var(--space-1);">
-              <div style="display:flex; align-items:center; gap: var(--space-2); min-width: 90px;">
+            <div style="margin-top: var(--space-2); display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap: var(--space-2); padding: 0 var(--space-1);">
+              <div style="display:flex; align-items:center; gap: var(--space-2);">
                 <span style="width: 16px; height: 10px; background: #16a34a; border-radius: 3px; display:inline-block;"></span>
                 <span style="font-size: 11px; color: var(--muted);">Low</span>
               </div>
-              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap: var(--space-3);">
+              <div style="display:flex; align-items:center; justify-content:center; gap: var(--space-2);">
                 <span style="width: 16px; height: 10px; background: #eab308; border-radius: 3px; display:inline-block;"></span>
                 <span style="font-size: 11px; color: var(--muted);">Medium</span>
               </div>
-              <div style="display:flex; align-items:center; gap: var(--space-2); min-width: 90px; justify-content:flex-end;">
+              <div style="display:flex; align-items:center; gap: var(--space-2);">
                 <span style="width: 16px; height: 10px; background: #ef4444; border-radius: 3px; display:inline-block;"></span>
                 <span style="font-size: 11px; color: var(--muted);">High</span>
               </div>

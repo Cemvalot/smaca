@@ -433,6 +433,11 @@ function bindIaqMetricToggle() {
     if (!button) return;
     const metric = button.getAttribute('data-iaq-metric') || 'co2';
     window.SMACAIaqSelectedMetric = metric;
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('smaca:iaq-metric-changed', {
+        detail: { metric: metric }
+      }));
+    }
     toggle.querySelectorAll('button[data-iaq-metric]').forEach(function (btn) {
       btn.classList.toggle('active', btn === button);
     });
@@ -1039,16 +1044,16 @@ function renderIaqHourlyHeatStrip(computed) {
       </div>
       <div class="card__body">
         <div id="iaq-co2-hourly-heatmap" style="height: 165px; margin-bottom: var(--space-2);"></div>
-        <div style="display:flex; align-items:center; justify-content:space-between; gap: var(--space-4); padding: 0 var(--space-1) var(--space-2);">
-          <div style="display:flex; align-items:center; gap: var(--space-2); min-width: 90px;">
+        <div style="display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap: var(--space-2); padding: 0 var(--space-1) var(--space-2);">
+          <div style="display:flex; align-items:center; gap: var(--space-2);">
             <span style="width: 14px; height: 10px; background:#16a34a; border-radius:4px; display:inline-block;"></span>
             <span style="font-size: 11px; color: var(--muted);">Low (good)</span>
           </div>
-          <div style="flex:1; display:flex; align-items:center; justify-content:center; gap: var(--space-2);">
+          <div style="display:flex; align-items:center; justify-content:center; gap: var(--space-2);">
             <span style="width: 14px; height: 10px; background:#eab308; border-radius:4px; display:inline-block;"></span>
             <span style="font-size: 11px; color: var(--muted);">Medium (caution)</span>
           </div>
-          <div style="display:flex; align-items:center; gap: var(--space-2); min-width: 90px; justify-content:flex-end;">
+          <div style="display:flex; align-items:center; gap: var(--space-2);">
             <span style="width: 14px; height: 10px; background:#ef4444; border-radius:4px; display:inline-block;"></span>
             <span style="font-size: 11px; color: var(--muted);">High (elevated)</span>
           </div>

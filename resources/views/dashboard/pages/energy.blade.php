@@ -91,6 +91,17 @@
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-demand-trend-chart" style="min-height: 300px;"></div>
+        <div class="smaca-accordion smaca-accordion--collapsed">
+          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+            <span>What is this graph?</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <div class="smaca-accordion__body" hidden>
+            <div class="accordion-content"></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -100,6 +111,17 @@
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-usage-pattern-hour-chart" style="min-height: 300px;"></div>
+        <div class="smaca-accordion smaca-accordion--collapsed">
+          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+            <span>What is this graph?</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <div class="smaca-accordion__body" hidden>
+            <div class="accordion-content"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -113,6 +135,17 @@
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-distribution-location-chart" style="min-height: 320px;"></div>
+        <div class="smaca-accordion smaca-accordion--collapsed">
+          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+            <span>What is this graph?</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <div class="smaca-accordion__body" hidden>
+            <div class="accordion-content"></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -122,6 +155,17 @@
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-share-donut-chart" style="min-height: 320px;"></div>
+        <div class="smaca-accordion smaca-accordion--collapsed">
+          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+            <span>What is this graph?</span>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <div class="smaca-accordion__body" hidden>
+            <div class="accordion-content"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

@@ -655,6 +655,8 @@
 
 .smaca-accordion__body {
   overflow: hidden;
+  width: 100%;
+  min-width: 0;
 }
 
 .smaca-accordion__body[hidden] {
@@ -672,6 +674,7 @@
   font-size: 11px;
   color: var(--muted);
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .accordion-content p {
@@ -1897,6 +1900,30 @@
   flex-wrap: wrap;
 }
 
+.dashboard-section {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+#occupancy .occupancy-primary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#occupancy .card > .card__body > div[style*="display: flex; align-items: center; gap: var(--space-6);"] {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-6);
+}
+
+#occupancy .card > .card__body > div[style*="display: flex; align-items: center; gap: var(--space-6);"] > div {
+  min-width: 0;
+}
+
+#occupancy .card > .card__body > div[style*="display: flex; align-items: center; gap: var(--space-6);"] > div[style*="border-left"] {
+  flex: 1 1 auto;
+}
+
 #sensor-health-table,
 #sensors-management-table,
 #users-management-table,
@@ -1918,7 +1945,8 @@
 #sensors-management-table,
 #users-management-table,
 .ai-events-table {
-  min-width: 680px;
+  width: 100%;
+  min-width: 0;
 }
 
 #sensor-health-table td,
@@ -1930,7 +1958,8 @@
 .ai-events-table td,
 .ai-events-table th {
   vertical-align: middle;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 1200px) {
@@ -1938,6 +1967,10 @@
   .environmental-main-grid,
   .environmental-bottom-grid {
     grid-template-columns: 1fr;
+  }
+
+  .management-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .section-hero__inner {
@@ -1953,6 +1986,20 @@
   .dashboard-section .grid[style*="grid-template-columns: 2fr 1fr"],
   .dashboard-section .grid[style*="grid-template-columns: repeat(2, 1fr)"] {
     grid-template-columns: 1fr !important;
+  }
+
+  #occupancy .occupancy-primary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-module-activity-item {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .overview-module-activity-item__status {
+    width: fit-content;
   }
 }
 
@@ -1996,11 +2043,85 @@
 
   .management-search-bar {
     flex-wrap: wrap;
+    align-items: stretch;
+    gap: var(--space-2);
   }
 
   .management-search-bar .input {
     max-width: 100%;
     min-width: 0;
+  }
+
+  .management-search-bar .btn {
+    width: 100%;
+  }
+
+  .management-tabs-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    border-bottom: none;
+  }
+
+  .management-tab {
+    margin-bottom: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    border-bottom-width: 1px;
+    min-height: 42px;
+    line-height: 1.2;
+    white-space: normal;
+  }
+
+  .management-tab.active {
+    border-color: rgba(59, 130, 246, 0.55);
+    background: rgba(59, 130, 246, 0.08);
+  }
+
+  #occupancy .card > .card__body > div[style*="display: flex; align-items: center; gap: var(--space-6);"] {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  #occupancy .card > .card__body > div[style*="display: flex; align-items: center; gap: var(--space-6);"] > div[style*="border-left"] {
+    border-left: none !important;
+    border-top: 1px solid var(--border);
+    padding-left: 0 !important;
+    padding-top: var(--space-4);
+    width: 100%;
+  }
+
+  #management-sensors-tab h3,
+  #management-users-tab h3,
+  #management-ai-events-tab h3,
+  #management-system-health-tab h3,
+  #management-settings-tab h3 {
+    line-height: 1.3;
+  }
+
+  .management-row-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .management-row-actions .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  #sensor-health-table,
+  #management-ai-events-tab .card,
+  #management-sensors-tab .card,
+  #management-users-tab .card {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  #sensor-health-table table,
+  #sensors-management-table,
+  #users-management-table,
+  .ai-events-table {
+    min-width: 620px;
   }
 
   #management-sensors-tab > div[style*="justify-content: space-between"],
@@ -2038,6 +2159,11 @@
     padding: var(--space-3);
   }
 
+  .section-meta {
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+
   .card__header,
   .card__body {
     padding-left: var(--space-4);
@@ -2061,6 +2187,30 @@
   .management-tab {
     flex: 1 1 calc(50% - var(--space-2));
     text-align: center;
+  }
+
+  .management-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #management-users-tab .grid.grid--metrics.grid--metrics-4,
+  #management-system-health-tab .grid.grid--metrics.grid--metrics-4 {
+    grid-template-columns: 1fr;
+    margin-bottom: var(--space-3);
+  }
+
+  #management-settings-tab .grid.grid--metrics.grid--metrics-3 {
+    grid-template-columns: 1fr;
+  }
+
+  #management-settings-tab .stat-row[style*="align-items: center"] {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  #management-settings-tab select.input {
+    max-width: 100% !important;
+    width: 100%;
   }
 }
 
@@ -2090,10 +2240,29 @@
     flex-basis: 100%;
   }
 
+  .management-tabs-bar {
+    grid-template-columns: 1fr;
+  }
+
   #sensor-health-table table,
   #sensors-management-table,
   #users-management-table,
   .ai-events-table {
-    min-width: 620px;
+    min-width: 540px;
+  }
+
+  .smaca-accordion {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+  }
+
+  .smaca-accordion__trigger {
+    font-size: var(--font-size-xs);
+    gap: var(--space-2);
+  }
+
+  .accordion-content {
+    font-size: 12px;
+    line-height: 1.7;
   }
 }

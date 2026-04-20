@@ -100,6 +100,11 @@ const SMACAState = {
       if (this.currentTimeframe === timeframe) return;
       this.currentTimeframe = timeframe;
       this.invalidateFilteredCache();
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new CustomEvent('smaca:timeframe-changed', {
+          detail: { timeframe: timeframe }
+        }));
+      }
       this.notifyListeners();
     }
   },
