@@ -265,7 +265,7 @@ Route::get('/api/sensors/{id}/timeseries', function (Request $request, $id) {
     [$timeframe, $from] = smacaApiParseTimeframe($request->query('timeframe'));
     if (!$timeframe || !$from) {
         return response()->json([
-            'message' => 'Invalid timeframe. Use one of: 24h, 7d, 30d',
+            'message' => 'Invalid timeframe. Use one of: 24h, 7d, 30d, 6m',
         ], 422);
     }
 

@@ -1131,6 +1131,84 @@ function ensureManagementUsersObserver() {
 function ensureManagementSettingsActions() {
   if (typeof window === 'undefined') return;
   if (window.__smacaManagementSettingsBound) return;
+  const parseUtcMs = function (value) {
+    if (value === null || value === undefined) return NaN;
+    if (typeof value === 'number') return value;
+    const raw = String(value).trim();
+    if (!raw) return NaN;
+    const hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
+    const normalized = hasTz ? raw : raw.replace(' ', 'T') + 'Z';
+    const ms = new Date(normalized).getTime();
+    return Number.isFinite(ms) ? ms : NaN;
+  };
+  const filterDataForExportRange = function (rows, range) {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    const now = Date.now();
+    const rangeToMs = {
+      '24h': 24 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      '30d': 30 * 24 * 60 * 60 * 1000,
+      '6m': 182 * 24 * 60 * 60 * 1000
+    };
+    const selectedRange = Object.prototype.hasOwnProperty.call(rangeToMs, range) ? range : '6m';
+    const cutoff = now - rangeToMs[selectedRange];
+    return rows.filter(function (item) {
+      const itemMs = parseUtcMs(item?.time || item?.timestamp);
+      return Number.isFinite(itemMs) && itemMs >= cutoff && itemMs <= now;
+    }).sort(function (a, b) {
+      return parseUtcMs(a?.time || a?.timestamp) - parseUtcMs(b?.time || b?.timestamp);
+    });
+  };
+  const mergeIaqRows = function (baseRows, incomingRows) {
+    const merged = [].concat(Array.isArray(baseRows) ? baseRows : [], Array.isArray(incomingRows) ? incomingRows : []);
+    const deduped = [];
+    const seen = new Set();
+    merged.forEach(function (row) {
+      const sensorId = String(row?.sensorId ?? row?.sensor_id ?? '');
+      const timeKey = String(row?.time || row?.timestamp || '');
+      const key = sensorId + '|' + timeKey;
+      if (!timeKey || seen.has(key)) return;
+      seen.add(key);
+      deduped.push(row);
+    });
+    deduped.sort(function (a, b) {
+      return parseUtcMs(a?.time || a?.timestamp) - parseUtcMs(b?.time || b?.timestamp);
+    });
+    return deduped;
+  };
+  const resolveApiTimeframe = function (range) {
+    if (range === '24h' || range === '7d' || range === '30d' || range === '6m') return range;
+    return '6m';
+  };
+  const ensureIaqRowsForExport = async function (range) {
+    const existingRows = Array.isArray(SMACAState?.rawData?.iaq) ? SMACAState.rawData.iaq : [];
+    const existingFiltered = filterDataForExportRange(existingRows, range);
+    if (existingFiltered.length > 0) return existingFiltered;
+    const canUseApi = typeof window !== 'undefined'
+      && !!window.SMACAApi
+      && typeof fetchAndMapTimeseriesForSensors === 'function';
+    if (!canUseApi) return existingFiltered;
+    const iaqSensorIds = getDetectedIaqSensors()
+      .map(function (sensor) { return Number(sensor?.id); })
+      .filter(Number.isFinite);
+    if (iaqSensorIds.length === 0) return existingFiltered;
+    try {
+      const result = await fetchAndMapTimeseriesForSensors(
+        iaqSensorIds,
+        resolveApiTimeframe(range),
+        SMACA_SECTION_METRICS.iaq,
+        'iaq',
+        true
+      );
+      const apiRows = Array.isArray(result?.items) ? result.items : [];
+      if (apiRows.length === 0) return existingFiltered;
+      SMACAState.rawData.iaq = mergeIaqRows(existingRows, apiRows);
+      return filterDataForExportRange(SMACAState.rawData.iaq, range);
+    } catch (error) {
+      console.error('Failed to fetch IAQ rows for management export:', error);
+      return existingFiltered;
+    }
+  };
   const exportBtn = document.getElementById('management-export-defaults-btn');
   if (exportBtn) {
     exportBtn.addEventListener('click', function () {
@@ -1151,6 +1229,23 @@ function ensureManagementSettingsActions() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+    });
+  }
+  const exportDataBtn = document.getElementById('management-export-data-btn');
+  if (exportDataBtn) {
+    exportDataBtn.addEventListener('click', async function () {
+      const range = document.getElementById('management-export-range')?.value || '6m';
+      const originalLabel = exportDataBtn.textContent;
+      exportDataBtn.disabled = true;
+      exportDataBtn.textContent = 'Exporting...';
+      const filteredIaq = await ensureIaqRowsForExport(range);
+      if (!Array.isArray(filteredIaq) || filteredIaq.length === 0) {
+        alert('No IAQ data available for the selected export range.');
+      } else {
+        SMACACSVExport.exportIAQData(filteredIaq, range);
+      }
+      exportDataBtn.disabled = false;
+      exportDataBtn.textContent = originalLabel;
     });
   }
 

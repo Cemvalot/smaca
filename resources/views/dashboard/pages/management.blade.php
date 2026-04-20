@@ -331,6 +331,16 @@
                 <div class="stat-row"><span class="stat-row__label">Notification email</span><span id="settings-pref-email" class="stat-row__value">ops@smaca.io</span></div>
                 <div class="stat-row"><span class="stat-row__label">Export defaults</span><span id="settings-pref-export" class="stat-row__value">CSV + JSON</span></div>
                 <div class="stat-row"><span class="stat-row__label">Session timeout</span><span id="settings-pref-session-timeout" class="stat-row__value">30 min</span></div>
+                <div class="stat-row" style="align-items: center; gap: var(--space-3);">
+                  <span class="stat-row__label">Export range</span>
+                  <select id="management-export-range" class="input" style="max-width: 220px;">
+                    <option value="6m" selected>Last 6 months</option>
+                    <option value="24h">Last 24 hours</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                  </select>
+                </div>
+                <button type="button" id="management-export-data-btn" class="btn btn--primary" style="margin-top: var(--space-4);">Export IAQ Data</button>
                 <button type="button" id="management-export-defaults-btn" class="btn btn--secondary" style="margin-top: var(--space-4);">Export Defaults</button>
               </div>
             </div>

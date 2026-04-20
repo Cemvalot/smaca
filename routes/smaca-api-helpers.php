@@ -37,6 +37,7 @@ if (!function_exists('smacaApiParseTimeframe_impl')) {
             '24h' => ['24h', $nowAthens->copy()->subHours(24)],
             '7d' => ['7d', $nowAthens->copy()->subDays(7)],
             '30d' => ['30d', $nowAthens->copy()->subDays(30)],
+            '6m' => ['6m', $nowAthens->copy()->subMonths(6)],
             default => [null, null],
         };
     }
