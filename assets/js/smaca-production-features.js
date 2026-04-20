@@ -1209,28 +1209,6 @@ function ensureManagementSettingsActions() {
       return existingFiltered;
     }
   };
-  const exportBtn = document.getElementById('management-export-defaults-btn');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', function () {
-      const settings = {
-        timezone: document.getElementById('settings-pref-timezone')?.textContent || 'Europe/Athens',
-        refreshInterval: document.getElementById('settings-pref-refresh')?.textContent || '60s',
-        notificationEmail: document.getElementById('settings-pref-email')?.textContent || 'ops@smaca.io',
-        exportDefaults: document.getElementById('settings-pref-export')?.textContent || 'CSV + JSON',
-        sessionTimeout: document.getElementById('settings-pref-session-timeout')?.textContent || '30 min'
-      };
-      const fileName = 'smaca-management-defaults-' + new Date().toISOString().slice(0, 10) + '.json';
-      const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = fileName;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-    });
-  }
   const exportDataBtn = document.getElementById('management-export-data-btn');
   if (exportDataBtn) {
     exportDataBtn.addEventListener('click', async function () {

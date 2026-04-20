@@ -325,14 +325,34 @@
           <div id="management-settings-tab" class="management-tab-content" style="display: none;">
             <div class="card">
               <div class="card__body">
-                <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">Platform Preferences</h3>
-                <div class="stat-row"><span class="stat-row__label">Timezone</span><span id="settings-pref-timezone" class="stat-row__value">Europe/Athens</span></div>
-                <div class="stat-row"><span class="stat-row__label">Refresh interval</span><span id="settings-pref-refresh" class="stat-row__value">60s</span></div>
-                <div class="stat-row"><span class="stat-row__label">Notification email</span><span id="settings-pref-email" class="stat-row__value">ops@smaca.io</span></div>
-                <div class="stat-row"><span class="stat-row__label">Export defaults</span><span id="settings-pref-export" class="stat-row__value">CSV + JSON</span></div>
-                <div class="stat-row"><span class="stat-row__label">Session timeout</span><span id="settings-pref-session-timeout" class="stat-row__value">30 min</span></div>
+                <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">Profile</h3>
+                <div class="stat-row"><span class="stat-row__label">Name</span><span class="stat-row__value">{{ $currentUser->name ?? '—' }}</span></div>
+                <div class="stat-row"><span class="stat-row__label">Email</span><span class="stat-row__value">{{ $currentUser->email ?? '—' }}</span></div>
+                <form method="post" action="{{ url('/dashboard/settings/password') }}" style="margin-top: var(--space-4);">
+                  @csrf
+                  <div class="grid grid--metrics grid--metrics-3" style="gap: var(--space-3); margin-bottom: var(--space-3);">
+                    <div>
+                      <label for="management-current-password" style="display: block; margin-bottom: var(--space-1); font-size: var(--font-size-xs); color: var(--muted);">Current password</label>
+                      <input id="management-current-password" name="current_password" type="password" class="input" minlength="8" required>
+                    </div>
+                    <div>
+                      <label for="management-new-password" style="display: block; margin-bottom: var(--space-1); font-size: var(--font-size-xs); color: var(--muted);">New password</label>
+                      <input id="management-new-password" name="new_password" type="password" class="input" minlength="8" required>
+                    </div>
+                    <div>
+                      <label for="management-new-password-confirmation" style="display: block; margin-bottom: var(--space-1); font-size: var(--font-size-xs); color: var(--muted);">Confirm new password</label>
+                      <input id="management-new-password-confirmation" name="new_password_confirmation" type="password" class="input" minlength="8" required>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn--secondary">Change Password</button>
+                </form>
+              </div>
+            </div>
+            <div class="card" style="margin-top: var(--space-4);">
+              <div class="card__body">
+                <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">Export</h3>
                 <div class="stat-row" style="align-items: center; gap: var(--space-3);">
-                  <span class="stat-row__label">Export range</span>
+                  <span class="stat-row__label">Range</span>
                   <select id="management-export-range" class="input" style="max-width: 220px;">
                     <option value="6m" selected>Last 6 months</option>
                     <option value="24h">Last 24 hours</option>
@@ -341,7 +361,6 @@
                   </select>
                 </div>
                 <button type="button" id="management-export-data-btn" class="btn btn--primary" style="margin-top: var(--space-4);">Export IAQ Data</button>
-                <button type="button" id="management-export-defaults-btn" class="btn btn--secondary" style="margin-top: var(--space-4);">Export Defaults</button>
               </div>
             </div>
           </div>

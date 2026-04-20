@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 if (!function_exists('smaca_dashboard_require_login')) {
@@ -56,6 +58,10 @@ if (!function_exists('smacaDashboardViewData')) {
         $sites = collect();
         $sensors = collect();
         $sensor_latest = collect();
+        $currentUser = DB::table('users')
+            ->select(['id', 'name', 'email', 'role'])
+            ->where('id', session('user_id'))
+            ->first();
 
         if ($needsManagementData) {
             $sites = DB::table('sites')
@@ -77,6 +83,7 @@ if (!function_exists('smacaDashboardViewData')) {
             'sites' => $sites,
             'sensors' => $sensors,
             'sensor_latest' => $sensor_latest,
+            'currentUser' => $currentUser,
         ];
     }
 }
@@ -151,6 +158,55 @@ Route::get('/dashboard/management', function () {
     }
 
     return view('dashboard.pages.management', smacaDashboardViewData('management'));
+});
+
+Route::post('/dashboard/settings/password', function (Request $request) {
+    $loginRedirect = smaca_dashboard_require_login();
+    if ($loginRedirect) {
+        return $loginRedirect;
+    }
+
+    $validated = $request->validate([
+        'current_password' => ['required', 'string', 'min:8'],
+        'new_password' => ['required', 'string', 'min:8', 'different:current_password'],
+        'new_password_confirmation' => ['required', 'same:new_password'],
+    ], [
+        'new_password_confirmation.same' => 'Password confirmation does not match.',
+    ]);
+
+    $userId = (int) session('user_id');
+    $user = DB::table('users')
+        ->select(['id', 'password'])
+        ->where('id', $userId)
+        ->first();
+
+    if (!$user) {
+        session()->flush();
+        session()->invalidate();
+        session()->regenerateToken();
+        return redirect('/login')->with('error', 'Session expired. Please sign in again.');
+    }
+
+    $storedPassword = (string) $user->password;
+    $currentPassword = (string) $validated['current_password'];
+    $currentPasswordMatches = Hash::info($storedPassword)['algo'] !== null
+        ? Hash::check($currentPassword, $storedPassword)
+        : hash_equals($storedPassword, $currentPassword);
+
+    if (!$currentPasswordMatches) {
+        return redirect('/dashboard/management')
+            ->with('error', 'Current password is incorrect.');
+    }
+
+    DB::table('users')
+        ->where('id', $userId)
+        ->update([
+            'password' => Hash::make((string) $validated['new_password']),
+            'updated_at' => now(),
+        ]);
+
+    return redirect('/dashboard/management')
+        ->with('success', 'Password updated successfully.');
 });
 
 Route::get('/dashboard-legacy', function () {
