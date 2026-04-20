@@ -37,6 +37,7 @@
         </div>
       </div>
     </article>
+    @if($smacaIsAdmin)
     <article class="stat-card overview-kpi-card">
       <div class="stat-card__content">
         <div class="stat-card__label">Connectivity Health</div>
@@ -47,6 +48,7 @@
         </div>
       </div>
     </article>
+    @endif
   </div>
 
   <div class="overview-top-grid">
@@ -61,15 +63,17 @@
       </div>
       <div class="card__body">
         <p class="overview-live-subtitle">
-          High-level campus monitoring across air quality, occupancy, environmental exposure, and connectivity.
+          High-level campus monitoring across air quality, occupancy, and environmental exposure.
         </p>
         <div class="overview-badge-row">
           <span class="overview-status-badge overview-status-badge--success">
             <i class="overview-dot overview-dot--success"></i><span id="overview-badge-air-quality">Air Quality: --</span>
           </span>
+          @if($smacaIsAdmin)
           <span class="overview-status-badge overview-status-badge--info">
             <i class="overview-dot overview-dot--info"></i><span id="overview-badge-connectivity">Connectivity: --</span>
           </span>
+          @endif
           <span class="overview-status-badge overview-status-badge--warning">
             <i class="overview-dot overview-dot--warning"></i><span id="overview-badge-occupancy">Occupancy: --</span>
           </span>
@@ -215,6 +219,7 @@
           <span class="overview-module-card__desc">Monitor utilization and movement across spaces.</span>
           <span class="overview-module-card__action">Open module</span>
         </a>
+        @if($smacaIsAdmin)
         <a href="{{ url('/dashboard/connectivity') }}" class="overview-module-card" data-section="connectivity">
           <span class="overview-module-card__icon">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
@@ -223,6 +228,7 @@
           <span class="overview-module-card__desc">Inspect network reliability and endpoint health.</span>
           <span class="overview-module-card__action">Open module</span>
         </a>
+        @endif
         @if($smacaIsAdmin)
           <a href="{{ url('/dashboard/energy') }}" class="overview-module-card overview-module-card--admin" data-section="energy">
             <span class="overview-module-card__icon">

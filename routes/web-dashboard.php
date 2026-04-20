@@ -118,9 +118,9 @@ Route::get('/dashboard/environmental', function () {
 });
 
 Route::get('/dashboard/connectivity', function () {
-    $loginRedirect = smaca_dashboard_require_login();
-    if ($loginRedirect) {
-        return $loginRedirect;
+    $adminRedirect = smaca_dashboard_require_admin();
+    if ($adminRedirect) {
+        return $adminRedirect;
     }
 
     return view('dashboard.pages.connectivity', smacaDashboardViewData('connectivity'));
