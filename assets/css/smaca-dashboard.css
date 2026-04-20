@@ -1850,3 +1850,250 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* =========================================================
+   Responsive hardening (mobile-first safety overrides)
+   ========================================================= */
+
+/* Prevent horizontal bleed from nested grids/flex layouts */
+.app,
+.main,
+.content,
+.dashboard-section,
+.dashboard-section .grid,
+.card,
+.card__body {
+  min-width: 0;
+}
+
+.content {
+  width: 100%;
+  overflow-x: clip;
+}
+
+.topbar__actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.time-range-selector {
+  flex-wrap: wrap;
+}
+
+.section-hero__title {
+  font-size: clamp(1.35rem, 2.4vw, var(--font-size-3xl));
+}
+
+.section-hero__subtitle,
+.section-subtitle {
+  overflow-wrap: anywhere;
+}
+
+.management-row-actions {
+  flex-wrap: wrap;
+}
+
+.management-tabs-bar {
+  flex-wrap: wrap;
+}
+
+#sensor-health-table,
+#sensors-management-table,
+#users-management-table,
+#management-ai-events-tab .card,
+#management-sensors-tab .card,
+#management-users-tab .card {
+  width: 100%;
+}
+
+#sensor-health-table,
+#management-ai-events-tab .card,
+#management-sensors-tab .card,
+#management-users-tab .card {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#sensor-health-table table,
+#sensors-management-table,
+#users-management-table,
+.ai-events-table {
+  min-width: 680px;
+}
+
+#sensor-health-table td,
+#sensor-health-table th,
+#sensors-management-table td,
+#sensors-management-table th,
+#users-management-table td,
+#users-management-table th,
+.ai-events-table td,
+.ai-events-table th {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .grid-2-1,
+  .environmental-main-grid,
+  .environmental-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-hero__inner {
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 1024px) {
+  .management-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-section .grid[style*="grid-template-columns: 2fr 1fr"],
+  .dashboard-section .grid[style*="grid-template-columns: repeat(2, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    align-items: flex-start;
+  }
+
+  .topbar__title {
+    width: 100%;
+  }
+
+  .topbar__actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: var(--space-2);
+  }
+
+  .system-health-badge {
+    max-width: 100%;
+  }
+
+  .section-hero {
+    padding: var(--space-5);
+  }
+
+  .section-hero__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .section-hero__title-row {
+    align-items: flex-start;
+  }
+
+  .section-hero__stat {
+    align-items: flex-start;
+    text-align: left;
+    min-width: 0;
+  }
+
+  .management-search-bar {
+    flex-wrap: wrap;
+  }
+
+  .management-search-bar .input {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  #management-sensors-tab > div[style*="justify-content: space-between"],
+  #management-users-tab > div[style*="justify-content: space-between"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  #management-sensors-tab > div[style*="justify-content: space-between"] .btn,
+  #management-users-tab > div[style*="justify-content: space-between"] .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .smaca-page-loading-overlay__panel {
+    min-width: 0;
+    width: min(100%, 300px);
+  }
+
+  #smaca-toast-container {
+    right: var(--space-4);
+    left: var(--space-4);
+    bottom: var(--space-4);
+  }
+
+  .smaca-toast {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: var(--space-3);
+  }
+
+  .card__header,
+  .card__body {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .time-range-selector {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .time-range-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .quick-links-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .management-tab {
+    flex: 1 1 calc(50% - var(--space-2));
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar__heading {
+    font-size: var(--font-size-xl);
+  }
+
+  .section-hero {
+    padding: var(--space-4);
+  }
+
+  .section-hero__title {
+    font-size: var(--font-size-xl);
+  }
+
+  .section-hero__subtitle {
+    font-size: var(--font-size-sm);
+  }
+
+  .card__header,
+  .card__body {
+    padding: var(--space-3);
+  }
+
+  .management-tab {
+    flex-basis: 100%;
+  }
+
+  #sensor-health-table table,
+  #sensors-management-table,
+  #users-management-table,
+  .ai-events-table {
+    min-width: 620px;
+  }
+}

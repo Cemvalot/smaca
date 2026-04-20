@@ -1050,10 +1050,50 @@ function initRBAC() {
   if (exportBtn && !isAdmin) exportBtn.setAttribute('title', 'Basic export only');
 }
 
+function initSidebarToggle() {
+  const sidebar = document.querySelector('.sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  if (!sidebar || !toggleBtn) return;
+
+  const closeSidebar = function () {
+    sidebar.classList.remove('is-open');
+    toggleBtn.setAttribute('aria-expanded', 'false');
+  };
+
+  const openSidebar = function () {
+    sidebar.classList.add('is-open');
+    toggleBtn.setAttribute('aria-expanded', 'true');
+  };
+
+  toggleBtn.setAttribute('aria-expanded', 'false');
+  toggleBtn.addEventListener('click', function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (sidebar.classList.contains('is-open')) closeSidebar();
+    else openSidebar();
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!sidebar.classList.contains('is-open')) return;
+    if (sidebar.contains(event.target) || toggleBtn.contains(event.target)) return;
+    closeSidebar();
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') closeSidebar();
+  });
+
+  window.addEventListener('resize', function () {
+    // Keep desktop sidebar always visible by clearing mobile-open state.
+    if (window.innerWidth > 768) closeSidebar();
+  });
+}
+
 // Page-aware bootstrap for split dashboard routes.
 document.addEventListener('DOMContentLoaded', function() {
   loadPersistedData();
   initRBAC();
+  initSidebarToggle();
   if (typeof SMACAUI !== 'undefined' && SMACAUI.initAccordions) {
     SMACAUI.initAccordions('.smaca-accordion');
   }
