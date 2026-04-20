@@ -6,6 +6,8 @@ const SMACAState = {
     environmental: [],
     energy: []
   },
+  cacheVersion: 0,
+  filteredCache: {},
   
   // Get milliseconds for timeframe
   getTimeframeMs(timeframe) {
@@ -55,41 +57,49 @@ const SMACAState = {
     
     return filtered;
   },
+
+  invalidateFilteredCache() {
+    this.cacheVersion += 1;
+    this.filteredCache = {};
+  },
+
+  getFilteredByType(type) {
+    const cacheKey = [type, this.currentTimeframe, this.cacheVersion].join('|');
+    if (Object.prototype.hasOwnProperty.call(this.filteredCache, cacheKey)) {
+      return this.filteredCache[cacheKey];
+    }
+    const source = Array.isArray(this.rawData[type]) ? this.rawData[type] : [];
+    const filtered = this.filterByTimeframe(source, this.currentTimeframe);
+    this.filteredCache[cacheKey] = filtered;
+    return filtered;
+  },
   
   // Get filtered IAQ data for current timeframe
   getFilteredIAQ() {
-    const filtered = this.filterByTimeframe(this.rawData.iaq, this.currentTimeframe);
-    return filtered;
+    return this.getFilteredByType('iaq');
   },
   
   // Get filtered Occupancy data
   getFilteredOccupancy() {
-    const filtered = this.filterByTimeframe(this.rawData.occupancy, this.currentTimeframe);
-    return filtered;
+    return this.getFilteredByType('occupancy');
   },
   
   // Get filtered Environmental data
   getFilteredEnvironmental() {
-    const filtered = this.filterByTimeframe(this.rawData.environmental, this.currentTimeframe);
-    return filtered;
+    return this.getFilteredByType('environmental');
   },
 
   // Get filtered Energy data
   getFilteredEnergy() {
-    const filtered = this.filterByTimeframe(this.rawData.energy, this.currentTimeframe);
-    return filtered;
+    return this.getFilteredByType('energy');
   },
   
   // Set timeframe and trigger update
   setTimeframe(timeframe) {
     if (['24h', '7d', '30d'].includes(timeframe)) {
+      if (this.currentTimeframe === timeframe) return;
       this.currentTimeframe = timeframe;
-      const filteredData = {
-        iaq: this.getFilteredIAQ(),
-        occupancy: this.getFilteredOccupancy(),
-        environmental: this.getFilteredEnvironmental(),
-        energy: this.getFilteredEnergy()
-      };
+      this.invalidateFilteredCache();
       this.notifyListeners();
     }
   },
@@ -117,7 +127,7 @@ const SMACAState = {
       const itemTime = new Date(normalized).getTime();
       return Number.isFinite(itemTime) && itemTime >= thirtyDaysAgo;
     });
-    
+    this.invalidateFilteredCache();
     
     // Notify listeners for single adds
     this.notifyListeners();
@@ -153,6 +163,7 @@ const SMACAState = {
       const itemTime = new Date(normalized).getTime();
       return Number.isFinite(itemTime) && itemTime >= thirtyDaysAgo;
     });
+    this.invalidateFilteredCache();
     
     const afterCount = this.rawData[type].length;
     
@@ -168,14 +179,15 @@ const SMACAState = {
   },
   
   notifyListeners() {
+    const filteredPayload = {
+      iaq: this.getFilteredIAQ(),
+      occupancy: this.getFilteredOccupancy(),
+      environmental: this.getFilteredEnvironmental(),
+      energy: this.getFilteredEnergy()
+    };
     this.listeners.forEach((callback, index) => {
       try {
-        callback(this.currentTimeframe, {
-          iaq: this.getFilteredIAQ(),
-          occupancy: this.getFilteredOccupancy(),
-          environmental: this.getFilteredEnvironmental(),
-          energy: this.getFilteredEnergy()
-        });
+        callback(this.currentTimeframe, filteredPayload);
       } catch (e) {
         // Silently handle listener errors in production
       }

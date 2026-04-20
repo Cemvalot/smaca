@@ -124,6 +124,22 @@ const SMACA_TS_CACHE = {
   render: {}
 };
 
+const SMACA_DEBUG_ENABLED = typeof window !== 'undefined' && window.SMACA_DEBUG === true;
+function smacaDebug() {
+  if (!SMACA_DEBUG_ENABLED || typeof console === 'undefined' || typeof console.debug !== 'function') return;
+  console.debug.apply(console, arguments);
+}
+
+function runWhenBrowserIdle(callback, timeoutMs) {
+  if (typeof callback !== 'function') return;
+  const timeout = Number.isFinite(timeoutMs) ? timeoutMs : 180;
+  if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(function () { callback(); }, { timeout: timeout });
+    return;
+  }
+  setTimeout(callback, Math.min(timeout, 180));
+}
+
 function getSmacaCurrentPage() {
   const explicitPage = typeof window !== 'undefined' ? window.SMACA_CURRENT_PAGE : null;
   if (explicitPage) return String(explicitPage);
@@ -248,8 +264,10 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Setup system health badge
   updateSystemHealthBadge();
   
-  // Setup alerts panel
-  updateAlertsPanel();
+  // Setup alerts panel after core content is interactive.
+  runWhenBrowserIdle(function () {
+    updateAlertsPanel();
+  }, 220);
   
   // Listen for state changes
   SMACAState.onUpdate(function(timeframe, filteredData) {
@@ -622,12 +640,20 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
   try {
     const prefetchedOverview = opts.prefetchedOverview || null;
     const prefetchedSensors = Array.isArray(opts.prefetchedSensors) ? opts.prefetchedSensors : null;
+    const cachedContextOverview = window.SMACADashboardContext?.overview || null;
+    const cachedContextSensors = Array.isArray(window.SMACADashboardContext?.sensors)
+      ? window.SMACADashboardContext.sensors
+      : null;
+    const canReuseCachedContext = !forceRefresh && !!cachedContextOverview && Array.isArray(cachedContextSensors) && cachedContextSensors.length > 0;
 
     let overview;
     let sensors;
     if (prefetchedOverview && prefetchedSensors) {
       overview = prefetchedOverview;
       sensors = prefetchedSensors;
+    } else if (canReuseCachedContext) {
+      overview = cachedContextOverview;
+      sensors = cachedContextSensors;
     } else {
       const apiResults = await Promise.allSettled([
         window.SMACAApi.fetchDashboardOverview(),
@@ -853,26 +879,35 @@ function toConnectivitySensorRow(sensor, latestRow) {
 
 async function hydrateSensorLatestRowsForUi(sensors, forceRefresh) {
   const rows = Array.isArray(sensors) ? sensors : [];
-  const results = await Promise.all(rows.map(function (sensor) {
-    const sensorId = Number(sensor?.id);
-    if (!Number.isFinite(sensorId)) return Promise.resolve(null);
-    const cacheKey = String(sensorId);
-    if (!forceRefresh && Object.prototype.hasOwnProperty.call(SMACA_TS_CACHE.latest, cacheKey)) {
-      return Promise.resolve({ sensorId: sensorId, row: SMACA_TS_CACHE.latest[cacheKey] });
-    }
-    return window.SMACAApi.fetchSensorLatest(sensorId).then(function (payload) {
-      const row = payload?.row || null;
-      SMACA_TS_CACHE.latest[cacheKey] = row;
-      return { sensorId: sensorId, row: row };
-    }).catch(function () {
-      return { sensorId: sensorId, row: null };
+  const validSensorIds = rows
+    .map(function (sensor) { return Number(sensor?.id); })
+    .filter(Number.isFinite);
+  const latestById = {};
+  const maxConcurrency = 8;
+
+  for (let idx = 0; idx < validSensorIds.length; idx += maxConcurrency) {
+    const batch = validSensorIds.slice(idx, idx + maxConcurrency);
+    const batchResults = await Promise.all(batch.map(function (sensorId) {
+      const cacheKey = String(sensorId);
+      if (!forceRefresh && Object.prototype.hasOwnProperty.call(SMACA_TS_CACHE.latest, cacheKey)) {
+        return Promise.resolve({ sensorId: sensorId, row: SMACA_TS_CACHE.latest[cacheKey] });
+      }
+      return window.SMACAApi.fetchSensorLatest(sensorId).then(function (payload) {
+        const row = payload?.row || null;
+        SMACA_TS_CACHE.latest[cacheKey] = row;
+        return { sensorId: sensorId, row: row };
+      }).catch(function () {
+        return { sensorId: sensorId, row: null };
+      });
+    }));
+
+    batchResults.forEach(function (item) {
+      if (item && Number.isFinite(item.sensorId)) latestById[String(item.sensorId)] = item.row;
     });
-  }));
+  }
+
   if (typeof window !== 'undefined') {
-    window.SMACADashboardContext.selectedSensorLatestById = results.reduce(function (acc, item) {
-      if (item && Number.isFinite(item.sensorId)) acc[String(item.sensorId)] = item.row;
-      return acc;
-    }, {});
+    window.SMACADashboardContext.selectedSensorLatestById = latestById;
   }
 }
 
@@ -1772,46 +1807,35 @@ function setupTimeRangeSelector() {
         selector.style.pointerEvents = 'none';
       }
       
-      // Update active state with smooth transition
+      // Update active state via classes to avoid inline style churn.
       buttons.forEach(b => {
         b.classList.remove('active');
-        b.style.background = 'transparent';
-        b.style.color = 'var(--muted)';
-        b.style.fontWeight = 'normal';
       });
       
       this.classList.add('active');
-      this.style.background = 'var(--surface)';
-      this.style.color = 'var(--text)';
-      this.style.fontWeight = '600';
       
-      if (window.SMACAApi && window.SMACACurrentSensorId) {
-        try {
+      try {
+        if (window.SMACAApi && window.SMACACurrentSensorId) {
           await refreshDashboardForSelection(window.SMACACurrentSensorId, timeframe);
-        } catch (error) {
-          console.error('Failed to refresh timeframe from API:', error);
+        } else {
+          SMACAState.setTimeframe(timeframe);
         }
-      } else {
-        SMACAState.setTimeframe(timeframe);
-      }
-      
-      // Remove loading state after a short delay
-      setTimeout(() => {
+      } catch (error) {
+        console.error('Failed to refresh timeframe from API:', error);
+      } finally {
         if (selector) {
           selector.style.opacity = '1';
           selector.style.pointerEvents = 'auto';
         }
-      }, 300);
+      }
     });
   });
   
   // Set initial active state
   const activeBtn = Array.from(buttons).find(btn => btn.getAttribute('data-timeframe') === SMACAState.currentTimeframe);
   if (activeBtn) {
+    buttons.forEach(function (b) { b.classList.remove('active'); });
     activeBtn.classList.add('active');
-    activeBtn.style.background = 'var(--surface)';
-    activeBtn.style.color = 'var(--text)';
-    activeBtn.style.fontWeight = '600';
   }
 }
 
@@ -2219,7 +2243,7 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   const environmentalSection = document.querySelector('#environmental');
   if (!environmentalSection) return;
   const tf = timeframe || '24h';
-  console.debug('[SMACA][UV] timeframe change start', { timeframe: tf });
+  smacaDebug('[SMACA][UV] timeframe change start', { timeframe: tf });
 
   const uvCounter = document.getElementById('environmental-uv-index');
   const currentUvEl = document.getElementById('env-kpi-current-uv');
@@ -2450,9 +2474,9 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     && typeof adapter.createUvDailyComparisonChart === 'function'
     && adapter.hasHighcharts
     && adapter.hasHighcharts());
-  console.debug('[SMACA][UV] chart update start', { timeframe: tf });
+  smacaDebug('[SMACA][UV] chart update start', { timeframe: tf });
   if (hasHighcharts) {
-    console.debug('[SMACA][UV] renderer = highcharts');
+    smacaDebug('[SMACA][UV] renderer = highcharts');
     adapter.createUvMainTrendChart('uv-main-chart', {
       timeframe: tf,
       bucketTimesMs: bucketTimesMs,
@@ -2491,13 +2515,13 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
       dailyComparisonSeries: dailyComparisonSeries
     };
   }
-  console.debug('[SMACA][UV] chart update success', { timeframe: tf, points: filteredRows.length });
+  smacaDebug('[SMACA][UV] chart update success', { timeframe: tf, points: filteredRows.length });
 }
 
 // Update Occupancy charts with filtered data
 function updateOccupancyCharts(filteredOccupancy, timeframe) {
   if (getSmacaCurrentPage() !== 'occupancy') return;
-  console.debug('[SMACA][OCCUPANCY] timeframe change start', { timeframe: timeframe });
+  smacaDebug('[SMACA][OCCUPANCY] timeframe change start', { timeframe: timeframe });
   ensureOccupancyLocationChartContainers();
   const selectedSensorId = typeof window !== 'undefined' ? window.SMACACurrentSensorId : null;
   const hydratedRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : [];
@@ -2525,7 +2549,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
   const hasHighcharts = !!(adapter && typeof adapter.createOccupancyMainCombinedChart === 'function' && adapter.hasHighcharts && adapter.hasHighcharts());
   const hasHeatmapModule = !!(adapter && adapter.hasHeatmapModule && adapter.hasHeatmapModule());
 
-  console.debug('[SMACA][OCCUPANCY] chart update start', { timeframe: timeframe });
+  smacaDebug('[SMACA][OCCUPANCY] chart update start', { timeframe: timeframe });
 
   const HOUR_MS = 60 * 60 * 1000;
   const DAY_MS = 24 * HOUR_MS;
@@ -2689,7 +2713,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
     }
 
     if (hasHighcharts) {
-      console.debug('[SMACA][OCCUPANCY] renderer = highcharts');
+      smacaDebug('[SMACA][OCCUPANCY] renderer = highcharts');
       try {
         adapter.createOccupancyMainCombinedChart('occupancy-flow-chart', {
           timeframe: timeframe,
@@ -2773,9 +2797,9 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
           if (el) el.innerHTML = '';
         }
 
-        console.debug('[SMACA][OCCUPANCY] chart update success', { timeframe: timeframe });
+        smacaDebug('[SMACA][OCCUPANCY] chart update success', { timeframe: timeframe });
       } catch (e) {
-        console.debug('[SMACA][OCCUPANCY] highcharts renderer failed, falling back', e);
+        smacaDebug('[SMACA][OCCUPANCY] highcharts renderer failed, falling back', e);
         renderOccupancyChartWhenReady('occupancy-flow-chart', function () {
           if (typeof createFlowBarChart !== 'function') throw new Error('createFlowBarChart unavailable');
           if (safeFlowIn.length === 0 || safeFlowOut.length === 0) throw new Error('empty-flow-arrays');
@@ -2797,7 +2821,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
       return;
     }
 
-    console.debug('[SMACA][OCCUPANCY] renderer = fallback');
+    smacaDebug('[SMACA][OCCUPANCY] renderer = fallback');
     renderOccupancyChartWhenReady('occupancy-flow-chart', function () {
       if (typeof createFlowBarChart !== 'function') throw new Error('createFlowBarChart unavailable');
       if (safeFlowIn.length === 0 || safeFlowOut.length === 0) throw new Error('empty-flow-arrays');
@@ -3284,8 +3308,8 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     return;
   }
 
-  console.debug('[SMACA][ENERGY] timeframe change start', { timeframe: timeframe });
-  console.debug('[SMACA][ENERGY] active timeframe = ' + timeframe);
+  smacaDebug('[SMACA][ENERGY] timeframe change start', { timeframe: timeframe });
+  smacaDebug('[SMACA][ENERGY] active timeframe = ' + timeframe);
 
   const adapter = typeof window !== 'undefined' ? window.SMACAHighchartsAdapter : null;
   const hasHighcharts = !!(adapter && typeof adapter.createEnergyMainCombinedChart === 'function' && adapter.hasHighcharts && adapter.hasHighcharts());
@@ -3297,7 +3321,7 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     return;
   }
 
-  console.debug('[SMACA][ENERGY] chart update start', { timeframe: timeframe });
+  smacaDebug('[SMACA][ENERGY] chart update start', { timeframe: timeframe });
 
   const HOUR_MS = 60 * 60 * 1000;
   const DAY_MS = 24 * HOUR_MS;
@@ -3388,7 +3412,7 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   const filteredEnergyPoints = energyPoints.filter(function (p) {
     return !!allowedSensorSet[String(p.sensorId)];
   });
-  console.debug('[SMACA][ENERGY] sensor quality filter', {
+  smacaDebug('[SMACA][ENERGY] sensor quality filter', {
     timeframe: timeframe,
     validSensorCount: sensorIds.length,
     filteredOutSensorCount: filteredOutSensorCount
@@ -3620,8 +3644,8 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   }
   energyRenderState.lastTimeframe = timeframe;
 
-  console.debug('[SMACA][ENERGY] chart render start', { timeframe: timeframe });
-  console.debug('[SMACA][ENERGY] using recreate path = ' + String(timeframeChanged));
+  smacaDebug('[SMACA][ENERGY] chart render start', { timeframe: timeframe });
+  smacaDebug('[SMACA][ENERGY] using recreate path = ' + String(timeframeChanged));
 
   const mainRendered = adapter.createEnergyMainCombinedChart(mainChartId, {
     timeframe: timeframe,
@@ -3685,9 +3709,9 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     setEmptyContainer(shareChartId, 'Energy share unavailable for the selected timeframe.');
   }
 
-  console.debug('[SMACA][ENERGY] renderer = highcharts', { timeframe: timeframe });
-  console.debug('[SMACA][ENERGY] chart render success', { timeframe: timeframe });
-  console.debug('[SMACA][ENERGY] chart update success', { timeframe: timeframe });
+  smacaDebug('[SMACA][ENERGY] renderer = highcharts', { timeframe: timeframe });
+  smacaDebug('[SMACA][ENERGY] chart render success', { timeframe: timeframe });
+  smacaDebug('[SMACA][ENERGY] chart update success', { timeframe: timeframe });
 
   const mainContainer = document.getElementById(mainChartId);
   const containerWidth = Number(mainContainer?.offsetWidth || 0);

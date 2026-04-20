@@ -1,5 +1,41 @@
 // SMACA API helpers (plain JS, framework-free)
 (function () {
+  const REQUEST_CACHE = {
+    values: {},
+    inflight: {}
+  };
+
+  const REQUEST_TTLS_MS = {
+    '/api/dashboard/overview': 12000,
+    '/api/sensors': 12000
+  };
+
+  function nowMs() {
+    return Date.now();
+  }
+
+  function getTtlForPath(path) {
+    if (REQUEST_TTLS_MS[path]) return REQUEST_TTLS_MS[path];
+    if (/\/timeseries\?/.test(path)) return 30000;
+    if (/\/latest$/.test(path)) return 8000;
+    return 0;
+  }
+
+  function readCached(path) {
+    const ttlMs = getTtlForPath(path);
+    if (!ttlMs) return null;
+    const cached = REQUEST_CACHE.values[path];
+    if (!cached) return null;
+    if ((nowMs() - cached.ts) > ttlMs) return null;
+    return cached.value;
+  }
+
+  function writeCache(path, value) {
+    const ttlMs = getTtlForPath(path);
+    if (!ttlMs) return;
+    REQUEST_CACHE.values[path] = { ts: nowMs(), value: value };
+  }
+
   function getBaseUrl() {
     const configuredBase = (window.SMACA_BASE_URL || '').trim();
     if (!configuredBase) return '';
@@ -51,16 +87,32 @@
   }
 
   async function fetchJson(path) {
+    const cached = readCached(path);
+    if (cached) return cached;
+
+    if (REQUEST_CACHE.inflight[path]) return REQUEST_CACHE.inflight[path];
+
     const baseUrl = getBaseUrl();
     const url = `${baseUrl}${path}`;
-    try {
-      return await requestJson(url);
-    } catch (error) {
-      if (baseUrl && isNetworkLoadError(error)) {
-        return requestJson(path);
+
+    REQUEST_CACHE.inflight[path] = (async function () {
+      try {
+        const result = await requestJson(url);
+        writeCache(path, result);
+        return result;
+      } catch (error) {
+        if (baseUrl && isNetworkLoadError(error)) {
+          const fallbackResult = await requestJson(path);
+          writeCache(path, fallbackResult);
+          return fallbackResult;
+        }
+        throw error;
+      } finally {
+        delete REQUEST_CACHE.inflight[path];
       }
-      throw error;
-    }
+    })();
+
+    return REQUEST_CACHE.inflight[path];
   }
 
   function toNumberOrNull(value) {
