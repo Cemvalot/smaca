@@ -4,111 +4,104 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register - SMACA</title>
-  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}">
-  <link rel="stylesheet" href="{{ asset('assets/css/register.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v=4">
+  <link rel="stylesheet" href="{{ asset('assets/css/auth.css') }}?v={{ time() }}">
 </head>
 <body class="register-page">
   <div class="auth-wrapper">
     <div class="auth-card">
-      <!-- Left Panel -->
+      <!-- Left Panel (Form) -->
       <div class="auth-left">
-        <div class="left-top">
-          <div class="logo-group">
-            <span class="logo-text">SMACA</span>
-            <span class="logo-sub">Smart Campus IoT Platform</span>
+        <div class="form-shell">
+          <div class="left-top">
+            <div class="logo-group">
+              <span class="logo-text">SMACA</span>
+              <span class="logo-sub">Smart Campus IoT Platform</span>
+            </div>
+            <a href="{{ url('/landing') }}" class="back-btn">Back to website →</a>
           </div>
-          <a href="{{ url('/landing') }}" class="back-btn">Back to website →</a>
-        </div>
-        <div class="image-carousel">
-          <div class="carousel-track">
-            <img src="{{ asset('assets/image1.jpg') }}" alt="SMACA 1" class="carousel-slide active">
-            <img src="{{ asset('assets/image2.jpg') }}" alt="SMACA 2" class="carousel-slide">
-            <img src="{{ asset('assets/image3.jpg') }}" alt="SMACA 3" class="carousel-slide">
+          <div class="form-header">
+            <h1 class="form-title">Create account</h1>
+            <p class="form-subtitle">Join SMACA to get started</p>
           </div>
-          <div class="pagination-dots" aria-hidden="true">
-            <span class="dot active" data-index="0"></span>
-            <span class="dot" data-index="1"></span>
-            <span class="dot" data-index="2"></span>
-          </div>
-        </div>
-        <div class="left-bottom">
-          <h2 class="headline">Monitor. Analyze. Optimize.</h2>
-          <p class="subline">Unified IoT monitoring for buildings and campuses.</p>
+          @if (session('success'))
+            <div class="auth-success" role="status">
+              {{ session('success') }}
+            </div>
+          @endif
+          @if (session('error'))
+            <div class="auth-error" role="alert">
+              {{ session('error') }}
+            </div>
+          @endif
+
+          <form class="auth-form" id="registerForm" method="POST" action="{{ url('/register') }}">
+            @csrf
+            <div class="form-field">
+              <label for="name" class="form-label">Full Name</label>
+              <div class="input-wrapper">
+                <input type="text" id="name" name="name" class="form-input @error('name') is-invalid @enderror" placeholder="John Doe" required value="{{ old('name') }}">
+              </div>
+              @error('name')
+                <p class="field-error" role="alert">{{ $message }}</p>
+              @enderror
+            </div>
+            <div class="form-field">
+              <label for="email" class="form-label">Email</label>
+              <div class="input-wrapper">
+                <input type="email" id="email" name="email" class="form-input @error('email') is-invalid @enderror" placeholder="you@company.com" required value="{{ old('email') }}">
+              </div>
+              @error('email')
+                <p class="field-error" role="alert">{{ $message }}</p>
+              @enderror
+            </div>
+            <div class="form-field">
+              <label for="password" class="form-label">Password</label>
+              <div class="input-wrapper input-wrapper--password">
+                <input type="password" id="password" name="password" class="form-input @error('password') is-invalid @enderror" placeholder="••••••••" required>
+                <button type="button" class="pwd-toggle" aria-label="Toggle password visibility">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              @error('password')
+                <p class="field-error" role="alert">{{ $message }}</p>
+              @enderror
+            </div>
+            <div class="form-field">
+              <label for="confirmPassword" class="form-label">Confirm Password</label>
+              <div class="input-wrapper input-wrapper--password">
+                <input type="password" id="confirmPassword" name="confirmPassword" class="form-input @error('confirmPassword') is-invalid @enderror" placeholder="••••••••" required>
+                <button type="button" class="pwd-toggle pwd-toggle--confirm" aria-label="Toggle password visibility">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              @error('confirmPassword')
+                <p class="field-error" role="alert">{{ $message }}</p>
+              @enderror
+            </div>
+            <div class="options-row options-row--terms">
+              <label class="remember-me">
+                <input type="checkbox" name="terms" id="terms" required>
+                <span class="checkbox-box"></span>
+                <span>I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></span>
+              </label>
+            </div>
+            <button type="submit" class="btn-signin">Sign up</button>
+          </form>
+
+          <p class="form-footer">Already have an account? <a href="{{ url('/login') }}">Sign in</a></p>
         </div>
       </div>
 
-      <!-- Right Panel -->
+      <!-- Right Panel (Visual) -->
       <div class="auth-right">
-        <div class="form-header">
-          <h1 class="form-title">Create account</h1>
-          <p class="form-subtitle">Join SMACA to get started</p>
+        <div class="visual-panel">
+          <div class="visual-copy">
+            <h2 class="headline">Create your SMACA workspace</h2>
+            <p class="subline">Get started with real-time monitoring and system insights in minutes.</p>
+          </div>
+          <img src="{{ asset('assets/register.svg') }}" alt="Authentication dashboard illustration" class="auth-illustration">
         </div>
-        @if (session('success'))
-          <div class="auth-success" role="status">
-            {{ session('success') }}
-          </div>
-        @endif
-        @if (session('error'))
-          <div class="auth-error" role="alert">
-            {{ session('error') }}
-          </div>
-        @endif
-
-        <form class="auth-form" id="registerForm" method="POST" action="{{ url('/register') }}">
-          @csrf
-          <div class="form-field">
-            <label for="name" class="form-label">Full Name</label>
-            <div class="input-wrapper">
-              <input type="text" id="name" name="name" class="form-input @error('name') is-invalid @enderror" placeholder="John Doe" required value="{{ old('name') }}">
-            </div>
-            @error('name')
-              <p class="field-error" role="alert">{{ $message }}</p>
-            @enderror
-          </div>
-          <div class="form-field">
-            <label for="email" class="form-label">Email</label>
-            <div class="input-wrapper">
-              <input type="email" id="email" name="email" class="form-input @error('email') is-invalid @enderror" placeholder="you@company.com" required value="{{ old('email') }}">
-            </div>
-            @error('email')
-              <p class="field-error" role="alert">{{ $message }}</p>
-            @enderror
-          </div>
-          <div class="form-field">
-            <label for="password" class="form-label">Password</label>
-            <div class="input-wrapper input-wrapper--password">
-              <input type="password" id="password" name="password" class="form-input @error('password') is-invalid @enderror" placeholder="••••••••" required>
-              <button type="button" class="pwd-toggle" aria-label="Toggle password visibility">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-            @error('password')
-              <p class="field-error" role="alert">{{ $message }}</p>
-            @enderror
-          </div>
-          <div class="form-field">
-            <label for="confirmPassword" class="form-label">Confirm Password</label>
-            <div class="input-wrapper input-wrapper--password">
-              <input type="password" id="confirmPassword" name="confirmPassword" class="form-input @error('confirmPassword') is-invalid @enderror" placeholder="••••••••" required>
-              <button type="button" class="pwd-toggle pwd-toggle--confirm" aria-label="Toggle password visibility">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-            @error('confirmPassword')
-              <p class="field-error" role="alert">{{ $message }}</p>
-            @enderror
-          </div>
-          <div class="options-row options-row--terms">
-            <label class="remember-me">
-              <input type="checkbox" name="terms" id="terms" required>
-              <span class="checkbox-box"></span>
-              <span>I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></span>
-            </label>
-          </div>
-          <button type="submit" class="btn-signin">Sign up</button>
-        </form>
-
-        <p class="form-footer">Already have an account? <a href="{{ url('/login') }}">Sign in</a></p>
       </div>
     </div>
   </div>
