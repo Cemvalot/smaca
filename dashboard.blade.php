@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="base-url" content="{{ url('/') }}">
   <title>SMACA Dashboard - Unified IoT Monitoring</title>
+  <link rel="icon" type="image/x-icon" href="{{ asset('assets/brand/favicon.ico') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/smaca-favicon-32.png') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ asset('assets/brand/smaca-favicon.svg') }}">
+  <link rel="shortcut icon" href="{{ asset('assets/brand/favicon.ico') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/brand/smaca-favicon-180.png') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v={{ time() }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-logo.css') }}?v={{ time() }}">
   <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ time() }}">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}?v={{ time() }}">
 </head>
@@ -14,8 +20,19 @@
     <!-- Left Sidebar -->
     <aside class="sidebar">
       <div class="sidebar__header">
-        <div class="sidebar__logo">SMACA</div>
-        <div class="sidebar__subtitle">IoT & AI Platform</div>
+        <div class="smaca-logo smaca-logo--sidebar smaca-logo--sidebar-dark" aria-label="SMACA">
+          <div class="smaca-logo__row">
+            <img
+              src="{{ asset('assets/brand/smaca-icon-dark.svg') }}"
+              alt="SMACA icon"
+              class="smaca-logo__icon"
+              width="48"
+              height="48"
+            >
+            <span class="smaca-logo__wordmark">SMACA</span>
+          </div>
+          <span class="smaca-logo__caption">IoT &amp; AI Platform</span>
+        </div>
       </div>
       <nav class="sidebar__nav">
         <a href="{{ url('/dashboard') }}" class="nav-link nav-link--section is-active" data-section="overview">

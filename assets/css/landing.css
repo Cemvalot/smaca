@@ -19,9 +19,20 @@ html {
 }
 
 .nav__logo {
-  color: #f8fafc;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.nav__logo .smaca-logo__mark {
+  height: 2rem;
+  width: auto;
+}
+
+.footer__brand .smaca-logo__mark {
+  height: 1.9rem;
+  width: auto;
+  margin-bottom: 0.45rem;
 }
 
 .btn-soft,

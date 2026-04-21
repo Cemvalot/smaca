@@ -4,14 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SMACA - Smart Building Intelligence Platform</title>
+  <link rel="icon" type="image/x-icon" href="{{ asset('assets/brand/favicon.ico') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/smaca-favicon-32.png') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ asset('assets/brand/smaca-favicon.svg') }}">
+  <link rel="shortcut icon" href="{{ asset('assets/brand/favicon.ico') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/brand/smaca-favicon-180.png') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-logo.css?v=' . time()) }}">
   <link rel="stylesheet" href="{{ asset('assets/css/landing.css?v=' . time()) }}">
 </head>
 <body class="landing-page">
   <nav class="navbar navbar-expand-lg smaca-nav sticky-top">
     <div class="container">
-      <a class="navbar-brand nav__logo" href="{{ url('/landing') }}">SMACA</a>
+      <a class="navbar-brand nav__logo smaca-logo" href="{{ url('/landing') }}" aria-label="SMACA">
+        <img src="{{ asset('assets/brand/smaca-logo-dark.svg') }}" alt="SMACA logo" class="smaca-logo__mark" width="220" height="48">
+      </a>
       <div class="d-flex gap-2">
         <a href="{{ url('/dashboard') }}" class="btn btn-sm btn-soft">View Platform</a>
         <a href="{{ url('/login') }}" class="btn btn-sm btn-primary">Sign In</a>
@@ -210,7 +218,7 @@
   <footer class="footer">
     <div class="container d-flex flex-column flex-lg-row justify-content-between gap-3">
       <div class="footer__brand">
-        <strong>SMACA</strong>
+        <img src="{{ asset('assets/brand/smaca-logo-dark.svg') }}" alt="SMACA logo" class="smaca-logo__mark" width="220" height="48">
         <span>Smart Building Intelligence Platform</span>
       </div>
       <nav class="footer__links d-flex flex-wrap gap-3">

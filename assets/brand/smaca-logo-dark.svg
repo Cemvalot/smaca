@@ -1,0 +1,13 @@
+<svg width="220" height="48" viewBox="0 0 220 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="smacaLogoDarkTitle smacaLogoDarkDesc">
+  <title id="smacaLogoDarkTitle">SMACA</title>
+  <desc id="smacaLogoDarkDesc">Modern SMACA logo with connected data nodes.</desc>
+  <g transform="translate(2 2)">
+    <rect x="0.75" y="0.75" width="43.5" height="43.5" rx="12" fill="#0F172A" stroke="#1E293B" stroke-width="1.5"/>
+    <path d="M11 31.5L17.2 24.4L23.8 29.2L32.8 15.5" stroke="#60A5FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="11" cy="31.5" r="2.6" fill="#3B82F6"/>
+    <circle cx="17.2" cy="24.4" r="2.6" fill="#3B82F6"/>
+    <circle cx="23.8" cy="29.2" r="2.6" fill="#3B82F6"/>
+    <circle cx="32.8" cy="15.5" r="2.6" fill="#93C5FD"/>
+  </g>
+  <text x="58" y="31" fill="#E2E8F0" font-size="24" font-family="Inter, Manrope, 'Segoe UI', sans-serif" font-weight="700" letter-spacing="0.5">SMACA</text>
+</svg>

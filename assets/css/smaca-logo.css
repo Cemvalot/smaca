@@ -1,0 +1,84 @@
+.smaca-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.smaca-logo__mark {
+  display: block;
+  width: auto;
+  height: 2rem;
+}
+
+.smaca-logo__mark--compact {
+  height: 1.75rem;
+}
+
+.smaca-logo--auth .smaca-logo__mark {
+  height: 2.1rem;
+}
+
+.smaca-logo--auth .smaca-logo__row {
+  gap: 0.55rem;
+}
+
+.smaca-logo__icon--auth {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.smaca-logo__wordmark--auth {
+  color: #0f172a;
+  font-size: 1.6rem;
+  letter-spacing: 0.015em;
+}
+
+.smaca-logo__caption {
+  font-family: Inter, Manrope, "Segoe UI", sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  color: var(--auth-muted, #64748b);
+  letter-spacing: 0.01em;
+}
+
+.smaca-logo--sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+}
+
+.smaca-logo--sidebar .smaca-logo__mark {
+  height: 2rem;
+}
+
+.smaca-logo__row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.58rem;
+}
+
+.smaca-logo__icon {
+  width: 1.55rem;
+  height: 1.55rem;
+  display: block;
+}
+
+.smaca-logo__wordmark {
+  font-family: Inter, Manrope, "Segoe UI", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: 1.55rem;
+  line-height: 1;
+  color: #e2e8f0;
+}
+
+.smaca-logo--sidebar .smaca-logo__caption {
+  color: var(--muted, #64748b);
+  margin-left: 0.05rem;
+}
+
+.smaca-logo--sidebar-dark .smaca-logo__caption {
+  color: #cbd5e1;
+  opacity: 0.9;
+}

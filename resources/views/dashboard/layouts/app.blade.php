@@ -22,7 +22,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="base-url" content="{{ url('/') }}">
   <title>SMACA Dashboard - Unified IoT Monitoring</title>
+  <link rel="icon" type="image/x-icon" href="{{ asset('assets/brand/favicon.ico') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/smaca-favicon-32.png') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ asset('assets/brand/smaca-favicon.svg') }}">
+  <link rel="shortcut icon" href="{{ asset('assets/brand/favicon.ico') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/brand/smaca-favicon-180.png') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v={{ $smacaAssetVersion('assets/css/base.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-logo.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-logo.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $smacaAssetVersion('assets/css/dashboard.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-dashboard.css') }}">
 </head>

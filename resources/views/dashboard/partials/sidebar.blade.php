@@ -4,8 +4,19 @@
 @endphp
 <aside class="sidebar">
       <div class="sidebar__header">
-        <div class="sidebar__logo">SMACA</div>
-        <div class="sidebar__subtitle">IoT & AI Platform</div>
+        <div class="smaca-logo smaca-logo--sidebar smaca-logo--sidebar-dark" aria-label="SMACA">
+          <div class="smaca-logo__row">
+            <img
+              src="{{ asset('assets/brand/smaca-icon-dark.svg') }}"
+              alt="SMACA icon"
+              class="smaca-logo__icon"
+              width="48"
+              height="48"
+            >
+            <span class="smaca-logo__wordmark">SMACA</span>
+          </div>
+          <span class="smaca-logo__caption">IoT &amp; AI Platform</span>
+        </div>
       </div>
       <nav class="sidebar__nav">
         <a href="{{ url('/dashboard') }}" class="nav-link nav-link--section {{ ($smacaPage ?? 'overview') === 'overview' ? 'is-active' : '' }}" data-section="overview">

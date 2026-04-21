@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - SMACA</title>
+  <link rel="icon" type="image/x-icon" href="{{ asset('assets/brand/favicon.ico') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/smaca-favicon-32.png') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ asset('assets/brand/smaca-favicon.svg') }}">
+  <link rel="shortcut icon" href="{{ asset('assets/brand/favicon.ico') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/brand/smaca-favicon-180.png') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v=4">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-logo.css') }}?v={{ time() }}">
   <link rel="stylesheet" href="{{ asset('assets/css/auth.css') }}?v={{ time() }}">
 </head>
 <body class="login-page">
@@ -15,8 +21,19 @@
         <div class="form-shell">
           <div class="left-top">
             <div class="logo-group">
-              <span class="logo-text">SMACA</span>
-              <span class="logo-sub">Smart Campus IoT Platform</span>
+              <div class="smaca-logo smaca-logo--auth" aria-label="SMACA">
+                <div class="smaca-logo__row">
+                  <img
+                    src="{{ asset('assets/brand/smaca-icon-light.svg') }}"
+                    alt="SMACA icon"
+                    class="smaca-logo__icon smaca-logo__icon--auth"
+                    width="48"
+                    height="48"
+                  >
+                  <span class="smaca-logo__wordmark smaca-logo__wordmark--auth">SMACA</span>
+                </div>
+              </div>
+              <span class="smaca-logo__caption">Smart Campus IoT Platform</span>
             </div>
             <a href="{{ url('/landing') }}" class="back-btn">Back to website →</a>
           </div>
