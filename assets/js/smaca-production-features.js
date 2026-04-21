@@ -3861,8 +3861,11 @@ function updateOverviewSystemStatus() {
 function updateOverviewLiveValues(overview, sensorRows) {
   const iaqRows = Array.isArray(SMACAState.rawData?.iaq) ? SMACAState.rawData.iaq : [];
   const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : [];
-  const occupancyRows = (typeof SMACAState.getFilteredOccupancy === 'function')
+  const filteredOccupancyRows = (typeof SMACAState.getFilteredOccupancy === 'function')
     ? (SMACAState.getFilteredOccupancy() || [])
+    : [];
+  const occupancyRows = filteredOccupancyRows.length > 0
+    ? filteredOccupancyRows
     : (Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : []);
   const totals = overview?.totals || {};
   const connectedSensors = Number.isFinite(Number(totals.connected_sensors)) ? Number(totals.connected_sensors) : sensorRows.length;
@@ -3871,8 +3874,8 @@ function updateOverviewLiveValues(overview, sensorRows) {
 
   const latestCo2 = resolveLatestIaqMetricForOverview('co2', iaqRows, overview, sensorRows);
   const latestPm25 = resolveLatestIaqMetricForOverview('pm2_5', iaqRows, overview, sensorRows);
-  const latestUv = resolveLatestMetricValue(environmentalRows, 'uv_index');
-  const latestOccupancy = resolveLatestOccupancyValue(occupancyRows);
+  const latestUv = resolveLatestUvForOverview(environmentalRows, overview, sensorRows);
+  const latestOccupancy = resolveLatestOccupancyForOverview(occupancyRows, overview, sensorRows);
 
   const airStatus = evaluateAirQualityStatus(latestCo2, latestPm25);
   const occupancyStatus = evaluateOccupancyStatus(latestOccupancy);
@@ -3892,13 +3895,23 @@ function updateOverviewLiveValues(overview, sensorRows) {
   }
 
   const badgeAir = document.getElementById('overview-badge-air-quality');
-  if (badgeAir) badgeAir.textContent = `Air Quality: ${airStatus.label}`;
+  if (badgeAir) badgeAir.textContent = getOverviewOperationalHeadline('air-quality', airStatus);
   const badgeConn = document.getElementById('overview-badge-connectivity');
-  if (badgeConn) badgeConn.textContent = `Connectivity: ${connectivityStatus.label}`;
+  if (badgeConn) badgeConn.textContent = getOverviewOperationalHeadline('connectivity', connectivityStatus);
   const badgeOcc = document.getElementById('overview-badge-occupancy');
-  if (badgeOcc) badgeOcc.textContent = `Occupancy: ${occupancyStatus.label}`;
+  if (badgeOcc) badgeOcc.textContent = getOverviewOperationalHeadline('occupancy', occupancyStatus);
   const badgeUv = document.getElementById('overview-badge-uv');
-  if (badgeUv) badgeUv.textContent = `Environmental/UV: ${uvStatus.label}`;
+  if (badgeUv) badgeUv.textContent = getOverviewOperationalHeadline('uv', uvStatus);
+  updateOverviewStatusTile('overview-status-tile-air-quality', 'air-quality', airStatus);
+  updateOverviewStatusTile('overview-status-tile-connectivity', 'connectivity', connectivityStatus);
+  updateOverviewStatusTile('overview-status-tile-occupancy', 'occupancy', occupancyStatus);
+  updateOverviewStatusTile('overview-status-tile-uv', 'uv', uvStatus);
+  updateOverviewOverallLiveHealth([
+    { key: 'air-quality', status: airStatus },
+    { key: 'connectivity', status: connectivityStatus },
+    { key: 'occupancy', status: occupancyStatus },
+    { key: 'uv', status: uvStatus }
+  ]);
 
   const streamsStatus = document.getElementById('overview-live-streams-status');
   if (streamsStatus) {
@@ -3939,11 +3952,22 @@ function updateOverviewLiveValues(overview, sensorRows) {
 
 function resolveLatestMetricValue(rows, metricKey) {
   const safeRows = Array.isArray(rows) ? rows : [];
+  const metricAliases = {
+    uv_index: ['uv_index', 'uv', 'uvIndex']
+  };
+  const metricKeys = Array.isArray(metricAliases[metricKey]) ? metricAliases[metricKey] : [metricKey];
   let latest = null;
   let latestTime = -Infinity;
   safeRows.forEach(function (item) {
     const t = new Date(item?.time || item?.timestamp || 0).getTime();
-    const value = Number(item?.payload?.object?.[metricKey]);
+    const payloadObject = item?.payload?.object || {};
+    let value = null;
+    metricKeys.some(function (key) {
+      const candidate = Number(payloadObject?.[key]);
+      if (!Number.isFinite(candidate)) return false;
+      value = candidate;
+      return true;
+    });
     if (!Number.isFinite(t) || !Number.isFinite(value) || t < latestTime) return;
     latestTime = t;
     latest = value;
@@ -4005,6 +4029,112 @@ function resolveLatestIaqMetricForOverview(metricKey, iaqRows, overview, sensorR
   return extractLatestMetricFromOverviewSnapshotRows(overview, sensorRows, metricKey);
 }
 
+function resolveLatestUvForOverview(environmentalRows, overview, sensorRows) {
+  const fromHydrated = resolveLatestMetricValue(environmentalRows, 'uv_index');
+  if (Number.isFinite(fromHydrated)) return fromHydrated;
+  const fromLatestReadings = extractLatestEnvironmentalMetricFromSensorLatestReadings(sensorRows, ['uv_index', 'uv', 'uvIndex']);
+  if (Number.isFinite(fromLatestReadings)) return fromLatestReadings;
+  return extractLatestEnvironmentalMetricFromOverviewSnapshotRows(overview, sensorRows, ['uv_index', 'uv', 'uvIndex']);
+}
+
+function resolveLatestOccupancyForOverview(occupancyRows, overview, sensorRows) {
+  const fromHydrated = resolveLatestOccupancyValue(occupancyRows);
+  if (Number.isFinite(fromHydrated)) return fromHydrated;
+  const fromLatestReadings = extractLatestOccupancyFromSensorLatestReadings(sensorRows);
+  if (Number.isFinite(fromLatestReadings)) return fromLatestReadings;
+  return resolveLatestOccupancyFromOverviewSnapshot(overview);
+}
+
+function extractLatestEnvironmentalMetricFromSensorLatestReadings(sensorRows, metricKeys) {
+  const sensors = Array.isArray(sensorRows) ? sensorRows : [];
+  const keys = Array.isArray(metricKeys) && metricKeys.length > 0 ? metricKeys : ['uv_index'];
+  const latestById = window.SMACADashboardContext?.selectedSensorLatestById || {};
+  let latest = null;
+  let latestTime = -Infinity;
+  sensors.forEach(function (sensor) {
+    if (!isEnvironmentalSensor(sensor)) return;
+    const sid = Number(sensor?.id);
+    if (!Number.isFinite(sid)) return;
+    const latestRow = latestById[String(sid)] || null;
+    const t = new Date(latestRow?.latest?.measured_at || latestRow?.last_seen_at || 0).getTime();
+    if (!Number.isFinite(t) || t < latestTime) return;
+    const reading = latestRow?.latest || {};
+    let value = null;
+    keys.some(function (key) {
+      const candidate = Number(reading?.[key]);
+      if (!Number.isFinite(candidate)) return false;
+      value = candidate;
+      return true;
+    });
+    if (!Number.isFinite(value)) return;
+    latestTime = t;
+    latest = value;
+  });
+  return latest;
+}
+
+function extractLatestEnvironmentalMetricFromOverviewSnapshotRows(overview, sensorRows, metricKeys) {
+  const snapshotRows = Array.isArray(overview?.latest_sensor_snapshot_rows) ? overview.latest_sensor_snapshot_rows : [];
+  const sensors = Array.isArray(sensorRows) ? sensorRows : [];
+  const keys = Array.isArray(metricKeys) && metricKeys.length > 0 ? metricKeys : ['uv_index'];
+  const sensorById = sensors.reduce(function (acc, sensor) {
+    const sid = Number(sensor?.id);
+    if (Number.isFinite(sid)) acc[String(sid)] = sensor;
+    return acc;
+  }, {});
+  let latest = null;
+  let latestTime = -Infinity;
+  snapshotRows.forEach(function (row) {
+    const sid = Number(row?.sensor_id);
+    const sensor = Number.isFinite(sid) ? sensorById[String(sid)] : null;
+    if (!isEnvironmentalSensor(sensor)) return;
+    const t = new Date(row?.measured_at || row?.latest?.measured_at || row?.last_seen_at || 0).getTime();
+    if (!Number.isFinite(t) || t < latestTime) return;
+    const container = row?.latest || row || {};
+    let value = null;
+    keys.some(function (key) {
+      const candidate = Number(container?.[key]);
+      if (!Number.isFinite(candidate)) return false;
+      value = candidate;
+      return true;
+    });
+    if (!Number.isFinite(value)) return;
+    latestTime = t;
+    latest = value;
+  });
+  return latest;
+}
+
+function extractLatestOccupancyFromSensorLatestReadings(sensorRows) {
+  const sensors = Array.isArray(sensorRows) ? sensorRows : [];
+  const latestById = window.SMACADashboardContext?.selectedSensorLatestById || {};
+  const latestBySensor = new Map();
+  let fallbackValue = null;
+  let fallbackTime = -Infinity;
+  sensors.forEach(function (sensor) {
+    if (!isOccupancySensor(sensor)) return;
+    const sid = Number(sensor?.id);
+    if (!Number.isFinite(sid)) return;
+    const latestRow = latestById[String(sid)] || null;
+    const t = new Date(latestRow?.latest?.measured_at || latestRow?.last_seen_at || 0).getTime();
+    const value = resolveOccupancyValueFromPayload(latestRow?.latest || latestRow?.payload?.object || {});
+    if (!Number.isFinite(t) || !Number.isFinite(value)) return;
+    const sensorKey = String(sid);
+    const existing = latestBySensor.get(sensorKey);
+    if (!existing || t >= existing.time) latestBySensor.set(sensorKey, { time: t, value: value });
+    if (t >= fallbackTime) {
+      fallbackTime = t;
+      fallbackValue = value;
+    }
+  });
+  if (latestBySensor.size > 0) {
+    let total = 0;
+    latestBySensor.forEach(function (entry) { total += Number(entry.value) || 0; });
+    return total;
+  }
+  return fallbackValue;
+}
+
 function evaluateAirQualityStatus(co2, pm25) {
   if (!Number.isFinite(co2) && !Number.isFinite(pm25)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
   if ((Number.isFinite(co2) && co2 > 1000) || (Number.isFinite(pm25) && pm25 > 35)) return { label: 'Alert', moduleStatus: 'Warning', moduleClass: 'warning' };
@@ -4027,10 +4157,21 @@ function evaluateConnectivityStatus(connectivityPct) {
 }
 
 function evaluateUvStatus(uv) {
-  if (!Number.isFinite(uv)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
-  if (uv >= 8) return { label: 'High', moduleStatus: 'Warning', moduleClass: 'warning' };
-  if (uv >= 3) return { label: 'Moderate', moduleStatus: 'Stable', moduleClass: 'stable' };
+  const normalizedUv = normalizeUvIndexValue(uv);
+  if (!Number.isFinite(normalizedUv)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
+  if (normalizedUv >= 8) return { label: 'High', moduleStatus: 'Warning', moduleClass: 'warning' };
+  if (normalizedUv >= 3) return { label: 'Moderate', moduleStatus: 'Stable', moduleClass: 'stable' };
   return { label: 'Normal', moduleStatus: 'Active', moduleClass: 'active' };
+}
+
+function normalizeUvIndexValue(rawUv) {
+  const uv = Number(rawUv);
+  if (!Number.isFinite(uv)) return null;
+  if (uv <= 11) return uv;
+  // Some integrations send deci-index or centi-index style UV values.
+  if (uv <= 150) return uv / 10;
+  if (uv <= 2000) return uv / 100;
+  return uv;
 }
 
 function computeAirQualityScore(co2, pm25) {
@@ -4054,11 +4195,182 @@ function computeOverviewFreshnessLabel() {
       if (Number.isFinite(t) && t > latestTime) latestTime = t;
     });
   });
+  if (!Number.isFinite(latestTime) || latestTime <= 0) {
+    latestTime = resolveLatestOverviewTelemetryTimestamp();
+  }
   if (!Number.isFinite(latestTime) || latestTime <= 0) return 'Not available';
   const seconds = Math.max(0, Math.round((Date.now() - latestTime) / 1000));
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.round(seconds / 60);
   return `${minutes}m`;
+}
+
+function resolveLatestOverviewTelemetryTimestamp() {
+  let latestTime = -Infinity;
+  const latestById = window.SMACADashboardContext?.selectedSensorLatestById || {};
+  Object.keys(latestById).forEach(function (sensorId) {
+    const row = latestById[sensorId];
+    const t = new Date(row?.last_seen_at || row?.latest?.measured_at || row?.latest?.time || row?.timestamp || 0).getTime();
+    if (Number.isFinite(t) && t > latestTime) latestTime = t;
+  });
+
+  const snapshotRows = Array.isArray(window.SMACADashboardContext?.overview?.latest_sensor_snapshot_rows)
+    ? window.SMACADashboardContext.overview.latest_sensor_snapshot_rows
+    : [];
+  snapshotRows.forEach(function (row) {
+    const t = new Date(row?.measured_at || row?.latest?.measured_at || row?.last_seen_at || row?.time || row?.timestamp || 0).getTime();
+    if (Number.isFinite(t) && t > latestTime) latestTime = t;
+  });
+
+  const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+  sensors.forEach(function (sensor) {
+    const t = new Date(sensor?.last_seen_at || sensor?.updated_at || 0).getTime();
+    if (Number.isFinite(t) && t > latestTime) latestTime = t;
+  });
+  return latestTime;
+}
+
+function updateOverviewStatusTile(tileId, moduleKey, status) {
+  const tile = document.getElementById(tileId);
+  if (!tile || !status) return;
+  const insight = getOverviewOperationalInsight(moduleKey, status);
+  const tone = insight.tone;
+  const priority = getOverviewStatusPriority(tone);
+  tile.classList.remove(
+    'overview-status-box--success',
+    'overview-status-box--info',
+    'overview-status-box--warning',
+    'overview-status-box--accent',
+    'overview-status-box--neutral',
+    'overview-status-box--critical'
+  );
+  tile.classList.add(`overview-status-box--${tone}`);
+  tile.setAttribute('data-tone', tone);
+  tile.style.order = String(priority);
+  const attentionGrid = document.getElementById('overview-status-attention-grid');
+  const operationalGrid = document.getElementById('overview-status-operational-grid');
+  const targetGrid = (tone === 'critical' || tone === 'warning') ? attentionGrid : operationalGrid;
+  if (targetGrid && tile.parentElement !== targetGrid) targetGrid.appendChild(tile);
+
+  const chip = tile.querySelector('.overview-status-chip');
+  if (chip) {
+    chip.textContent = insight.chip;
+    chip.classList.remove(
+      'overview-status-chip--success',
+      'overview-status-chip--info',
+      'overview-status-chip--warning',
+      'overview-status-chip--accent',
+      'overview-status-chip--neutral',
+      'overview-status-chip--critical'
+    );
+    chip.classList.add(`overview-status-chip--${tone}`);
+  }
+  const detail = tile.querySelector('.overview-status-box__insight');
+  if (detail) detail.textContent = insight.detail;
+}
+
+function getOverviewStatusPriority(tone) {
+  if (tone === 'critical') return 1;
+  if (tone === 'warning') return 2;
+  if (tone === 'neutral') return 3;
+  if (tone === 'info') return 4;
+  return 5;
+}
+
+function getOverviewOperationalHeadline(moduleKey, status) {
+  const insight = getOverviewOperationalInsight(moduleKey, status);
+  return insight.headline;
+}
+
+function getOverviewOperationalInsight(moduleKey, status) {
+  const tone = getOverviewOperationalTone(status);
+  const hasNoData = !status || status.label === 'No data';
+  if (moduleKey === 'air-quality') {
+    if (hasNoData) return { tone, chip: 'Missing', headline: 'Air quality data currently unavailable', detail: 'No recent IAQ telemetry was detected. Check sensor reporting and ingestion status.' };
+    if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: 'Air quality needs review', detail: 'Air quality has moved outside preferred limits and should be checked by operations.' };
+    if (status.moduleClass === 'stable') return { tone, chip: 'Stable watch', headline: 'Air quality stable with light variance', detail: 'Readings remain within acceptable limits with no critical indoor air alerts detected.' };
+    return { tone, chip: 'Operational', headline: 'Air quality operating normally', detail: 'Current IAQ behavior is healthy and no immediate corrective action is indicated.' };
+  }
+  if (moduleKey === 'connectivity') {
+    if (hasNoData) return { tone, chip: 'Missing', headline: 'Connectivity data currently unavailable', detail: 'Connectivity telemetry is incomplete. Confirm gateways are publishing status updates.' };
+    if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: 'Connectivity is degraded', detail: 'Intermittent reliability issues may affect live sensor delivery.' };
+    if (status.moduleClass === 'stable') return { tone, chip: 'Monitoring', headline: 'Connectivity mostly stable', detail: 'Minor instability is present but service continuity remains active for monitoring workflows.' };
+    return { tone, chip: 'Operational', headline: 'Connectivity fully operational', detail: 'Live sensor transport and module communication are currently stable across active endpoints.' };
+  }
+  if (moduleKey === 'occupancy') {
+    if (hasNoData) return { tone, chip: 'Missing', headline: 'Occupancy data not detected', detail: 'No recent occupancy events were received. Validate people-flow sensor input.' };
+    if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: 'Occupancy level elevated', detail: 'Utilization is higher than usual and may need operational review.' };
+    if (status.moduleClass === 'stable') return { tone, chip: 'Stable watch', headline: 'Occupancy patterns balanced', detail: 'Footfall remains moderate with no unusual spikes requiring immediate operational action.' };
+    return { tone, chip: 'Operational', headline: 'Occupancy flow normal', detail: 'Space utilization is light and consistent with normal campus operating behavior.' };
+  }
+  if (hasNoData) return { tone, chip: 'Missing', headline: 'Environmental data currently unavailable', detail: 'Environmental or UV telemetry is not reporting at the moment.' };
+  if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: 'Environmental exposure elevated', detail: 'UV or ambient exposure is above preferred levels and should be monitored.' };
+  if (status.moduleClass === 'stable') return { tone, chip: 'Stable watch', headline: 'Environmental conditions moderate', detail: 'Environmental conditions remain within controlled limits with no severe risk indicators.' };
+  return { tone, chip: 'Operational', headline: 'Environmental module normal', detail: 'Environmental and UV monitoring streams are healthy with expected operating behavior.' };
+}
+
+function getOverviewOperationalTone(status) {
+  if (!status || status.label === 'No data') return 'critical';
+  if (status.moduleClass === 'warning') return 'warning';
+  if (status.moduleClass === 'active') return 'success';
+  return 'info';
+}
+
+function updateOverviewOverallLiveHealth(statuses) {
+  const label = document.getElementById('overview-live-overall-status');
+  const detail = document.getElementById('overview-live-overall-detail');
+  if (!label) return;
+  const shell = label.closest('.overview-live-health');
+  const safeStatuses = Array.isArray(statuses) ? statuses.filter(function (item) { return item && item.status; }) : [];
+  const warningCount = safeStatuses.filter(function (item) { return item.status.moduleClass === 'warning'; }).length;
+  const noDataCount = safeStatuses.filter(function (item) { return item.status.label === 'No data'; }).length;
+  const healthyCount = safeStatuses.filter(function (item) { return item.status.moduleClass === 'active'; }).length;
+  const attentionCountEl = document.getElementById('overview-status-attention-count');
+  const operationalCountEl = document.getElementById('overview-status-operational-count');
+  const attentionGroup = document.getElementById('overview-status-attention-group');
+  const issueCount = noDataCount + warningCount;
+  const operationalCount = Math.max(0, safeStatuses.length - issueCount);
+  if (attentionCountEl) attentionCountEl.textContent = `${issueCount} module${issueCount === 1 ? '' : 's'}`;
+  if (operationalCountEl) operationalCountEl.textContent = `${operationalCount} module${operationalCount === 1 ? '' : 's'}`;
+  if (attentionGroup) attentionGroup.classList.toggle('is-empty', issueCount === 0);
+
+  if (noDataCount > 0) {
+    label.textContent = 'Partial data availability';
+    if (detail) detail.textContent = `${noDataCount} module${noDataCount > 1 ? 's are' : ' is'} not reporting data right now.`;
+    if (shell) {
+      shell.classList.remove('overview-live-health--stable');
+      shell.classList.remove('overview-live-health--warning');
+      shell.classList.add('overview-live-health--critical');
+    }
+    return;
+  }
+  if (warningCount > 0) {
+    label.textContent = `${warningCount} module${warningCount > 1 ? 's require' : ' requires'} attention`;
+    if (detail) detail.textContent = 'Some module conditions are degraded and should be reviewed.';
+    if (shell) {
+      shell.classList.remove('overview-live-health--stable');
+      shell.classList.remove('overview-live-health--critical');
+      shell.classList.add('overview-live-health--warning');
+    }
+    return;
+  }
+  if (healthyCount > 0) {
+    label.textContent = 'System operating normally';
+    if (detail) detail.textContent = 'All monitored modules are currently stable or operational.';
+    if (shell) {
+      shell.classList.remove('overview-live-health--critical');
+      shell.classList.remove('overview-live-health--warning');
+      shell.classList.add('overview-live-health--stable');
+    }
+    return;
+  }
+  label.textContent = 'System monitoring active';
+  if (detail) detail.textContent = 'Waiting for enough telemetry to determine operational interpretation.';
+  if (shell) {
+    shell.classList.remove('overview-live-health--critical');
+    shell.classList.remove('overview-live-health--warning');
+    shell.classList.add('overview-live-health--stable');
+  }
 }
 
 function setOverviewModuleStatus(elementId, text, tone) {

@@ -54,38 +54,105 @@
   <div class="overview-top-grid">
     <section class="card overview-live-card">
       <div class="card__header">
-        <div class="card__header-icon">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
-          <h3 class="card__title">Campus Live Status</h3>
+        <div class="overview-live-header">
+          <div class="card__header-icon">
+            <div class="overview-live-icon-shell">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+            <div class="overview-live-header-copy">
+              <h3 class="card__title">Campus Live Status</h3>
+              <p class="overview-live-subtitle">
+                Real-time operations snapshot across air quality, occupancy, connectivity, and environmental exposure.
+              </p>
+            </div>
+          </div>
+          <div class="overview-live-health">
+            <span class="overview-live-pulse" aria-hidden="true"></span>
+            <div class="overview-live-health__copy">
+              <span id="overview-live-overall-status" class="overview-live-health__label">System monitoring active</span>
+              <span id="overview-live-overall-detail" class="overview-live-health__detail">Operational interpretation is updating from live telemetry.</span>
+            </div>
+          </div>
         </div>
       </div>
       <div class="card__body">
-        <p class="overview-live-subtitle">
-          High-level campus monitoring across air quality, occupancy, and environmental exposure.
-        </p>
-        <div class="overview-badge-row">
-          <span class="overview-status-badge overview-status-badge--success">
-            <i class="overview-dot overview-dot--success"></i><span id="overview-badge-air-quality">Air Quality: --</span>
-          </span>
-          @if($smacaIsAdmin)
-          <span class="overview-status-badge overview-status-badge--info">
-            <i class="overview-dot overview-dot--info"></i><span id="overview-badge-connectivity">Connectivity: --</span>
-          </span>
-          @endif
-          <span class="overview-status-badge overview-status-badge--warning">
-            <i class="overview-dot overview-dot--warning"></i><span id="overview-badge-occupancy">Occupancy: --</span>
-          </span>
-          <span class="overview-status-badge overview-status-badge--accent">
-            <i class="overview-dot overview-dot--accent"></i><span id="overview-badge-uv">Environmental/UV: --</span>
-          </span>
+        <div class="overview-status-groups">
+          <section id="overview-status-attention-group" class="overview-status-group overview-status-group--attention">
+            <header class="overview-status-group__header">
+              <h4 class="overview-status-group__title">Needs Attention</h4>
+              <span id="overview-status-attention-count" class="overview-status-group__count">0 modules</span>
+            </header>
+            <div id="overview-status-attention-grid" class="overview-status-grid">
+              <!-- Filled dynamically based on module state -->
+            </div>
+          </section>
+          <section id="overview-status-operational-group" class="overview-status-group overview-status-group--operational">
+            <header class="overview-status-group__header">
+              <h4 class="overview-status-group__title">Operational</h4>
+              <span id="overview-status-operational-count" class="overview-status-group__count">0 modules</span>
+            </header>
+            <div id="overview-status-operational-grid" class="overview-status-grid">
+              <article class="overview-status-box overview-status-box--success" id="overview-status-tile-air-quality" data-tone="success">
+                <div class="overview-status-box__topline">
+                  <span class="overview-status-box__module">
+                    <i class="overview-dot overview-dot--success"></i>Air Quality
+                  </span>
+                  <span class="overview-status-chip overview-status-chip--success">Healthy</span>
+                </div>
+                <span class="overview-status-box__value" id="overview-badge-air-quality">Monitoring</span>
+                <p id="overview-insight-air-quality" class="overview-status-box__insight">Assessing room air patterns and alert thresholds.</p>
+              </article>
+              @if($smacaIsAdmin)
+              <article class="overview-status-box overview-status-box--info" id="overview-status-tile-connectivity" data-tone="info">
+                <div class="overview-status-box__topline">
+                  <span class="overview-status-box__module">
+                    <i class="overview-dot overview-dot--info"></i>Connectivity
+                  </span>
+                  <span class="overview-status-chip overview-status-chip--info">Stable</span>
+                </div>
+                <span class="overview-status-box__value" id="overview-badge-connectivity">Monitoring</span>
+                <p id="overview-insight-connectivity" class="overview-status-box__insight">Validating gateway availability and stream continuity.</p>
+              </article>
+              @endif
+              <article class="overview-status-box overview-status-box--warning" id="overview-status-tile-occupancy" data-tone="warning">
+                <div class="overview-status-box__topline">
+                  <span class="overview-status-box__module">
+                    <i class="overview-dot overview-dot--warning"></i>Occupancy
+                  </span>
+                  <span class="overview-status-chip overview-status-chip--warning">Watch</span>
+                </div>
+                <span class="overview-status-box__value" id="overview-badge-occupancy">Monitoring</span>
+                <p id="overview-insight-occupancy" class="overview-status-box__insight">Checking activity consistency across monitored zones.</p>
+              </article>
+              <article class="overview-status-box overview-status-box--accent" id="overview-status-tile-uv" data-tone="accent">
+                <div class="overview-status-box__topline">
+                  <span class="overview-status-box__module">
+                    <i class="overview-dot overview-dot--accent"></i>Environmental/UV
+                  </span>
+                  <span class="overview-status-chip overview-status-chip--accent">Normal</span>
+                </div>
+                <span class="overview-status-box__value" id="overview-badge-uv">Monitoring</span>
+                <p id="overview-insight-uv" class="overview-status-box__insight">Reviewing exposure trends and external condition changes.</p>
+              </article>
+            </div>
+          </section>
         </div>
         @if($smacaIsAdmin)
-          <div class="overview-live-meta">
-            <span id="overview-live-streams-status" class="data-status-pill data-status-pill--live">Live Streams: --</span>
-            <span id="overview-data-freshness" class="overview-chip">Data freshness: --</span>
-            <span id="overview-last-sync" class="last-updated-pill">Last sync: --</span>
+          <div class="overview-live-telemetry">
+            <div class="overview-live-telemetry__item">
+              <span class="overview-live-telemetry__label">Live stream state</span>
+              <span id="overview-live-streams-status" class="overview-live-telemetry__value data-status-pill data-status-pill--live">Live Streams: --</span>
+            </div>
+            <div class="overview-live-telemetry__item">
+              <span class="overview-live-telemetry__label">Data freshness</span>
+              <span id="overview-data-freshness" class="overview-live-telemetry__value overview-chip">Data freshness: --</span>
+            </div>
+            <div class="overview-live-telemetry__item">
+              <span class="overview-live-telemetry__label">Last sync</span>
+              <span id="overview-last-sync" class="overview-live-telemetry__value last-updated-pill">Last sync: --</span>
+            </div>
           </div>
         @else
           <p class="overview-live-note">Campus conditions remain within normal monitoring thresholds across active zones.</p>
