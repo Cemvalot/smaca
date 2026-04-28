@@ -1253,21 +1253,132 @@ function ensureManagementSettingsActions() {
     }
   };
   const exportDataBtn = document.getElementById('management-export-data-btn');
+  const exportDataBtnLabel = document.getElementById('management-export-data-btn-label');
+  const exportMenu = document.getElementById('management-export-menu');
   if (exportDataBtn) {
-    exportDataBtn.addEventListener('click', async function () {
-      const range = document.getElementById('management-export-range')?.value || '6m';
-      const originalLabel = exportDataBtn.textContent;
-      exportDataBtn.disabled = true;
-      exportDataBtn.textContent = 'Exporting...';
-      const filteredIaq = await ensureIaqRowsForExport(range);
-      if (!Array.isArray(filteredIaq) || filteredIaq.length === 0) {
-        alert('No IAQ data available for the selected export range.');
+    const DROPDOWN_GAP = 8;
+    const VIEWPORT_MARGIN = 16;
+
+    const clearMenuPositionStyles = function () {
+      if (!exportMenu) return;
+      exportMenu.style.top = '';
+      exportMenu.style.left = '';
+      exportMenu.style.right = '';
+      exportMenu.style.width = '';
+      exportMenu.style.maxHeight = '';
+    };
+
+    const positionExportMenu = function () {
+      if (!exportMenu) return;
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const btnRect = exportDataBtn.getBoundingClientRect();
+      if (!btnRect || !viewportWidth || !viewportHeight) return;
+
+      const mobileLayout = viewportWidth <= 640;
+      if (mobileLayout) {
+        exportMenu.style.left = VIEWPORT_MARGIN + 'px';
+        exportMenu.style.right = VIEWPORT_MARGIN + 'px';
+        exportMenu.style.width = 'auto';
       } else {
-        SMACACSVExport.exportIAQData(filteredIaq, range);
+        exportMenu.style.right = 'auto';
+        exportMenu.style.width = '';
       }
-      exportDataBtn.disabled = false;
-      exportDataBtn.textContent = originalLabel;
+
+      const menuRectInitial = exportMenu.getBoundingClientRect();
+      const menuWidth = mobileLayout
+        ? Math.max(0, viewportWidth - (VIEWPORT_MARGIN * 2))
+        : Math.max(menuRectInitial.width || 0, 240);
+      const menuHeight = Math.max(menuRectInitial.height || 0, 120);
+
+      let left = mobileLayout ? VIEWPORT_MARGIN : btnRect.left;
+      if (!mobileLayout) {
+        const maxLeft = viewportWidth - VIEWPORT_MARGIN - menuWidth;
+        left = Math.max(VIEWPORT_MARGIN, Math.min(left, maxLeft));
+      }
+
+      const spaceBelow = viewportHeight - btnRect.bottom - VIEWPORT_MARGIN;
+      const spaceAbove = btnRect.top - VIEWPORT_MARGIN;
+      const shouldOpenUpward = spaceBelow < menuHeight && spaceAbove > spaceBelow;
+
+      let top = shouldOpenUpward
+        ? (btnRect.top - menuHeight - DROPDOWN_GAP)
+        : (btnRect.bottom + DROPDOWN_GAP);
+      const maxTop = viewportHeight - VIEWPORT_MARGIN - Math.min(menuHeight, viewportHeight - (VIEWPORT_MARGIN * 2));
+      top = Math.max(VIEWPORT_MARGIN, Math.min(top, maxTop));
+
+      exportMenu.style.left = Math.round(left) + 'px';
+      exportMenu.style.top = Math.round(top) + 'px';
+      exportMenu.style.maxHeight = Math.max(140, viewportHeight - (VIEWPORT_MARGIN * 2)) + 'px';
+    };
+
+    const setMenuOpen = function (open) {
+      if (!exportMenu) return;
+      exportMenu.hidden = !open;
+      exportDataBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(positionExportMenu);
+        });
+      } else {
+        clearMenuPositionStyles();
+      }
+    };
+
+    exportDataBtn.addEventListener('click', function () {
+      if (!exportMenu) return;
+      setMenuOpen(exportMenu.hidden);
     });
+
+    if (exportMenu) {
+      exportMenu.addEventListener('click', async function (event) {
+        const item = event.target && event.target.closest('[data-export-format]');
+        if (!item) return;
+        const format = String(item.getAttribute('data-export-format') || 'xlsx').toLowerCase();
+        const range = document.getElementById('management-export-range')?.value || '6m';
+        const originalLabel = exportDataBtnLabel ? exportDataBtnLabel.textContent : exportDataBtn.textContent;
+        exportDataBtn.disabled = true;
+        if (exportDataBtnLabel) {
+          exportDataBtnLabel.textContent = format === 'csv' ? 'Exporting CSV...' : 'Exporting Excel...';
+        } else {
+          exportDataBtn.textContent = format === 'csv' ? 'Exporting CSV...' : 'Exporting Excel...';
+        }
+        setMenuOpen(false);
+
+        const filteredIaq = await ensureIaqRowsForExport(range);
+        if (!Array.isArray(filteredIaq) || filteredIaq.length === 0) {
+          alert('No sensor data available for the selected export range.');
+        } else {
+          await SMACACSVExport.exportSensorData(filteredIaq, range, format);
+        }
+
+        exportDataBtn.disabled = false;
+        if (exportDataBtnLabel) {
+          exportDataBtnLabel.textContent = originalLabel;
+        } else {
+          exportDataBtn.textContent = originalLabel;
+        }
+      });
+
+      document.addEventListener('click', function (event) {
+        const target = event.target;
+        if (!target) return;
+        if (target.closest('#management-export-data-btn') || target.closest('#management-export-menu')) return;
+        setMenuOpen(false);
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') setMenuOpen(false);
+      });
+
+      window.addEventListener('resize', function () {
+        if (!exportMenu.hidden) positionExportMenu();
+      });
+
+      window.addEventListener('scroll', function () {
+        if (!exportMenu.hidden) positionExportMenu();
+      }, true);
+    }
   }
 
   window.__smacaManagementSettingsBound = true;
@@ -1845,9 +1956,9 @@ function setupExportButton() {
   if (typeof window !== 'undefined') window.__smacaExportBound = true;
   const exportBtn = document.getElementById('export-btn');
   if (exportBtn) {
-    exportBtn.addEventListener('click', function() {
+    exportBtn.addEventListener('click', async function() {
       const filteredIAQ = SMACAState.getFilteredIAQ();
-      SMACACSVExport.exportIAQData(filteredIAQ, SMACAState.currentTimeframe);
+      await SMACACSVExport.exportSensorData(filteredIAQ, SMACAState.currentTimeframe, 'xlsx');
     });
   }
 }

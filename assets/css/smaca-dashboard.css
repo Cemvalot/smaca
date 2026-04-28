@@ -1108,6 +1108,168 @@
   gap: var(--space-2);
 }
 
+.smaca-export-menu {
+  position: relative;
+  display: inline-block;
+  z-index: 50;
+}
+
+.smaca-export-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 180px;
+  padding: 10px 16px;
+}
+
+.smaca-export-menu__chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.smaca-export-menu__trigger[aria-expanded="true"] .smaca-export-menu__chevron {
+  transform: rotate(180deg);
+}
+
+.smaca-export-menu__panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  min-width: 240px;
+  max-width: calc(100vw - 32px);
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.28);
+  z-index: 99999;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: min(320px, calc(100vh - 32px));
+}
+
+.smaca-export-menu__item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  border-radius: 8px;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.smaca-export-menu__item:hover,
+.smaca-export-menu__item:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+
+.management-export-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.management-export-card,
+.management-export-card .card__body,
+.management-export-card__actions {
+  overflow: visible !important;
+}
+
+#management-settings-tab,
+#management-settings-tab .card,
+#management-settings-tab .card__body,
+.management-admin-layout,
+.management-admin-layout > div {
+  overflow: visible;
+}
+
+.management-export-card__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.management-export-card__description {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+}
+
+.management-export-card__range {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  min-width: 220px;
+}
+
+.management-export-card__range-label {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+
+.management-export-card__range-select {
+  width: 220px;
+}
+
+.management-export-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.management-export-card__helper {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .management-export-card__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .management-export-card__range {
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  .management-export-card__range-select,
+  .smaca-export-menu,
+  .smaca-export-menu__trigger {
+    width: 100%;
+  }
+
+  .management-export-card__actions {
+    align-items: stretch;
+  }
+
+  .management-export-card__helper {
+    text-align: left;
+  }
+
+  .smaca-export-menu__panel {
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
 /* Overview premium redesign */
 #overview {
   display: grid;

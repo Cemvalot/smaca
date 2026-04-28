@@ -348,19 +348,44 @@
                 </form>
               </div>
             </div>
-            <div class="card" style="margin-top: var(--space-4);">
+            <div class="card management-export-card" style="margin-top: var(--space-4);">
               <div class="card__body">
-                <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">Export</h3>
-                <div class="stat-row" style="align-items: center; gap: var(--space-3);">
-                  <span class="stat-row__label">Range</span>
-                  <select id="management-export-range" class="input" style="max-width: 220px;">
-                    <option value="6m" selected>Last 6 months</option>
-                    <option value="24h">Last 24 hours</option>
-                    <option value="7d">Last 7 days</option>
-                    <option value="30d">Last 30 days</option>
-                  </select>
+                <div class="management-export-card__header">
+                  <div class="management-export-card__title-wrap">
+                    <h3 class="management-export-card__title">Export Sensor Measurements</h3>
+                    <p class="management-export-card__description">Download sensor measurements for the selected time range.</p>
+                  </div>
+                  <div class="management-export-card__range">
+                    <label for="management-export-range" class="management-export-card__range-label">Range</label>
+                    <select id="management-export-range" class="input management-export-card__range-select">
+                      <option value="6m" selected>Last 6 months</option>
+                      <option value="24h">Last 24 hours</option>
+                      <option value="7d">Last 7 days</option>
+                      <option value="30d">Last 30 days</option>
+                    </select>
+                    <div class="management-export-card__actions">
+                      <div class="smaca-export-menu">
+                        <button
+                          type="button"
+                          id="management-export-data-btn"
+                          class="btn btn--primary smaca-export-menu__trigger"
+                          aria-haspopup="true"
+                          aria-expanded="false"
+                        >
+                          <span id="management-export-data-btn-label">Export</span>
+                          <svg class="smaca-export-menu__chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                          </svg>
+                        </button>
+                        <div id="management-export-menu" class="smaca-export-menu__panel" role="menu" aria-label="Export options" hidden>
+                          <button type="button" class="smaca-export-menu__item" role="menuitem" data-export-format="xlsx">Excel (.xlsx) Recommended</button>
+                          <button type="button" class="smaca-export-menu__item" role="menuitem" data-export-format="csv">CSV</button>
+                        </div>
+                      </div>
+                      <p class="management-export-card__helper">Excel is recommended for Windows users.</p>
+                    </div>
+                  </div>
                 </div>
-                <button type="button" id="management-export-data-btn" class="btn btn--primary" style="margin-top: var(--space-4);">Export IAQ Data</button>
               </div>
             </div>
           </div>
