@@ -324,7 +324,6 @@
             color: '#7c8ca2',
             fontSize: '10px',
             fontWeight: '500',
-            textTransform: 'uppercase',
             letterSpacing: '0.04em'
           }
         },
@@ -1659,7 +1658,7 @@
         }
       },
       yAxis: [{
-        title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' } },
+        title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', letterSpacing: '0.04em' } },
         min: 0,
         tickAmount: 5,
         gridLineColor: 'rgba(148, 163, 184, 0.14)',
@@ -1679,7 +1678,7 @@
             }]
           : []
       }, {
-        title: { text: 'Cumulative kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' } },
+        title: { text: 'Cumulative kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', letterSpacing: '0.04em' } },
         opposite: true,
         min: 0,
         tickAmount: 5,
@@ -1813,7 +1812,7 @@
         }
       },
       yAxis: {
-        title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' } },
+        title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', letterSpacing: '0.04em' } },
         min: 0,
         tickAmount: 5,
         gridLineColor: 'rgba(148, 163, 184, 0.14)',
@@ -1950,7 +1949,7 @@
         labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' } }
       },
       yAxis: {
-        title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' } },
+        title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', letterSpacing: '0.04em' } },
         min: 0,
         tickAmount: 5,
         gridLineColor: 'rgba(148, 163, 184, 0.14)',
