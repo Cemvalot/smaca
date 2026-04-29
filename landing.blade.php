@@ -51,7 +51,7 @@
             <div class="row g-2 mb-2">
               <div class="col-4">
                 <div class="kpi-mini">
-                  <span class="kpi-mini__label">CO2</span>
+                  <span class="kpi-mini__label">CO₂</span>
                   <strong id="kpiCo2">632 ppm</strong>
                 </div>
               </div>
@@ -107,7 +107,7 @@
           <a class="module-card module-card-link" href="{{ url('/dashboard/iaq') }}">
             <img src="{{ asset('assets/indoorairquality.png') }}" alt="Air Quality" class="card__icon" style="width: 32px; height: 32px; object-fit: contain;">
             <h3 class="card__title">Air Quality</h3>
-            <p class="card__desc">Track CO2, temperature, humidity, and comfort trends in every monitored zone.</p>
+            <p class="card__desc">Track CO₂, temperature, humidity, and comfort trends in every monitored zone.</p>
           </a>
         </div>
         <div class="col-md-6 col-xl-3">
@@ -157,7 +157,7 @@
               <span class="tag tag--live">Synced</span>
             </div>
             <div class="row g-2 mb-3">
-              <div class="col-sm-4"><div class="summary-box"><span>Avg CO2</span><strong>618 ppm</strong></div></div>
+              <div class="col-sm-4"><div class="summary-box"><span>Avg CO₂</span><strong>618 ppm</strong></div></div>
               <div class="col-sm-4"><div class="summary-box"><span>Occupancy Peak</span><strong>182 users</strong></div></div>
               <div class="col-sm-4"><div class="summary-box"><span>Energy Drift</span><strong>+3.2%</strong></div></div>
             </div>
@@ -165,7 +165,7 @@
             <div class="alerts-list">
               <div class="alert-item">
                 <span class="alert-tag alert-tag--medium">Medium</span>
-                <p>Building A floor 2 reached CO2 threshold during peak class hours.</p>
+                <p>Building A floor 2 reached CO₂ threshold during peak class hours.</p>
               </div>
               <div class="alert-item">
                 <span class="alert-tag alert-tag--low">Low</span>

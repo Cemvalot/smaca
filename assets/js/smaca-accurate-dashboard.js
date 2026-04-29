@@ -129,10 +129,10 @@ function initAccurateIAQDashboard() {
 
 function getIaqMetricConfig() {
   return {
-    co2: { label: 'CO2', unit: 'ppm', decimals: 0, color: '#3b82f6' },
+    co2: { label: 'CO₂', unit: 'ppm', decimals: 0, color: '#3b82f6' },
     temperature: { label: 'Temperature', unit: '°C', decimals: 1, color: '#06b6d4' },
     humidity: { label: 'Humidity', unit: '%', decimals: 0, color: '#6366f1' },
-    pm2_5: { label: 'PM2.5', unit: 'µg/m³', decimals: 1, color: '#f59e0b' },
+    pm2_5: { label: 'PM2.5', unit: 'μg/m3', decimals: 1, color: '#f59e0b' },
     pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
     tvoc: { label: 'TVOC', unit: '(raw)', decimals: 1, color: '#ec4899' }
   };
@@ -335,7 +335,7 @@ function evaluateOverallIaqSummary(latestValues, activeSensorCount, latestTimest
   else if (avgScore < 3) statusLabel = 'Moderate';
   else if (avgScore >= 4.5) statusLabel = 'Excellent';
   const topDriver = statuses.sort(function (a, b) { return a.status.score - b.status.score; })[0];
-  const driverLabelMap = { co2: 'CO2', pm2_5: 'PM2.5', pm10: 'PM10', humidity: 'Humidity', temperature: 'Temperature', tvoc: 'TVOC' };
+  const driverLabelMap = { co2: 'CO₂', pm2_5: 'PM2.5', pm10: 'PM10', humidity: 'Humidity', temperature: 'Temperature', tvoc: 'TVOC' };
   const explanation = topDriver
     ? `${driverLabelMap[topDriver.metric]} is ${topDriver.status.label.toLowerCase()}`
     : 'IAQ metrics are within expected ranges';
@@ -963,13 +963,13 @@ function renderIaqHourlyHeatStrip(computed) {
   const timeframe = computed?.timeframe || '24h';
   const is24h = timeframe === '24h';
   const panelTitle = is24h
-    ? 'CO2 Hourly Pattern (24h)'
-    : (timeframe === '7d' ? 'CO2 Hour-of-Day Pattern (Last 7 Days)' : 'CO2 Hour-of-Day Pattern (Last 30 Days)');
+    ? 'CO₂ Hourly Pattern (24h)'
+    : (timeframe === '7d' ? 'CO₂ Hour-of-Day Pattern (Last 7 Days)' : 'CO₂ Hour-of-Day Pattern (Last 30 Days)');
   const panelHelp = is24h
-    ? 'Average CO2 by hour for the last 24 hours.'
+    ? 'Average CO₂ by hour for the last 24 hours.'
     : (timeframe === '7d'
-      ? 'Average CO2 by hour-of-day across the last 7 days.'
-      : 'Average CO2 by hour-of-day across the last 30 days.');
+      ? 'Average CO₂ by hour-of-day across the last 7 days.'
+      : 'Average CO₂ by hour-of-day across the last 30 days.');
   const rows = Array.isArray(computed?.rows) ? computed.rows : [];
   let categories = [];
   let values = [];
@@ -1021,7 +1021,7 @@ function renderIaqHourlyHeatStrip(computed) {
 
   const anyData = values.some(function (v) { return Number.isFinite(Number(v)); });
   if (!anyData) {
-    container.innerHTML = '<div class="card"><div class="card__body"><div style="color: var(--muted); text-align:center;">No CO2 hourly pattern available</div></div></div>';
+    container.innerHTML = '<div class="card"><div class="card__body"><div style="color: var(--muted); text-align:center;">No CO₂ hourly pattern available</div></div></div>';
     return;
   }
 
@@ -1065,8 +1065,8 @@ function renderIaqHourlyHeatStrip(computed) {
           </button>
           <div class="smaca-accordion__body" hidden>
             <div class="accordion-content">
-              <p><strong>What it shows:</strong> Average CO2 by hour-of-day (00–23) across the selected timeframe.</p>
-              <p><strong>How to read:</strong> Hotter colors indicate higher average CO2 during those hours.</p>
+              <p><strong>What it shows:</strong> Average CO₂ by hour-of-day (00–23) across the selected timeframe.</p>
+              <p><strong>How to read:</strong> Hotter colors indicate higher average CO₂ during those hours.</p>
               <p><strong>Why useful:</strong> Use recurring peak hours to pre-emptively improve ventilation and validate scheduling changes.</p>
             </div>
           </div>

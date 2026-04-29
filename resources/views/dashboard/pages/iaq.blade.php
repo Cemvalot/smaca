@@ -57,7 +57,7 @@
                     <div class="accordion-content">
                       <p><strong>Y-axis (Vertical):</strong></p>
                       <ul>
-                        <li><strong>Values (ppm):</strong> Aggregated CO2 concentration from all IAQ sensors</li>
+                        <li><strong>Values (ppm):</strong> Aggregated CO₂ concentration from all IAQ sensors</li>
                         <li><strong>Green band:</strong> &lt;800 ppm — generally healthy</li>
                         <li><strong>Amber band:</strong> 800–1000 ppm — monitor and increase fresh air</li>
                         <li><strong>Red band:</strong> &gt;1000 ppm — ventilate or adjust HVAC promptly</li>

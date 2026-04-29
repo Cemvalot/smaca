@@ -109,10 +109,10 @@
     if (shared && shared[metric]) return shared[metric];
 
     const map = {
-      co2: { label: 'CO2', unit: 'ppm', decimals: 0, color: '#3b82f6' },
+      co2: { label: 'CO₂', unit: 'ppm', decimals: 0, color: '#3b82f6' },
       temperature: { label: 'Temperature', unit: '°C', decimals: 1, color: '#06b6d4' },
       humidity: { label: 'Humidity', unit: '%', decimals: 0, color: '#6366f1' },
-      pm2_5: { label: 'PM2.5', unit: 'µg/m³', decimals: 1, color: '#f59e0b' },
+      pm2_5: { label: 'PM2.5', unit: 'μg/m3', decimals: 1, color: '#f59e0b' },
       pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
       tvoc: { label: 'TVOC', unit: '(raw)', decimals: 1, color: '#ec4899' }
     };
@@ -499,7 +499,7 @@
         }
       },
       yAxis: {
-        categories: ['CO2'],
+        categories: ['CO₂'],
         title: { text: null },
         labels: { enabled: false },
         gridLineWidth: 0
@@ -540,7 +540,7 @@
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
             '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
             '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,0.16);"></span>' +
-            '<span style="font-weight:500;">CO2 avg</span>' +
+            '<span style="font-weight:500;">CO₂ avg</span>' +
             '</span>' +
             '<strong style="font-size:12px;color:#f8fbff;">' + text + '</strong>' +
             '</div>' +
@@ -556,7 +556,7 @@
       },
       series: [{
         type: 'heatmap',
-        name: 'CO2 (ppm)',
+        name: 'CO₂ (ppm)',
         borderRadius: 4,
         nullColor: 'rgba(148, 163, 184, 0.10)',
         data: points,

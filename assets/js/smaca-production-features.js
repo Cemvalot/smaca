@@ -1391,7 +1391,7 @@ function renderManagementSmartAlerts(sensors, latestById) {
 
   const latestCo2 = resolveLatestMetricValue(Array.isArray(SMACAState?.rawData?.iaq) ? SMACAState.rawData.iaq : [], 'co2');
   if (Number.isFinite(latestCo2) && latestCo2 > 1000) {
-    alerts.push({ type: 'high-co2', title: 'High CO2 detected', location: 'IAQ zone', severity: 'high', status: 'open', date: new Date().toLocaleDateString() });
+    alerts.push({ type: 'high-co2', title: 'High CO₂ detected', location: 'IAQ zone', severity: 'high', status: 'open', date: new Date().toLocaleDateString() });
   }
 
   const lowBatterySensors = sensors.filter(function (sensor) {
@@ -2247,7 +2247,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
           <span class="trend-pill ${pm25TrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${pm25TrendFormatted.text}</span>
         </div>
         <div class="stat-card__value">${formatMetricValue(pm25, 1)}</div>
-        <div class="stat-card__unit">µg/m³</div>
+        <div class="stat-card__unit">μg/m3</div>
       </div>
     </div>
     <div class="stat-card" style="position: relative;" title="Particulate matter &lt; 10µm. Higher values may affect air quality">
@@ -3997,7 +3997,7 @@ function updateOverviewLiveValues(overview, sensorRows) {
   if (airValueEl) airValueEl.textContent = airStatus.label;
   const airTrendEl = document.getElementById('overview-air-quality-trend');
   if (airTrendEl) {
-    airTrendEl.textContent = Number.isFinite(latestCo2) ? `CO2 ${Math.round(latestCo2)} ppm` : 'No IAQ data';
+    airTrendEl.textContent = Number.isFinite(latestCo2) ? `CO₂ ${Math.round(latestCo2)} ppm` : 'No IAQ data';
   }
 
   const connectivityTrendEl = document.getElementById('overview-connectivity-trend');
@@ -4038,11 +4038,11 @@ function updateOverviewLiveValues(overview, sensorRows) {
   const airScoreMeta = document.getElementById('overview-air-score-meta');
   if (airScoreMeta) {
     if (Number.isFinite(latestCo2) && Number.isFinite(latestPm25)) {
-      airScoreMeta.textContent = `CO2 ${Math.round(latestCo2)} ppm and PM2.5 ${latestPm25.toFixed(1)} ug/m3.`;
+      airScoreMeta.textContent = `CO₂ ${Math.round(latestCo2)} ppm and PM2.5 ${latestPm25.toFixed(1)} μg/m3.`;
     } else if (Number.isFinite(latestCo2)) {
-      airScoreMeta.textContent = `CO2 ${Math.round(latestCo2)} ppm.`;
+      airScoreMeta.textContent = `CO₂ ${Math.round(latestCo2)} ppm.`;
     } else if (Number.isFinite(latestPm25)) {
-      airScoreMeta.textContent = `PM2.5 ${latestPm25.toFixed(1)} ug/m3.`;
+      airScoreMeta.textContent = `PM2.5 ${latestPm25.toFixed(1)} μg/m3.`;
     } else {
       airScoreMeta.textContent = 'Awaiting live IAQ data.';
     }
@@ -4668,7 +4668,7 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   drawOverviewSvgLineChart(chartEl, {
     buckets: buckets,
     series: [
-      { key: 'co2', label: 'CO2', unit: 'ppm', color: '#3b82f6', values: co2Series },
+      { key: 'co2', label: 'CO₂', unit: 'ppm', color: '#3b82f6', values: co2Series },
       { key: 'occupancy', label: 'Occupancy', unit: ' people', color: '#22c55e', values: occupancySeries },
       { key: 'connectivity', label: 'Connectivity', unit: '%', color: '#06b6d4', values: connectivitySeries },
       { key: 'uv', label: 'UV', unit: '', color: '#f59e0b', values: uvSeries }

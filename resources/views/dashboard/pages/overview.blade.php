@@ -211,12 +211,12 @@
       <div class="card__body">
         <div class="overview-chart-shell" aria-label="Campus Trend Overview chart">
           <div class="overview-chart-shell__legend">
-            <span><i class="overview-dot overview-dot--accent"></i> CO2 (ppm)</span>
+            <span><i class="overview-dot overview-dot--accent"></i> CO₂ (ppm)</span>
             <span><i class="overview-dot overview-dot--success"></i> Occupancy (count)</span>
             <span><i class="overview-dot overview-dot--info"></i> Connectivity (% uptime)</span>
             <span><i class="overview-dot overview-dot--warning"></i> UV Index</span>
           </div>
-          <div id="overview-campus-trend-chart" class="overview-chart-shell__plot overview-live-chart" role="img" aria-label="Campus trend line chart showing CO2, occupancy, and connectivity over time"></div>
+          <div id="overview-campus-trend-chart" class="overview-chart-shell__plot overview-live-chart" role="img" aria-label="Campus trend line chart showing CO₂, occupancy, and connectivity over time"></div>
           <p class="overview-chart-shell__helper">Trends are aggregated hourly from live campus telemetry in the selected time range.</p>
         </div>
       </div>

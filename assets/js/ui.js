@@ -130,7 +130,7 @@
       occupancy: 'This graph shows how people use the space over time. Peaks indicate high activity and flatter periods indicate lower usage.',
       temperature: 'This graph shows temperature changes over time. Sudden increases or drops can indicate HVAC activity or environmental shifts.',
       humidity: 'This graph shows relative humidity levels over time. Values outside comfort range can point to ventilation imbalance.',
-      co2: 'This graph shows CO2 concentration over time. Higher values often indicate poor ventilation or high occupancy density.',
+      co2: 'This graph shows CO₂ concentration over time. Higher values often indicate poor ventilation or high occupancy density.',
       pm2_5: 'This graph shows PM2.5 concentration over time. Spikes can indicate short-term particulate exposure events.',
       pm10: 'This graph shows PM10 concentration over time. Elevated periods may indicate dust or coarse particulate buildup.',
       tvoc: 'This graph shows TVOC levels over time. Rising values can indicate increased volatile compounds in indoor air.',

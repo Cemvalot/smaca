@@ -71,7 +71,7 @@
         labels: { style: { color: '#94a3b8' } },
         gridLineColor: 'rgba(100, 116, 139, 0.12)'
       }, {
-        title: { text: 'CO2 (ppm)', style: { color: '#94a3b8' } },
+        title: { text: 'CO₂ (ppm)', style: { color: '#94a3b8' } },
         labels: { style: { color: '#94a3b8' } },
         opposite: true,
         gridLineWidth: 0
@@ -104,7 +104,7 @@
         yAxis: 0
       }, {
         type: 'spline',
-        name: 'CO2',
+        name: 'CO₂',
         data: smacaData.co2,
         color: '#06B6D4',
         marker: {
