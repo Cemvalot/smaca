@@ -132,7 +132,7 @@ function getIaqMetricConfig() {
     co2: { label: 'CO₂', unit: 'ppm', decimals: 0, color: '#3b82f6' },
     temperature: { label: 'Temperature', unit: '°C', decimals: 1, color: '#06b6d4' },
     humidity: { label: 'Humidity', unit: '%', decimals: 0, color: '#6366f1' },
-    pm2_5: { label: 'PM2.5', unit: 'μg/m3', decimals: 1, color: '#f59e0b' },
+    pm2_5: { label: 'PM2.5', unit: 'μg/m³', decimals: 1, color: '#f59e0b' },
     pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
     tvoc: { label: 'TVOC', unit: '(raw)', decimals: 1, color: '#ec4899' }
   };

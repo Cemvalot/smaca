@@ -2247,7 +2247,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
           <span class="trend-pill ${pm25TrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${pm25TrendFormatted.text}</span>
         </div>
         <div class="stat-card__value">${formatMetricValue(pm25, 1)}</div>
-        <div class="stat-card__unit">μg/m3</div>
+        <div class="stat-card__unit">μg/m³</div>
       </div>
     </div>
     <div class="stat-card" style="position: relative;" title="Particulate matter &lt; 10µm. Higher values may affect air quality">
@@ -4038,11 +4038,11 @@ function updateOverviewLiveValues(overview, sensorRows) {
   const airScoreMeta = document.getElementById('overview-air-score-meta');
   if (airScoreMeta) {
     if (Number.isFinite(latestCo2) && Number.isFinite(latestPm25)) {
-      airScoreMeta.textContent = `CO₂ ${Math.round(latestCo2)} ppm and PM2.5 ${latestPm25.toFixed(1)} μg/m3.`;
+      airScoreMeta.textContent = `CO₂ ${Math.round(latestCo2)} ppm and PM2.5 ${latestPm25.toFixed(1)} μg/m³.`;
     } else if (Number.isFinite(latestCo2)) {
       airScoreMeta.textContent = `CO₂ ${Math.round(latestCo2)} ppm.`;
     } else if (Number.isFinite(latestPm25)) {
-      airScoreMeta.textContent = `PM2.5 ${latestPm25.toFixed(1)} μg/m3.`;
+      airScoreMeta.textContent = `PM2.5 ${latestPm25.toFixed(1)} μg/m³.`;
     } else {
       airScoreMeta.textContent = 'Awaiting live IAQ data.';
     }

@@ -78,7 +78,7 @@ const SMACACSVExport = {
     temperature_c: 'Temperature (°C)',
     humidity_rh: 'Humidity (%)',
     co2_ppm: 'CO₂ (ppm)',
-    pm2_5_ugm3: 'PM2.5 (μg/m3)',
+    pm2_5_ugm3: 'PM2.5 (μg/m³)',
     pm10_ugm3: 'PM10 (µg/m³)',
     tvoc_index: 'TVOC Index',
     energy_kwh: 'Energy (kWh)',
