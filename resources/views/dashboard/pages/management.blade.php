@@ -6,15 +6,15 @@
             <div class="section-hero__inner">
               <div>
                 <div class="section-hero__title-row"><svg class="section-hero__icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                  <h2 class="section-hero__title">Management Dashboard</h2>
+                  <h2 class="section-hero__title">{{ __('messages.nav.management') }} Dashboard</h2>
                 </div>
-                <p class="section-hero__subtitle">Sensor, user and system settings</p>
+                <p class="section-hero__subtitle">{{ __('messages.common.management') }}</p>
               </div>
               <div class="management-hero-meta">
-                <div class="section-hero__stat"><div id="management-total-sensors" class="section-hero__stat-value">{{ $sensors->count() }}</div><div class="section-hero__stat-label">Total sensors</div></div>
+                <div class="section-hero__stat"><div id="management-total-sensors" class="section-hero__stat-value">{{ $sensors->count() }}</div><div class="section-hero__stat-label">{{ __('messages.dashboard.total_sensors') }}</div></div>
                 <div class="management-admin-meta">
-                  <div class="management-admin-meta__title">Administrator Session</div>
-                  <div id="management-last-sync-meta" class="management-admin-meta__sync">Last sync: -- sec ago</div>
+                  <div class="management-admin-meta__title">{{ __('messages.common.management') }}</div>
+                  <div id="management-last-sync-meta" class="management-admin-meta__sync">{{ __('messages.common.last_sync') }}: -- sec ago</div>
                 </div>
               </div>
             </div>
@@ -25,7 +25,7 @@
             <div class="stat-card" title="Total number of sensors in the system">
               <div class="stat-card__content">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-                  <div class="stat-card__label">Total Sensors</div>
+                  <div class="stat-card__label">{{ __('messages.dashboard.total_sensors') }}</div>
                   <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
                   </svg>
@@ -34,10 +34,10 @@
                 <div class="stat-card__unit"></div>
               </div>
             </div>
-            <div class="stat-card" title="Sensors currently online and reporting data">
+            <div class="stat-card" title="{{ __('messages.dashboard.sensors') }} currently online and reporting data">
               <div class="stat-card__content">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-                  <div class="stat-card__label">Active</div>
+                  <div class="stat-card__label">{{ __('messages.common.active') }}</div>
                   <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
                   </svg>
@@ -46,10 +46,10 @@
                 <div class="stat-card__unit"></div>
               </div>
             </div>
-            <div class="stat-card" title="Sensors requiring maintenance (low battery, errors, etc.)">
+            <div class="stat-card" title="{{ __('messages.dashboard.sensors') }} requiring maintenance (low battery, errors, etc.)">
               <div class="stat-card__content">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-                  <div class="stat-card__label">Maintenance</div>
+                  <div class="stat-card__label">{{ __('messages.dashboard.edit') }}</div>
                   <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -62,7 +62,7 @@
             <div class="stat-card" title="Open AI-generated insights and alerts">
               <div class="stat-card__content">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-                  <div class="stat-card__label">Open AI Events</div>
+                  <div class="stat-card__label">{{ __('messages.common.ai_insights') }}</div>
                   <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                   </svg>
@@ -74,7 +74,7 @@
             <div class="stat-card" title="Users with active session or recent successful login activity">
               <div class="stat-card__content">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-                  <div class="stat-card__label">Active Users Today</div>
+                  <div class="stat-card__label">{{ __('messages.common.active') }} Users Today</div>
                   <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-1a4 4 0 00-4-4h-1M9 20H4v-1a4 4 0 014-4h1m8-5a4 4 0 11-8 0 4 4 0 018 0z"></path>
                   </svg>
@@ -85,28 +85,28 @@
             </div>
           </div>
 
-          <!-- Search room or sensor (Management only) -->
+          <!-- {{ __('messages.dashboard.search') }} room or sensor ({{ __('messages.nav.management') }} only) -->
           <div class="management-search-bar">
-            <input type="search" id="management-search" class="input" placeholder="Search room or sensor..." aria-label="Search room or sensor">
-            <button type="button" id="management-search-btn" class="btn btn--primary">Search</button>
+            <input type="search" id="management-search" class="input" placeholder="{{ __('messages.dashboard.search') }} room or sensor..." aria-label="{{ __('messages.dashboard.search') }} room or sensor">
+            <button type="button" id="management-search-btn" class="btn btn--primary">{{ __('messages.dashboard.search') }}</button>
           </div>
 
           <!-- Tabs Navigation -->
           <div class="management-tabs-bar">
-            <button class="management-tab active" data-tab="sensors" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--text); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid var(--accent); margin-bottom: -1px;">Sensors</button>
-            <button class="management-tab" data-tab="ai-events" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">Smart Alerts</button>
-            <button class="management-tab" data-tab="users" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">Access Control</button>
-            <button class="management-tab" data-tab="system-health" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">System Health</button>
-            <button class="management-tab" data-tab="settings" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">Settings</button>
+            <button class="management-tab active" data-tab="sensors" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--text); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid var(--accent); margin-bottom: -1px;">{{ __('messages.dashboard.sensors') }}</button>
+            <button class="management-tab" data-tab="ai-events" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">{{ __('messages.dashboard.alerts') }}</button>
+            <button class="management-tab" data-tab="users" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">{{ __('messages.common.management') }}</button>
+            <button class="management-tab" data-tab="system-health" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">{{ __('messages.common.health') }}</button>
+            <button class="management-tab" data-tab="settings" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">{{ __('messages.dashboard.edit') }}</button>
           </div>
 
           <div class="management-admin-layout">
             <div>
 
-          <!-- Sensors Management Tab -->
+          <!-- {{ __('messages.dashboard.sensors') }} {{ __('messages.nav.management') }} Tab -->
           <div id="management-sensors-tab" class="management-tab-content">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
-              <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0;">Sensor Management</h3>
+              <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0;">Sensor {{ __('messages.nav.management') }}</h3>
               <button id="add-sensor-btn" class="btn btn--primary" style="display: flex; align-items: center; gap: var(--space-2);">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -115,7 +115,7 @@
               </button>
             </div>
             
-            <!-- Sensors Table -->
+            <!-- {{ __('messages.dashboard.sensors') }} Table -->
             <div class="card" style="overflow-x: auto;">
               <div class="card__body" style="padding: 0;">
                 <table id="sensors-management-table" style="width: 100%; border-collapse: collapse;">
@@ -124,10 +124,10 @@
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Device ID</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Type-Name</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Sensor Location</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">{{ __('messages.dashboard.status') }}</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Battery</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Signal</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Actions</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">{{ __('messages.dashboard.actions') }}</th>
                     </tr>
                   </thead>
                   <tbody id="sensors-management-table-body">
@@ -150,9 +150,9 @@
                         </td>
                         <td style="padding: var(--space-3) var(--space-4);">
                           @if($sensor->is_active)
-                            <span class="badge badge--success badge--sm">Live</span>
+                            <span class="badge badge--success badge--sm">{{ __('messages.dashboard.live') }}</span>
                           @else
-                            <span class="badge badge--muted badge--sm">Inactive</span>
+                            <span class="badge badge--muted badge--sm">{{ __('messages.common.inactive') }}</span>
                           @endif
                         </td>
                         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">
@@ -172,12 +172,12 @@
                         </td>
                         <td style="padding: var(--space-3) var(--space-4);">
                           <div style="display: flex; gap: var(--space-2);">
-                            <button class="btn btn--ghost btn--sm edit-sensor-btn" style="padding: var(--space-1); min-width: auto;" title="Edit" data-sensor-id="{{ $deviceId }}">
+                            <button class="btn btn--ghost btn--sm edit-sensor-btn" style="padding: var(--space-1); min-width: auto;" title="{{ __('messages.dashboard.edit') }}" data-sensor-id="{{ $deviceId }}">
                               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                               </svg>
                             </button>
-                            <button class="btn btn--ghost btn--sm delete-sensor-btn" style="padding: var(--space-1); min-width: auto; color: var(--danger);" title="Delete" data-sensor-id="{{ $deviceId }}">
+                            <button class="btn btn--ghost btn--sm delete-sensor-btn" style="padding: var(--space-1); min-width: auto; color: var(--danger);" title="{{ __('messages.dashboard.delete') }}" data-sensor-id="{{ $deviceId }}">
                               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                               </svg>
@@ -192,9 +192,9 @@
             </div>
           </div>
 
-          <!-- Smart Alerts Tab -->
+          <!-- {{ __('messages.dashboard.alerts') }} Tab -->
           <div id="management-ai-events-tab" class="management-tab-content" style="display: none;">
-            <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">Smart Alerts</h3>
+            <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">{{ __('messages.dashboard.alerts') }}</h3>
             <div class="card" style="overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
               <div class="card__body" style="padding: 0;">
                 <table class="ai-events-table" style="width: 100%; border-collapse: collapse;">
@@ -204,9 +204,9 @@
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Title</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Location</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Severity</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">{{ __('messages.dashboard.status') }}</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Date</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Actions</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">{{ __('messages.dashboard.actions') }}</th>
                     </tr>
                   </thead>
                   <tbody id="management-smart-alerts-body"></tbody>
@@ -214,10 +214,10 @@
               </div>
             </div>
           </div>
-          <!-- Access Control Tab -->
+          <!-- {{ __('messages.common.management') }} Tab -->
           <div id="management-users-tab" class="management-tab-content" style="display: none;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
-              <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0;">Access Control</h3>
+              <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0;">{{ __('messages.common.management') }}</h3>
               <button id="add-user-btn" class="btn btn--primary" style="display: flex; align-items: center; gap: var(--space-2);">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -265,7 +265,7 @@
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Email</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Role</th>
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Last Login</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Status</th>
+                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">{{ __('messages.dashboard.status') }}</th>
                     </tr>
                   </thead>
                   <tbody id="users-management-table-body"></tbody>
@@ -277,18 +277,18 @@
             </div>
           </div>
           <div id="management-system-health-tab" class="management-tab-content" style="display: none;">
-            <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">System Health</h3>
+            <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">{{ __('messages.common.health') }}</h3>
             <div class="grid grid--metrics grid--metrics-4" style="margin-bottom: var(--space-4);">
               <article class="stat-card management-status-card">
                 <div class="stat-card__content">
-                  <div class="stat-card__label">API Status</div>
+                  <div class="stat-card__label">API {{ __('messages.dashboard.status') }}</div>
                   <div id="system-health-api-status" class="stat-card__value">--</div>
                   <div class="stat-card__meta">Platform API availability</div>
                 </div>
               </article>
               <article class="stat-card management-status-card">
                 <div class="stat-card__content">
-                  <div class="stat-card__label">Database Status</div>
+                  <div class="stat-card__label">Database {{ __('messages.dashboard.status') }}</div>
                   <div id="system-health-db" class="stat-card__value">--</div>
                   <div class="stat-card__meta">Metadata persistence layer</div>
                 </div>
@@ -313,7 +313,7 @@
                 <h4 class="card__title" style="font-size: var(--font-size-lg);">Operational Snapshot</h4>
               </div>
               <div class="card__body">
-                <div class="stat-row"><span class="stat-row__label">Sensors online / offline</span><span id="system-health-sensors" class="stat-row__value">-- / --</span></div>
+                <div class="stat-row"><span class="stat-row__label">{{ __('messages.dashboard.sensors') }} online / offline</span><span id="system-health-sensors" class="stat-row__value">-- / --</span></div>
                 <div class="stat-row"><span class="stat-row__label">Last ingestion</span><span id="system-health-last-ingestion" class="stat-row__value">Not available</span></div>
                 <div class="stat-row"><span class="stat-row__label">Uptime</span><span id="system-health-uptime" class="stat-row__value">--</span></div>
                 <div class="stat-row"><span class="stat-row__label">Pending jobs</span><span id="system-health-pending-jobs" class="stat-row__value">--</span></div>
@@ -352,7 +352,7 @@
               <div class="card__body">
                 <div class="management-export-card__header">
                   <div class="management-export-card__title-wrap">
-                    <h3 class="management-export-card__title">Export Sensor Measurements</h3>
+                    <h3 class="management-export-card__title">{{ __('messages.dashboard.export') }} Sensor Measurements</h3>
                     <p class="management-export-card__description">Download sensor measurements for the selected time range.</p>
                   </div>
                   <div class="management-export-card__range">
@@ -372,12 +372,12 @@
                           aria-haspopup="true"
                           aria-expanded="false"
                         >
-                          <span id="management-export-data-btn-label">Export</span>
+                          <span id="management-export-data-btn-label">{{ __('messages.dashboard.export') }}</span>
                           <svg class="smaca-export-menu__chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                           </svg>
                         </button>
-                        <div id="management-export-menu" class="smaca-export-menu__panel" role="menu" aria-label="Export options" hidden>
+                        <div id="management-export-menu" class="smaca-export-menu__panel" role="menu" aria-label="{{ __('messages.dashboard.export') }} options" hidden>
                           <button type="button" class="smaca-export-menu__item" role="menuitem" data-export-format="xlsx">Excel (.xlsx) Recommended</button>
                           <button type="button" class="smaca-export-menu__item" role="menuitem" data-export-format="csv">CSV</button>
                         </div>

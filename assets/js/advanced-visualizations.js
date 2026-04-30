@@ -1,3 +1,9 @@
+
+function smacaUiT(key, fallback) {
+  const map = (typeof window !== 'undefined' && window.SMACA_TRANSLATIONS) ? window.SMACA_TRANSLATIONS : null;
+  if (map && Object.prototype.hasOwnProperty.call(map, key) && map[key] !== undefined && map[key] !== null && map[key] !== '') return map[key];
+  return fallback;
+}
 function createCO2BandChart(containerId, data, options = {}) {
   const container = document.getElementById(containerId);
   if (!container || !data || !data.length) return;
@@ -261,7 +267,7 @@ function createCO2BandChart(containerId, data, options = {}) {
           • <strong>Data points:</strong> Measurements taken throughout the day
         </div>
         <div style="margin-bottom: var(--space-1);">
-          • <strong>Trend:</strong> Shows how CO₂ levels change over time
+          • <strong>${smacaUiT('trend','Trend')}:</strong> Shows how CO₂ levels change over time
         </div>
       </div>
     </div>
@@ -723,7 +729,7 @@ function createOccupancyDensityTimeline(containerId, data, options = {}) {
     hit.addEventListener('mouseenter', function () {
       tooltip.innerHTML = `
         <div style="color:var(--muted);margin-bottom:4px;">${data.length <= 7 ? `Day ${i + 1}` : `${i}h`}</div>
-        <div>Activity: <strong>${Math.round(value)}</strong></div>
+        <div>${smacaUiT('activity','Activity')}: <strong>${Math.round(value)}</strong></div>
       `;
       tooltip.style.opacity = '1';
       tooltip.style.transform = 'translateY(0)';

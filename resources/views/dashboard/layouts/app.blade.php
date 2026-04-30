@@ -16,12 +16,12 @@
   };
 @endphp
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="base-url" content="{{ url('/') }}">
-  <title>SMACA Dashboard - Unified IoT Monitoring</title>
+  <title>{{ __('messages.app.title') }}</title>
   <link rel="icon" type="image/x-icon" href="{{ asset('assets/brand/favicon.ico') }}">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/smaca-favicon-32.png') }}">
   <link rel="icon" type="image/svg+xml" href="{{ asset('assets/brand/smaca-favicon.svg') }}">
@@ -51,7 +51,7 @@
         <div id="smaca-page-loading-overlay" class="smaca-page-loading-overlay" aria-live="polite" aria-hidden="true">
           <div class="smaca-page-loading-overlay__panel">
             <div class="smaca-page-loading-overlay__spinner" aria-hidden="true"></div>
-            <div id="smaca-page-loading-message" class="smaca-page-loading-overlay__message">Loading data...</div>
+            <div id="smaca-page-loading-message" class="smaca-page-loading-overlay__message">{{ __('messages.app.loading_data') }}</div>
           </div>
         </div>
         @yield('dashboard-content')
@@ -60,13 +60,13 @@
   </div>
 
   @if(($smacaPage ?? 'overview') === 'management')
-  <!-- Add/Edit Sensor Modal (management page only) -->
+  <!-- Add/{{ __('messages.dashboard.edit') }} Sensor Modal (management page only) -->
   <div id="sensor-modal" class="user-modal" style="display: none;" role="dialog" aria-labelledby="sensor-modal-title" aria-modal="true">
     <div class="user-modal__backdrop"></div>
     <div class="user-modal__dialog">
       <div class="user-modal__header">
-        <h3 id="sensor-modal-title" class="user-modal__title">Add Sensor</h3>
-        <button type="button" class="user-modal__close" aria-label="Close">&times;</button>
+        <h3 id="sensor-modal-title" class="user-modal__title">{{ __('messages.dashboard.save') }} Sensor</h3>
+        <button type="button" class="user-modal__close" aria-label="{{ __('messages.dashboard.cancel') }}">&times;</button>
       </div>
       <form id="sensor-form" class="user-modal__body" method="post" action="#" onsubmit="return false;">
         <input type="hidden" id="sensor-form-id" name="id" value="">
@@ -92,7 +92,7 @@
           <input type="text" id="sensor-form-location" name="location" class="input" placeholder="e.g. Room 101" required>
         </div>
         <div class="user-form-field">
-          <label for="sensor-form-status" class="user-form-label">Status</label>
+          <label for="sensor-form-status" class="user-form-label">{{ __('messages.dashboard.status') }}</label>
           <select id="sensor-form-status" name="status" class="input">
             <option value="active">Active</option>
             <option value="maintenance">Maintenance</option>
@@ -108,19 +108,19 @@
         </div>
       </form>
       <div class="user-modal__footer">
-        <button type="button" class="btn btn--ghost user-modal__cancel">Cancel</button>
-        <button type="submit" form="sensor-form" class="btn btn--primary">Save Sensor</button>
+        <button type="button" class="btn btn--ghost user-modal__cancel">{{ __('messages.dashboard.cancel') }}</button>
+        <button type="submit" form="sensor-form" class="btn btn--primary">{{ __('messages.dashboard.save') }} Sensor</button>
       </div>
     </div>
   </div>
 
-  <!-- Add/Edit User Modal (management page only) -->
+  <!-- Add/{{ __('messages.dashboard.edit') }} User Modal (management page only) -->
   <div id="user-modal" class="user-modal" style="display: none;" role="dialog" aria-labelledby="user-modal-title" aria-modal="true">
     <div class="user-modal__backdrop"></div>
     <div class="user-modal__dialog">
       <div class="user-modal__header">
-        <h3 id="user-modal-title" class="user-modal__title">Add User</h3>
-        <button type="button" class="user-modal__close" aria-label="Close">&times;</button>
+        <h3 id="user-modal-title" class="user-modal__title">{{ __('messages.dashboard.save') }} User</h3>
+        <button type="button" class="user-modal__close" aria-label="{{ __('messages.dashboard.cancel') }}">&times;</button>
       </div>
       <form id="user-form" class="user-modal__body" method="post" action="#" onsubmit="return false;">
         <input type="hidden" id="user-form-id" name="id" value="">
@@ -141,7 +141,7 @@
           </select>
         </div>
         <div class="user-form-field">
-          <label for="user-form-status" class="user-form-label">Status</label>
+          <label for="user-form-status" class="user-form-label">{{ __('messages.dashboard.status') }}</label>
           <select id="user-form-status" name="status" class="input">
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
@@ -149,8 +149,8 @@
         </div>
       </form>
       <div class="user-modal__footer">
-        <button type="button" class="btn btn--ghost user-modal__cancel">Cancel</button>
-        <button type="submit" form="user-form" class="btn btn--primary">Save User</button>
+        <button type="button" class="btn btn--ghost user-modal__cancel">{{ __('messages.dashboard.cancel') }}</button>
+        <button type="submit" form="user-form" class="btn btn--primary">{{ __('messages.dashboard.save') }} User</button>
       </div>
     </div>
   </div>
@@ -165,6 +165,42 @@
     window.SMACA_HIGHCHARTS_MODULES = [
       "https://code.highcharts.com/12.2.0/modules/heatmap.js"
     ];
+    window.SMACA_TRANSLATIONS = {
+      loading_data: "{{ __('messages.app.loading_data') }}",
+      no_data_available: "{{ __('messages.dashboard.no_data_available') }}",
+      moderate: "{{ __('messages.status.moderate') }}",
+      good: "{{ __('messages.status.good') }}",
+      poor: "{{ __('messages.status.poor') }}",
+      high: "{{ __('messages.status.high') }}",
+      low: "{{ __('messages.public.low') }}",
+      health: "{{ __('messages.common.health') }}",
+      connectivity: "{{ __('messages.nav.connectivity') }}",
+      energy: "{{ __('messages.nav.energy') }}",
+      occupancy: "{{ __('messages.nav.occupancy') }}",
+      environmental: "{{ __('messages.nav.environmental') }}",
+      ai_insights: "{{ __('messages.nav.ai_insights') }}",
+      management: "{{ __('messages.nav.management') }}",
+      status: "{{ __('messages.dashboard.status') }}",
+      online: "{{ __('messages.common.online') }}",
+      offline: "{{ __('messages.common.offline') }}",
+      last_update: "{{ __('messages.dashboard.last_update') }}",
+      export: "{{ __('messages.dashboard.export') }}",
+      download_csv: "{{ __('messages.export.download_csv') }}",
+      download_excel: "{{ __('messages.export.download_excel') }}",
+      not_available: "{{ __('messages.common.not_available') }}",
+      active: "{{ __('messages.common.active') }}",
+      inactive: "{{ __('messages.common.inactive') }}",
+      acknowledged: "{{ __('messages.status.acknowledged') }}",
+      resolved: "{{ __('messages.status.resolved') }}",
+      open: "{{ __('messages.status.open') }}",
+      extreme: "{{ __('messages.status.extreme') }}",
+      trend: "{{ __('messages.status.trend') }}",
+      usage: "{{ __('messages.status.usage') }}",
+      activity: "{{ __('messages.status.activity') }}",
+      what_is_this_graph: "{{ __('messages.status.what_is_this_graph') }}",
+      warning: "{{ __('messages.status.warning') }}",
+      action: "{{ __('messages.status.action') }}"
+    };
   </script>
   <script defer src="{{ asset('assets/js/rbac.js') }}?v={{ $smacaAssetVersion('assets/js/rbac.js') }}"></script>
   <script defer src="{{ asset('assets/js/ui.js') }}?v={{ $smacaAssetVersion('assets/js/ui.js') }}"></script>

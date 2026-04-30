@@ -7,14 +7,14 @@
               <div>
                 <div class="section-hero__title-row">
                   <svg class="section-hero__icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  <h2 class="section-hero__title">Indoor Air Quality</h2>
+                  <h2 class="section-hero__title">{{ __('messages.nav.iaq') }}</h2>
                 </div>
                 <p class="section-hero__subtitle">Is the space currently healthy? Is air quality degrading or improving?</p>
               </div>
-              <div class="section-hero__stat"><div id="iaq-active-sensors" class="section-hero__stat-value">8</div><div class="section-hero__stat-label">Active sensors</div></div>
+              <div class="section-hero__stat"><div id="iaq-active-sensors" class="section-hero__stat-value">8</div><div class="section-hero__stat-label">{{ __('messages.dashboard.active_sensors') }}</div></div>
             </div>
           </div>
-          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">Live</span><span class="last-updated-pill" title="Time since last data sync">Last updated: 2 min ago</span></div>
+          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
           
           <!-- KPI Cards with Metric Definitions -->
           <div id="iaq-kpi-cards" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
@@ -37,9 +37,9 @@
                     <p id="iaq-main-chart-subtitle" style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Aggregated across all IAQ sensors</p>
                   </div>
                   <div id="iaq-metric-toggle" class="time-range-selector" role="tablist" aria-label="Select IAQ metric">
-                    <button type="button" class="time-range-btn active" data-iaq-metric="co2">CO₂</button>
-                    <button type="button" class="time-range-btn" data-iaq-metric="temperature">Temperature</button>
-                    <button type="button" class="time-range-btn" data-iaq-metric="humidity">Humidity</button>
+                    <button type="button" class="time-range-btn active" data-iaq-metric="co2">{{ __('messages.labels.co2') }}</button>
+                    <button type="button" class="time-range-btn" data-iaq-metric="temperature">{{ __('messages.dashboard.temperature') }}</button>
+                    <button type="button" class="time-range-btn" data-iaq-metric="humidity">{{ __('messages.dashboard.humidity') }}</button>
                     <button type="button" class="time-range-btn" data-iaq-metric="pm2_5">PM2.5</button>
                     <button type="button" class="time-range-btn" data-iaq-metric="pm10">PM10</button>
                     <button type="button" class="time-range-btn" data-iaq-metric="tvoc">TVOC</button>

@@ -9,7 +9,7 @@
           <svg class="section-hero__icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
           </svg>
-          <h2 class="section-hero__title">Energy</h2>
+          <h2 class="section-hero__title">{{ __('messages.nav.energy') }}</h2>
         </div>
         <p class="section-hero__subtitle">Operational energy usage: track bucket consumption, trends, and distribution by location.</p>
       </div>
@@ -20,15 +20,15 @@
     </div>
   </div>
   <div class="section-meta">
-    <span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">Live</span>
-    <span class="last-updated-pill" title="Time since last data sync">Last updated: 2 min ago</span>
+    <span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span>
+    <span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span>
   </div>
 
   <!-- KPI row -->
   <div class="grid grid--metrics grid--metrics-4" id="energy-kpi-grid" style="margin-top: var(--space-6);">
     <article class="stat-card" title="Total energy used in the selected timeframe">
       <div class="stat-card__content">
-        <div class="stat-card__label">Total Energy Used</div>
+        <div class="stat-card__label">Total {{ __('messages.nav.energy') }} Used</div>
         <div id="energy-kpi-total" class="stat-card__value">--</div>
         <div id="energy-kpi-total-meta" class="stat-card__meta">--</div>
       </div>
@@ -59,7 +59,7 @@
   <!-- Main chart -->
   <div class="card" style="margin-top: var(--space-6);">
     <div class="card__header">
-      <h3 class="card__title">Energy Usage (kWh)</h3>
+      <h3 class="card__title">{{ __('messages.nav.energy') }} Usage (kWh)</h3>
       <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Columns show bucket usage; spline shows cumulative energy.</p>
     </div>
     <div class="card__body">
@@ -130,7 +130,7 @@
   <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6); margin-top: var(--space-6);">
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">Energy Distribution by Location</h3>
+        <h3 class="card__title">{{ __('messages.nav.energy') }} Distribution by Location</h3>
         <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Top locations by energy usage in the selected timeframe.</p>
       </div>
       <div class="card__body">
@@ -150,7 +150,7 @@
     </div>
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">Energy Share</h3>
+        <h3 class="card__title">{{ __('messages.nav.energy') }} Share</h3>
         <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Relative contribution by top locations (donut).</p>
       </div>
       <div class="card__body">

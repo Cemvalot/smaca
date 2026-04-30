@@ -1,3 +1,9 @@
+
+function smacaUiT(key, fallback) {
+  const map = (typeof window !== 'undefined' && window.SMACA_TRANSLATIONS) ? window.SMACA_TRANSLATIONS : null;
+  if (map && Object.prototype.hasOwnProperty.call(map, key) && map[key] !== undefined && map[key] !== null && map[key] !== '') return map[key];
+  return fallback;
+}
 // Mock Data (for development/testing)
 const mockData = {
   iaq: {
@@ -186,13 +192,13 @@ function loadEnvironmentalData() {
     const uvStatus = document.getElementById('uv-status');
     if (uvStatus) {
       if (uvValue >= 6) {
-        uvStatus.textContent = 'High';
+        uvStatus.textContent = (window.SMACA_TRANSLATIONS && window.SMACA_TRANSLATIONS.high) ? window.SMACA_TRANSLATIONS.high : 'High';
         uvStatus.className = 'badge badge--danger badge--sm';
       } else if (uvValue >= 3) {
-        uvStatus.textContent = 'Moderate';
+        uvStatus.textContent = (window.SMACA_TRANSLATIONS && window.SMACA_TRANSLATIONS.moderate) ? window.SMACA_TRANSLATIONS.moderate : smacaUiT('moderate','Moderate');
         uvStatus.className = 'badge badge--warning badge--sm';
       } else {
-        uvStatus.textContent = 'Low';
+        uvStatus.textContent = (window.SMACA_TRANSLATIONS && window.SMACA_TRANSLATIONS.low) ? window.SMACA_TRANSLATIONS.low : smacaUiT('low','Low');
         uvStatus.className = 'badge badge--success badge--sm';
       }
     }

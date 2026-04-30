@@ -1,3 +1,9 @@
+
+function smacaUiT(key, fallback) {
+  const map = (typeof window !== 'undefined' && window.SMACA_TRANSLATIONS) ? window.SMACA_TRANSLATIONS : null;
+  if (map && Object.prototype.hasOwnProperty.call(map, key) && map[key] !== undefined && map[key] !== null && map[key] !== '') return map[key];
+  return fallback;
+}
 function formatTime(timestamp, includeDate = false) {
   const date = new Date(timestamp);
   if (includeDate) {
@@ -60,7 +66,7 @@ function createAccurateCO2Chart(containerId, normalizedData, options = {}) {
   
   // Thresholds
   const thresholds = {
-    good: { min: 400, max: 800, color: '#10b981', label: 'Good' },
+    good: { min: 400, max: 800, color: '#10b981', label: smacaUiT('good','Good') },
     warning: { min: 800, max: 1000, color: '#f59e0b', label: 'Warning' },
     action: { min: 1000, max: thresholdMax, color: '#ef4444', label: 'Action' }
   };

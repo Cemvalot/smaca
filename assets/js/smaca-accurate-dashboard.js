@@ -1,3 +1,9 @@
+
+function smacaUiT(key, fallback) {
+  const map = (typeof window !== 'undefined' && window.SMACA_TRANSLATIONS) ? window.SMACA_TRANSLATIONS : null;
+  if (map && Object.prototype.hasOwnProperty.call(map, key) && map[key] !== undefined && map[key] !== null && map[key] !== '') return map[key];
+  return fallback;
+}
 if (typeof formatTime === 'undefined') {
   function formatTime(timestamp, includeDate = false) {
     const date = new Date(timestamp);
@@ -20,6 +26,14 @@ if (typeof window !== 'undefined') {
   window.SMACAIaqSelectedMetric = window.SMACAIaqSelectedMetric || 'co2';
 }
 
+function smacaAccurateT(key, fallback) {
+  const map = (typeof window !== 'undefined' && window.SMACA_TRANSLATIONS) ? window.SMACA_TRANSLATIONS : null;
+  if (map && Object.prototype.hasOwnProperty.call(map, key) && map[key] !== undefined && map[key] !== null && map[key] !== '') {
+    return map[key];
+  }
+  return fallback;
+}
+
 function finalizeIaqPageRenderCleanup() {
   if (typeof window === 'undefined') return;
   const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
@@ -32,7 +46,7 @@ function finalizeIaqPageRenderCleanup() {
     overlay.style.display = '';
   }
   if (overlayMessage && overlay && !overlay.classList.contains('is-visible')) {
-    overlayMessage.textContent = 'Loading data...';
+    overlayMessage.textContent = smacaAccurateT('loading_data', 'Loading data...');
   }
   const chart = document.getElementById('iaq-co2-band-chart');
   if (chart) {
@@ -96,7 +110,7 @@ function initAccurateIAQDashboard() {
     // Show insufficient history message
     const chartPlaceholders = document.querySelectorAll('#iaq .chart-placeholder');
     chartPlaceholders.forEach(placeholder => {
-      placeholder.innerHTML = '<div style="text-align: center; padding: var(--space-8); color: var(--muted);"><p>No IAQ data available</p></div>';
+      placeholder.innerHTML = '<div style="text-align: center; padding: var(--space-8); color: var(--muted);"><p>' + smacaAccurateT('no_data_available', 'No data available') + '</p></div>';
     });
     if (typeof window !== 'undefined') {
       window.lastRenderedTimeframe = currentTimeframe;
@@ -282,17 +296,17 @@ function evaluateMetricStatus(metric, value) {
   if (!Number.isFinite(Number(value))) return { label: 'N/A', score: 0, tone: 'neutral' };
   const v = Number(value);
   if (metric === 'co2') {
-    if (v < 800) return { label: 'Good', score: 5, tone: 'good' };
-    if (v < 1000) return { label: 'Moderate', score: 3, tone: 'moderate' };
+    if (v < 800) return { label: smacaAccurateT('good', smacaUiT('good','Good')), score: 5, tone: 'good' };
+    if (v < 1000) return { label: smacaAccurateT('moderate', smacaUiT('moderate','Moderate')), score: 3, tone: 'moderate' };
     return { label: 'High', score: 1, tone: 'high' };
   }
   if (metric === 'pm2_5') {
-    if (v <= 12) return { label: 'Low', score: 5, tone: 'good' };
+    if (v <= 12) return { label: smacaUiT('low','Low'), score: 5, tone: 'good' };
     if (v <= 35) return { label: 'Elevated', score: 3, tone: 'moderate' };
     return { label: 'High', score: 1, tone: 'high' };
   }
   if (metric === 'pm10') {
-    if (v <= 20) return { label: 'Low', score: 5, tone: 'good' };
+    if (v <= 20) return { label: smacaUiT('low','Low'), score: 5, tone: 'good' };
     if (v <= 50) return { label: 'Elevated', score: 3, tone: 'moderate' };
     return { label: 'High', score: 1, tone: 'high' };
   }
@@ -307,7 +321,7 @@ function evaluateMetricStatus(metric, value) {
     return { label: 'Out of Range', score: 1, tone: 'high' };
   }
   if (metric === 'tvoc') {
-    if (v < 150) return { label: 'Low', score: 5, tone: 'good' };
+    if (v < 150) return { label: smacaUiT('low','Low'), score: 5, tone: 'good' };
     if (v < 300) return { label: 'Elevated', score: 3, tone: 'moderate' };
     return { label: 'High', score: 1, tone: 'high' };
   }
@@ -322,17 +336,17 @@ function evaluateOverallIaqSummary(latestValues, activeSensorCount, latestTimest
   const contributing = statuses.filter(function (entry) { return entry.status.score > 0; });
   if (!contributing.length) {
     return {
-      statusLabel: 'Moderate',
+      statusLabel: smacaAccurateT('moderate', smacaUiT('moderate','Moderate')),
       explanation: 'No valid IAQ metric values available',
       freshnessMinutes: null
     };
   }
   const minScore = contributing.reduce(function (min, entry) { return Math.min(min, entry.status.score); }, 5);
   const avgScore = contributing.reduce(function (acc, entry) { return acc + entry.status.score; }, 0) / contributing.length;
-  let statusLabel = 'Good';
+  let statusLabel = smacaAccurateT('good', smacaUiT('good','Good'));
   if (minScore <= 1 && avgScore < 2) statusLabel = 'Critical';
-  else if (minScore <= 1) statusLabel = 'Poor';
-  else if (avgScore < 3) statusLabel = 'Moderate';
+  else if (minScore <= 1) statusLabel = smacaAccurateT('poor', 'Poor');
+  else if (avgScore < 3) statusLabel = smacaAccurateT('moderate', smacaUiT('moderate','Moderate'));
   else if (avgScore >= 4.5) statusLabel = 'Excellent';
   const topDriver = statuses.sort(function (a, b) { return a.status.score - b.status.score; })[0];
   const driverLabelMap = { co2: 'CO₂', pm2_5: 'PM2.5', pm10: 'PM10', humidity: 'Humidity', temperature: 'Temperature', tvoc: 'TVOC' };
@@ -396,7 +410,7 @@ function renderIAQKPICards(computed) {
             <div class="stat-card__unit">${metricCfg.unit}</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:11px;color:var(--muted);">Trend</div>
+            <div style="font-size:11px;color:var(--muted);">${smacaUiT('trend','Trend')}</div>
             <div style="font-size:12px;font-weight:600;color:var(--text);">${trend.text}</div>
           </div>
         </div>
@@ -500,7 +514,7 @@ function renderIaqMainTrendChart(computed) {
   chartEl.style.zIndex = '1';
 
   const titleEl = document.getElementById('iaq-main-chart-title');
-  if (titleEl) titleEl.textContent = `IAQ Trend - ${cfg.label}`;
+  if (titleEl) titleEl.textContent = `IAQ ${smacaUiT('trend','Trend')} - ${cfg.label}`;
   const subtitleEl = document.getElementById('iaq-main-chart-subtitle');
   if (subtitleEl) subtitleEl.textContent = `Aggregated across ${computed.activeSensorCount} IAQ sensors`;
 
@@ -1047,7 +1061,7 @@ function renderIaqHourlyHeatStrip(computed) {
         <div style="display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap: var(--space-2); padding: 0 var(--space-1) var(--space-2);">
           <div style="display:flex; align-items:center; gap: var(--space-2);">
             <span style="width: 14px; height: 10px; background:#16a34a; border-radius:4px; display:inline-block;"></span>
-            <span style="font-size: 11px; color: var(--muted);">Low (good)</span>
+            <span style="font-size: 11px; color: var(--muted);">${smacaUiT('low','Low')} (${smacaUiT('good','Good').toLowerCase()})</span>
           </div>
           <div style="display:flex; align-items:center; justify-content:center; gap: var(--space-2);">
             <span style="width: 14px; height: 10px; background:#eab308; border-radius:4px; display:inline-block;"></span>
@@ -1220,7 +1234,7 @@ function renderSensorHealthPanel(computed) {
 function renderDataSourcePanel(summary) {
   const container = document.getElementById('data-source-panel');
   if (!container) return;
-  const status = summary?.statusLabel || 'Moderate';
+  const status = summary?.statusLabel || smacaAccurateT('moderate', smacaUiT('moderate','Moderate'));
   const explanation = summary?.explanation || 'IAQ summary is unavailable';
   const activeSensors = Number(summary?.activeSensorCount || 0);
   const latestTimestamp = summary?.latestTimestamp ? formatTime(summary.latestTimestamp, true) : 'Unavailable';

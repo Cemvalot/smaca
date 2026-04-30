@@ -1,3 +1,9 @@
+
+function smacaUiT(key, fallback) {
+  const map = (typeof window !== 'undefined' && window.SMACA_TRANSLATIONS) ? window.SMACA_TRANSLATIONS : null;
+  if (map && Object.prototype.hasOwnProperty.call(map, key) && map[key] !== undefined && map[key] !== null && map[key] !== '') return map[key];
+  return fallback;
+}
 // SMACA AI Insights - Enhanced with Model Performance Cards and Predictions
 const ollamaModel = {
   title: 'Ollama',

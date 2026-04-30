@@ -1,4 +1,10 @@
 ;(function () {
+function smacaUiT(key, fallback) {
+  const map = (typeof window !== 'undefined' && window.SMACA_TRANSLATIONS) ? window.SMACA_TRANSLATIONS : null;
+  if (map && Object.prototype.hasOwnProperty.call(map, key) && map[key] !== undefined && map[key] !== null && map[key] !== '') return map[key];
+  return fallback;
+}
+
   const DEFAULT_CHART_OPTIONS = {
     chart: {
       animation: false,
@@ -11,6 +17,14 @@
 
   function hasHighcharts() {
     return typeof window !== 'undefined' && typeof window.Highcharts !== 'undefined';
+  }
+
+  function chartT(key, fallback) {
+    const map = (typeof window !== 'undefined' && window.SMACA_TRANSLATIONS) ? window.SMACA_TRANSLATIONS : null;
+    if (map && Object.prototype.hasOwnProperty.call(map, key) && map[key] !== undefined && map[key] !== null && map[key] !== '') {
+      return map[key];
+    }
+    return fallback;
   }
 
   function ensureAccessibilityDisabled() {
@@ -793,7 +807,7 @@
       ? params.values
       : (Array.isArray(params?.presence) ? params.presence : (Array.isArray(params?.activity) ? params.activity : []));
     const timeframe = params?.timeframe || '24h';
-    const seriesName = params?.seriesName || 'Activity';
+    const seriesName = params?.seriesName || smacaUiT('activity','Activity');
     const seriesColor = params?.color || '#93c5fd';
     const series = times.map(function (t, i) {
       const v = Number(values[i]);
@@ -928,7 +942,7 @@
     if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
     const categories = Array.isArray(params?.categories) ? params.categories : [];
     const series = Array.isArray(params?.values) ? params.values : [];
-    const title = params?.seriesName || 'Activity';
+    const title = params?.seriesName || smacaUiT('activity','Activity');
 
     const options = {
       chart: { type: 'column', animation: false, backgroundColor: 'transparent', spacingLeft: 8, spacingRight: 10, spacingTop: 10, spacingBottom: 10 },
@@ -1216,7 +1230,7 @@
         labels: { style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' }, y: 10 }
       },
       yAxis: {
-        categories: ['Activity'],
+        categories: [smacaUiT('activity','Activity')],
         title: { text: null },
         labels: { enabled: false },
         gridLineWidth: 0
@@ -1254,7 +1268,7 @@
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +
             '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
             '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:#93c5fd;box-shadow:0 0 0 2px rgba(147,197,253,0.16);"></span>' +
-            '<span style="font-weight:500;">Activity</span>' +
+            '<span style="font-weight:500;">' + smacaUiT('activity','Activity') + '</span>' +
             '</span>' +
             '<strong style="font-size:12px;color:#f8fbff;">' + text + '</strong>' +
             '</div>' +
@@ -1263,7 +1277,7 @@
         }
       },
       plotOptions: { series: { animation: false, states: { hover: { brightness: 0.05 } } } },
-      series: [{ type: 'heatmap', name: 'Activity', borderRadius: 4, nullColor: 'rgba(148, 163, 184, 0.10)', data: points, dataLabels: { enabled: false } }]
+      series: [{ type: 'heatmap', name: smacaUiT('activity','Activity'), borderRadius: 4, nullColor: 'rgba(148, 163, 184, 0.10)', data: points, dataLabels: { enabled: false } }]
     };
 
     return createOrUpdateChart({
@@ -1275,12 +1289,12 @@
 
   function getUvCategory(uvValue) {
     const uv = Number(uvValue);
-    if (!Number.isFinite(uv)) return 'Unavailable';
-    if (uv >= 11) return 'Extreme';
+    if (!Number.isFinite(uv)) return chartT('not_available', 'Unavailable');
+    if (uv >= 11) return smacaUiT('extreme','Extreme');
     if (uv >= 8) return 'Very High';
-    if (uv >= 6) return 'High';
-    if (uv >= 3) return 'Moderate';
-    return 'Low';
+    if (uv >= 6) return chartT('high', 'High');
+    if (uv >= 3) return chartT('moderate', smacaUiT('moderate','Moderate'));
+    return chartT('low', smacaUiT('low','Low'));
   }
 
   function getUvColor(uvValue) {

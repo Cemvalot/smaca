@@ -1,16 +1,20 @@
 <div class="topbar">
         <div class="topbar__title">
-          <h1 class="topbar__heading">SMACA Dashboard</h1>
-          <p class="topbar__subtitle">Unified IoT monitoring platform</p>
+          <h1 class="topbar__heading">{{ __('messages.topbar.heading') }}</h1>
+          <p class="topbar__subtitle">{{ __('messages.topbar.subtitle') }}</p>
         </div>
         <div class="topbar__actions">
           <!-- Time Range Selector -->
           <div class="time-range-selector">
-            <button class="time-range-btn active" data-timeframe="24h" title="Filter data for last 24 hours">24h</button>
-            <button class="time-range-btn" data-timeframe="7d" title="Filter data for last 7 days">7d</button>
-            <button class="time-range-btn" data-timeframe="30d" title="Filter data for last 30 days">30d</button>
+            <button class="time-range-btn active" data-timeframe="24h" title="{{ __('messages.topbar.filter_24h') }}">24h</button>
+            <button class="time-range-btn" data-timeframe="7d" title="{{ __('messages.topbar.filter_7d') }}">7d</button>
+            <button class="time-range-btn" data-timeframe="30d" title="{{ __('messages.topbar.filter_30d') }}">30d</button>
           </div>
-          <button class="btn btn--ghost btn--sm" id="sidebar-toggle" aria-label="Toggle sidebar" title="Collapse or expand sidebar">
+          <div class="language-switcher" aria-label="{{ __('messages.language.label') }}">
+            <a href="{{ url('/language/en') }}" class="btn btn--ghost btn--sm {{ app()->getLocale() === 'en' ? 'is-active' : '' }}">{{ __('messages.language.english') }}</a>
+            <a href="{{ url('/language/el') }}" class="btn btn--ghost btn--sm {{ app()->getLocale() === 'el' ? 'is-active' : '' }}">{{ __('messages.language.greek') }}</a>
+          </div>
+          <button class="btn btn--ghost btn--sm" id="sidebar-toggle" aria-label="{{ __('messages.topbar.toggle_sidebar') }}" title="{{ __('messages.topbar.collapse_sidebar') }}">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
             </svg>

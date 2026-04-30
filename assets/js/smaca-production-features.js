@@ -130,6 +130,15 @@ function smacaDebug() {
   console.debug.apply(console, arguments);
 }
 
+
+function smacaT(key, fallback) {
+  const map = (typeof window !== 'undefined' && window.SMACA_TRANSLATIONS) ? window.SMACA_TRANSLATIONS : null;
+  if (map && Object.prototype.hasOwnProperty.call(map, key) && map[key] !== undefined && map[key] !== null && map[key] !== '') {
+    return map[key];
+  }
+  return fallback;
+}
+
 function runWhenBrowserIdle(callback, timeoutMs) {
   if (typeof callback !== 'function') return;
   const timeout = Number.isFinite(timeoutMs) ? timeoutMs : 180;
@@ -177,13 +186,13 @@ function setSectionLoadingState(sectionId, isLoading) {
 function setDashboardLoadingMessage(message) {
   const messageEl = document.getElementById('smaca-page-loading-message');
   if (!messageEl) return;
-  messageEl.textContent = message || 'Loading data...';
+  messageEl.textContent = message || smacaT('loading_data','Loading data...');
 }
 
 function showDashboardLoadingOverlay(pageName) {
   const overlay = document.getElementById('smaca-page-loading-overlay');
   if (!overlay) return;
-  setDashboardLoadingMessage('Loading data...');
+  setDashboardLoadingMessage(smacaT('loading_data','Loading data...'));
   overlay.classList.add('is-visible');
   overlay.setAttribute('aria-hidden', 'false');
   if ((pageName || getSmacaCurrentPage()) === 'iaq') {
@@ -220,7 +229,7 @@ function setCurrentPageLoadingState(isLoading) {
 function renderEmptyState(containerId, message) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  el.innerHTML = `<div style="color: var(--muted); text-align: center; padding: var(--space-6);">${message || 'No data available'}</div>`;
+  el.innerHTML = `<div style="color: var(--muted); text-align: center; padding: var(--space-6);">${message || smacaT('no_data_available','No data available')}</div>`;
 }
 
 function renderCurrentPageFailureState(page) {
@@ -234,10 +243,10 @@ function renderCurrentPageFailureState(page) {
     renderEmptyState('uv-daily-comparison-chart', 'No UV data available');
   }
   if (page === 'energy') {
-    renderEmptyState('energy-correlation-chart', 'No data available');
+    renderEmptyState('energy-correlation-chart', smacaT('no_data_available','No data available'));
   }
   if (page === 'iaq') {
-    renderEmptyState('iaq-co2-band-chart', 'No data available');
+    renderEmptyState('iaq-co2-band-chart', smacaT('no_data_available','No data available'));
   }
 }
 
@@ -978,7 +987,7 @@ function renderManagementSensorsFromLiveData() {
     const openCount = Array.from(document.querySelectorAll('#management-ai-events-tab tbody tr')).filter(function (row) {
       const statusCell = row.querySelector('td:nth-child(5)');
       const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
-      return statusText === 'open';
+      return statusText === smacaT('open','open').toLowerCase();
     }).length;
     aiEventsOpenEl.textContent = String(openCount);
   }
@@ -1339,9 +1348,9 @@ function ensureManagementSettingsActions() {
         const originalLabel = exportDataBtnLabel ? exportDataBtnLabel.textContent : exportDataBtn.textContent;
         exportDataBtn.disabled = true;
         if (exportDataBtnLabel) {
-          exportDataBtnLabel.textContent = format === 'csv' ? 'Exporting CSV...' : 'Exporting Excel...';
+          exportDataBtnLabel.textContent = format === 'csv' ? smacaT('download_csv','Download CSV') + '...' : smacaT('download_excel','Download Excel') + '...';
         } else {
-          exportDataBtn.textContent = format === 'csv' ? 'Exporting CSV...' : 'Exporting Excel...';
+          exportDataBtn.textContent = format === 'csv' ? smacaT('download_csv','Download CSV') + '...' : smacaT('download_excel','Download Excel') + '...';
         }
         setMenuOpen(false);
 
@@ -1410,7 +1419,7 @@ function renderManagementSmartAlerts(sensors, latestById) {
     return !Number.isFinite(lastSeenMs) || ((Date.now() - lastSeenMs) > (2 * 60 * 60 * 1000));
   });
   if (staleSensors.length > 0) {
-    alerts.push({ type: 'signal-loss', title: staleSensors.length + ' sensors no recent signal', location: 'Connectivity', severity: 'medium', status: 'open', date: new Date().toLocaleDateString() });
+    alerts.push({ type: 'signal-loss', title: staleSensors.length + ' sensors no recent signal', location: smacaT('connectivity','Connectivity'), severity: 'medium', status: 'open', date: new Date().toLocaleDateString() });
   }
 
   const latestEnergy = resolveLatestMetricValue(Array.isArray(SMACAState?.rawData?.energy) ? SMACAState.rawData.energy : [], 'energy_kwh');
@@ -1466,12 +1475,12 @@ function ensureManagementAiEventActions() {
     if (!row) return;
     const statusCell = row.querySelector('td:nth-child(5) .badge');
     if (statusCell) {
-      if (action === 'ack') statusCell.textContent = 'acknowledged';
-      if (action === 'resolve') statusCell.textContent = 'resolved';
+      if (action === 'ack') statusCell.textContent = smacaT('acknowledged','acknowledged');
+      if (action === 'resolve') statusCell.textContent = smacaT('resolved','resolved');
     }
     const openCount = Array.from(document.querySelectorAll('#management-smart-alerts-body tr')).filter(function (r) {
       const badge = r.querySelector('td:nth-child(5) .badge');
-      return badge && String(badge.textContent || '').trim().toLowerCase() === 'open';
+      return badge && String(badge.textContent || '').trim().toLowerCase() === smacaT('open','open').toLowerCase();
     }).length;
     const aiEventsOpenEl = document.getElementById('ai-events-open-count');
     if (aiEventsOpenEl) aiEventsOpenEl.textContent = String(openCount);
@@ -1505,13 +1514,13 @@ function updateManagementSystemHealth(sensors, latestById, activeSensors) {
   const dbState = hasIngestion ? 'Connected' : 'Unknown';
   const queueJobs = offlineSensors + Math.max(0, Math.round((sensors.length - activeSensors) * 0.5));
   const queueState = queueJobs > 0 ? ('Backlog ' + queueJobs) : '0 pending';
-  const telemetryState = hasIngestion ? 'Healthy' : 'Stalled';
+  const telemetryState = hasIngestion ? smacaT('health','Healthy') : 'Stalled';
   const uptimeState = offlineSensors <= 1 ? '99.9%' : (offlineSensors <= 3 ? '99.5%' : '98.7%');
   const storageUsage = estimateLocalStorageUsagePct();
   const openIncidents = Array.from(document.querySelectorAll('#management-smart-alerts-body tr')).filter(function (row) {
     const statusCell = row.querySelector('td:nth-child(5) .badge');
     const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
-    return statusText === 'open';
+    return statusText === smacaT('open','open').toLowerCase();
   }).length;
 
   const toBadge = function (text, cls) {
@@ -1520,8 +1529,8 @@ function updateManagementSystemHealth(sensors, latestById, activeSensors) {
   if (apiStatusEl) apiStatusEl.innerHTML = toBadge(apiState, hasIngestion ? 'badge--success' : 'badge--danger');
   if (dbEl) dbEl.innerHTML = toBadge(dbState, hasIngestion ? 'badge--success' : 'badge--muted');
   if (queueEl) queueEl.innerHTML = toBadge(queueState, queueJobs === 0 ? 'badge--success' : 'badge--warning');
-  if (telemetryEl) telemetryEl.innerHTML = toBadge(telemetryState, telemetryState === 'Healthy' ? 'badge--success' : 'badge--warning');
-  if (ingestionEl) ingestionEl.textContent = latestUpdate ? new Date(latestUpdate).toLocaleString() : 'Not available';
+  if (telemetryEl) telemetryEl.innerHTML = toBadge(telemetryState, telemetryState === smacaT('health','Healthy') ? 'badge--success' : 'badge--warning');
+  if (ingestionEl) ingestionEl.textContent = latestUpdate ? new Date(latestUpdate).toLocaleString() : smacaT('not_available','Not available');
   if (sensorsEl) sensorsEl.textContent = String(activeSensors) + ' / ' + String(offlineSensors);
   if (uptimeEl) uptimeEl.innerHTML = toBadge(uptimeState, offlineSensors <= 1 ? 'badge--success' : (offlineSensors <= 3 ? 'badge--warning' : 'badge--danger'));
   if (pendingJobsEl) pendingJobsEl.textContent = String(queueJobs);
@@ -1575,7 +1584,7 @@ function updateManagementCriticalIssues(sensors, latestById, activeSensors, main
   const pendingAlerts = Array.from(document.querySelectorAll('#management-ai-events-tab tbody tr')).filter(function (row) {
     const statusCell = row.querySelector('td:nth-child(5)');
     const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
-    return statusText === 'open';
+    return statusText === smacaT('open','open').toLowerCase();
   }).length;
 
   const issueLines = [];
@@ -1598,7 +1607,7 @@ function updateOverviewCountersFromApi(overview, sensors) {
   const totalFallback = sensorRows.length;
   const formatCount = function (value, fallback) {
     const resolved = Number.isFinite(Number(value)) ? Number(value) : Number(fallback);
-    return Number.isFinite(resolved) ? String(resolved) : 'Not available';
+    return Number.isFinite(resolved) ? String(resolved) : smacaT('not_available','Not available');
   };
 
   const activeEl = document.getElementById('overview-active-sensors');
@@ -1610,7 +1619,7 @@ function updateOverviewCountersFromApi(overview, sensors) {
   if (connectivityHealthEl) {
     const connected = Number.isFinite(Number(totals.connected_sensors)) ? Number(totals.connected_sensors) : connectedFallback;
     const total = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : totalFallback;
-    connectivityHealthEl.textContent = total > 0 ? `${Math.round((connected / total) * 100)}%` : 'Not available';
+    connectivityHealthEl.textContent = total > 0 ? `${Math.round((connected / total) * 100)}%` : smacaT('not_available','Not available');
   }
 
   const occupancyLoadEl = document.getElementById('overview-occupancy-load');
@@ -1637,7 +1646,7 @@ function updateOverviewCountersFromApi(overview, sensors) {
 
   const lastRefreshEl = document.getElementById('overview-last-refresh');
   if (lastRefreshEl) {
-    lastRefreshEl.textContent = latestUpdate ? new Date(latestUpdate).toLocaleString() : 'Not available';
+    lastRefreshEl.textContent = latestUpdate ? new Date(latestUpdate).toLocaleString() : smacaT('not_available','Not available');
   }
 
   const pills = document.querySelectorAll('.last-updated-pill');
@@ -1675,14 +1684,14 @@ function updateOverviewCountersFromApi(overview, sensors) {
         const pct = Math.round((connected / total) * 100);
         valueEl.textContent = `${pct}%`;
       } else {
-        valueEl.textContent = 'Not available';
+        valueEl.textContent = smacaT('not_available','Not available');
       }
       return;
     }
 
     if (label === 'last update') {
       if (!latestUpdate) {
-        valueEl.textContent = 'Not available';
+        valueEl.textContent = smacaT('not_available','Not available');
         if (unitEl) unitEl.textContent = '';
       } else {
         const deltaMs = Date.now() - new Date(latestUpdate).getTime();
@@ -2001,7 +2010,7 @@ function updateSystemHealthBadge() {
     text.textContent = 'Degraded';
   } else {
     indicator.style.background = 'var(--danger)';
-    text.textContent = 'Offline';
+    text.textContent = smacaT('offline','Offline');
   }
 }
 
@@ -2333,7 +2342,7 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
   const heroLabel = occupancySection.querySelector('.section-hero__stat-label');
   if (heroLabel) heroLabel.textContent = 'Recent movements';
   const summaryLabel = occupancySection.querySelector('.card .card__body div div div:first-child');
-  if (summaryLabel) summaryLabel.textContent = 'Current Activity';
+  if (summaryLabel) summaryLabel.textContent = 'Current ' + smacaT('activity', 'Activity');
   const summarySubLabel = occupancySection.querySelector('.card .card__body div div div:nth-child(3)');
   if (summarySubLabel) {
     const netCumulative = Number.isFinite(Number(latestTotalIn)) && Number.isFinite(Number(latestTotalOut))
@@ -2374,11 +2383,11 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
 
   function getExposureLabel(uvValue) {
     if (!Number.isFinite(uvValue)) return 'Unavailable';
-    if (uvValue >= 11) return 'Extreme';
+    if (uvValue >= 11) return smacaT('extreme', 'Extreme');
     if (uvValue >= 8) return 'Very High';
     if (uvValue >= 6) return 'High';
-    if (uvValue >= 3) return 'Moderate';
-    return 'Low';
+    if (uvValue >= 3) return smacaT('moderate','Moderate');
+    return smacaT('low', 'Low');
   }
 
   function getExposureGuidance(uvValue) {
@@ -2839,7 +2848,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
             <div style="margin-top: var(--space-2); display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap: var(--space-2); padding: 0 var(--space-1);">
               <div style="display:flex; align-items:center; gap: var(--space-2);">
                 <span style="width: 16px; height: 10px; background: #16a34a; border-radius: 3px; display:inline-block;"></span>
-                <span style="font-size: 11px; color: var(--muted);">Low</span>
+                <span style="font-size: 11px; color: var(--muted);">${smacaT('low', 'Low')}</span>
               </div>
               <div style="display:flex; align-items:center; justify-content:center; gap: var(--space-2);">
                 <span style="width: 16px; height: 10px; background: #eab308; border-radius: 3px; display:inline-block;"></span>
@@ -3084,7 +3093,7 @@ function ensureOccupancyLocationChartContainers() {
         <div class="chart-placeholder" id="occupancy-top-traffic-locations-chart"></div>
         <div class="smaca-accordion smaca-accordion--collapsed">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>What is this graph?</span>
+            <span>${smacaT('what_is_this_graph', 'What is this graph?')}</span>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           </button>
           <div class="smaca-accordion__body" hidden>
@@ -3113,7 +3122,7 @@ function renderOccupancyLocationCharts(occupancyRows) {
   if (chartEl) chartEl.innerHTML = '';
 
   if (locationCount === 0) {
-    renderEmptyState(chartId, 'No data available');
+    renderEmptyState(chartId, smacaT('no_data_available','No data available'));
     return;
   }
 
@@ -3739,7 +3748,7 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   if (!hasAnyEnergy) {
     setEmptyContainer(mainChartId, 'Energy data is unavailable for the selected timeframe.');
     setEmptyContainer(demandChartId, 'Demand trend is unavailable for the selected timeframe.');
-    setEmptyContainer(patternChartId, 'Usage pattern is unavailable for the selected timeframe.');
+    setEmptyContainer(patternChartId, smacaT('usage', 'Usage') + ' pattern is unavailable for the selected timeframe.');
     setEmptyContainer(distributionChartId, 'Energy distribution is unavailable for the selected timeframe.');
     setEmptyContainer(shareChartId, 'Energy share is unavailable for the selected timeframe.');
     return;
@@ -3948,7 +3957,7 @@ function updateOverviewSystemStatus() {
   const totalSensors = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensors.length;
   const connectivityHealthCounter = document.getElementById('overview-connectivity-health');
   if (connectivityHealthCounter) {
-    connectivityHealthCounter.textContent = totalSensors > 0 ? `${Math.round((connectedSensors / totalSensors) * 100)}%` : 'Not available';
+    connectivityHealthCounter.textContent = totalSensors > 0 ? `${Math.round((connectedSensors / totalSensors) * 100)}%` : smacaT('not_available','Not available');
   }
   
   // Update AI events (from AI Insights if available)
@@ -4249,15 +4258,15 @@ function extractLatestOccupancyFromSensorLatestReadings(sensorRows) {
 function evaluateAirQualityStatus(co2, pm25) {
   if (!Number.isFinite(co2) && !Number.isFinite(pm25)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
   if ((Number.isFinite(co2) && co2 > 1000) || (Number.isFinite(pm25) && pm25 > 35)) return { label: 'Alert', moduleStatus: 'Warning', moduleClass: 'warning' };
-  if ((Number.isFinite(co2) && co2 > 800) || (Number.isFinite(pm25) && pm25 > 15)) return { label: 'Moderate', moduleStatus: 'Stable', moduleClass: 'stable' };
-  return { label: 'Good', moduleStatus: 'Active', moduleClass: 'active' };
+  if ((Number.isFinite(co2) && co2 > 800) || (Number.isFinite(pm25) && pm25 > 15)) return { label: smacaT('moderate','Moderate'), moduleStatus: 'Stable', moduleClass: 'stable' };
+  return { label: smacaT('good', 'Good'), moduleStatus: 'Active', moduleClass: 'active' };
 }
 
 function evaluateOccupancyStatus(occupancy) {
   if (!Number.isFinite(occupancy)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
   if (occupancy >= 80) return { label: 'High', moduleStatus: 'Warning', moduleClass: 'warning' };
-  if (occupancy >= 30) return { label: 'Moderate', moduleStatus: 'Stable', moduleClass: 'stable' };
-  return { label: 'Low', moduleStatus: 'Active', moduleClass: 'active' };
+  if (occupancy >= 30) return { label: smacaT('moderate','Moderate'), moduleStatus: 'Stable', moduleClass: 'stable' };
+  return { label: smacaT('low', 'Low'), moduleStatus: 'Active', moduleClass: 'active' };
 }
 
 function evaluateConnectivityStatus(connectivityPct) {
@@ -4271,7 +4280,7 @@ function evaluateUvStatus(uv) {
   const normalizedUv = normalizeUvIndexValue(uv);
   if (!Number.isFinite(normalizedUv)) return { label: 'No data', moduleStatus: 'No data', moduleClass: 'stable' };
   if (normalizedUv >= 8) return { label: 'High', moduleStatus: 'Warning', moduleClass: 'warning' };
-  if (normalizedUv >= 3) return { label: 'Moderate', moduleStatus: 'Stable', moduleClass: 'stable' };
+  if (normalizedUv >= 3) return { label: smacaT('moderate','Moderate'), moduleStatus: 'Stable', moduleClass: 'stable' };
   return { label: 'Normal', moduleStatus: 'Active', moduleClass: 'active' };
 }
 
@@ -4309,7 +4318,7 @@ function computeOverviewFreshnessLabel() {
   if (!Number.isFinite(latestTime) || latestTime <= 0) {
     latestTime = resolveLatestOverviewTelemetryTimestamp();
   }
-  if (!Number.isFinite(latestTime) || latestTime <= 0) return 'Not available';
+  if (!Number.isFinite(latestTime) || latestTime <= 0) return smacaT('not_available','Not available');
   const seconds = Math.max(0, Math.round((Date.now() - latestTime) / 1000));
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.round(seconds / 60);
@@ -4670,7 +4679,7 @@ function renderOverviewTrendChart(filteredData, timeframe) {
     series: [
       { key: 'co2', label: 'CO₂', unit: 'ppm', color: '#3b82f6', values: co2Series },
       { key: 'occupancy', label: 'Occupancy', unit: ' people', color: '#22c55e', values: occupancySeries },
-      { key: 'connectivity', label: 'Connectivity', unit: '%', color: '#06b6d4', values: connectivitySeries },
+      { key: 'connectivity', label: smacaT('connectivity','Connectivity'), unit: '%', color: '#06b6d4', values: connectivitySeries },
       { key: 'uv', label: 'UV', unit: '', color: '#f59e0b', values: uvSeries }
     ]
   });

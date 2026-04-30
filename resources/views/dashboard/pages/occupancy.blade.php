@@ -6,16 +6,16 @@
             <div class="section-hero__inner">
               <div>
                 <div class="section-hero__title-row"><svg class="section-hero__icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                  <h2 class="section-hero__title">Occupancy</h2>
+                  <h2 class="section-hero__title">{{ __('messages.nav.occupancy') }}</h2>
                 </div>
                 <p class="section-hero__subtitle">When is the space actually used? Is usage consistent or bursty?</p>
               </div>
               <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">7</div><div class="section-hero__stat-label">Recent movements</div></div>
             </div>
           </div>
-          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">Live</span><span class="last-updated-pill" title="Time since last data sync">Last updated: 2 min ago</span></div>
+          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
           
-          <!-- Current Status -->
+          <!-- Current {{ __('messages.dashboard.status') }} -->
           <div class="card" style="margin-bottom: var(--space-6);">
             <div class="card__body">
               <div style="display: flex; align-items: center; gap: var(--space-6);">
@@ -26,7 +26,7 @@
                 </div>
                 <div style="flex: 1; border-left: 1px solid var(--border); padding-left: var(--space-6);">
                   <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Does occupancy explain IAQ degradation?</div>
-                  <div style="font-size: 12px; color: var(--text);">Correlation analysis available in Energy section</div>
+                  <div style="font-size: 12px; color: var(--text);">Correlation analysis available in {{ __('messages.nav.energy') }} section</div>
                 </div>
               </div>
             </div>
