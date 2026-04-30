@@ -29,7 +29,7 @@
     </article>
     <article class="stat-card overview-kpi-card">
       <div class="stat-card__content">
-        <div class="stat-card__label">{{ __('messages.nav.occupancy') }} Load</div>
+        <div class="stat-card__label">{{ __('messages.nav.occupancy') }} {{ __('messages.dashboard_i18n.load') }}</div>
         <div id="overview-occupancy-load" class="stat-card__value">23</div>
         <div class="stat-card__meta">
           <span id="overview-occupancy-trend" class="overview-trend overview-trend--neutral">--</span>
@@ -62,17 +62,17 @@
               </svg>
             </div>
             <div class="overview-live-header-copy">
-              <h3 class="card__title">Campus {{ __('messages.dashboard.live') }} {{ __('messages.dashboard.status') }}</h3>
+              <h3 class="card__title">{{ __('messages.dashboard_i18n.campus_live_status') }}</h3>
               <p class="overview-live-subtitle">
-                Real-time operations snapshot across air quality, occupancy, connectivity, and environmental exposure.
+                {{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}
               </p>
             </div>
           </div>
           <div class="overview-live-health">
             <span class="overview-live-pulse" aria-hidden="true"></span>
             <div class="overview-live-health__copy">
-              <span id="overview-live-overall-status" class="overview-live-health__label">System monitoring active</span>
-              <span id="overview-live-overall-detail" class="overview-live-health__detail">{{ __('messages.status.operational') }} interpretation is updating from live telemetry.</span>
+              <span id="overview-live-overall-status" class="overview-live-health__label">{{ __('messages.dashboard_i18n.system_monitoring_active') }}</span>
+              <span id="overview-live-overall-detail" class="overview-live-health__detail">{{ __('messages.dashboard_i18n.operational_interpretation_updating') }}</span>
             </div>
           </div>
         </div>
@@ -102,7 +102,7 @@
                   <span class="overview-status-chip overview-status-chip--success">{{ __('messages.status.healthy') }}</span>
                 </div>
                 <span class="overview-status-box__value" id="overview-badge-air-quality">{{ __('messages.common.loading') }}</span>
-                <p id="overview-insight-air-quality" class="overview-status-box__insight">Assessing room air patterns and alert thresholds.</p>
+                <p id="overview-insight-air-quality" class="overview-status-box__insight">{{ __('messages.dashboard_i18n.assessing_air_patterns') }}</p>
               </article>
               @if($smacaIsAdmin)
               <article class="overview-status-box overview-status-box--info" id="overview-status-tile-connectivity" data-tone="info">
@@ -113,7 +113,7 @@
                   <span class="overview-status-chip overview-status-chip--info">{{ __('messages.status.stable') }}</span>
                 </div>
                 <span class="overview-status-box__value" id="overview-badge-connectivity">{{ __('messages.common.loading') }}</span>
-                <p id="overview-insight-connectivity" class="overview-status-box__insight">Validating gateway availability and stream continuity.</p>
+                <p id="overview-insight-connectivity" class="overview-status-box__insight">{{ __('messages.dashboard_i18n.validating_gateway_streams') }}</p>
               </article>
               @endif
               <article class="overview-status-box overview-status-box--warning" id="overview-status-tile-occupancy" data-tone="warning">
@@ -124,7 +124,7 @@
                   <span class="overview-status-chip overview-status-chip--warning">{{ __('messages.status.watch') }}</span>
                 </div>
                 <span class="overview-status-box__value" id="overview-badge-occupancy">{{ __('messages.common.loading') }}</span>
-                <p id="overview-insight-occupancy" class="overview-status-box__insight">Checking activity consistency across monitored zones.</p>
+                <p id="overview-insight-occupancy" class="overview-status-box__insight">{{ __('messages.dashboard_i18n.checking_activity_consistency') }}</p>
               </article>
               <article class="overview-status-box overview-status-box--accent" id="overview-status-tile-uv" data-tone="accent">
                 <div class="overview-status-box__topline">
@@ -134,7 +134,7 @@
                   <span class="overview-status-chip overview-status-chip--accent">{{ __('messages.status.normal') }}</span>
                 </div>
                 <span class="overview-status-box__value" id="overview-badge-uv">{{ __('messages.common.loading') }}</span>
-                <p id="overview-insight-uv" class="overview-status-box__insight">Reviewing exposure trends and external condition changes.</p>
+                <p id="overview-insight-uv" class="overview-status-box__insight">{{ __('messages.dashboard_i18n.reviewing_exposure_trends') }}</p>
               </article>
             </div>
           </section>
@@ -142,8 +142,8 @@
         @if($smacaIsAdmin)
           <div class="overview-live-telemetry">
             <div class="overview-live-telemetry__item">
-              <span class="overview-live-telemetry__label">{{ __('messages.dashboard.live') }} stream state</span>
-              <span id="overview-live-streams-status" class="overview-live-telemetry__value data-status-pill data-status-pill--live">{{ __('messages.dashboard.live') }} Streams: --</span>
+              <span class="overview-live-telemetry__label">{{ __('messages.dashboard_i18n.live_stream_state') }}</span>
+              <span id="overview-live-streams-status" class="overview-live-telemetry__value data-status-pill data-status-pill--live">{{ __('messages.dashboard_i18n.live_streams') }}: --</span>
             </div>
             <div class="overview-live-telemetry__item">
               <span class="overview-live-telemetry__label">{{ __('messages.common.data_freshness') }}</span>
@@ -155,7 +155,7 @@
             </div>
           </div>
         @else
-          <p class="overview-live-note">Campus conditions remain within normal monitoring thresholds across active zones.</p>
+          <p class="overview-live-note">{{ __('messages.dashboard_i18n.campus_conditions_normal') }}</p>
         @endif
       </div>
     </section>
@@ -163,7 +163,7 @@
     <aside class="overview-side-stack">
       <section class="card overview-air-score-card">
         <div class="card__header">
-          <h3 class="card__title">{{ __('messages.nav.iaq') }} Score</h3>
+          <h3 class="card__title">{{ __('messages.nav.iaq') }} {{ __('messages.dashboard_i18n.score') }}</h3>
         </div>
         <div class="card__body overview-air-score-body">
           <div class="overview-gauge">
@@ -174,11 +174,11 @@
               </svg>
               <div class="overview-gauge__center">
                 <div id="overview-air-score-value" class="overview-gauge__value">--</div>
-                <div class="overview-gauge__label">IAQ Index</div>
+                <div class="overview-gauge__label">{{ __('messages.dashboard_i18n.iaq_index') }}</div>
               </div>
             </div>
           </div>
-          <p id="overview-air-score-meta" class="overview-air-score-meta">Awaiting live IAQ data.</p>
+          <p id="overview-air-score-meta" class="overview-air-score-meta">{{ __('messages.dashboard_i18n.awaiting_live_iaq_data') }}</p>
         </div>
       </section>
 

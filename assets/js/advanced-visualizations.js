@@ -391,7 +391,7 @@ function createThermalComfortMatrix(containerId, tempData, humidityData, options
   xLabel.setAttribute('fill', 'var(--text)');
   xLabel.setAttribute('font-size', '12');
   xLabel.setAttribute('text-anchor', 'middle');
-  xLabel.textContent = 'Temperature (°C)';
+  xLabel.textContent = `${smacaUiT('temperature_label', 'Temperature')} (°C)`;
   chartGroup.appendChild(xLabel);
   
   const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -401,7 +401,7 @@ function createThermalComfortMatrix(containerId, tempData, humidityData, options
   yLabel.setAttribute('font-size', '12');
   yLabel.setAttribute('text-anchor', 'middle');
   yLabel.setAttribute('transform', `rotate(-90 -30 ${chartHeight / 2})`);
-  yLabel.textContent = 'Relative Humidity (%)';
+  yLabel.textContent = smacaUiT('relative_humidity_percent', 'Relative Humidity (%)');
   chartGroup.appendChild(yLabel);
   
   // Title
@@ -412,7 +412,7 @@ function createThermalComfortMatrix(containerId, tempData, humidityData, options
   title.setAttribute('font-size', '13');
   title.setAttribute('font-weight', '600');
   title.setAttribute('text-anchor', 'middle');
-  title.textContent = 'Thermal Comfort Zone';
+  title.textContent = smacaUiT('thermal_comfort_zone', 'Thermal Comfort Zone');
   chartGroup.appendChild(title);
   
   svg.appendChild(chartGroup);

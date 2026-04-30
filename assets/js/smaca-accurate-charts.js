@@ -541,7 +541,7 @@ function createAccurateThermalComfortChart(containerId, normalizedData, options 
   xAxisTitle.setAttribute('font-size', '11');
   xAxisTitle.setAttribute('font-weight', '500');
   xAxisTitle.setAttribute('text-anchor', 'middle');
-  xAxisTitle.textContent = 'Temperature (°C)';
+  xAxisTitle.textContent = `${smacaUiT('temperature_label', 'Temperature')} (°C)`;
   chartGroup.appendChild(xAxisTitle);
   
   // Y-axis labels (humidity)
@@ -576,7 +576,7 @@ function createAccurateThermalComfortChart(containerId, normalizedData, options 
   yAxisTitle.setAttribute('font-weight', '500');
   yAxisTitle.setAttribute('text-anchor', 'middle');
   yAxisTitle.setAttribute('transform', `rotate(-90 -40 ${chartHeight / 2})`);
-  yAxisTitle.textContent = 'Relative Humidity (%)';
+  yAxisTitle.textContent = smacaUiT('relative_humidity_percent', 'Relative Humidity (%)');
   chartGroup.appendChild(yAxisTitle);
   
   // Chart title
@@ -587,7 +587,7 @@ function createAccurateThermalComfortChart(containerId, normalizedData, options 
   title.setAttribute('font-size', '14');
   title.setAttribute('font-weight', '600');
   title.setAttribute('text-anchor', 'middle');
-  title.textContent = 'Thermal Comfort Zone';
+  title.textContent = smacaUiT('thermal_comfort_zone', 'Thermal Comfort Zone');
   chartGroup.appendChild(title);
   
   svg.appendChild(chartGroup);

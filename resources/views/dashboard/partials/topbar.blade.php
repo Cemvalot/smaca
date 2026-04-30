@@ -6,9 +6,9 @@
         <div class="topbar__actions">
           <!-- Time Range Selector -->
           <div class="time-range-selector">
-            <button class="time-range-btn active" data-timeframe="24h" title="{{ __('messages.topbar.filter_24h') }}">24h</button>
-            <button class="time-range-btn" data-timeframe="7d" title="{{ __('messages.topbar.filter_7d') }}">7d</button>
-            <button class="time-range-btn" data-timeframe="30d" title="{{ __('messages.topbar.filter_30d') }}">30d</button>
+            <button class="time-range-btn active" data-timeframe="24h" title="{{ __('messages.topbar.filter_24h') }}">{{ __('messages.dashboard_i18n.time_24h') }}</button>
+            <button class="time-range-btn" data-timeframe="7d" title="{{ __('messages.topbar.filter_7d') }}">{{ __('messages.dashboard_i18n.time_7d') }}</button>
+            <button class="time-range-btn" data-timeframe="30d" title="{{ __('messages.topbar.filter_30d') }}">{{ __('messages.dashboard_i18n.time_30d') }}</button>
           </div>
           <div class="language-switcher" aria-label="{{ __('messages.language.label') }}">
             <a href="{{ url('/language/en') }}" class="btn btn--ghost btn--sm {{ app()->getLocale() === 'en' ? 'is-active' : '' }}">{{ __('messages.language.english') }}</a>

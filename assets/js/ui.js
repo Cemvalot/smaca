@@ -24,6 +24,7 @@
     'energy-share-donut-chart': { metric: 'energy_kwh', chartType: 'donut_share' }
   };
   const KNOWN_CHART_IDS = Object.keys(CHART_CONTEXT_BY_ID);
+  const t = (key, fallback = '') => global?.SMACA_TRANSLATIONS?.[key] || fallback;
 
   /**
    * Show a small toast message
@@ -120,24 +121,24 @@
   }
 
   function getTimeframeNarrative(timeframe) {
-    if (timeframe === '24h') return 'The 24h view highlights hour-by-hour behavior so you can spot short-term peaks and dips.';
-    if (timeframe === '7d') return 'The 7d view emphasizes day-by-day movement and recurring patterns across the week.';
-    return 'The 30d view focuses on long-term behavior, recurring cycles, and sustained trend direction.';
+    if (timeframe === '24h') return t('explain_timeframe_24h', 'The 24h view highlights hour-by-hour behavior so you can spot short-term peaks and dips.');
+    if (timeframe === '7d') return t('explain_timeframe_7d', 'The 7d view emphasizes day-by-day movement and recurring patterns across the week.');
+    return t('explain_timeframe_30d', 'The 30d view focuses on long-term behavior, recurring cycles, and sustained trend direction.');
   }
 
   function getMetricNarrative(metric) {
     const map = {
-      occupancy: 'This graph shows how people use the space over time. Peaks indicate high activity and flatter periods indicate lower usage.',
-      temperature: 'This graph shows temperature changes over time. Sudden increases or drops can indicate HVAC activity or environmental shifts.',
-      humidity: 'This graph shows relative humidity levels over time. Values outside comfort range can point to ventilation imbalance.',
-      co2: 'This graph shows CO₂ concentration over time. Higher values often indicate poor ventilation or high occupancy density.',
-      pm2_5: 'This graph shows PM2.5 concentration over time. Spikes can indicate short-term particulate exposure events.',
-      pm10: 'This graph shows PM10 concentration over time. Elevated periods may indicate dust or coarse particulate buildup.',
-      tvoc: 'This graph shows TVOC levels over time. Rising values can indicate increased volatile compounds in indoor air.',
-      uv_index: 'This graph shows UV intensity over time. Higher values indicate stronger exposure risk and greater protection need.',
-      energy_kwh: 'This graph shows energy consumption over time. Peaks reveal high-demand periods and baseline levels show typical load.'
+      occupancy: t('explain_metric_occupancy', 'This graph shows how people use the space over time. Peaks indicate high activity and flatter periods indicate lower usage.'),
+      temperature: t('explain_metric_temperature', 'This graph shows temperature changes over time. Sudden increases or drops can indicate HVAC activity or environmental shifts.'),
+      humidity: t('explain_metric_humidity', 'This graph shows relative humidity levels over time. Values outside comfort range can point to ventilation imbalance.'),
+      co2: t('explain_metric_co2', 'This graph shows CO₂ concentration over time. Higher values often indicate poor ventilation or high occupancy density.'),
+      pm2_5: t('explain_metric_pm25', 'This graph shows PM2.5 concentration over time. Spikes can indicate short-term particulate exposure events.'),
+      pm10: t('explain_metric_pm10', 'This graph shows PM10 concentration over time. Elevated periods may indicate dust or coarse particulate buildup.'),
+      tvoc: t('explain_metric_tvoc', 'This graph shows TVOC levels over time. Rising values can indicate increased volatile compounds in indoor air.'),
+      uv_index: t('explain_metric_uv', 'This graph shows UV intensity over time. Higher values indicate stronger exposure risk and greater protection need.'),
+      energy_kwh: t('explain_metric_energy', 'This graph shows energy consumption over time. Peaks reveal high-demand periods and baseline levels show typical load.')
     };
-    return map[metric] || 'This graph shows how the selected metric changes over time.';
+    return map[metric] || t('explain_metric_default', 'This graph shows how the selected metric changes over time.');
   }
 
   function getChartTypeNarrative(chartType, metric, timeframe) {
@@ -201,10 +202,10 @@
 
   function renderGraphExplanationHtml(explanation) {
     return [
-      `<p><strong>What it shows:</strong> ${explanation.summary}</p>`,
-      `<p><strong>Timeframe insight:</strong> ${explanation.timeframe}</p>`,
-      `<p><strong>How to read this chart:</strong> ${explanation.chartType}</p>`,
-      `<p><strong>Why it matters:</strong> ${explanation.howToUse}</p>`
+      `<p><strong>${t('what_it_shows', 'What it shows:')}</strong> ${explanation.summary}</p>`,
+      `<p><strong>${t('timeframe_insight', 'Timeframe insight:')}</strong> ${explanation.timeframe}</p>`,
+      `<p><strong>${t('how_to_read_chart', 'How to read this chart:')}</strong> ${explanation.chartType}</p>`,
+      `<p><strong>${t('why_it_matters', 'Why it matters:')}</strong> ${explanation.howToUse}</p>`
     ].join('');
   }
 

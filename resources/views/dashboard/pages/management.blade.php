@@ -310,12 +310,12 @@
             </div>
             <div class="card">
               <div class="card__header">
-                <h4 class="card__title" style="font-size: var(--font-size-lg);">Operational Snapshot</h4>
+                <h4 class="card__title" style="font-size: var(--font-size-lg);">{{ __('messages.dashboard_i18n.operational_snapshot') }}</h4>
               </div>
               <div class="card__body">
                 <div class="stat-row"><span class="stat-row__label">{{ __('messages.dashboard.sensors') }} online / offline</span><span id="system-health-sensors" class="stat-row__value">-- / --</span></div>
                 <div class="stat-row"><span class="stat-row__label">Last ingestion</span><span id="system-health-last-ingestion" class="stat-row__value">Not available</span></div>
-                <div class="stat-row"><span class="stat-row__label">Uptime</span><span id="system-health-uptime" class="stat-row__value">--</span></div>
+                <div class="stat-row"><span class="stat-row__label">{{ __('messages.dashboard_i18n.uptime') }}</span><span id="system-health-uptime" class="stat-row__value">--</span></div>
                 <div class="stat-row"><span class="stat-row__label">Pending jobs</span><span id="system-health-pending-jobs" class="stat-row__value">--</span></div>
                 <div class="stat-row"><span class="stat-row__label">Open incidents</span><span id="system-health-open-incidents" class="stat-row__value">--</span></div>
                 <div class="stat-row"><span class="stat-row__label">Storage usage</span><span id="system-health-storage" class="stat-row__value">--</span></div>

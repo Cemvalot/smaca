@@ -1510,7 +1510,7 @@ function updateManagementSystemHealth(sensors, latestById, activeSensors) {
 
   const offlineSensors = Math.max(0, sensors.length - activeSensors);
   const hasIngestion = !!latestUpdate;
-  const apiState = hasIngestion ? 'Operational' : 'Unavailable';
+  const apiState = hasIngestion ? smacaT('operational_upper', 'OPERATIONAL') : smacaT('unavailable', 'Unavailable');
   const dbState = hasIngestion ? 'Connected' : 'Unknown';
   const queueJobs = offlineSensors + Math.max(0, Math.round((sensors.length - activeSensors) * 0.5));
   const queueState = queueJobs > 0 ? ('Backlog ' + queueJobs) : '0 pending';
@@ -1559,12 +1559,12 @@ function updateManagementAdminMetaTicker() {
   if (!target) return;
   const latestUpdate = window.SMACADashboardContext?.overview?.latest_update_at || null;
   if (!latestUpdate) {
-    target.textContent = 'Last sync: unavailable';
+    target.textContent = smacaT('last_sync_label', 'Last sync') + ': ' + smacaT('unavailable', 'unavailable');
     return;
   }
   const updateLabel = function () {
     const deltaSec = Math.max(0, Math.round((Date.now() - new Date(latestUpdate).getTime()) / 1000));
-    target.textContent = 'Last sync: ' + deltaSec + ' sec ago';
+    target.textContent = smacaT('last_sync_label', 'Last sync') + ': ' + deltaSec + ' sec ago';
   };
   updateLabel();
   if (window.__smacaManagementMetaTimer) return;
@@ -1613,7 +1613,7 @@ function updateOverviewCountersFromApi(overview, sensors) {
   const activeEl = document.getElementById('overview-active-sensors');
   if (activeEl) activeEl.textContent = formatCount(totals.active_sensors, activeFromSensors);
   const activeTrendEl = document.getElementById('overview-active-sensors-trend');
-  if (activeTrendEl) activeTrendEl.textContent = `${formatCount(totals.active_sensors, activeFromSensors)} active now`;
+  if (activeTrendEl) activeTrendEl.textContent = `${formatCount(totals.active_sensors, activeFromSensors)} ${smacaT('active_now', 'active now')}`;
 
   const connectivityHealthEl = document.getElementById('overview-connectivity-health');
   if (connectivityHealthEl) {
@@ -1652,14 +1652,14 @@ function updateOverviewCountersFromApi(overview, sensors) {
   const pills = document.querySelectorAll('.last-updated-pill');
   pills.forEach(function (pill) {
     pill.textContent = latestUpdate
-      ? `Last updated: ${new Date(latestUpdate).toLocaleString()}`
-      : 'Last updated: Not available';
+      ? `${smacaT('last_updated_label', 'Last updated')}: ${new Date(latestUpdate).toLocaleString()}`
+      : `${smacaT('last_updated_label', 'Last updated')}: ${smacaT('not_available_label', 'Not available')}`;
   });
   const explicitLastSync = document.getElementById('overview-last-sync');
   if (explicitLastSync) {
     explicitLastSync.textContent = latestUpdate
-      ? `Last sync: ${new Date(latestUpdate).toLocaleString()}`
-      : 'Last sync: Not available';
+      ? `${smacaT('last_sync_label', 'Last sync')}: ${new Date(latestUpdate).toLocaleString()}`
+      : `${smacaT('last_sync_label', 'Last sync')}: ${smacaT('not_available_label', 'Not available')}`;
   }
 
   const overviewSection = document.getElementById('overview');
@@ -2004,7 +2004,7 @@ function updateSystemHealthBadge() {
   
   if (percentage >= 80) {
     indicator.style.background = 'var(--success)';
-    text.textContent = 'Operational';
+    text.textContent = smacaT('operational_upper', 'OPERATIONAL');
   } else if (percentage >= 40) {
     indicator.style.background = 'var(--warning)';
     text.textContent = 'Degraded';
@@ -2232,7 +2232,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
     <div class="stat-card" style="position: relative;" title="Ambient air temperature">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
-          <div class="stat-card__label">Temperature</div>
+          <div class="stat-card__label">${smacaT('temperature_label', 'Temperature')}</div>
           <span class="trend-pill ${tempTrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${tempTrendFormatted.text}</span>
         </div>
         <div class="stat-card__value">${formatMetricValue(temp, 1)}</div>
@@ -2242,7 +2242,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
     <div class="stat-card" style="position: relative;" title="Relative humidity percentage">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
-          <div class="stat-card__label">Humidity</div>
+          <div class="stat-card__label">${smacaT('humidity_label', 'Humidity')}</div>
           <span class="trend-pill ${humidityTrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${humidityTrendFormatted.text}</span>
         </div>
         <div class="stat-card__value">${formatMetricValue(humidity, 0)}</div>
@@ -2399,8 +2399,8 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     }
     if (uvValue >= 11) {
       return {
-        summary: 'Extreme UV: avoid direct sun where possible; full protection is essential.',
-        interpretation: 'UV is in the extreme zone. Keep outdoor exposure brief and use SPF 50+, protective clothing, hat, and UV-blocking eyewear.'
+        summary: smacaT('extreme_uv_summary', 'Extreme UV: avoid direct sun where possible; full protection is essential.'),
+        interpretation: smacaT('extreme_uv_interpretation', 'UV is in the extreme zone. Keep outdoor exposure brief and use SPF 50+, protective clothing, hat, and UV-blocking eyewear.')
       };
     }
     if (uvValue >= 8) {
@@ -2432,9 +2432,9 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
       return { title: 'Stable', detail: 'Not enough history for trend' };
     }
     const delta = currentValue - previousValue;
-    if (Math.abs(delta) < 0.2) return { title: 'Stable', detail: 'Little change from prior reading' };
-    if (delta > 0) return { title: 'Rising', detail: `+${delta.toFixed(1)} vs previous reading` };
-    return { title: 'Falling', detail: `${delta.toFixed(1)} vs previous reading` };
+    if (Math.abs(delta) < 0.2) return { title: smacaT('stable', 'Stable'), detail: smacaT('little_change_prior_reading', 'Little change from prior reading') };
+    if (delta > 0) return { title: smacaT('rising', 'Rising'), detail: `+${delta.toFixed(1)} ${smacaT('vs_previous_reading', 'vs previous reading')}` };
+    return { title: smacaT('falling', 'Falling'), detail: `${delta.toFixed(1)} ${smacaT('vs_previous_reading', 'vs previous reading')}` };
   }
 
   function formatHourRange(timestampMs) {
@@ -3087,7 +3087,7 @@ function ensureOccupancyLocationChartContainers() {
   grid.innerHTML = `
     <div class="card" style="grid-column: 1 / -1;">
       <div class="card__header">
-        <h3 class="card__title">Top Traffic Locations</h3>
+        <h3 class="card__title">${smacaT('top_traffic_locations', 'Top Traffic Locations')}</h3>
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="occupancy-top-traffic-locations-chart"></div>
@@ -3098,8 +3098,8 @@ function ensureOccupancyLocationChartContainers() {
           </button>
           <div class="smaca-accordion__body" hidden>
             <div class="accordion-content">
-              <p><strong>What it shows:</strong> Highest cumulative entries by location in the selected timeframe.</p>
-              <p><strong>How to read:</strong> Longer bars mean more inbound activity. Hover to see exact totals.</p>
+              <p><strong>${smacaT('what_it_shows', 'What it shows:')}</strong> ${smacaT('top_locations_cumulative_entries', 'Highest cumulative entries by location in the selected timeframe.')}</p>
+              <p><strong>${smacaT('how_to_read_chart', 'How to read this chart:')}</strong> ${smacaT('longer_bars_more_inbound', 'Longer bars mean more inbound activity. Hover to see exact totals.')}</p>
             </div>
           </div>
         </div>
@@ -4006,12 +4006,12 @@ function updateOverviewLiveValues(overview, sensorRows) {
   if (airValueEl) airValueEl.textContent = airStatus.label;
   const airTrendEl = document.getElementById('overview-air-quality-trend');
   if (airTrendEl) {
-    airTrendEl.textContent = Number.isFinite(latestCo2) ? `CO₂ ${Math.round(latestCo2)} ppm` : 'No IAQ data';
+    airTrendEl.textContent = Number.isFinite(latestCo2) ? `CO₂ ${Math.round(latestCo2)} ppm` : smacaT('no_iaq_data', 'No IAQ data');
   }
 
   const connectivityTrendEl = document.getElementById('overview-connectivity-trend');
   if (connectivityTrendEl) {
-    connectivityTrendEl.textContent = Number.isFinite(connectivityPct) ? `${connectivityPct}% uptime` : 'No connectivity data';
+    connectivityTrendEl.textContent = Number.isFinite(connectivityPct) ? `${connectivityPct}% ${smacaT('uptime', 'uptime')}` : smacaT('no_connectivity_data', 'No connectivity data');
   }
 
   const badgeAir = document.getElementById('overview-badge-air-quality');
@@ -4035,11 +4035,11 @@ function updateOverviewLiveValues(overview, sensorRows) {
 
   const streamsStatus = document.getElementById('overview-live-streams-status');
   if (streamsStatus) {
-    streamsStatus.textContent = Number.isFinite(connectivityPct) ? `Live Streams: ${connectivityPct}% online` : 'Live Streams: Not available';
+    streamsStatus.textContent = Number.isFinite(connectivityPct) ? `${smacaT('live_streams', 'Live Streams')}: ${connectivityPct}% ${smacaT('online', 'online')}` : `${smacaT('live_streams', 'Live Streams')}: ${smacaT('not_available_label', 'Not available')}`;
   }
   const freshnessText = computeOverviewFreshnessLabel();
   const dataFreshness = document.getElementById('overview-data-freshness');
-  if (dataFreshness) dataFreshness.textContent = `Data freshness: ${freshnessText}`;
+  if (dataFreshness) dataFreshness.textContent = `${smacaT('data_freshness_label', 'Data freshness')}: ${freshnessText}`;
 
   const airScore = computeAirQualityScore(latestCo2, latestPm25);
   const airScoreValueEl = document.getElementById('overview-air-score-value');
@@ -4053,7 +4053,7 @@ function updateOverviewLiveValues(overview, sensorRows) {
     } else if (Number.isFinite(latestPm25)) {
       airScoreMeta.textContent = `PM2.5 ${latestPm25.toFixed(1)} μg/m³.`;
     } else {
-      airScoreMeta.textContent = 'Awaiting live IAQ data.';
+      airScoreMeta.textContent = smacaT('awaiting_live_iaq_data', 'Awaiting live IAQ data.');
     }
   }
   const airScoreProgress = document.getElementById('overview-air-score-progress');
@@ -4408,25 +4408,25 @@ function getOverviewOperationalInsight(moduleKey, status) {
   if (moduleKey === 'air-quality') {
     if (hasNoData) return { tone, chip: 'Missing', headline: 'Air quality data currently unavailable', detail: 'No recent IAQ telemetry was detected. Check sensor reporting and ingestion status.' };
     if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: 'Air quality needs review', detail: 'Air quality has moved outside preferred limits and should be checked by operations.' };
-    if (status.moduleClass === 'stable') return { tone, chip: 'Stable watch', headline: 'Air quality stable with light variance', detail: 'Readings remain within acceptable limits with no critical indoor air alerts detected.' };
-    return { tone, chip: 'Operational', headline: 'Air quality operating normally', detail: 'Current IAQ behavior is healthy and no immediate corrective action is indicated.' };
+    if (status.moduleClass === 'stable') return { tone, chip: smacaT('stable_watch_upper', 'STABLE WATCH'), headline: smacaT('air_quality_stable_light_variance', 'Air quality stable with light variance'), detail: smacaT('readings_within_acceptable_limits', 'Readings remain within acceptable limits with no critical indoor air alerts detected.') };
+    return { tone, chip: smacaT('operational_upper', 'OPERATIONAL'), headline: smacaT('air_quality_operating_normally', 'Air quality operating normally'), detail: smacaT('current_iaq_behavior_healthy', 'Current IAQ behavior is healthy and no immediate corrective action is indicated.') };
   }
   if (moduleKey === 'connectivity') {
     if (hasNoData) return { tone, chip: 'Missing', headline: 'Connectivity data currently unavailable', detail: 'Connectivity telemetry is incomplete. Confirm gateways are publishing status updates.' };
     if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: 'Connectivity is degraded', detail: 'Intermittent reliability issues may affect live sensor delivery.' };
-    if (status.moduleClass === 'stable') return { tone, chip: 'Monitoring', headline: 'Connectivity mostly stable', detail: 'Minor instability is present but service continuity remains active for monitoring workflows.' };
-    return { tone, chip: 'Operational', headline: 'Connectivity fully operational', detail: 'Live sensor transport and module communication are currently stable across active endpoints.' };
+    if (status.moduleClass === 'stable') return { tone, chip: smacaT('stable_upper', 'STABLE'), headline: smacaT('connectivity_mostly_stable', 'Connectivity mostly stable'), detail: smacaT('minor_instability_present', 'Minor instability is present but service continuity remains active for monitoring workflows.') };
+    return { tone, chip: smacaT('operational_upper', 'OPERATIONAL'), headline: smacaT('connectivity_fully_operational', 'Connectivity fully operational'), detail: smacaT('live_sensor_transport_stable', 'Live sensor transport and module communication are currently stable across active endpoints.') };
   }
   if (moduleKey === 'occupancy') {
     if (hasNoData) return { tone, chip: 'Missing', headline: 'Occupancy data not detected', detail: 'No recent occupancy events were received. Validate people-flow sensor input.' };
     if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: 'Occupancy level elevated', detail: 'Utilization is higher than usual and may need operational review.' };
-    if (status.moduleClass === 'stable') return { tone, chip: 'Stable watch', headline: 'Occupancy patterns balanced', detail: 'Footfall remains moderate with no unusual spikes requiring immediate operational action.' };
-    return { tone, chip: 'Operational', headline: 'Occupancy flow normal', detail: 'Space utilization is light and consistent with normal campus operating behavior.' };
+    if (status.moduleClass === 'stable') return { tone, chip: smacaT('stable_watch_upper', 'STABLE WATCH'), headline: smacaT('occupancy_patterns_balanced', 'Occupancy patterns balanced'), detail: smacaT('footfall_moderate_no_spikes', 'Footfall remains moderate with no unusual spikes requiring immediate operational action.') };
+    return { tone, chip: smacaT('operational_upper', 'OPERATIONAL'), headline: smacaT('occupancy_flow_normal', 'Occupancy flow normal'), detail: smacaT('space_utilization_light_consistent', 'Space utilization is light and consistent with normal campus operating behavior.') };
   }
   if (hasNoData) return { tone, chip: 'Missing', headline: 'Environmental data currently unavailable', detail: 'Environmental or UV telemetry is not reporting at the moment.' };
   if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: 'Environmental exposure elevated', detail: 'UV or ambient exposure is above preferred levels and should be monitored.' };
-  if (status.moduleClass === 'stable') return { tone, chip: 'Stable watch', headline: 'Environmental conditions moderate', detail: 'Environmental conditions remain within controlled limits with no severe risk indicators.' };
-  return { tone, chip: 'Operational', headline: 'Environmental module normal', detail: 'Environmental and UV monitoring streams are healthy with expected operating behavior.' };
+  if (status.moduleClass === 'stable') return { tone, chip: smacaT('stable_watch_upper', 'STABLE WATCH'), headline: smacaT('environmental_conditions_moderate', 'Environmental conditions moderate'), detail: smacaT('environmental_conditions_controlled', 'Environmental conditions remain within controlled limits with no severe risk indicators.') };
+  return { tone, chip: smacaT('operational_upper', 'OPERATIONAL'), headline: smacaT('environmental_module_normal', 'Environmental module normal'), detail: smacaT('environmental_uv_streams_healthy', 'Environmental and UV monitoring streams are healthy with expected operating behavior.') };
 }
 
 function getOverviewOperationalTone(status) {
@@ -4475,8 +4475,8 @@ function updateOverviewOverallLiveHealth(statuses) {
     return;
   }
   if (healthyCount > 0) {
-    label.textContent = 'System operating normally';
-    if (detail) detail.textContent = 'All monitored modules are currently stable or operational.';
+    label.textContent = smacaT('system_operating_normally', 'System operating normally');
+    if (detail) detail.textContent = smacaT('modules_stable_operational', 'All monitored modules are currently stable or operational.');
     if (shell) {
       shell.classList.remove('overview-live-health--critical');
       shell.classList.remove('overview-live-health--warning');
@@ -4484,8 +4484,8 @@ function updateOverviewOverallLiveHealth(statuses) {
     }
     return;
   }
-  label.textContent = 'System monitoring active';
-  if (detail) detail.textContent = 'Waiting for enough telemetry to determine operational interpretation.';
+  label.textContent = smacaT('system_monitoring_active', 'System monitoring active');
+  if (detail) detail.textContent = smacaT('waiting_for_telemetry', 'Waiting for enough telemetry to determine operational interpretation.');
   if (shell) {
     shell.classList.remove('overview-live-health--critical');
     shell.classList.remove('overview-live-health--warning');

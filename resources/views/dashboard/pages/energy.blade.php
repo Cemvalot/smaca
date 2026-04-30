@@ -11,11 +11,11 @@
           </svg>
           <h2 class="section-hero__title">{{ __('messages.nav.energy') }}</h2>
         </div>
-        <p class="section-hero__subtitle">Operational energy usage: track bucket consumption, trends, and distribution by location.</p>
+        <p class="section-hero__subtitle">{{ __('messages.dashboard_i18n.energy_hero_subtitle') }}</p>
       </div>
       <div class="section-hero__stat">
         <div id="energy-daily-consumption" class="section-hero__stat-value">1688</div>
-        <div class="section-hero__stat-label">kWh today</div>
+        <div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.kwh_today') }}</div>
       </div>
     </div>
   </div>
@@ -28,28 +28,28 @@
   <div class="grid grid--metrics grid--metrics-4" id="energy-kpi-grid" style="margin-top: var(--space-6);">
     <article class="stat-card" title="Total energy used in the selected timeframe">
       <div class="stat-card__content">
-        <div class="stat-card__label">Total {{ __('messages.nav.energy') }} Used</div>
+        <div class="stat-card__label">{{ __('messages.dashboard_i18n.total_energy_used') }}</div>
         <div id="energy-kpi-total" class="stat-card__value">--</div>
         <div id="energy-kpi-total-meta" class="stat-card__meta">--</div>
       </div>
     </article>
     <article class="stat-card" title="Peak energy bucket in the selected timeframe">
       <div class="stat-card__content">
-        <div class="stat-card__label">Peak Bucket</div>
+        <div class="stat-card__label">{{ __('messages.dashboard_i18n.peak_bucket') }}</div>
         <div id="energy-kpi-peak" class="stat-card__value">--</div>
         <div id="energy-kpi-peak-meta" class="stat-card__meta">--</div>
       </div>
     </article>
     <article class="stat-card" title="Average energy usage per bucket">
       <div class="stat-card__content">
-        <div class="stat-card__label">Avg per Bucket</div>
+        <div class="stat-card__label">{{ __('messages.dashboard_i18n.avg_per_bucket') }}</div>
         <div id="energy-kpi-avg" class="stat-card__value">--</div>
         <div id="energy-kpi-avg-meta" class="stat-card__meta">--</div>
       </div>
     </article>
     <article class="stat-card" title="Top energy-contributing location in the selected timeframe">
       <div class="stat-card__content">
-        <div class="stat-card__label">Top Contributor</div>
+        <div class="stat-card__label">{{ __('messages.dashboard_i18n.top_contributor') }}</div>
         <div id="energy-kpi-top-location" class="stat-card__value">--</div>
         <div id="energy-kpi-top-location-meta" class="stat-card__meta">--</div>
       </div>
@@ -59,14 +59,14 @@
   <!-- Main chart -->
   <div class="card" style="margin-top: var(--space-6);">
     <div class="card__header">
-      <h3 class="card__title">{{ __('messages.nav.energy') }} Usage (kWh)</h3>
-      <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Columns show bucket usage; spline shows cumulative energy.</p>
+      <h3 class="card__title">{{ __('messages.dashboard_i18n.energy_usage_kwh') }}</h3>
+      <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.columns_spline_energy') }}</p>
     </div>
     <div class="card__body">
       <div class="chart-placeholder" id="energy-main-combined-chart" style="min-height: 360px;"></div>
       <div class="smaca-accordion smaca-accordion--collapsed">
         <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-          <span>What is this graph?</span>
+          <span>{{ __('messages.status.what_is_this_graph') }}</span>
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
@@ -86,14 +86,14 @@
   <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6); margin-top: var(--space-6);">
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">Demand Trend</h3>
-        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Operational demand intensity across the selected timeframe.</p>
+        <h3 class="card__title">{{ __('messages.dashboard_i18n.demand_trend') }}</h3>
+        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.operational_demand_intensity') }}</p>
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-demand-trend-chart" style="min-height: 300px;"></div>
         <div class="smaca-accordion smaca-accordion--collapsed">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>What is this graph?</span>
+            <span>{{ __('messages.status.what_is_this_graph') }}</span>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>
@@ -106,14 +106,14 @@
     </div>
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">Usage Pattern by Hour</h3>
-        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Recurring hour-of-day energy usage pattern.</p>
+        <h3 class="card__title">{{ __('messages.dashboard_i18n.usage_pattern_by_hour') }}</h3>
+        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.recurring_hour_energy_pattern') }}</p>
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-usage-pattern-hour-chart" style="min-height: 300px;"></div>
         <div class="smaca-accordion smaca-accordion--collapsed">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>What is this graph?</span>
+            <span>{{ __('messages.status.what_is_this_graph') }}</span>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>
@@ -130,14 +130,14 @@
   <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6); margin-top: var(--space-6);">
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">{{ __('messages.nav.energy') }} Distribution by Location</h3>
-        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Top locations by energy usage in the selected timeframe.</p>
+        <h3 class="card__title">{{ __('messages.dashboard_i18n.energy_distribution_by_location') }}</h3>
+        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.top_locations_energy_usage') }}</p>
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-distribution-location-chart" style="min-height: 320px;"></div>
         <div class="smaca-accordion smaca-accordion--collapsed">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>What is this graph?</span>
+            <span>{{ __('messages.status.what_is_this_graph') }}</span>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>
@@ -150,14 +150,14 @@
     </div>
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">{{ __('messages.nav.energy') }} Share</h3>
-        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Relative contribution by top locations (donut).</p>
+        <h3 class="card__title">{{ __('messages.dashboard_i18n.energy_share') }}</h3>
+        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.relative_contribution_donut') }}</p>
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-share-donut-chart" style="min-height: 320px;"></div>
         <div class="smaca-accordion smaca-accordion--collapsed">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>What is this graph?</span>
+            <span>{{ __('messages.status.what_is_this_graph') }}</span>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>

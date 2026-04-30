@@ -144,8 +144,8 @@ function initAccurateIAQDashboard() {
 function getIaqMetricConfig() {
   return {
     co2: { label: 'CO₂', unit: 'ppm', decimals: 0, color: '#3b82f6' },
-    temperature: { label: 'Temperature', unit: '°C', decimals: 1, color: '#06b6d4' },
-    humidity: { label: 'Humidity', unit: '%', decimals: 0, color: '#6366f1' },
+    temperature: { label: smacaUiT('temperature_label', 'Temperature'), unit: '°C', decimals: 1, color: '#06b6d4' },
+    humidity: { label: smacaUiT('humidity_label', 'Humidity'), unit: '%', decimals: 0, color: '#6366f1' },
     pm2_5: { label: 'PM2.5', unit: 'μg/m³', decimals: 1, color: '#f59e0b' },
     pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
     tvoc: { label: 'TVOC', unit: '(raw)', decimals: 1, color: '#ec4899' }
@@ -310,14 +310,14 @@ function evaluateMetricStatus(metric, value) {
     if (v <= 50) return { label: 'Elevated', score: 3, tone: 'moderate' };
     return { label: 'High', score: 1, tone: 'high' };
   }
-  if (metric === 'temperature') {
-    if (v >= 21 && v <= 25) return { label: 'Comfortable', score: 5, tone: 'good' };
-    if ((v >= 19 && v < 21) || (v > 25 && v <= 27)) return { label: 'Slightly Off', score: 3, tone: 'moderate' };
+    if (metric === 'temperature') {
+    if (v >= 21 && v <= 25) return { label: smacaUiT('comfortable', 'Comfortable'), score: 5, tone: 'good' };
+    if ((v >= 19 && v < 21) || (v > 25 && v <= 27)) return { label: smacaUiT('slightly_off', 'Slightly Off'), score: 3, tone: 'moderate' };
     return { label: 'Out of Range', score: 1, tone: 'high' };
   }
   if (metric === 'humidity') {
-    if (v >= 40 && v <= 60) return { label: 'Comfortable', score: 5, tone: 'good' };
-    if ((v >= 30 && v < 40) || (v > 60 && v <= 70)) return { label: 'Slightly Off', score: 3, tone: 'moderate' };
+    if (v >= 40 && v <= 60) return { label: smacaUiT('comfortable', 'Comfortable'), score: 5, tone: 'good' };
+    if ((v >= 30 && v < 40) || (v > 60 && v <= 70)) return { label: smacaUiT('slightly_off', 'Slightly Off'), score: 3, tone: 'moderate' };
     return { label: 'Out of Range', score: 1, tone: 'high' };
   }
   if (metric === 'tvoc') {
@@ -347,12 +347,17 @@ function evaluateOverallIaqSummary(latestValues, activeSensorCount, latestTimest
   if (minScore <= 1 && avgScore < 2) statusLabel = 'Critical';
   else if (minScore <= 1) statusLabel = smacaAccurateT('poor', 'Poor');
   else if (avgScore < 3) statusLabel = smacaAccurateT('moderate', smacaUiT('moderate','Moderate'));
-  else if (avgScore >= 4.5) statusLabel = 'Excellent';
+  else if (avgScore >= 4.5) statusLabel = smacaAccurateT('excellent', 'Excellent');
   const topDriver = statuses.sort(function (a, b) { return a.status.score - b.status.score; })[0];
-  const driverLabelMap = { co2: 'CO₂', pm2_5: 'PM2.5', pm10: 'PM10', humidity: 'Humidity', temperature: 'Temperature', tvoc: 'TVOC' };
-  const explanation = topDriver
-    ? `${driverLabelMap[topDriver.metric]} is ${topDriver.status.label.toLowerCase()}`
-    : 'IAQ metrics are within expected ranges';
+  const driverLabelMap = { co2: 'CO₂', pm2_5: 'PM2.5', pm10: 'PM10', humidity: smacaUiT('humidity_label', 'Humidity'), temperature: smacaUiT('temperature_label', 'Temperature'), tvoc: 'TVOC' };
+  let explanation = smacaAccurateT('iaq_metrics_expected_ranges', 'IAQ metrics are within expected ranges');
+  if (topDriver) {
+    if (topDriver.metric === 'humidity' && topDriver.status.score === 3) {
+      explanation = smacaAccurateT('humidity_slightly_off_text', 'Humidity is slightly off');
+    } else {
+      explanation = `${driverLabelMap[topDriver.metric]} ${smacaAccurateT('is_label', 'is')} ${topDriver.status.label.toLowerCase()}`;
+    }
+  }
   const freshnessMinutes = latestTimestampMs ? Math.max(0, Math.round((Date.now() - latestTimestampMs) / 60000)) : null;
   return {
     statusLabel: statusLabel,
@@ -1065,23 +1070,23 @@ function renderIaqHourlyHeatStrip(computed) {
           </div>
           <div style="display:flex; align-items:center; justify-content:center; gap: var(--space-2);">
             <span style="width: 14px; height: 10px; background:#eab308; border-radius:4px; display:inline-block;"></span>
-            <span style="font-size: 11px; color: var(--muted);">Medium (caution)</span>
+            <span style="font-size: 11px; color: var(--muted);">${smacaUiT('medium_caution', 'Medium (caution)')}</span>
           </div>
           <div style="display:flex; align-items:center; gap: var(--space-2);">
             <span style="width: 14px; height: 10px; background:#ef4444; border-radius:4px; display:inline-block;"></span>
-            <span style="font-size: 11px; color: var(--muted);">High (elevated)</span>
+            <span style="font-size: 11px; color: var(--muted);">${smacaUiT('high_elevated', 'High (elevated)')}</span>
           </div>
         </div>
         <div class="smaca-accordion smaca-accordion--collapsed" style="margin-top: var(--space-4);">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>What is this pattern?</span>
+            <span>${smacaUiT('what_is_this_pattern', 'What is this pattern?')}</span>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           </button>
           <div class="smaca-accordion__body" hidden>
             <div class="accordion-content">
-              <p><strong>What it shows:</strong> Average CO₂ by hour-of-day (00–23) across the selected timeframe.</p>
-              <p><strong>How to read:</strong> Hotter colors indicate higher average CO₂ during those hours.</p>
-              <p><strong>Why useful:</strong> Use recurring peak hours to pre-emptively improve ventilation and validate scheduling changes.</p>
+              <p><strong>${smacaUiT('what_it_shows', 'What it shows:')}</strong> ${smacaUiT('co2_hourly_avg_selected_timeframe', 'Average CO₂ by hour-of-day (00–23) across the selected timeframe.')}</p>
+              <p><strong>${smacaUiT('how_to_read_chart', 'How to read this chart:')}</strong> ${smacaUiT('hotter_colors_higher_co2', 'Hotter colors indicate higher average CO₂ during those hours.')}</p>
+              <p><strong>${smacaUiT('why_it_matters', 'Why it matters:')}</strong> ${smacaUiT('use_peak_hours_ventilation', 'Use recurring peak hours to pre-emptively improve ventilation and validate scheduling changes.')}</p>
             </div>
           </div>
         </div>
@@ -1147,7 +1152,7 @@ function calculateMicroTrend(currentValue, previousValue, invert = false) {
   const threshold = Math.max(1, Math.abs(previousValue) * 0.005);
   
   if (absDelta < threshold) {
-    return { direction: '→', delta: 0, text: 'Stable' };
+    return { direction: '→', delta: 0, text: smacaAccurateT('stable_feminine', 'Stable') };
   }
   
   const isPositive = delta > 0;
@@ -1191,12 +1196,12 @@ function renderSensorHealthPanel(computed) {
   container.innerHTML = `
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">Data Reliability</h3>
+        <h3 class="card__title">${smacaAccurateT('data_reliability', 'Data Reliability')}</h3>
       </div>
       <div class="card__body">
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4);">
           <div>
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Active IAQ Sensors</div>
+            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">${smacaAccurateT('active_iaq_sensors', 'Active IAQ Sensors')}</div>
             <div style="width: 100%; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; margin-bottom: var(--space-1);">
               <div style="width: 100%; height: 100%; background: #10b981;"></div>
             </div>
@@ -1205,7 +1210,7 @@ function renderSensorHealthPanel(computed) {
             </div>
           </div>
           <div>
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Metric Coverage</div>
+            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">${smacaAccurateT('metric_coverage', 'Metric Coverage')}</div>
             <div style="font-size: 18px; font-weight: 600; color: ${completenessPct >= 80 ? '#10b981' : completenessPct >= 50 ? '#f59e0b' : '#ef4444'}; margin-bottom: var(--space-1);">
               ${completenessPct}%
             </div>
@@ -1214,12 +1219,12 @@ function renderSensorHealthPanel(computed) {
             </div>
           </div>
           <div>
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Data Freshness</div>
+            <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">${smacaAccurateT('data_freshness_label', 'Data Freshness')}</div>
             <div style="font-size: 18px; font-weight: 600; color: ${freshnessColor}; margin-bottom: var(--space-1);">
               ${freshnessText}
             </div>
             <div style="font-size: 10px; color: var(--muted);">
-              Latest aggregated IAQ sample
+              ${smacaAccurateT('latest_aggregated_iaq_sample', 'Latest aggregated IAQ sample')}
             </div>
           </div>
         </div>
@@ -1243,28 +1248,28 @@ function renderDataSourcePanel(summary) {
   container.innerHTML = `
     <div class="card">
       <div class="card__header">
-        <h3 class="card__title">Overall IAQ Summary</h3>
+        <h3 class="card__title">${smacaAccurateT('overall_iaq_summary', 'Overall IAQ Summary')}</h3>
       </div>
       <div class="card__body">
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); font-size: 11px;">
           <div>
-            <div style="color: var(--muted); margin-bottom: var(--space-1);">Status</div>
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">${smacaAccurateT('status', 'Status')}</div>
             <div style="color: var(--text); font-weight: 600; font-size: 14px;">${status}</div>
           </div>
           <div>
-            <div style="color: var(--muted); margin-bottom: var(--space-1);">Active sensors</div>
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">${smacaAccurateT('active_sensors', 'Active sensors')}</div>
             <div style="color: var(--text); font-weight: 500;">${activeSensors}</div>
           </div>
           <div style="grid-column: 1 / -1;">
-            <div style="color: var(--muted); margin-bottom: var(--space-1);">Driver</div>
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">${smacaAccurateT('driver', 'Driver')}</div>
             <div style="color: var(--text); font-weight: 500;">${explanation}</div>
           </div>
           <div>
-            <div style="color: var(--muted); margin-bottom: var(--space-1);">Latest timestamp</div>
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">${smacaAccurateT('latest_timestamp', 'Latest timestamp')}</div>
             <div style="color: var(--text); font-weight: 500;">${latestTimestamp}</div>
           </div>
           <div>
-            <div style="color: var(--muted); margin-bottom: var(--space-1);">Freshness</div>
+            <div style="color: var(--muted); margin-bottom: var(--space-1);">${smacaAccurateT('freshness', 'Freshness')}</div>
             <div style="color: var(--text); font-weight: 500;">${freshnessText}</div>
           </div>
         </div>

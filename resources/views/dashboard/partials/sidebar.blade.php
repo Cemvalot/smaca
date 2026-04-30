@@ -15,7 +15,7 @@
             >
             <span class="smaca-logo__wordmark">SMACA</span>
           </div>
-          <span class="smaca-logo__caption">IoT &amp; AI Platform</span>
+          <span class="smaca-logo__caption">{{ __('messages.dashboard_i18n.iot_ai_platform') }}</span>
         </div>
       </div>
       <nav class="sidebar__nav">

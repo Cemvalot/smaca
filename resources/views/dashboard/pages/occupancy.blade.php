@@ -8,9 +8,9 @@
                 <div class="section-hero__title-row"><svg class="section-hero__icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                   <h2 class="section-hero__title">{{ __('messages.nav.occupancy') }}</h2>
                 </div>
-                <p class="section-hero__subtitle">When is the space actually used? Is usage consistent or bursty?</p>
+                <p class="section-hero__subtitle">{{ __('messages.dashboard_i18n.occupancy_hero_subtitle') }}</p>
               </div>
-              <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">7</div><div class="section-hero__stat-label">Recent movements</div></div>
+              <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">7</div><div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.recent_movements') }}</div></div>
             </div>
           </div>
           <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
@@ -20,13 +20,13 @@
             <div class="card__body">
               <div style="display: flex; align-items: center; gap: var(--space-6);">
                 <div>
-                  <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">Current Activity</div>
+                  <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">{{ __('messages.dashboard_i18n.current_activity') }}</div>
                   <div style="font-size: 36px; font-weight: 600; color: var(--text);">7</div>
-                  <div style="font-size: 11px; color: var(--muted);">Cumulative Entries / Cumulative Exits</div>
+                  <div style="font-size: 11px; color: var(--muted);">{{ __('messages.dashboard_i18n.cumulative_entries_exits') }}</div>
                 </div>
                 <div style="flex: 1; border-left: 1px solid var(--border); padding-left: var(--space-6);">
-                  <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">Does occupancy explain IAQ degradation?</div>
-                  <div style="font-size: 12px; color: var(--text);">Correlation analysis available in {{ __('messages.nav.energy') }} section</div>
+                  <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.occupancy_explain_iaq') }}</div>
+                  <div style="font-size: 12px; color: var(--text);">{{ __('messages.dashboard_i18n.correlation_analysis_enterprise') }}</div>
                 </div>
               </div>
             </div>
@@ -36,14 +36,14 @@
           <div class="grid occupancy-primary-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6);">
             <div class="card occupancy-primary-card">
               <div class="card__header">
-                <h3 class="card__title">Flow Over Time (In/Out)</h3>
-                  <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is traffic actually highest?</p>
+                <h3 class="card__title">{{ __('messages.dashboard_i18n.flow_over_time') }}</h3>
+                  <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.decision_traffic_highest') }}</p>
               </div>
               <div class="card__body occupancy-primary-card__body">
                 <div class="chart-placeholder occupancy-primary-chart" id="occupancy-flow-chart"></div>
                 <div class="smaca-accordion smaca-accordion--collapsed">
                   <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-                    <span>What is this graph?</span>
+                    <span>{{ __('messages.status.what_is_this_graph') }}</span>
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                   </button>
                   <div class="smaca-accordion__body" hidden>
@@ -68,14 +68,14 @@
             </div>
             <div class="card occupancy-primary-card">
               <div class="card__header">
-                <h3 class="card__title">Activity Over Time</h3>
-                  <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">Decision: When is occupancy highest, and how does it repeat by hour?</p>
+                <h3 class="card__title">{{ __('messages.dashboard_i18n.activity_over_time') }}</h3>
+                  <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.decision_occupancy_highest') }}</p>
               </div>
               <div class="card__body occupancy-primary-card__body">
                 <div class="chart-placeholder occupancy-primary-chart" id="occupancy-density-timeline"></div>
                 <div class="smaca-accordion smaca-accordion--collapsed">
                   <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-                    <span>What is this graph?</span>
+                    <span>{{ __('messages.status.what_is_this_graph') }}</span>
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                   </button>
                   <div class="smaca-accordion__body" hidden>
