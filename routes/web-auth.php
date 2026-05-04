@@ -6,8 +6,11 @@
  */
 
 use Illuminate\Http\Request;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
@@ -173,6 +176,88 @@ Route::post('/register', function (Request $request) {
         }
 
         return redirect('/login')->with('success', 'Account created successfully. You can sign in below.');
+});
+
+Route::get('/forgot-password', function () {
+    return view('auth.forgot-password');
+});
+
+Route::post('/forgot-password', function (Request $request) {
+    $validator = Validator::make($request->all(), [
+        'email' => ['required', 'string', 'email', 'max:255'],
+    ]);
+
+    if ($validator->fails()) {
+        return redirect('/forgot-password')
+            ->withErrors($validator)
+            ->withInput($request->only('email'));
+    }
+
+    $emailNormalized = strtolower(trim((string) $request->input('email')));
+
+    try {
+        Password::sendResetLink(['email' => $emailNormalized]);
+    } catch (\Throwable $e) {
+        // Never leak transport/provider issues to users.
+        Log::error('Password reset link dispatch failed', [
+            'email' => $emailNormalized,
+            'ip' => $request->ip(),
+            'error' => $e->getMessage(),
+        ]);
+    }
+
+    return redirect('/forgot-password')
+        ->with('success', 'If this email exists, a reset link has been sent.');
+});
+
+Route::get('/reset-password/{token}', function (Request $request, string $token) {
+    return view('auth.reset-password', [
+        'token' => $token,
+        'email' => strtolower(trim((string) $request->query('email', ''))),
+    ]);
+})->name('password.reset');
+
+Route::post('/reset-password', function (Request $request) {
+    $genericResetErrorMessage = 'Unable to reset password. Please request a new reset link.';
+
+    $validator = Validator::make($request->all(), [
+        'token' => ['required', 'string'],
+        'email' => ['required', 'string', 'email', 'max:255'],
+        'password' => ['required', 'string', 'min:8', 'confirmed'],
+    ]);
+
+    if ($validator->fails()) {
+        return redirect('/reset-password/'.urlencode((string) $request->input('token')).'?email='.urlencode((string) $request->input('email')))
+            ->withErrors($validator)
+            ->withInput($request->only('email'));
+    }
+
+    $emailNormalized = strtolower(trim((string) $request->input('email')));
+    $status = Password::reset(
+        [
+            'email' => $emailNormalized,
+            'password' => (string) $request->input('password'),
+            'password_confirmation' => (string) $request->input('password_confirmation'),
+            'token' => (string) $request->input('token'),
+        ],
+        function (User $user, string $password): void {
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'updated_at' => now(),
+            ])->save();
+        }
+    );
+
+    if ($status !== Password::PASSWORD_RESET) {
+        Log::warning('Password reset rejected by broker', [
+            'email' => $emailNormalized,
+            'ip' => $request->ip(),
+            'status' => $status,
+        ]);
+        return redirect('/forgot-password')->withErrors(['email' => $genericResetErrorMessage]);
+    }
+
+    return redirect('/login')->with('success', 'Password reset successfully. You can sign in now.');
 });
 
 Route::get('/logout', function (Request $request) {

@@ -1,16 +1,21 @@
 (function (global) {
   'use strict';
 
-  const STORAGE_KEY = 'smaca_role';
+  const STORAGE_KEY = 'smaca_role_readonly';
   const ROLES = { admin: 'admin', user: 'user' };
-
-  // TEMP: Force admin so Management is visible
-  // while proper backend RBAC is being wired.
-  function getRole() {
-    return ROLES.admin;
+  function readRoleFromBootContext() {
+    const role = global.SMACA_USER && global.SMACA_USER.role
+      ? String(global.SMACA_USER.role).trim().toLowerCase()
+      : '';
+    return role === ROLES.admin ? ROLES.admin : ROLES.user;
   }
 
-  function setRole(role) {
+  function getRole() {
+    return readRoleFromBootContext();
+  }
+
+  function setRole() {
+    // Frontend role mutations are intentionally disabled.
     return false;
   }
 

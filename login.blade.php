@@ -89,7 +89,7 @@
                 <span class="checkbox-box"></span>
                 <span>{{ __('messages.auth.remember_me') }}</span>
               </label>
-              <a href="#" class="forgot-link">{{ __('messages.auth.forgot_password') }}</a>
+              <a href="{{ url('/forgot-password') }}" class="forgot-link">{{ __('messages.auth.forgot_password') }}</a>
             </div>
             <button type="submit" class="btn-signin">{{ __('messages.auth.sign_in') }}</button>
           </form>

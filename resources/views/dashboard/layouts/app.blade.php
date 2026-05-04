@@ -157,9 +157,16 @@
   @endif
 
   <!-- Scripts -->
+  @php
+      $smacaUser = [
+          'role' => session('role', 'user'),
+          'isAdmin' => session('role', 'user') === 'admin',
+      ];
+  @endphp
   <script>
     window.SMACA_BASE_URL = "{{ rtrim(url('/'), '/') }}";
     window.SMACA_CURRENT_PAGE = "{{ $smacaPage ?? 'overview' }}";
+    window.SMACA_USER = @json($smacaUser);
     window.SMACA_SENSORS = @json($sensors ?? []);
     window.SMACA_HIGHCHARTS_SRC = "https://code.highcharts.com/12.2.0/highcharts.js";
     window.SMACA_HIGHCHARTS_MODULES = [
