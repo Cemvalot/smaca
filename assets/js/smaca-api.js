@@ -329,11 +329,18 @@
     return fetchJson(`/api/sensors/${encodeURIComponent(sensorId)}/timeseries?${qs}`);
   }
 
+  async function fetchKpiSummary(module) {
+    const resolvedModule = module || 'overview';
+    const qs = new URLSearchParams({ module: resolvedModule }).toString();
+    return fetchJson(`/api/kpis/summary?${qs}`);
+  }
+
   window.SMACAApi = {
     fetchDashboardOverview: fetchDashboardOverview,
     fetchSensors: fetchSensors,
     fetchSensorLatest: fetchSensorLatest,
     fetchSensorTimeseries: fetchSensorTimeseries,
+    fetchKpiSummary: fetchKpiSummary,
     adapters: {
       normalizeSnapshotToIAQItem: normalizeSnapshotToIAQItem,
       timeseriesPointsToIAQItems: timeseriesPointsToIAQItems,

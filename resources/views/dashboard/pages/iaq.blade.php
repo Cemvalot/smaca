@@ -15,6 +15,17 @@
             </div>
           </div>
           <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
+          <section class="card" style="margin: var(--space-6) 0;">
+            <div class="card__header">
+              <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_iaq') }}</h3>
+            </div>
+            <div class="card__body">
+              <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_iaq') }}</p>
+              <div id="iaq-kpi-summary-cards" class="grid grid--metrics grid--metrics-1">
+                <article class="stat-card overview-kpi-card"><div class="stat-card__content"><div class="stat-card__label">KPI</div><div class="stat-card__value">--</div></div></article>
+              </div>
+            </div>
+          </section>
           
           <!-- KPI Cards with Metric Definitions -->
           <div id="iaq-kpi-cards" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
@@ -72,4 +83,18 @@
             <div id="iaq-hourly-heatstrip-panel"></div>
           </div>
         </div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
+    if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
+
+    window.SMACAApi.fetchKpiSummary('iaq')
+      .then(function (payload) {
+        window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', payload, { compact: false });
+      })
+      .catch(function () {
+        window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', { kpis: [] }, { compact: false });
+      });
+  });
+</script>
 @endsection

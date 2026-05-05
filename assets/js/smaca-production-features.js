@@ -261,6 +261,12 @@ function escapeSmacaHtml(value) {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+  if (typeof window !== 'undefined') {
+    window.SMACA_DISABLE_AUTO_REFRESH = getSmacaCurrentPage() === 'occupancy';
+    if (!window.SMACA_DISABLE_AUTO_REFRESH) {
+      window.__smacaOccupancyLastRefresh = null;
+    }
+  }
   // API-first initialization for production dashboard data.
   await initializeStateFromApi();
   
@@ -632,6 +638,20 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
   const opts = options || {};
   const forceRefresh = opts.forceRefresh === true;
   const currentPage = getSmacaCurrentPage();
+  const disableAutoRefreshForOccupancy = currentPage === 'occupancy' && typeof window !== 'undefined' && window.SMACA_DISABLE_AUTO_REFRESH === true;
+  const occupancyLastRefresh = (typeof window !== 'undefined' && window.__smacaOccupancyLastRefresh)
+    ? window.__smacaOccupancyLastRefresh
+    : null;
+  if (
+    disableAutoRefreshForOccupancy &&
+    !forceRefresh &&
+    occupancyLastRefresh &&
+    occupancyLastRefresh.timeframe === tf &&
+    occupancyLastRefresh.sensorId === (Number.isFinite(canonicalSensorId) ? canonicalSensorId : null)
+  ) {
+    // Occupancy page is load-once by design unless timeframe changes or full page reload.
+    return;
+  }
   const requiredBuckets = getRequiredBucketsForCurrentPage();
   const shouldHydrateLatestRows = shouldHydrateAllSensorLatestForCurrentPage();
   if (Number.isFinite(canonicalSensorId)) {
@@ -768,6 +788,12 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     throw error;
   } finally {
     setCurrentPageLoadingState(false);
+  }
+  if (disableAutoRefreshForOccupancy && typeof window !== 'undefined' && refreshSucceeded) {
+    window.__smacaOccupancyLastRefresh = {
+      timeframe: tf,
+      sensorId: Number.isFinite(canonicalSensorId) ? canonicalSensorId : null
+    };
   }
   if (refreshSucceeded) SMACAState.setTimeframe(tf);
 }
@@ -2289,7 +2315,7 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
   
   const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : filteredOccupancy;
   if (!occupancyRows || occupancyRows.length === 0) {
-    const currentCardValue = occupancySection.querySelector('.card:first-child .card__body div div div:nth-child(2)');
+    const currentCardValue = document.getElementById('occupancy-operational-summary-value');
     if (currentCardValue) currentCardValue.textContent = 'No occupancy data available';
     const occupancyCounter = document.getElementById('occupancy-current-count');
     if (occupancyCounter) occupancyCounter.textContent = 'No occupancy data available';
@@ -2304,35 +2330,7 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
   const latestActivity = Number(latestPeopleIn || 0) + Number(latestPeopleOut || 0);
   const occupancyTrendFormatted = SMACATrendCalculator.formatTrend(occupancyTrend);
   
-  // Update occupancy KPI card if it exists
-  const occupancyCard = occupancySection.querySelector('.stat-card');
-  if (occupancyCard) {
-    const valueEl = occupancyCard.querySelector('.stat-card__value');
-    if (valueEl) {
-      valueEl.textContent = Math.round(latestActivity);
-    }
-    
-    // Add trend pill if not exists
-    let trendPill = occupancyCard.querySelector('.trend-pill');
-    if (!trendPill) {
-      const labelEl = occupancyCard.querySelector('.stat-card__label');
-      if (labelEl && labelEl.parentElement) {
-        const trendContainer = document.createElement('div');
-        trendContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);';
-        trendContainer.innerHTML = `
-          <div class="stat-card__label">${labelEl.textContent}</div>
-          <span class="trend-pill ${occupancyTrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${occupancyTrendFormatted.text}</span>
-        `;
-        labelEl.parentElement.insertBefore(trendContainer, labelEl);
-        labelEl.remove();
-      }
-    } else {
-      trendPill.textContent = occupancyTrendFormatted.text;
-      trendPill.className = `trend-pill ${occupancyTrendFormatted.class}`;
-    }
-  }
-
-  const summaryValueEl = occupancySection.querySelector('.card .card__body div div div:nth-child(2)');
+  const summaryValueEl = document.getElementById('occupancy-operational-summary-value');
   if (summaryValueEl) {
     const hasAnyOccupancyMetric = [latestPeopleIn, latestPeopleOut, latestTotalIn, latestTotalOut].some(function (value) {
       return Number.isFinite(Number(value));
@@ -2341,9 +2339,9 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
   }
   const heroLabel = occupancySection.querySelector('.section-hero__stat-label');
   if (heroLabel) heroLabel.textContent = 'Recent movements';
-  const summaryLabel = occupancySection.querySelector('.card .card__body div div div:first-child');
-  if (summaryLabel) summaryLabel.textContent = 'Current ' + smacaT('activity', 'Activity');
-  const summarySubLabel = occupancySection.querySelector('.card .card__body div div div:nth-child(3)');
+  const summaryLabel = document.getElementById('occupancy-operational-summary-label');
+  if (summaryLabel && !summaryLabel.textContent) summaryLabel.textContent = smacaT('current_activity', 'Current activity');
+  const summarySubLabel = document.getElementById('occupancy-operational-summary-sub');
   if (summarySubLabel) {
     const netCumulative = Number.isFinite(Number(latestTotalIn)) && Number.isFinite(Number(latestTotalOut))
       ? (Number(latestTotalIn) - Number(latestTotalOut))
@@ -3891,7 +3889,7 @@ function updateHeaderCounters(timeframe, filteredData) {
   }
   const occupancySection = document.getElementById('occupancy');
   if (occupancySection) {
-    const cumulativeLabelEl = occupancySection.querySelector('.card .card__body div div div:nth-child(3)');
+    const cumulativeLabelEl = document.getElementById('occupancy-operational-summary-sub');
     if (cumulativeLabelEl && occupancyRows.length > 0) {
       const totalEntries = sumLatestMetricAcrossSensors(occupancyRows, 'people_total_in');
       const totalExits = sumLatestMetricAcrossSensors(occupancyRows, 'people_total_out');

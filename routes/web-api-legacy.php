@@ -1,6 +1,8 @@
 <?php
 
 use Carbon\Carbon;
+use App\Services\KPI\KPIInputAssembler;
+use App\Services\KPI\KPIService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -301,4 +303,9 @@ Route::get('/api/sensors/{id}/timeseries', function (Request $request, $id) {
             ];
         })->values(),
     ]);
+});
+
+Route::get('/api/kpis/summary', function (Request $request) {
+    $service = new KPIService(new KPIInputAssembler());
+    return response()->json($service->getSummary($request->query('module')));
 });

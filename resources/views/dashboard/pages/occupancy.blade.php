@@ -10,19 +10,31 @@
                 </div>
                 <p class="section-hero__subtitle">{{ __('messages.dashboard_i18n.occupancy_hero_subtitle') }}</p>
               </div>
-              <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">7</div><div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.recent_movements') }}</div></div>
+              <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">{{ __('messages.common.loading') }}...</div><div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.recent_movements') }}</div></div>
             </div>
           </div>
           <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
+          <section class="card" style="margin: var(--space-6) 0;">
+            <div class="card__header">
+              <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_occupancy') }}</h3>
+            </div>
+            <div class="card__body">
+              <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
+              <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="grid grid--metrics grid--metrics-1">
+                <p class="overview-live-note">{{ __('messages.common.loading') }}...</p>
+              </div>
+            </div>
+          </section>
           
-          <!-- Current {{ __('messages.dashboard.status') }} -->
+          <!-- Operational movement summary -->
           <div class="card" style="margin-bottom: var(--space-6);">
             <div class="card__body">
               <div style="display: flex; align-items: center; gap: var(--space-6);">
                 <div>
-                  <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">{{ __('messages.dashboard_i18n.current_activity') }}</div>
-                  <div style="font-size: 36px; font-weight: 600; color: var(--text);">7</div>
-                  <div style="font-size: 11px; color: var(--muted);">{{ __('messages.dashboard_i18n.cumulative_entries_exits') }}</div>
+                  <div id="occupancy-operational-summary-label" style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">{{ __('messages.dashboard_i18n.operational_card_current_activity_title') }}</div>
+                  <div id="occupancy-operational-summary-helper" style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.operational_card_current_activity_helper') }}</div>
+                  <div id="occupancy-operational-summary-value" style="font-size: 36px; font-weight: 600; color: var(--text);">{{ __('messages.common.loading') }}...</div>
+                  <div id="occupancy-operational-summary-sub" style="font-size: 11px; color: var(--muted);">{{ __('messages.dashboard_i18n.cumulative_entries_exits') }}</div>
                 </div>
                 <div style="flex: 1; border-left: 1px solid var(--border); padding-left: var(--space-6);">
                   <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.occupancy_explain_iaq') }}</div>
@@ -93,4 +105,26 @@
             </div>
           </div>
         </div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
+    if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
+
+    window.SMACAApi.fetchKpiSummary('occupancy')
+      .then(function (payload) {
+        window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', payload, {
+          compact: false,
+          maxItems: 1,
+          allowedKeys: ['crowd_density_level']
+        });
+      })
+      .catch(function () {
+        window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', { kpis: [] }, {
+          compact: false,
+          maxItems: 1,
+          allowedKeys: ['crowd_density_level']
+        });
+      });
+  });
+</script>
 @endsection

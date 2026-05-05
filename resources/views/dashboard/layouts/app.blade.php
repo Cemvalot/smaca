@@ -297,6 +297,17 @@
       not_available_label: "{{ __('messages.common.not_available') }}",
       daily_maximum: "{{ __('messages.dashboard_i18n.daily_maximum') }}",
       direction_uv_change_previous: "{{ __('messages.dashboard_i18n.direction_uv_change_previous') }}"
+      ,
+      normalized_energy_intensity: "{{ __('messages.labels.normalized_energy_intensity') }}",
+      base_load_index: "{{ __('messages.labels.base_load_index') }}",
+      thermal_comfort_index: "{{ __('messages.labels.thermal_comfort_index') }}",
+      visual_comfort_kpi: "{{ __('messages.labels.visual_comfort_kpi') }}",
+      iaq_health_index: "{{ __('messages.labels.iaq_health_index') }}",
+      crowd_density_level: "{{ __('messages.labels.crowd_density_level') }}",
+      insufficient_data: "{{ __('messages.labels.insufficient_data') }}",
+      estimated: "{{ __('messages.labels.estimated') }}",
+      partial: "{{ __('messages.labels.partial') }}",
+      recommended_action: "{{ __('messages.labels.recommended_action') }}"
     };
   </script>
   <script defer src="{{ asset('assets/js/rbac.js') }}?v={{ $smacaAssetVersion('assets/js/rbac.js') }}"></script>
@@ -308,6 +319,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script defer src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-csv-export.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-api.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-api.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-kpi-renderer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-kpi-renderer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-data-normalizer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-loader.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-loader.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-adapter.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-adapter.js') }}"></script>

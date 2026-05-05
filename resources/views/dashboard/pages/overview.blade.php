@@ -6,6 +6,18 @@
   $smacaIsAdmin = $smacaRole === 'admin';
 @endphp
 <div class="dashboard-section" id="overview" data-section="overview">
+  <section class="card" style="margin-bottom: var(--space-5);">
+    <div class="card__header">
+      <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_overview') }}</h3>
+    </div>
+    <div class="card__body">
+      <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_overview') }}</p>
+      <div id="overview-kpi-summary-cards" class="grid grid--metrics grid--metrics-2">
+        <article class="stat-card overview-kpi-card"><div class="stat-card__content"><div class="stat-card__label">KPI</div><div class="stat-card__value">--</div></div></article>
+      </div>
+    </div>
+  </section>
+
   <div class="grid grid--metrics grid--metrics-4 overview-kpi-grid">
     <article class="stat-card overview-kpi-card">
       <div class="stat-card__content">
@@ -326,4 +338,31 @@
     </div>
   </section>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
+    if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
+
+    window.SMACAApi.fetchKpiSummary('overview')
+      .then(function (payload) {
+        window.SMACAKPIRenderer.render('overview-kpi-summary-cards', payload, {
+          compact: true,
+          maxItems: 4,
+          allowedKeys: [
+            'iaq_health_index',
+            'crowd_density_level',
+            'normalized_energy_intensity',
+            'thermal_comfort_index'
+          ]
+        });
+      })
+      .catch(function () {
+        window.SMACAKPIRenderer.render('overview-kpi-summary-cards', { kpis: [] }, {
+          compact: true,
+          maxItems: 4
+        });
+      });
+  });
+</script>
 @endsection

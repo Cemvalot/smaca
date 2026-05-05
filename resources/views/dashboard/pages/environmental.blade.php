@@ -14,6 +14,17 @@
             </div>
           </div>
           <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
+          <section class="card" style="margin: var(--space-6) 0;">
+            <div class="card__header">
+              <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_environmental') }}</h3>
+            </div>
+            <div class="card__body">
+              <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_environmental') }}</p>
+              <div id="environmental-kpi-summary-cards" class="grid grid--metrics grid--metrics-2">
+                <article class="stat-card overview-kpi-card"><div class="stat-card__content"><div class="stat-card__label">KPI</div><div class="stat-card__value">--</div></div></article>
+              </div>
+            </div>
+          </section>
           <div class="grid grid--metrics grid--metrics-4" id="environmental-kpi-grid">
             <article class="stat-card" title="Current UV index at the latest measurement">
               <div class="stat-card__content">
@@ -132,4 +143,18 @@
             </section>
           </div>
         </div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
+    if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
+
+    window.SMACAApi.fetchKpiSummary('environmental')
+      .then(function (payload) {
+        window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', payload, { compact: false });
+      })
+      .catch(function () {
+        window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', { kpis: [] }, { compact: false });
+      });
+  });
+</script>
 @endsection
