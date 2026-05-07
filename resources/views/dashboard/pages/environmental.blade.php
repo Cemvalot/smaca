@@ -1,6 +1,10 @@
 @extends('dashboard.layouts.app')
 
 @section('dashboard-content')
+@php
+  $smacaRole = session('role', 'user');
+  $smacaIsAdmin = $smacaRole === 'admin';
+@endphp
 <div class="dashboard-section" id="environmental" data-section="environmental">
           <div class="section-hero section-hero--environmental">
             <div class="section-hero__inner">
@@ -10,10 +14,12 @@
                 </div>
                 <p class="section-hero__subtitle">{{ __('messages.dashboard_i18n.environmental_hero_subtitle') }}</p>
               </div>
-              <div class="section-hero__stat"><div id="environmental-uv-index" class="section-hero__stat-value">6.5</div><div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.uv_index') }}</div></div>
+              <div class="section-hero__stat"><div id="environmental-uv-index" class="section-hero__stat-value">{{ __('messages.common.loading') }}...</div><div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.uv_index') }}</div></div>
             </div>
           </div>
-          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
+          @if($smacaIsAdmin)
+          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span></div>
+          @endif
           <section class="card" style="margin: var(--space-6) 0;">
             <div class="card__header">
               <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_environmental') }}</h3>
@@ -148,13 +154,19 @@
     if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
     if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
 
-    window.SMACAApi.fetchKpiSummary('environmental')
-      .then(function (payload) {
-        window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', payload, { compact: false });
-      })
-      .catch(function () {
-        window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', { kpis: [] }, { compact: false });
-      });
+    function loadEnvironmentalKpis() {
+      window.SMACAApi.fetchKpiSummary('environmental')
+        .then(function (payload) {
+          window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', payload, { compact: false });
+        })
+        .catch(function () {
+          window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', { kpis: [] }, { compact: false });
+        });
+    }
+
+    loadEnvironmentalKpis();
+    window.addEventListener('smaca:scope-change', loadEnvironmentalKpis);
+    window.addEventListener('smaca:timeframe-changed', loadEnvironmentalKpis);
   });
 </script>
 @endsection

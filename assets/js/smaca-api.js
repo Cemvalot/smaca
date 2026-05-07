@@ -329,10 +329,59 @@
     return fetchJson(`/api/sensors/${encodeURIComponent(sensorId)}/timeseries?${qs}`);
   }
 
-  async function fetchKpiSummary(module) {
+  function readActiveLocation() {
+    try {
+      const value = (window.SMACA_LOCATION || '').toString().trim();
+      return value || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function readActiveTimeframe() {
+    var allowed = ['24h', '7d', '30d'];
+    try {
+      var fromState = (window.SMACAState && window.SMACAState.currentTimeframe) || '';
+      if (allowed.indexOf(String(fromState)) !== -1) return fromState;
+      var fromGlobal = window.SMACA_TIMEFRAME || '';
+      if (allowed.indexOf(String(fromGlobal)) !== -1) return fromGlobal;
+    } catch (e) {}
+    return '24h';
+  }
+
+  async function fetchKpiSummary(module, options) {
     const resolvedModule = module || 'overview';
-    const qs = new URLSearchParams({ module: resolvedModule }).toString();
+    const opts = options || {};
+    const params = { module: resolvedModule };
+    const explicitLocation = (opts.location || '').toString().trim();
+    const activeLocation = explicitLocation || readActiveLocation();
+    if (activeLocation) {
+      params.location = activeLocation;
+    }
+    const explicitTimeframe = (opts.timeframe || '').toString().trim();
+    const allowedTf = ['24h', '7d', '30d'];
+    var tf = explicitTimeframe && allowedTf.indexOf(explicitTimeframe) !== -1
+      ? explicitTimeframe
+      : readActiveTimeframe();
+    params.timeframe = tf;
+    const qs = new URLSearchParams(params).toString();
     return fetchJson(`/api/kpis/summary?${qs}`);
+  }
+
+  async function fetchSpatialLocations(options) {
+    const opts = options || {};
+    const params = {};
+    const moduleArg = (opts.module || '').toString().trim();
+    if (moduleArg) {
+      params.module = moduleArg;
+    }
+    const roleArg = (opts.role || '').toString().trim();
+    if (roleArg) {
+      params.role = roleArg;
+    }
+    const qs = new URLSearchParams(params).toString();
+    const path = qs ? `/api/spatial/locations?${qs}` : '/api/spatial/locations';
+    return fetchJson(path);
   }
 
   window.SMACAApi = {
@@ -341,6 +390,7 @@
     fetchSensorLatest: fetchSensorLatest,
     fetchSensorTimeseries: fetchSensorTimeseries,
     fetchKpiSummary: fetchKpiSummary,
+    fetchSpatialLocations: fetchSpatialLocations,
     adapters: {
       normalizeSnapshotToIAQItem: normalizeSnapshotToIAQItem,
       timeseriesPointsToIAQItems: timeseriesPointsToIAQItems,

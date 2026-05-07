@@ -978,16 +978,21 @@ function renderManagementSensorsFromLiveData() {
     const sensorIdentifier = escapeSmacaHtml(sensor?.sensor_uid || sensor?.id || '');
     const rawSensorName = latestRow?.sensor_name || sensor?.sensor_name || latestRow?.name || sensor?.name || '';
     const displayTypeName = escapeSmacaHtml(rawSensorName || sensor?.device_type || 'Unknown');
-    const sensorLocation = escapeSmacaHtml(
-      latestRow?.sensor_location || sensor?.sensor_location || 'N/A'
-    );
+    const rawLocationCode = latestRow?.sensor_location || sensor?.sensor_location || '';
+    const locationLabel = (window.SMACASpatial && typeof window.SMACASpatial.labelFor === 'function')
+      ? window.SMACASpatial.labelFor(rawLocationCode)
+      : rawLocationCode;
+    const sensorLocationCell = rawLocationCode
+      ? `<span>${escapeSmacaHtml(locationLabel || rawLocationCode)}</span>`
+        + ` <span style="font-size: var(--font-size-xs); color: var(--muted); font-family: monospace; margin-left: var(--space-1);">${escapeSmacaHtml(rawLocationCode)}</span>`
+      : escapeSmacaHtml('N/A');
     const batteryTextEscaped = escapeSmacaHtml(batteryText);
     const lastSeenEscaped = escapeSmacaHtml(lastSeenText);
     return `
       <tr class="${isStale ? 'management-sensor-row--stale' : ''}" style="border-bottom: 1px solid var(--border);">
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text); font-family: monospace;">${sensorIdentifier}</td>
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${displayTypeName}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorLocation}</td>
+        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorLocationCell}</td>
         <td style="padding: var(--space-3) var(--space-4);"><span class="badge ${isActive ? 'badge--success' : 'badge--muted'} badge--sm">${isActive ? 'Live' : 'Inactive'}</span></td>
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm);" class="${batteryClass}">${batteryTextEscaped}</td>
         <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${lastSeenEscaped}${isStale ? ' <span class="badge badge--warning badge--sm">Stale</span>' : ''}</td>
@@ -1961,10 +1966,12 @@ function setupTimeRangeSelector() {
       this.classList.add('active');
       
       try {
+        // Always update the global state so KPI cards / charts / operational
+        // summaries re-fetch consistently. setTimeframe dispatches
+        // `smaca:timeframe-changed`, which KPI pages listen for.
+        SMACAState.setTimeframe(timeframe);
         if (window.SMACAApi && window.SMACACurrentSensorId) {
           await refreshDashboardForSelection(window.SMACACurrentSensorId, timeframe);
-        } else {
-          SMACAState.setTimeframe(timeframe);
         }
       } catch (error) {
         console.error('Failed to refresh timeframe from API:', error);

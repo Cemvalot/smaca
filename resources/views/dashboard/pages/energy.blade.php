@@ -210,13 +210,19 @@
     if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
     if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
 
-    window.SMACAApi.fetchKpiSummary('energy')
-      .then(function (payload) {
-        window.SMACAKPIRenderer.render('energy-kpi-summary-cards', payload, { compact: false });
-      })
-      .catch(function () {
-        window.SMACAKPIRenderer.render('energy-kpi-summary-cards', { kpis: [] }, { compact: false });
-      });
+    function loadEnergyKpis() {
+      window.SMACAApi.fetchKpiSummary('energy')
+        .then(function (payload) {
+          window.SMACAKPIRenderer.render('energy-kpi-summary-cards', payload, { compact: false });
+        })
+        .catch(function () {
+          window.SMACAKPIRenderer.render('energy-kpi-summary-cards', { kpis: [] }, { compact: false });
+        });
+    }
+
+    loadEnergyKpis();
+    window.addEventListener('smaca:scope-change', loadEnergyKpis);
+    window.addEventListener('smaca:timeframe-changed', loadEnergyKpis);
   });
 </script>
 @endsection

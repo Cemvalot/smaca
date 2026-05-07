@@ -12,6 +12,8 @@
     </div>
     <div class="card__body">
       <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_overview') }}</p>
+      <div id="overview-spatial-zones" class="overview-spatial-zones" data-smaca-spatial-zones aria-live="polite" style="margin-bottom: var(--space-3);"></div>
+      <div id="overview-scope-summary" class="overview-spatial-summary" style="margin-bottom: var(--space-3); font-size: 12px; color: var(--muted);"></div>
       <div id="overview-kpi-summary-cards" class="grid grid--metrics grid--metrics-2">
         <article class="stat-card overview-kpi-card"><div class="stat-card__content"><div class="stat-card__label">KPI</div><div class="stat-card__value">--</div></div></article>
       </div>
@@ -344,25 +346,111 @@
     if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
     if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
 
-    window.SMACAApi.fetchKpiSummary('overview')
-      .then(function (payload) {
-        window.SMACAKPIRenderer.render('overview-kpi-summary-cards', payload, {
-          compact: true,
-          maxItems: 4,
-          allowedKeys: [
-            'iaq_health_index',
-            'crowd_density_level',
-            'normalized_energy_intensity',
-            'thermal_comfort_index'
-          ]
+    function escapeAttr(value) {
+      return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function escapeText(value) {
+      return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function tr(key, fb) {
+      var d = window.SMACA_TRANSLATIONS || {};
+      return (d[key] && String(d[key]).trim()) ? d[key] : (fb || key);
+    }
+
+    function renderSpatialZones() {
+      var host = document.getElementById('overview-spatial-zones');
+      if (!host) return;
+      var data = (window.SMACA_SPATIAL && window.SMACA_SPATIAL.groups) || {};
+      var sections = [
+        { key: 'floors', label: tr('spatial_section_floors', 'Floors') },
+        { key: 'basements', label: tr('spatial_section_basements', 'Basements') },
+        { key: 'special_spaces', label: tr('spatial_section_special_spaces', 'Special spaces') }
+      ];
+      var html = '';
+      var current = (window.SMACA_LOCATION || '').toUpperCase();
+
+      html += '<div class="overview-spatial-zones__row">';
+      html += '<button type="button" class="smaca-spatial-section-pill" data-spatial-pick="" '
+        + 'aria-pressed="' + (!current ? 'true' : 'false') + '">'
+        + escapeText(tr('spatial_all_campus', 'All campus')) + '</button>';
+      html += '</div>';
+
+      sections.forEach(function (section) {
+        var items = (data[section.key] && data[section.key].items) || [];
+        if (!items.length) return;
+        html += '<div class="overview-spatial-zones__row">';
+        html += '<span class="overview-spatial-zones__heading">' + escapeText(section.label) + '</span>';
+        items.forEach(function (item) {
+          if (!item || !item.code) return;
+          var pressed = (current === item.code) ? 'true' : 'false';
+          html += '<button type="button" class="smaca-spatial-scope-pill" '
+            + 'data-spatial-pick="' + escapeAttr(item.code) + '" aria-pressed="' + pressed + '" '
+            + 'title="' + escapeAttr(item.code) + '">'
+            + escapeText(item.label || item.code) + '</button>';
         });
-      })
-      .catch(function () {
-        window.SMACAKPIRenderer.render('overview-kpi-summary-cards', { kpis: [] }, {
-          compact: true,
-          maxItems: 4
+        html += '</div>';
+      });
+
+      host.innerHTML = html;
+      Array.prototype.forEach.call(host.querySelectorAll('[data-spatial-pick]'), function (btn) {
+        btn.addEventListener('click', function () {
+          var code = btn.getAttribute('data-spatial-pick') || '';
+          if (window.SMACASpatial && typeof window.SMACASpatial.setLocation === 'function') {
+            window.SMACASpatial.setLocation(code);
+          } else {
+            window.SMACA_LOCATION = code || null;
+            try {
+              window.dispatchEvent(new CustomEvent('smaca:scope-change', { detail: { location: code || null } }));
+            } catch (e) {}
+          }
         });
       });
+    }
+
+    function renderScopeSummary(payload) {
+      var el = document.getElementById('overview-scope-summary');
+      if (!el) return;
+      var loc = payload && payload.location ? String(payload.location) : '';
+      var label = payload && payload.location_label ? String(payload.location_label) : loc;
+      if (!loc) {
+        el.textContent = tr('spatial_scope_summary_campus', 'Showing KPIs for the whole campus');
+      } else {
+        var template = tr('spatial_scope_summary', 'Showing KPIs for :location');
+        el.textContent = template.replace(':location', label);
+      }
+    }
+
+    function loadOverviewKpis() {
+      window.SMACAApi.fetchKpiSummary('overview')
+        .then(function (payload) {
+          renderScopeSummary(payload);
+          window.SMACAKPIRenderer.render('overview-kpi-summary-cards', payload, {
+            compact: true,
+            maxItems: 4,
+            allowedKeys: [
+              'iaq_health_index',
+              'crowd_density_level',
+              'normalized_energy_intensity',
+              'thermal_comfort_index'
+            ]
+          });
+        })
+        .catch(function () {
+          renderScopeSummary({ location: window.SMACA_LOCATION || null });
+          window.SMACAKPIRenderer.render('overview-kpi-summary-cards', { kpis: [] }, {
+            compact: true,
+            maxItems: 4
+          });
+        });
+    }
+
+    renderSpatialZones();
+    loadOverviewKpis();
+    window.addEventListener('smaca:scope-change', function () {
+      renderSpatialZones();
+      loadOverviewKpis();
+    });
+    window.addEventListener('smaca:timeframe-changed', loadOverviewKpis);
   });
 </script>
 @endsection

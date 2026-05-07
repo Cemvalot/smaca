@@ -1,6 +1,10 @@
 @extends('dashboard.layouts.app')
 
 @section('dashboard-content')
+@php
+  $smacaRole = session('role', 'user');
+  $smacaIsAdmin = $smacaRole === 'admin';
+@endphp
 <div class="dashboard-section" id="iaq" data-section="iaq">
           <div class="section-hero section-hero--iaq">
             <div class="section-hero__inner">
@@ -11,10 +15,14 @@
                 </div>
                 <p class="section-hero__subtitle">{{ __('messages.dashboard_i18n.iaq_hero_subtitle') }}</p>
               </div>
-              <div class="section-hero__stat"><div id="iaq-active-sensors" class="section-hero__stat-value">8</div><div class="section-hero__stat-label">{{ __('messages.dashboard.active_sensors') }}</div></div>
+              @if($smacaIsAdmin)
+              <div class="section-hero__stat"><div id="iaq-active-sensors" class="section-hero__stat-value">{{ __('messages.common.loading') }}...</div><div class="section-hero__stat-label">{{ __('messages.dashboard.active_sensors') }}</div></div>
+              @endif
             </div>
           </div>
-          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
+          @if($smacaIsAdmin)
+          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span></div>
+          @endif
           <section class="card" style="margin: var(--space-6) 0;">
             <div class="card__header">
               <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_iaq') }}</h3>
@@ -32,11 +40,13 @@
             <!-- KPI cards will be rendered here by JavaScript -->
           </div>
           
-          <!-- Sensor Health & Data Source -->
+          @if($smacaIsAdmin)
+          <!-- Sensor Health & Data Source (admin only) -->
           <div class="grid" style="grid-template-columns: 2fr 1fr; gap: var(--space-6); margin-bottom: var(--space-6);">
             <div id="sensor-health-panel"></div>
             <div id="data-source-panel"></div>
           </div>
+          @endif
           
           <!-- Domain-Driven Visualizations -->
           <div class="grid" style="grid-template-columns: 1fr; gap: var(--space-6); margin-bottom: var(--space-6);">
@@ -88,13 +98,19 @@
     if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
     if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
 
-    window.SMACAApi.fetchKpiSummary('iaq')
-      .then(function (payload) {
-        window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', payload, { compact: false });
-      })
-      .catch(function () {
-        window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', { kpis: [] }, { compact: false });
-      });
+    function loadIaqKpis() {
+      window.SMACAApi.fetchKpiSummary('iaq')
+        .then(function (payload) {
+          window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', payload, { compact: false });
+        })
+        .catch(function () {
+          window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', { kpis: [] }, { compact: false });
+        });
+    }
+
+    loadIaqKpis();
+    window.addEventListener('smaca:scope-change', loadIaqKpis);
+    window.addEventListener('smaca:timeframe-changed', loadIaqKpis);
   });
 </script>
 @endsection

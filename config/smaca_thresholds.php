@@ -59,11 +59,23 @@ return [
         'warning_max' => 5,
         'critical_min' => 6,
     ],
+    // Movement pressure (events/hour). Used by both `crowd_density_level`
+    // (floor/area aggregates) and `movement_activity_index` (passages).
+    // The old ratio scale (people / capacity) was wrong: people_total_in/out
+    // are cumulative lifetime counters so the ratio could overflow to 100×+.
     'crowd_density' => [
-        'unit' => 'ratio',
-        'good_max' => 0.35,
-        'warning_max' => 0.8,
-        'critical_min' => 0.8,
+        'unit' => 'events/h',
+        'good_max' => 10,
+        'warning_max' => 50,
+        'critical_min' => 50,
+    ],
+    // Outdoor UV / solar exposure risk (UV index value). Aligned with the
+    // WHO UV-index bands: 0–2 low, 3–5 moderate, 6+ high.
+    'uv_exposure_risk' => [
+        'unit' => 'index',
+        'good_max' => 2,
+        'warning_max' => 5,
+        'critical_min' => 6,
     ],
     'normalized_energy_intensity' => [
         'unit' => 'kWh/person',

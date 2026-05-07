@@ -2,33 +2,90 @@
 
 namespace App\Services\KPI;
 
+use App\Services\Spatial\SpatialService;
 use App\Services\Thresholds\ThresholdService;
 
 class KPIService
 {
     private const DEFAULT_INSUFFICIENT_ACTION = 'Connect the required sensor stream to enable this KPI.';
 
+    private SpatialService $spatialService;
+
     public function __construct(
         private KPIInputAssembler $inputAssembler,
-        private ?ThresholdService $thresholdService = null
+        private ?ThresholdService $thresholdService = null,
+        ?SpatialService $spatialService = null
     )
     {
         $this->thresholdService = $this->thresholdService ?? new ThresholdService();
+        $this->spatialService = $spatialService ?? new SpatialService();
     }
 
-    public function getSummary(?string $module = null): array
+    /**
+     * Build the KPI summary for a module, optionally scoped to a spatial code
+     * such as "F0", "AUD" or "B1-2". The response always includes `module`,
+     * `location`, `location_label` and `kpis`. Pre-existing callers that do
+     * not pass a location keep the original behaviour.
+     */
+    public function getSummary(?string $module = null, ?string $location = null, ?string $timeframe = null): array
     {
-        $inputs = $this->inputAssembler->assembleSummaryInputs();
         $moduleKey = $this->normalizeModule($module);
-        $kpisByModule = $this->buildKpisByModule($inputs);
+        $normalizedLocation = $this->spatialService->normalizeLocation($location);
+        $resolvedTimeframe = KPIInputAssembler::resolveTimeframe($timeframe);
+
+        // Module-aware sensor scope. If the picked location does not support
+        // the active module, both lookups return [] and the assembler renders
+        // every KPI as insufficient_data — never a 500.
+        $sensorIds = $this->spatialService->resolveSensorIds($normalizedLocation, $moduleKey);
+        $sensorUids = $this->spatialService->resolveSensorUids($normalizedLocation, $moduleKey);
+
+        $context = ['timeframe' => $resolvedTimeframe];
+        if ($sensorIds !== null) {
+            $context['sensor_ids'] = $sensorIds;
+        }
+        if ($sensorUids !== null) {
+            $context['sensor_uids'] = $sensorUids;
+        }
+
+        try {
+            $inputs = $this->inputAssembler->assembleSummaryInputs($context);
+        } catch (\Throwable $e) {
+            // Last-line defence: never propagate to the route layer.
+            try {
+                \Illuminate\Support\Facades\Log::warning('KPIService: assembler threw, falling back to empty inputs', [
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'module' => $moduleKey,
+                    'location' => $normalizedLocation,
+                ]);
+            } catch (\Throwable $ignored) {}
+            $inputs = [
+                'avg_co2_ppm' => null, 'avg_tvoc_index' => null, 'avg_pm25_ugm3' => null, 'avg_pm10_ugm3' => null,
+                'avg_temperature_c' => null, 'avg_humidity_rh' => null, 'avg_energy_kwh' => null,
+                'avg_current_a' => null, 'avg_power_factor' => null, 'avg_max_demand_kw' => null,
+                'avg_light_level' => null, 'avg_lux' => null, 'avg_solar_radiation' => null,
+                'avg_people_present' => 0.0, 'max_capacity' => 50.0, 'capacity_confidence' => 'estimated',
+                'avg_base_load_energy' => null, 'avg_off_hours_energy' => null,
+                'active_sensor_count' => 0, 'has_scope' => true, 'timeframe' => $resolvedTimeframe,
+            ];
+        }
+        $locationMeta = $normalizedLocation !== null
+            ? $this->spatialService->getLocationMeta($normalizedLocation)
+            : null;
+        $isPassageScope = is_array($locationMeta) && (($locationMeta['type'] ?? null) === 'passage');
+
+        $kpisByModule = $this->buildKpisByModule($inputs, $isPassageScope);
 
         return [
             'module' => $moduleKey,
+            'location' => $normalizedLocation,
+            'location_label' => $locationMeta['label'] ?? null,
+            'timeframe' => $resolvedTimeframe,
             'kpis' => $kpisByModule[$moduleKey] ?? $kpisByModule['overview'],
         ];
     }
 
-    private function buildKpisByModule(array $inputs): array
+    private function buildKpisByModule(array $inputs, bool $isPassageScope = false): array
     {
         $normalizedEnergyIntensity = $this->calculateNormalizedEnergyIntensity($inputs);
         $baseLoadIndex = $this->calculateBaseLoadIndex($inputs);
@@ -36,15 +93,23 @@ class KPIService
         $visualComfort = $this->calculateVisualComfortKpi($inputs);
         $iaqHealth = $this->calculateIaqHealthIndex($inputs);
         $crowdDensity = $this->calculateCrowdDensityLevel($inputs);
+        $movementActivity = $this->calculateMovementActivityIndex($inputs);
+        $uvExposure = $this->calculateUvExposureRisk($inputs);
+
+        // Occupancy module: a passage-scoped query has no aggregate density
+        // semantics — only movement events matter. For floor / area scopes we
+        // continue to surface "Crowd Density Level" (re-defined as movement
+        // pressure events/hour, see KPIService::calculateCrowdDensityLevel).
+        $occupancyKpis = $isPassageScope
+            ? [$movementActivity]
+            : [$crowdDensity];
 
         return [
             'overview' => [
                 $iaqHealth,
                 $crowdDensity,
                 $normalizedEnergyIntensity,
-                $baseLoadIndex,
                 $thermalComfort,
-                $visualComfort,
             ],
             'energy' => [
                 $normalizedEnergyIntensity,
@@ -53,12 +118,13 @@ class KPIService
             'iaq' => [
                 $iaqHealth,
             ],
-            'occupancy' => [
-                $crowdDensity,
-            ],
+            'occupancy' => $occupancyKpis,
             'environmental' => [
-                $thermalComfort,
-                $visualComfort,
+                // Outdoor / VS350-class sensors at GH expose UV / solar — not
+                // indoor temp/humidity/lux. Indoor comfort KPIs would render
+                // permanently as `insufficient_data` here, so they have been
+                // removed from the environmental module.
+                $uvExposure,
             ],
         ];
     }
@@ -310,30 +376,117 @@ class KPIService
         ];
     }
 
+    /**
+     * Crowd Density Level — used for floor / area aggregates (parents that
+     * contain people counters as children). REDEFINED in events/hour:
+     *
+     *   value = (entries + exits over the timeframe) / timeframe_hours
+     *
+     * The previous implementation divided AVG(people_total_in - people_total_out)
+     * by capacity; both `total_in` and `total_out` are cumulative lifetime
+     * counters, so for a passage with even a small bidirectional asymmetry
+     * the residual grows unbounded (one site reported 22,763 → ratio 455).
+     * Movement pressure is the right signal for this deployment.
+     */
     private function calculateCrowdDensityLevel(array $inputs): array
     {
-        $people = $inputs['avg_people_present'] ?? null;
-        $capacity = $inputs['max_capacity'] ?? null;
-        if ($people === null || $capacity === null || $capacity <= 0) {
+        return $this->buildMovementKpi($inputs, [
+            'key' => 'crowd_density_level',
+            'label' => 'Crowd Density Level',
+            'description_kind' => 'aggregate',
+        ]);
+    }
+
+    /**
+     * Movement Activity — passage-level scope. Same math as the aggregate
+     * "Crowd Density Level" but presented as activity rather than density.
+     */
+    private function calculateMovementActivityIndex(array $inputs): array
+    {
+        return $this->buildMovementKpi($inputs, [
+            'key' => 'movement_activity_index',
+            'label' => 'Movement Activity',
+            'description_kind' => 'passage',
+        ]);
+    }
+
+    private function buildMovementKpi(array $inputs, array $opts): array
+    {
+        $entries = $inputs['movement_entries'] ?? null;
+        $exits = $inputs['movement_exits'] ?? null;
+        $hours = (int) ($inputs['timeframe_hours'] ?? 24);
+        $hours = $hours > 0 ? $hours : 24;
+
+        if ($entries === null && $exits === null) {
             return $this->insufficientKpi(
-                'crowd_density_level',
-                'Crowd Density Level',
-                'ratio',
-                'Current occupancy relative to room or inferred capacity.'
+                $opts['key'],
+                $opts['label'],
+                'events/h',
+                $opts['description_kind'] === 'passage'
+                    ? 'Movement events recorded by the people counters at this passage over the selected timeframe.'
+                    : 'Aggregated movement events from people counters in this zone over the selected timeframe.'
             );
         }
 
-        $value = round($people / $capacity, 3);
+        $totalEvents = (float) ($entries ?? 0) + (float) ($exits ?? 0);
+        $value = round($totalEvents / max(1, $hours), 1);
+        // Defence in depth: never let this KPI overflow into nonsensical
+        // ratios. 5,000 events/h would already be 1.4 events/sec across the
+        // whole campus — well above any realistic case.
+        $value = max(0.0, min(5000.0, $value));
+
+        // We use a single shared threshold series (`crowd_density`) for both
+        // KPI keys so operators read a consistent scale, regardless of
+        // whether they're on a floor or a passage.
         $evaluation = $this->thresholdService->evaluate('crowd_density', $value);
         $status = $this->normalizeStatus($evaluation['status'], true);
 
         return [
-            'key' => 'crowd_density_level',
-            'label' => 'Crowd Density Level',
+            'key' => $opts['key'],
+            'label' => $opts['label'],
             'value' => $value,
-            'unit' => 'ratio',
+            'unit' => 'events/h',
             'status' => $status,
-            'confidence' => $inputs['capacity_confidence'] ?? 'estimated',
+            'confidence' => 'estimated',
+            'description' => $evaluation['explanation'],
+            'recommended_action' => $evaluation['recommended_action'],
+        ];
+    }
+
+    /**
+     * UV Exposure Risk — environmental module (outdoor VS350 / UV sensors).
+     * Status follows the standard WHO UV-index bands.
+     */
+    private function calculateUvExposureRisk(array $inputs): array
+    {
+        $uv = $inputs['avg_uv_index'] ?? null;
+        if ($uv === null) {
+            // Solar radiation can be a fallback signal: > ~120 W/m² with no
+            // UV index reported usually means a sunny window still occurred.
+            $solar = $inputs['avg_solar_radiation'] ?? null;
+            if ($solar === null || $solar <= 0) {
+                return $this->insufficientKpi(
+                    'uv_exposure_risk',
+                    'UV Exposure Risk',
+                    'index',
+                    'No UV/environmental sensor data is available for this location.'
+                );
+            }
+            // Crude approximation when only solar is available.
+            $uv = max(0.0, min(11.0, $solar / 100.0));
+        }
+
+        $value = round((float) $uv, 1);
+        $evaluation = $this->thresholdService->evaluate('uv_exposure_risk', $value);
+        $status = $this->normalizeStatus($evaluation['status']);
+
+        return [
+            'key' => 'uv_exposure_risk',
+            'label' => 'UV Exposure Risk',
+            'value' => $value,
+            'unit' => 'index',
+            'status' => $status,
+            'confidence' => 'estimated',
             'description' => $evaluation['explanation'],
             'recommended_action' => $evaluation['recommended_action'],
         ];

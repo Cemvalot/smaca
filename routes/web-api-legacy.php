@@ -3,6 +3,7 @@
 use Carbon\Carbon;
 use App\Services\KPI\KPIInputAssembler;
 use App\Services\KPI\KPIService;
+use App\Services\Spatial\SpatialService;
 use App\Services\Thresholds\ThresholdService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -307,8 +308,41 @@ Route::get('/api/sensors/{id}/timeseries', function (Request $request, $id) {
 });
 
 Route::get('/api/kpis/summary', function (Request $request) {
-    $service = new KPIService(new KPIInputAssembler(), new ThresholdService());
-    return response()->json($service->getSummary($request->query('module')));
+    // The KPI summary route MUST never 500. Any unexpected exception is
+    // logged and surfaced to the UI as an empty (insufficient_data) payload
+    // so the dashboard degrades gracefully on unknown topology / DB issues.
+    try {
+        $spatial = new SpatialService();
+        $service = new KPIService(new KPIInputAssembler(), new ThresholdService(), $spatial);
+
+        $module = $spatial->normalizeModule((string) ($request->query('module') ?? ''));
+        $location = $spatial->normalizeLocation((string) ($request->query('location') ?? ''));
+        $timeframe = KPIInputAssembler::resolveTimeframe($request->query('timeframe'));
+
+        return response()->json($service->getSummary($module, $location, $timeframe));
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/kpis/summary: unexpected exception, returning safe empty payload', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+                'module' => $request->query('module'),
+                'location' => $request->query('location'),
+                'timeframe' => $request->query('timeframe'),
+            ]);
+        } catch (\Throwable $ignored) {}
+
+        $module = strtolower(trim((string) ($request->query('module') ?? 'overview')));
+        $location = $request->query('location');
+        $timeframe = KPIInputAssembler::resolveTimeframe($request->query('timeframe'));
+        return response()->json([
+            'module' => $module !== '' ? $module : 'overview',
+            'location' => $location ? strtoupper((string) $location) : null,
+            'location_label' => null,
+            'timeframe' => $timeframe,
+            'kpis' => [],
+            'degraded' => true,
+        ]);
+    }
 });
 
 Route::get('/api/config/thresholds', function () {
@@ -316,4 +350,215 @@ Route::get('/api/config/thresholds', function () {
     return response()->json([
         'thresholds' => $service->getPublicThresholds(),
     ]);
+});
+
+Route::get('/api/spatial/locations', function (Request $request) {
+    try {
+        $service = new SpatialService();
+        $module = $request->query('module');
+        $module = $module === null || $module === '' ? null : (string) $module;
+
+        // Role: prefer explicit query param (admin tools), otherwise derive
+        // from session. Default to "user" when no session is established.
+        $role = $request->query('role');
+        if ($role === null || $role === '') {
+            $role = function_exists('session') ? (string) session('role', 'user') : 'user';
+        }
+
+        return response()->json($service->getLocationsForModule($module, $role));
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/spatial/locations: unexpected exception', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {}
+        return response()->json([
+            'groups' => [
+                'floors' => ['label' => 'Floors', 'order' => 1, 'items' => []],
+                'basements' => ['label' => 'Basements', 'order' => 2, 'items' => []],
+                'special_spaces' => ['label' => 'Special spaces', 'order' => 3, 'items' => []],
+                'passages' => ['label' => 'Passages', 'order' => 4, 'items' => []],
+            ],
+            'degraded' => true,
+        ]);
+    }
+});
+
+// -----------------------------------------------------------------------------
+// Admin-only topology audit. Returns a topology-validation summary so an
+// operator can verify that real deployed sensors match the configured spatial
+// topology / module assignment. No data writes; safe to call repeatedly.
+// -----------------------------------------------------------------------------
+Route::get('/api/admin/topology-audit', function (Request $request) {
+    if ((string) session('role', '') !== 'admin') {
+        return response()->json(['message' => 'Forbidden'], 403);
+    }
+
+    try {
+        $spatial = new SpatialService();
+        $cfg = (array) (function_exists('config') ? config('smaca_spatial', []) : []);
+        $configuredLocations = $spatial->getConfiguredLocations();
+        $moduleCapabilities = $spatial->getModuleCapabilities();
+        $sensorTypeToModule = is_array($cfg['sensor_type_to_module'] ?? null)
+            ? $cfg['sensor_type_to_module']
+            : [];
+
+        $schema = DB::getSchemaBuilder();
+        $hasSensors = $schema->hasTable('sensors');
+        $hasReadings = $schema->hasTable('readings');
+        $hasSensorLatest = $schema->hasTable('sensor_latest');
+
+        // Total sensors + by device_type + active count
+        $totalSensors = 0; $activeSensors = 0;
+        $byDeviceType = []; $byLocation = [];
+        $sensorsAggByLocation = [];
+        $stale = []; $batteryLow = [];
+        $nullLocationReadings = 0; $totalReadings = 0;
+        $observedLocations = [];
+        $latestPerSensor = [];
+
+        if ($hasSensors) {
+            $sensors = DB::table('sensors')
+                ->select(['id', 'external_id', 'name', 'device_type', 'is_active'])
+                ->get();
+            $totalSensors = $sensors->count();
+            $activeSensors = (int) $sensors->where('is_active', 1)->count();
+            foreach ($sensors as $s) {
+                $type = (string) ($s->device_type ?? 'unknown');
+                $byDeviceType[$type] = ($byDeviceType[$type] ?? 0) + 1;
+            }
+        }
+
+        // Latest reading per sensor (location, measured_at, battery if present)
+        if ($hasSensorLatest && $hasReadings) {
+            $hasBattery = $schema->hasColumn('sensor_latest', 'battery_pct');
+            $select = ['sl.sensor_id', 'sl.measured_at', 'r.sensor_location'];
+            if ($hasBattery) $select[] = 'sl.battery_pct';
+            $rows = DB::table('sensor_latest as sl')
+                ->leftJoin('readings as r', 'r.id', '=', 'sl.reading_id')
+                ->select($select)
+                ->get();
+
+            $now = \Carbon\Carbon::now();
+            foreach ($rows as $r) {
+                $sid = (int) $r->sensor_id;
+                $latestPerSensor[$sid] = $r;
+                $loc = $r->sensor_location ?? null;
+                $loc = $loc !== null ? strtoupper(trim((string) $loc)) : null;
+                if ($loc !== null && $loc !== '') {
+                    $observedLocations[$loc] = true;
+                    $byLocation[$loc] = ($byLocation[$loc] ?? 0) + 1;
+                    $sensorsAggByLocation[$loc][] = $sid;
+                }
+
+                if ($r->measured_at) {
+                    try {
+                        $diff = $now->diffInMinutes(\Carbon\Carbon::parse($r->measured_at));
+                        if ($diff > 60) {
+                            $stale[] = [
+                                'sensor_id' => $sid,
+                                'minutes_since_last' => $diff,
+                                'last_seen_at' => (string) $r->measured_at,
+                                'location' => $loc,
+                            ];
+                        }
+                    } catch (\Throwable $ignored) {}
+                }
+
+                if ($hasBattery && isset($r->battery_pct) && $r->battery_pct !== null) {
+                    if ((float) $r->battery_pct < 20.0) {
+                        $batteryLow[] = [
+                            'sensor_id' => $sid,
+                            'battery_pct' => (float) $r->battery_pct,
+                            'location' => $loc,
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Null sensor_location count (raw readings, last 30 days)
+        if ($hasReadings && $schema->hasColumn('readings', 'sensor_location')) {
+            try {
+                $since = \Carbon\Carbon::now()->subDays(30);
+                $totalReadings = (int) DB::table('readings')->where('measured_at', '>=', $since)->count();
+                $nullLocationReadings = (int) DB::table('readings')
+                    ->where('measured_at', '>=', $since)
+                    ->where(function ($q) {
+                        $q->whereNull('sensor_location')->orWhere('sensor_location', '');
+                    })
+                    ->count();
+            } catch (\Throwable $ignored) {}
+        }
+
+        // Locations per module (configured + observed) and gaps.
+        $locationsPerModule = [];
+        $missingPerModule = [];
+        $modules = ['iaq', 'occupancy', 'energy', 'environmental'];
+        foreach ($modules as $m) {
+            $valid = []; $missing = [];
+            foreach (array_keys($configuredLocations) as $code) {
+                if (!$spatial->locationSupportsModule($code, $m)) continue;
+                $hasObservedSensor = !empty($sensorsAggByLocation[$code]);
+                $info = [
+                    'code' => $code,
+                    'label' => $spatial->labelFor($code),
+                    'sensor_count' => count($sensorsAggByLocation[$code] ?? []),
+                ];
+                if ($hasObservedSensor) {
+                    $valid[] = $info;
+                } else {
+                    $missing[] = $info;
+                }
+            }
+            $locationsPerModule[$m] = $valid;
+            $missingPerModule[$m] = $missing;
+        }
+
+        // Locations seen in DB but unknown to config.
+        $unknownLocations = [];
+        foreach (array_keys($observedLocations) as $code) {
+            if (!isset($configuredLocations[$code])) {
+                $unknownLocations[] = $code;
+            }
+        }
+        sort($unknownLocations);
+
+        return response()->json([
+            'generated_at' => \Carbon\Carbon::now()->toIso8601String(),
+            'sensors' => [
+                'total' => $totalSensors,
+                'active' => $activeSensors,
+                'by_device_type' => $byDeviceType,
+                'by_location' => $byLocation,
+            ],
+            'readings' => [
+                'window_days' => 30,
+                'total' => $totalReadings,
+                'with_null_location' => $nullLocationReadings,
+            ],
+            'modules' => [
+                'capabilities' => $moduleCapabilities,
+                'sensor_type_to_module' => $sensorTypeToModule,
+                'locations_with_sensors' => $locationsPerModule,
+                'locations_without_sensors' => $missingPerModule,
+            ],
+            'health' => [
+                'stale_sensors_count' => count($stale),
+                'stale_sensors' => array_slice($stale, 0, 50),
+                'battery_low_count' => count($batteryLow),
+                'battery_low' => array_slice($batteryLow, 0, 50),
+                'unknown_locations' => $unknownLocations,
+            ],
+        ]);
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/admin/topology-audit: unexpected exception', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {}
+        return response()->json(['message' => 'Topology audit unavailable', 'degraded' => true], 200);
+    }
 });

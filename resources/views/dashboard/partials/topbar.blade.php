@@ -4,6 +4,8 @@
           <p class="topbar__subtitle">{{ __('messages.topbar.subtitle') }}</p>
         </div>
         <div class="topbar__actions">
+          <!-- Spatial scope selector (rendered by smaca-spatial.js) -->
+          <div class="topbar__spatial" data-smaca-spatial-slot aria-label="{{ __('messages.spatial.label') }}"></div>
           <!-- Time Range Selector -->
           <div class="time-range-selector">
             <button class="time-range-btn active" data-timeframe="24h" title="{{ __('messages.topbar.filter_24h') }}">{{ __('messages.dashboard_i18n.time_24h') }}</button>

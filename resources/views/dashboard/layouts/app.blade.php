@@ -158,15 +158,48 @@
 
   <!-- Scripts -->
   @php
+      $smacaRole = session('role', 'user');
       $smacaUser = [
-          'role' => session('role', 'user'),
-          'isAdmin' => session('role', 'user') === 'admin',
+          'role' => $smacaRole,
+          'isAdmin' => $smacaRole === 'admin',
       ];
+      $smacaPageForSpatial = $smacaPage ?? 'overview';
+      try {
+          $smacaSpatialService = new \App\Services\Spatial\SpatialService();
+          $smacaSpatial = $smacaSpatialService->getLocationsForModule($smacaPageForSpatial, $smacaRole);
+          // Full topology (admin-aware), used by code→label resolvers (management
+          // table, alerts cards) so raw codes always render with human labels
+          // regardless of which page module is active.
+          $smacaSpatialAll = $smacaSpatialService->getLocationsForModule(null, 'admin');
+      } catch (\Throwable $e) {
+          $smacaSpatial = ['groups' => []];
+          $smacaSpatialAll = ['groups' => []];
+      }
+      $smacaLocaleCode = strtolower(substr((string) (function_exists('app') ? app()->getLocale() : 'en'), 0, 2));
   @endphp
   <script>
     window.SMACA_BASE_URL = "{{ rtrim(url('/'), '/') }}";
     window.SMACA_CURRENT_PAGE = "{{ $smacaPage ?? 'overview' }}";
     window.SMACA_USER = @json($smacaUser);
+    window.SMACA_SPATIAL = @json($smacaSpatial);
+    window.SMACA_SPATIAL_ALL = @json($smacaSpatialAll ?? ['groups' => []]);
+    window.SMACA_LOCALE = @json($smacaLocaleCode ?? 'en');
+    (function () {
+      try {
+        var stored = localStorage.getItem('smaca_location_v1') || '';
+        var ok = /^[A-Z0-9][A-Z0-9-]{0,31}$/.test(stored.toUpperCase());
+        window.SMACA_LOCATION = ok ? stored.toUpperCase() : null;
+      } catch (e) { window.SMACA_LOCATION = null; }
+    })();
+    window.SMACA_TIMEFRAME = '24h';
+    window.addEventListener('smaca:timeframe-changed', function (ev) {
+      try {
+        var tf = (ev && ev.detail && ev.detail.timeframe) || '24h';
+        if (['24h', '7d', '30d'].indexOf(String(tf)) !== -1) {
+          window.SMACA_TIMEFRAME = String(tf);
+        }
+      } catch (e) {}
+    });
     window.SMACA_SENSORS = @json($sensors ?? []);
     window.SMACA_HIGHCHARTS_SRC = "https://code.highcharts.com/12.2.0/highcharts.js";
     window.SMACA_HIGHCHARTS_MODULES = [
@@ -307,10 +340,39 @@
       visual_comfort_kpi: "{{ __('messages.labels.visual_comfort_kpi') }}",
       iaq_health_index: "{{ __('messages.labels.iaq_health_index') }}",
       crowd_density_level: "{{ __('messages.labels.crowd_density_level') }}",
+      movement_activity_index: "{{ __('messages.labels.movement_activity_index') }}",
+      uv_exposure_risk: "{{ __('messages.labels.uv_exposure_risk') }}",
       insufficient_data: "{{ __('messages.labels.insufficient_data') }}",
       estimated: "{{ __('messages.labels.estimated') }}",
       partial: "{{ __('messages.labels.partial') }}",
-      recommended_action: "{{ __('messages.labels.recommended_action') }}"
+      recommended_action: "{{ __('messages.labels.recommended_action') }}",
+      spatial_label: "{{ __('messages.spatial.label') }}",
+      spatial_all_campus: "{{ __('messages.spatial.all_campus') }}",
+      spatial_group_floors: "{{ __('messages.spatial.group_floors') }}",
+      spatial_group_basements: "{{ __('messages.spatial.group_basements') }}",
+      spatial_group_special_spaces: "{{ __('messages.spatial.group_special_spaces') }}",
+      spatial_group_passages: "{{ __('messages.spatial.group_passages') }}",
+      spatial_section_floors: "{{ __('messages.spatial.section_floors') }}",
+      spatial_section_basements: "{{ __('messages.spatial.section_basements') }}",
+      spatial_section_special_spaces: "{{ __('messages.spatial.section_special_spaces') }}",
+      spatial_scope_summary: "{{ __('messages.spatial.scope_summary') }}",
+      spatial_scope_summary_campus: "{{ __('messages.spatial.scope_summary_campus') }}",
+      flow_estimate_note: "{{ __('messages.dashboard_i18n.flow_estimate_note') }}",
+      simple_normalized_energy_intensity: "{{ __('messages.simple.normalized_energy_intensity') }}",
+      simple_base_load_index: "{{ __('messages.simple.base_load_index') }}",
+      simple_crowd_density_level: "{{ __('messages.simple.crowd_density_level') }}",
+      simple_movement_activity_index: "{{ __('messages.simple.movement_activity_index') }}",
+      simple_uv_exposure_risk: "{{ __('messages.simple.uv_exposure_risk') }}",
+      simple_iaq_health_index: "{{ __('messages.simple.iaq_health_index') }}",
+      simple_thermal_comfort_index: "{{ __('messages.simple.thermal_comfort_index') }}",
+      simple_visual_comfort_kpi: "{{ __('messages.simple.visual_comfort_kpi') }}",
+      simple_data_freshness: "{{ __('messages.simple.data_freshness') }}",
+      simple_operational: "{{ __('messages.simple.operational') }}",
+      kpi_empty_iaq: "{{ __('messages.kpi_empty.iaq') }}",
+      kpi_empty_energy: "{{ __('messages.kpi_empty.energy') }}",
+      kpi_empty_occupancy: "{{ __('messages.kpi_empty.occupancy') }}",
+      kpi_empty_environmental: "{{ __('messages.kpi_empty.environmental') }}",
+      kpi_empty_overview: "{{ __('messages.kpi_empty.overview') }}"
     };
   </script>
   <script defer src="{{ asset('assets/js/rbac.js') }}?v={{ $smacaAssetVersion('assets/js/rbac.js') }}"></script>
@@ -322,6 +384,8 @@
   <script defer src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script defer src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-csv-export.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-api.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-api.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-spatial.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-spatial.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-role.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-role.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-kpi-renderer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-kpi-renderer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-data-normalizer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-loader.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-loader.js') }}"></script>

@@ -1,6 +1,10 @@
 @extends('dashboard.layouts.app')
 
 @section('dashboard-content')
+@php
+  $smacaRole = session('role', 'user');
+  $smacaIsAdmin = $smacaRole === 'admin';
+@endphp
 <div class="dashboard-section" id="occupancy" data-section="occupancy">
           <div class="section-hero section-hero--occupancy">
             <div class="section-hero__inner">
@@ -10,23 +14,29 @@
                 </div>
                 <p class="section-hero__subtitle">{{ __('messages.dashboard_i18n.occupancy_hero_subtitle') }}</p>
               </div>
+              @if($smacaIsAdmin)
               <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">{{ __('messages.common.loading') }}...</div><div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.recent_movements') }}</div></div>
+              @endif
             </div>
           </div>
+          @if($smacaIsAdmin)
           <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span></div>
+          @endif
           <section class="card" style="margin: var(--space-6) 0;">
             <div class="card__header">
               <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_occupancy') }}</h3>
             </div>
             <div class="card__body">
-              <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
+              <p class="overview-live-note" style="margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
+              <p class="overview-live-note" style="margin-bottom: var(--space-3); font-style: italic; color: var(--muted);">{{ __('messages.dashboard_i18n.flow_estimate_note') }}</p>
               <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="grid grid--metrics grid--metrics-1">
                 <p class="overview-live-note">{{ __('messages.common.loading') }}...</p>
               </div>
             </div>
           </section>
           
-          <!-- Operational movement summary -->
+          @if($smacaIsAdmin)
+          <!-- Operational movement summary (admin only — raw counters) -->
           <div class="card" style="margin-bottom: var(--space-6);">
             <div class="card__body">
               <div style="display: flex; align-items: center; gap: var(--space-6);">
@@ -43,6 +53,7 @@
               </div>
             </div>
           </div>
+          @endif
           
           <!-- Domain-Driven Visualizations -->
           <div class="grid occupancy-primary-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6);">
@@ -110,21 +121,27 @@
     if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
     if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
 
-    window.SMACAApi.fetchKpiSummary('occupancy')
-      .then(function (payload) {
-        window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', payload, {
-          compact: false,
-          maxItems: 1,
-          allowedKeys: ['crowd_density_level']
+    function loadOccupancyKpis() {
+      window.SMACAApi.fetchKpiSummary('occupancy')
+        .then(function (payload) {
+          window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', payload, {
+            compact: false,
+            maxItems: 1,
+            allowedKeys: ['crowd_density_level']
+          });
+        })
+        .catch(function () {
+          window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', { kpis: [] }, {
+            compact: false,
+            maxItems: 1,
+            allowedKeys: ['crowd_density_level']
+          });
         });
-      })
-      .catch(function () {
-        window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', { kpis: [] }, {
-          compact: false,
-          maxItems: 1,
-          allowedKeys: ['crowd_density_level']
-        });
-      });
+    }
+
+    loadOccupancyKpis();
+    window.addEventListener('smaca:scope-change', loadOccupancyKpis);
+    window.addEventListener('smaca:timeframe-changed', loadOccupancyKpis);
   });
 </script>
 @endsection
