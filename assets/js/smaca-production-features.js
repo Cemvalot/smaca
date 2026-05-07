@@ -2312,13 +2312,21 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
 function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
   const occupancySection = document.querySelector('#occupancy');
   if (!occupancySection) return;
+  const isLoadingPlaceholder = function (value) {
+    const text = String(value || '').toLowerCase();
+    return text.indexOf('loading') !== -1 || text.indexOf('φόρτωση') !== -1;
+  };
   
   const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) ? SMACAState.rawData.occupancy : filteredOccupancy;
   if (!occupancyRows || occupancyRows.length === 0) {
     const currentCardValue = document.getElementById('occupancy-operational-summary-value');
-    if (currentCardValue) currentCardValue.textContent = 'No occupancy data available';
+    if (currentCardValue && !isLoadingPlaceholder(currentCardValue.textContent)) {
+      currentCardValue.textContent = 'No occupancy data available';
+    }
     const occupancyCounter = document.getElementById('occupancy-current-count');
-    if (occupancyCounter) occupancyCounter.textContent = 'No occupancy data available';
+    if (occupancyCounter && !isLoadingPlaceholder(occupancyCounter.textContent)) {
+      occupancyCounter.textContent = 'No occupancy data available';
+    }
     return;
   }
 
@@ -3885,7 +3893,11 @@ function updateHeaderCounters(timeframe, filteredData) {
     const activity = Number(latestIn || 0) + Number(latestOut || 0);
     occupancyCounter.textContent = String(Math.max(0, Math.round(activity)));
   } else if (occupancyCounter) {
-    occupancyCounter.textContent = 'No occupancy data available';
+    const occupancyText = String(occupancyCounter.textContent || '').toLowerCase();
+    const hasLoadingPlaceholder = occupancyText.indexOf('loading') !== -1 || occupancyText.indexOf('φόρτωση') !== -1;
+    if (!hasLoadingPlaceholder) {
+      occupancyCounter.textContent = 'No occupancy data available';
+    }
   }
   const occupancySection = document.getElementById('occupancy');
   if (occupancySection) {

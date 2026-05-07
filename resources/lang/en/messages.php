@@ -265,6 +265,43 @@ return [
         'is_label' => 'is',
         'iaq_metrics_expected_ranges' => 'IAQ metrics are within expected ranges',
     ],
+    'thresholds' => [
+        'insufficient_data_explanation' => 'Not enough data is available to evaluate this metric.',
+        'insufficient_data_action' => 'Connect the required sensor stream to enable this KPI.',
+        'default_explanation' => 'Threshold evaluation is available.',
+        'default_action' => 'Review this indicator with the facility team.',
+        'partial_data_suffix' => 'Confidence is partial due to missing supporting measurements.',
+        'normalized_energy_intensity' => [
+            'good' => ['explanation' => 'Energy intensity is within expected occupancy-adjusted range.', 'action' => 'Maintain current operating schedule.'],
+            'warning' => ['explanation' => 'Energy intensity is elevated for current occupancy.', 'action' => 'Inspect HVAC and lighting schedules for avoidable load.'],
+            'critical' => ['explanation' => 'Energy intensity is significantly above normal.', 'action' => 'Trigger an efficiency review for high-load zones immediately.'],
+        ],
+        'base_load_index' => [
+            'good' => ['explanation' => 'Off-hours base load is under control.', 'action' => 'Keep current automation and shutdown routines.'],
+            'warning' => ['explanation' => 'Off-hours base load is drifting upward.', 'action' => 'Audit non-essential loads left active outside occupancy hours.'],
+            'critical' => ['explanation' => 'Off-hours base load is excessively high.', 'action' => 'Prioritize corrective actions on always-on equipment and schedules.'],
+        ],
+        'thermal_comfort_index' => [
+            'good' => ['explanation' => 'Thermal comfort remains in the target band.', 'action' => 'Maintain current HVAC setpoints.'],
+            'warning' => ['explanation' => 'Thermal comfort is outside optimal target range.', 'action' => 'Adjust HVAC setpoints for occupied zones.'],
+            'critical' => ['explanation' => 'Thermal comfort is far from target conditions.', 'action' => 'Apply immediate HVAC correction and verify sensor calibration.'],
+        ],
+        'visual_comfort_kpi' => [
+            'good' => ['explanation' => 'Lighting conditions are suitable for visual comfort.', 'action' => 'Keep current lighting profile.'],
+            'warning' => ['explanation' => 'Lighting conditions are slightly imbalanced.', 'action' => 'Tune artificial lighting and check daylight shading.'],
+            'critical' => ['explanation' => 'Lighting conditions are unsuitable for comfort.', 'action' => 'Rebalance lighting immediately in affected areas.'],
+        ],
+        'iaq_health_index' => [
+            'good' => ['explanation' => 'Indoor air quality is currently healthy.', 'action' => 'Maintain ventilation and continue monitoring pollutant trends.'],
+            'warning' => ['explanation' => 'Air quality indicators are degrading.', 'action' => 'Increase fresh-air intake and inspect pollutant sources.'],
+            'critical' => ['explanation' => 'Air quality indicators are in a critical range.', 'action' => 'Apply emergency ventilation actions and investigate source zones.'],
+        ],
+        'crowd_density' => [
+            'good' => ['explanation' => 'Occupancy density is low and comfortable.', 'action' => 'Keep current flow and room allocation.'],
+            'warning' => ['explanation' => 'Occupancy density is approaching congestion.', 'action' => 'Rebalance movement and redistribute occupants if possible.'],
+            'critical' => ['explanation' => 'Occupancy density is at a congested level.', 'action' => 'Apply crowd control measures and route occupants to alternative spaces.'],
+        ],
+    ],
 
     'public' => [
         'landing_title' => 'SMACA - Smart Building Intelligence Platform',

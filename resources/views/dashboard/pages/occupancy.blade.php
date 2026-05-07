@@ -13,7 +13,7 @@
               <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">{{ __('messages.common.loading') }}...</div><div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.recent_movements') }}</div></div>
             </div>
           </div>
-          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
+          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span></div>
           <section class="card" style="margin: var(--space-6) 0;">
             <div class="card__header">
               <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_occupancy') }}</h3>

@@ -39,7 +39,7 @@
   function formatStatus(status) {
     const s = String(status || 'unknown').toLowerCase();
     if (s === 'insufficient_data') return t('insufficient_data', 'insufficient_data');
-    return s;
+    return t(s, s);
   }
 
   function render(containerId, payload, options) {
@@ -68,11 +68,15 @@
       container.innerHTML = '<p class="overview-live-note">No KPI data available.</p>';
       return;
     }
+    const role = String((global.SMACA_USER && global.SMACA_USER.role) || '').toLowerCase();
+    const isAdmin = role === 'admin';
 
     container.innerHTML = list.map(function (kpi) {
       const confidence = formatConfidence(kpi.confidence);
       const actionLabel = t('recommended_action', 'Recommended action');
       const compactStyle = compact ? ' style="min-height: 132px;"' : '';
+      const descriptionText = kpi.description || '';
+      const actionText = kpi.recommended_action || '-';
       return `
         <article class="stat-card overview-kpi-card${compact ? ' overview-kpi-card--compact' : ''}"${compactStyle}>
           <div class="stat-card__content">
@@ -80,10 +84,10 @@
             <div class="stat-card__value">${formatValue(kpi)}</div>
             <div class="stat-card__meta">
               <span class="badge ${statusClass(kpi.status)} badge--sm">${formatStatus(kpi.status)}</span>
-              ${!compact && confidence ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
+              ${!compact && isAdmin && confidence ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
             </div>
-            ${compact ? '' : `<p class="overview-live-note" style="margin-top: var(--space-2);">${kpi.description || ''}</p>`}
-            ${compact ? '' : `<p class="overview-live-note" style="margin-top: var(--space-1);"><strong>${actionLabel}:</strong> ${kpi.recommended_action || '-'}</p>`}
+            ${compact ? '' : `<p class="overview-live-note" style="margin-top: var(--space-2);">${descriptionText}</p>`}
+            ${compact ? '' : `<p class="overview-live-note" style="margin-top: var(--space-1);"><strong>${actionLabel}:</strong> ${actionText}</p>`}
           </div>
         </article>
       `;

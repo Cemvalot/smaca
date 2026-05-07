@@ -3,6 +3,7 @@
 use Carbon\Carbon;
 use App\Services\KPI\KPIInputAssembler;
 use App\Services\KPI\KPIService;
+use App\Services\Thresholds\ThresholdService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -306,6 +307,13 @@ Route::get('/api/sensors/{id}/timeseries', function (Request $request, $id) {
 });
 
 Route::get('/api/kpis/summary', function (Request $request) {
-    $service = new KPIService(new KPIInputAssembler());
+    $service = new KPIService(new KPIInputAssembler(), new ThresholdService());
     return response()->json($service->getSummary($request->query('module')));
+});
+
+Route::get('/api/config/thresholds', function () {
+    $service = new ThresholdService();
+    return response()->json([
+        'thresholds' => $service->getPublicThresholds(),
+    ]);
 });

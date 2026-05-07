@@ -2,12 +2,18 @@
 
 namespace App\Services\KPI;
 
+use App\Services\Thresholds\ThresholdService;
+
 class KPIService
 {
     private const DEFAULT_INSUFFICIENT_ACTION = 'Connect the required sensor stream to enable this KPI.';
 
-    public function __construct(private KPIInputAssembler $inputAssembler)
+    public function __construct(
+        private KPIInputAssembler $inputAssembler,
+        private ?ThresholdService $thresholdService = null
+    )
     {
+        $this->thresholdService = $this->thresholdService ?? new ThresholdService();
     }
 
     public function getSummary(?string $module = null): array
@@ -83,7 +89,8 @@ class KPIService
         }
 
         $value = round($energy / max(1.0, $occupancy), 2);
-        $status = $value < 1.0 ? 'normal' : ($value < 2.0 ? 'warning' : 'critical');
+        $evaluation = $this->thresholdService->evaluate('normalized_energy_intensity', $value);
+        $status = $this->normalizeStatus($evaluation['status']);
 
         return [
             'key' => 'normalized_energy_intensity',
@@ -92,8 +99,8 @@ class KPIService
             'unit' => 'kWh/person',
             'status' => $status,
             'confidence' => ($inputs['capacity_confidence'] ?? 'estimated') === 'measured' ? 'high' : 'estimated',
-            'description' => 'Energy consumption normalized by current occupancy.',
-            'recommended_action' => 'Review energy use if value remains high during low occupancy.',
+            'description' => $evaluation['explanation'],
+            'recommended_action' => $evaluation['recommended_action'],
         ];
     }
 
@@ -117,7 +124,8 @@ class KPIService
         if ($occupancy !== null && $energy !== null && $occupancy <= 0) {
             $value = round($energy / max($base, 0.0001), 3);
         }
-        $status = $value < 0.6 ? 'normal' : ($value < 0.85 ? 'warning' : 'critical');
+        $evaluation = $this->thresholdService->evaluate('base_load_index', $value);
+        $status = $this->normalizeStatus($evaluation['status']);
 
         return [
             'key' => 'base_load_index',
@@ -126,8 +134,8 @@ class KPIService
             'unit' => 'ratio',
             'status' => $status,
             'confidence' => 'estimated',
-            'description' => 'Compares off-hours energy to overall baseline energy usage.',
-            'recommended_action' => 'Investigate and reduce energy use during zero-occupancy periods.',
+            'description' => $evaluation['explanation'],
+            'recommended_action' => $evaluation['recommended_action'],
         ];
     }
 
@@ -147,7 +155,8 @@ class KPIService
         $tempPenalty = abs($temperature - 22.0) * 10.0;
         $humidityPenalty = abs($humidity - 50.0) * 1.6;
         $value = max(0, min(100, (int) round(100 - $tempPenalty - $humidityPenalty)));
-        $status = $value >= 80 ? 'normal' : ($value >= 55 ? 'warning' : 'critical');
+        $evaluation = $this->thresholdService->evaluate('thermal_comfort_index', $value);
+        $status = $this->normalizeStatus($evaluation['status']);
 
         return [
             'key' => 'thermal_comfort_index',
@@ -156,8 +165,8 @@ class KPIService
             'unit' => '%',
             'status' => $status,
             'confidence' => 'high',
-            'description' => 'Comfort score based on temperature target 20-24°C and humidity target 40-60%.',
-            'recommended_action' => 'Adjust HVAC setpoints',
+            'description' => $evaluation['explanation'],
+            'recommended_action' => $evaluation['recommended_action'],
         ];
     }
 
@@ -177,7 +186,8 @@ class KPIService
         $target = 400.0;
         $deviation = abs($light - $target);
         $value = max(0, min(100, (int) round(100 - ($deviation / $target) * 100)));
-        $status = $value >= 75 ? 'normal' : ($value >= 50 ? 'warning' : 'critical');
+        $evaluation = $this->thresholdService->evaluate('visual_comfort_kpi', $value);
+        $status = $this->normalizeStatus($evaluation['status']);
         $confidence = $solar === null ? 'partial' : 'high';
 
         return [
@@ -187,8 +197,8 @@ class KPIService
             'unit' => '%',
             'status' => $status,
             'confidence' => $confidence,
-            'description' => 'Visual comfort score from indoor light levels.'.($solar === null ? ' Solar radiation is unavailable.' : ''),
-            'recommended_action' => 'Rebalance artificial lighting if visual comfort remains low.',
+            'description' => $evaluation['explanation'].($solar === null ? ' '.__('messages.thresholds.partial_data_suffix') : ''),
+            'recommended_action' => $evaluation['recommended_action'],
         ];
     }
 
@@ -283,12 +293,9 @@ class KPIService
             $value = 99;
         }
 
-        $status = $value >= 80 ? 'good' : ($value >= 55 ? 'warning' : 'critical');
-        if ($co2 !== null && $co2 > 1500) {
-            $status = 'critical';
-        } elseif ($co2 !== null && $co2 > 1000 && $status !== 'critical') {
-            $status = 'warning';
-        }
+        $evaluation = $this->thresholdService->evaluate('iaq_health_index', $value);
+        $status = $this->normalizeStatus($evaluation['status']);
+        $status = $this->applyCompositeOverrides('iaq_health_index_overrides', $status, $inputs);
         $confidence = count($subScores) < 4 ? 'partial' : 'high';
 
         return [
@@ -298,8 +305,8 @@ class KPIService
             'unit' => '%',
             'status' => $status,
             'confidence' => $confidence,
-            'description' => 'Indoor air quality score combining CO2, TVOC, PM2.5 and PM10 metrics.',
-            'recommended_action' => 'Increase ventilation and inspect pollutant sources when index degrades.',
+            'description' => $evaluation['explanation'],
+            'recommended_action' => $evaluation['recommended_action'],
         ];
     }
 
@@ -317,7 +324,8 @@ class KPIService
         }
 
         $value = round($people / $capacity, 3);
-        $status = $value < 0.35 ? 'low' : ($value < 0.8 ? 'normal' : 'crowded');
+        $evaluation = $this->thresholdService->evaluate('crowd_density', $value);
+        $status = $this->normalizeStatus($evaluation['status'], true);
 
         return [
             'key' => 'crowd_density_level',
@@ -326,8 +334,8 @@ class KPIService
             'unit' => 'ratio',
             'status' => $status,
             'confidence' => $inputs['capacity_confidence'] ?? 'estimated',
-            'description' => 'Estimated occupancy density compared against room capacity.',
-            'recommended_action' => 'Redistribute occupancy if dense periods persist.',
+            'description' => $evaluation['explanation'],
+            'recommended_action' => $evaluation['recommended_action'],
         ];
     }
 
@@ -388,5 +396,62 @@ class KPIService
         }
 
         return $this->clampToPercent((float) $points[$count - 1][1]);
+    }
+
+    private function applyCompositeOverrides(string $configKey, string $currentStatus, array $inputs): string
+    {
+        $rules = (array) config('smaca_thresholds.'.$configKey, []);
+        if (empty($rules)) {
+            return $currentStatus;
+        }
+
+        $resolved = $currentStatus;
+        foreach ($rules as $rule) {
+            if (!is_array($rule)) {
+                continue;
+            }
+            $metric = $rule['metric'] ?? null;
+            $op = $rule['op'] ?? null;
+            $threshold = $rule['threshold'] ?? null;
+            $forceStatus = $rule['force_status'] ?? null;
+            $onlyIfNotCritical = (bool) ($rule['only_if_not_critical'] ?? false);
+            if ($metric === null || $op === null || $threshold === null || $forceStatus === null) {
+                continue;
+            }
+            $value = $inputs[$metric] ?? null;
+            if ($value === null || !is_numeric($value)) {
+                continue;
+            }
+            if ($onlyIfNotCritical && $resolved === 'critical') {
+                continue;
+            }
+            $numeric = (float) $value;
+            $thresholdNumeric = (float) $threshold;
+            $matched = match ($op) {
+                '>' => $numeric > $thresholdNumeric,
+                '>=' => $numeric >= $thresholdNumeric,
+                '<' => $numeric < $thresholdNumeric,
+                '<=' => $numeric <= $thresholdNumeric,
+                '==' => $numeric == $thresholdNumeric,
+                default => false,
+            };
+            if ($matched) {
+                $resolved = (string) $forceStatus;
+            }
+        }
+
+        return $resolved;
+    }
+
+    private function normalizeStatus(string $status, bool $isCrowdDensity = false): string
+    {
+        $normalized = strtolower(trim($status));
+        if ($isCrowdDensity) {
+            if ($normalized === 'good') return 'low';
+            if ($normalized === 'warning') return 'normal';
+            if ($normalized === 'critical') return 'crowded';
+        }
+        if ($normalized === 'good') return 'normal';
+        return in_array($normalized, ['warning', 'critical', 'insufficient_data'], true) ? $normalized : 'normal';
     }
 }
