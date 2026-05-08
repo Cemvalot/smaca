@@ -437,6 +437,8 @@
   <script defer src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-data-normalizer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-loader.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-loader.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-adapter.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-adapter.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-telemetry.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-telemetry.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-telemetry-bootstrap.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-telemetry-bootstrap.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-accurate-charts.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-accurate-charts.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-accurate-dashboard.js') }}"></script>
   <script defer src="{{ asset('assets/js/advanced-visualizations.js') }}?v={{ $smacaAssetVersion('assets/js/advanced-visualizations.js') }}"></script>

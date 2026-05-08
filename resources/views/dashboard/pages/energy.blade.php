@@ -35,6 +35,23 @@
     </div>
   </section>
 
+  <section class="card smaca-telemetry-card">
+    <div class="card__header">
+      <h3 class="card__title">{{ __('messages.nav.energy') }} · {{ __('messages.dashboard.live') }}</h3>
+      <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
+    </div>
+    <div class="card__body">
+      <div class="smaca-tg smaca-tg--6" data-smaca-telemetry="energy">
+        <div data-tile="total"></div>
+        <div data-tile="peak-meter"></div>
+        <div data-tile="avg-meter"></div>
+        <div data-tile="top-area"></div>
+        <div data-tile="efficiency-kpi"></div>
+        <div data-tile="base-load"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- KPI row -->
   <div class="grid grid--metrics grid--metrics-4" id="energy-kpi-grid" style="margin-top: var(--space-6);">
     <article class="stat-card" title="Total energy used in the selected timeframe">

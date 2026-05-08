@@ -65,6 +65,23 @@
     @endif
   </div>
 
+  <section class="card smaca-telemetry-card">
+    <div class="card__header">
+      <h3 class="card__title">{{ __('messages.dashboard_i18n.campus_live_status') }}</h3>
+      <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
+    </div>
+    <div class="card__body">
+      <div class="smaca-tg smaca-tg--6" data-smaca-telemetry="overview">
+        <div data-tile="active-sensors"></div>
+        <div data-tile="alerts"></div>
+        <div data-tile="co2-avg"></div>
+        <div data-tile="movement"></div>
+        <div data-tile="uv-now"></div>
+        <div data-tile="freshness"></div>
+      </div>
+    </div>
+  </section>
+
   <div class="overview-top-grid">
     <section class="card overview-live-card">
       <div class="card__header">

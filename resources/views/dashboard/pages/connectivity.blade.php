@@ -14,7 +14,24 @@
             </div>
           </div>
           <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span></div>
-          
+
+          <section class="card smaca-telemetry-card">
+            <div class="card__header">
+              <h3 class="card__title">{{ __('messages.nav.connectivity') }} · {{ __('messages.dashboard.live') }}</h3>
+              <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
+            </div>
+            <div class="card__body">
+              <div class="smaca-tg smaca-tg--6" data-smaca-telemetry="connectivity">
+                <div data-tile="online"></div>
+                <div data-tile="stale"></div>
+                <div data-tile="battery-avg"></div>
+                <div data-tile="battery-min"></div>
+                <div data-tile="uptime-pct"></div>
+                <div data-tile="last-update"></div>
+              </div>
+            </div>
+          </section>
+
           <!-- Domain-Driven Visualization (Admin: full details; User: summary only) -->
           <div class="card connectivity-admin-detail" data-connectivity-admin-detail>
             <div class="card__header">

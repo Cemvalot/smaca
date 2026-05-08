@@ -31,6 +31,22 @@
               </div>
             </div>
           </section>
+
+          <section class="card smaca-telemetry-card">
+            <div class="card__header">
+              <h3 class="card__title">{{ __('messages.nav.environmental') }} · {{ __('messages.dashboard.live') }}</h3>
+              <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
+            </div>
+            <div class="card__body">
+              <div class="smaca-tg smaca-tg--5" data-smaca-telemetry="environmental">
+                <div data-tile="uv-now"></div>
+                <div data-tile="uv-peak"></div>
+                <div data-tile="exposure-risk"></div>
+                <div data-tile="outdoor-sensors"></div>
+                <div data-tile="advisory"></div>
+              </div>
+            </div>
+          </section>
           <div class="grid grid--metrics grid--metrics-4" id="environmental-kpi-grid">
             <article class="stat-card" title="Current UV index at the latest measurement">
               <div class="stat-card__content">

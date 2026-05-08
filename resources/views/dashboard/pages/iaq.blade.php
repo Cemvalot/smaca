@@ -34,6 +34,23 @@
               </div>
             </div>
           </section>
+
+          <section class="card smaca-telemetry-card">
+            <div class="card__header">
+              <h3 class="card__title">{{ __('messages.nav.iaq') }} · {{ __('messages.dashboard.live') }}</h3>
+              <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
+            </div>
+            <div class="card__body">
+              <div class="smaca-tg smaca-tg--6" data-smaca-telemetry="iaq">
+                <div data-tile="co2"></div>
+                <div data-tile="pm25"></div>
+                <div data-tile="pm10"></div>
+                <div data-tile="tvoc"></div>
+                <div data-tile="humidity"></div>
+                <div data-tile="coverage"></div>
+              </div>
+            </div>
+          </section>
           
           <!-- KPI Cards with Metric Definitions -->
           <div id="iaq-kpi-cards" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">

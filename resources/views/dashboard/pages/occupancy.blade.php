@@ -34,6 +34,23 @@
               </div>
             </div>
           </section>
+
+          <section class="card smaca-telemetry-card">
+            <div class="card__header">
+              <h3 class="card__title">{{ __('messages.nav.occupancy') }} · {{ __('messages.dashboard.live') }}</h3>
+              <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
+            </div>
+            <div class="card__body">
+              <div class="smaca-tg smaca-tg--6" data-smaca-telemetry="occupancy">
+                <div data-tile="latest-activity"></div>
+                <div data-tile="net-balance"></div>
+                <div data-tile="total-in"></div>
+                <div data-tile="total-out"></div>
+                <div data-tile="busiest"></div>
+                <div data-tile="movement-kpi"></div>
+              </div>
+            </div>
+          </section>
           
           @if($smacaIsAdmin)
           <!-- Operational movement summary (admin only — raw counters) -->

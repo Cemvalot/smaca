@@ -3743,3 +3743,459 @@
     font-size: 22px;
   }
 }
+
+/* =====================================================================
+   SMACA Telemetry Mini-Card System
+   =====================================================================
+   Compact, dense, premium-feeling tiles that surface secondary signals
+   on every module page. Pairs with `assets/js/smaca-telemetry.js` and
+   the per-page bootstrap in `smaca-production-features.js` /
+   `smaca-accurate-dashboard.js`. Not a redesign of the KPI cards —
+   these are *additional* lightweight signals (sparklines, deltas,
+   counts) that thicken the dashboard's information density without
+   competing with the headline KPI tiles.
+   ====================================================================*/
+
+/* The host card that wraps a telemetry grid section. Keeps the same
+   .card visual language but with tighter padding and a subtle inner
+   header label. */
+.smaca-telemetry-card {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.smaca-telemetry-card .card__header {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.smaca-telemetry-card .card__header .card__title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.92);
+  margin: 0;
+}
+
+.smaca-telemetry-card .card__header p,
+.smaca-telemetry-card .card__header .card__subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.smaca-telemetry-card .card__body {
+  padding: 14px 16px 16px;
+}
+
+/* Grid surface: auto-fit columns scale from 1 col on phones up to
+   6 on a wide desktop, while keeping each tile at a calm minimum
+   width that fits a value + sparkline + delta. */
+.smaca-tg {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.smaca-tg--3 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.smaca-tg--4 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.smaca-tg--5 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.smaca-tg--6 { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+
+/* Single tile — compact, premium, fixed height for clean alignment. */
+.smaca-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 12px 14px 10px;
+  min-height: 96px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.10);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.55) 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+  overflow: hidden;
+}
+
+.smaca-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.07), transparent 55%);
+  opacity: 0.85;
+}
+
+.smaca-tile:hover {
+  border-color: rgba(96, 165, 250, 0.28);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -10px rgba(96, 165, 250, 0.30), 0 0 0 1px rgba(96, 165, 250, 0.10) inset;
+}
+
+.smaca-tile[data-tone="good"]::before     { background: radial-gradient(circle at top right, rgba(52, 211, 153, 0.10), transparent 55%); }
+.smaca-tile[data-tone="warning"]::before  { background: radial-gradient(circle at top right, rgba(251, 191, 36, 0.10), transparent 55%); }
+.smaca-tile[data-tone="critical"]::before { background: radial-gradient(circle at top right, rgba(248, 113, 113, 0.12), transparent 55%); }
+.smaca-tile[data-tone="info"]::before     { background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.10), transparent 55%); }
+.smaca-tile[data-tone="accent"]::before   { background: radial-gradient(circle at top right, rgba(34, 211, 238, 0.10), transparent 55%); }
+.smaca-tile[data-tone="muted"]::before    { background: radial-gradient(circle at top right, rgba(148, 163, 184, 0.07), transparent 55%); }
+
+.smaca-tile > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Head row — small label + optional icon + delta */
+.smaca-tile__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.smaca-tile__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: rgba(96, 165, 250, 0.10);
+  color: #60a5fa;
+  flex: 0 0 auto;
+}
+.smaca-tile__icon[data-tone="good"]     { background: rgba(52, 211, 153, 0.10); color: #34d399; }
+.smaca-tile__icon[data-tone="warning"]  { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
+.smaca-tile__icon[data-tone="critical"] { background: rgba(248, 113, 113, 0.12); color: #f87171; }
+.smaca-tile__icon[data-tone="accent"]   { background: rgba(34, 211, 238, 0.12); color: #22d3ee; }
+.smaca-tile__icon[data-tone="muted"]    { background: rgba(148, 163, 184, 0.10); color: #94a3b8; }
+
+.smaca-tile__label {
+  flex: 1 1 auto;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.smaca-tile__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(148, 163, 184, 0.12);
+  color: rgba(226, 232, 240, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+.smaca-tile__delta--good     { background: rgba(52, 211, 153, 0.14);  color: #34d399; border-color: rgba(52, 211, 153, 0.30); }
+.smaca-tile__delta--warning  { background: rgba(251, 191, 36, 0.14);  color: #fbbf24; border-color: rgba(251, 191, 36, 0.30); }
+.smaca-tile__delta--critical { background: rgba(248, 113, 113, 0.14); color: #f87171; border-color: rgba(248, 113, 113, 0.30); }
+.smaca-tile__delta--muted    { background: rgba(148, 163, 184, 0.12); color: #94a3b8; border-color: rgba(148, 163, 184, 0.20); }
+.smaca-tile__delta svg { stroke: currentColor; }
+
+/* Value — visually dominant; unit is recessive */
+.smaca-tile__value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 2px;
+  min-height: 28px;
+}
+
+.smaca-tile__value-number {
+  font-size: clamp(22px, 1.6vw, 26px);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.smaca-tile__value-number--muted {
+  color: rgba(148, 163, 184, 0.55);
+  font-weight: 500;
+}
+
+.smaca-tile__unit {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+/* Spark area — sized by the chart helper, this just gives space + a
+   subtle separator. */
+.smaca-tile__spark {
+  height: 38px;
+  margin-top: 2px;
+}
+.smaca-tile__spark .highcharts-container,
+.smaca-tile__spark .highcharts-root {
+  overflow: visible;
+}
+
+/* Meta — secondary line, very recessive */
+.smaca-tile__meta {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.85);
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bullet — used standalone or as part of a tile's spark area */
+.smaca-bullet {
+  display: block;
+  width: 100%;
+}
+
+.smaca-bullet__legend {
+  margin-top: 4px;
+  font-size: 10px;
+  color: rgba(148, 163, 184, 0.80);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Gauge — small radial */
+.smaca-gauge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.smaca-gauge__label {
+  font-size: 10px;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+/* Responsive collapse — phones get 2-col, tablets 3-col, narrow laptops 4-col */
+@media (max-width: 540px) {
+  .smaca-tg,
+  .smaca-tg--3,
+  .smaca-tg--4,
+  .smaca-tg--5,
+  .smaca-tg--6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .smaca-tile {
+    min-height: 84px;
+    padding: 10px 12px;
+  }
+  .smaca-tile__value-number { font-size: 19px; }
+}
+
+@media (min-width: 541px) and (max-width: 900px) {
+  .smaca-tg,
+  .smaca-tg--3,
+  .smaca-tg--4,
+  .smaca-tg--5,
+  .smaca-tg--6 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1399px) {
+  .smaca-tg--6 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .smaca-tile {
+    min-height: 92px;
+    padding: 11px 13px 10px;
+  }
+}
+
+/* =====================================================================
+   Module page density — final pass
+   =====================================================================
+   These rules tighten existing pages without changing the underlying
+   markup. They're additive overrides that only activate on dense
+   screens, leaving small viewports alone.
+   ====================================================================*/
+
+/* All module sections inherit a gentle vertical rhythm */
+@media (min-width: 1100px) {
+  #overview,
+  #iaq,
+  #occupancy,
+  #energy,
+  #environmental,
+  #connectivity {
+    /* No global change beyond what's already set; we just tighten the
+       gap *between* their own children when those use inline margins. */
+  }
+
+  /* Inline `margin-top: var(--space-6)` is widely used on cards/grids
+     in the current Blades. Reduce that vertical step to space-4 so
+     the page reads as a connected dashboard, not a stack of brochures. */
+  #iaq    > .card[style*="space-6"],
+  #iaq    > .grid[style*="space-6"],
+  #occupancy > .card[style*="space-6"],
+  #occupancy > .grid[style*="space-6"],
+  #energy > .card[style*="space-6"],
+  #energy > .grid[style*="space-6"],
+  #environmental > .card[style*="space-6"],
+  #environmental > .grid[style*="space-6"],
+  #connectivity  > .card[style*="space-6"] {
+    margin-top: var(--space-4) !important;
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1599px) {
+  #iaq    > .card[style*="space-6"],
+  #iaq    > .grid[style*="space-6"],
+  #occupancy > .card[style*="space-6"],
+  #occupancy > .grid[style*="space-6"],
+  #energy > .card[style*="space-6"],
+  #energy > .grid[style*="space-6"],
+  #environmental > .card[style*="space-6"],
+  #environmental > .grid[style*="space-6"],
+  #connectivity  > .card[style*="space-6"] {
+    margin-top: var(--space-3) !important;
+  }
+}
+
+/* Chart-host cards on module pages — slightly shorter min-heights so
+   the page can show more content above the fold while staying
+   readable. */
+@media (min-width: 1100px) and (max-width: 1599px) {
+  #iaq    .chart-placeholder,
+  #occupancy .chart-placeholder,
+  #energy .chart-placeholder,
+  #environmental .chart-placeholder {
+    min-height: 280px;
+  }
+}
+
+/* Connectivity admin detail — tighter card body padding on dense screens */
+@media (min-width: 1100px) {
+  #connectivity .connectivity-admin-detail .card__body {
+    padding: var(--space-4) var(--space-5);
+  }
+}
+
+/* Section meta pills — reduce vertical breathing room */
+.section-meta {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+@media (min-width: 1100px) {
+  .section-meta {
+    margin-top: 6px;
+    margin-bottom: 6px;
+  }
+}
+
+/* =====================================================================
+   KPI card — final density pass
+   =====================================================================
+   Reduce vertical breathing room on dense screens, tighten the inline
+   help block, and pull the badge closer to the value so the card reads
+   as a single dense block of operational signal. None of these rules
+   change the underlying markup, the renderer, or the colour palette —
+   they only refine spacing.
+   ====================================================================*/
+
+@media (min-width: 1100px) {
+  .overview-kpi-card {
+    padding: 14px 18px;
+  }
+
+  .overview-kpi-card .stat-card__label {
+    margin: 0 0 6px;
+  }
+
+  .overview-kpi-card .stat-card__value {
+    font-size: clamp(1.95rem, 2.3vw, 2.5rem);
+    line-height: 1.05;
+  }
+
+  .overview-kpi-card .stat-card__meta {
+    margin-top: 8px;
+  }
+
+  .overview-kpi-card .overview-live-note,
+  .overview-kpi-card__desc {
+    margin-top: 8px;
+    line-height: 1.45;
+  }
+
+  .overview-kpi-card .kpi-help {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+
+  .overview-kpi-card__icon {
+    top: 10px;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1399px) {
+  .overview-kpi-card {
+    padding: 12px 14px;
+  }
+
+  .overview-kpi-card .stat-card__value {
+    font-size: clamp(1.7rem, 1.9vw, 2.2rem);
+  }
+}
+
+/* The non-overview KPI grid (energy, env, occupancy module pages) uses
+   plain `.stat-card` without the overview-kpi treatment. Tighten the
+   same way so cards across the dashboard feel coherent. */
+@media (min-width: 1100px) {
+  .grid--metrics-4 > .stat-card {
+    padding: 14px 16px;
+  }
+
+  .grid--metrics-4 > .stat-card .stat-card__label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .grid--metrics-4 > .stat-card .stat-card__value {
+    font-size: clamp(1.7rem, 2vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+
+  .grid--metrics-4 > .stat-card .stat-card__meta {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1399px) {
+  .grid--metrics-4 > .stat-card {
+    padding: 12px 14px;
+  }
+
+  .grid--metrics-4 > .stat-card .stat-card__value {
+    font-size: clamp(1.5rem, 1.7vw, 1.9rem);
+  }
+}
+
