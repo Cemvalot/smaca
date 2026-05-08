@@ -55,6 +55,7 @@ const SMACACSVExport = {
   PRIORITY_FIELDS: [
     'timestamp',
     'site_name',
+    'sensor_location_label',
     'sensor_location',
     'temperature_c',
     'humidity_rh',
@@ -74,7 +75,8 @@ const SMACACSVExport = {
   LABELS: {
     timestamp: 'Measured At',
     site_name: 'Site Name',
-    sensor_location: 'Sensor Location',
+    sensor_location_label: 'Location',
+    sensor_location: 'Sensor Location Code',
     temperature_c: 'Temperature (°C)',
     humidity_rh: 'Humidity (%)',
     co2_ppm: 'CO₂ (ppm)',
@@ -93,6 +95,7 @@ const SMACACSVExport = {
   CONTEXT_FIELDS: new Set([
     'timestamp',
     'site_name',
+    'sensor_location_label',
     'sensor_location'
   ]),
 
@@ -162,6 +165,14 @@ const SMACACSVExport = {
 
     const sensorLocation = item.sensor_location || item.sensorLocation || item.location || item.room_name || item.roomName || item.zone_name || item.zoneName || null;
     if (this.hasValue(sensorLocation)) flat.sensor_location = sensorLocation;
+
+    // Prefer the human-readable spatial label when available; fall back to
+    // resolving the raw code through SMACASpatial.labelFor on the client.
+    const sensorLocationLabel = item.sensor_location_label
+      || (sensorLocation && window.SMACASpatial && typeof window.SMACASpatial.labelFor === 'function'
+        ? window.SMACASpatial.labelFor(sensorLocation)
+        : null);
+    if (this.hasValue(sensorLocationLabel)) flat.sensor_location_label = sensorLocationLabel;
 
     Object.keys(item).forEach((key) => {
       const value = item[key];

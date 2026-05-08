@@ -176,6 +176,19 @@
           $smacaSpatialAll = ['groups' => []];
       }
       $smacaLocaleCode = strtolower(substr((string) (function_exists('app') ? app()->getLocale() : 'en'), 0, 2));
+
+      // D5.1 clarity layer — bootstrap KPI + chart metadata so the renderer
+      // and chart explainer can resolve "How to read this" without an extra
+      // round-trip on first paint. Both are public-safe configs, but we wrap
+      // resolution in try/catch so a misconfiguration never blocks the page.
+      try {
+          $smacaKpiMetadataService = new \App\Services\KPI\KPIMetadataService($smacaLocaleCode);
+          $smacaKpiMetadata = $smacaKpiMetadataService->getAllKpis();
+          $smacaChartMetadata = $smacaKpiMetadataService->getAllCharts();
+      } catch (\Throwable $e) {
+          $smacaKpiMetadata = ['version' => '0.0.0', 'kpis' => new \stdClass()];
+          $smacaChartMetadata = ['version' => '0.0.0', 'charts' => new \stdClass()];
+      }
   @endphp
   <script>
     window.SMACA_BASE_URL = "{{ rtrim(url('/'), '/') }}";
@@ -184,6 +197,8 @@
     window.SMACA_SPATIAL = @json($smacaSpatial);
     window.SMACA_SPATIAL_ALL = @json($smacaSpatialAll ?? ['groups' => []]);
     window.SMACA_LOCALE = @json($smacaLocaleCode ?? 'en');
+    window.SMACA_KPI_METADATA = @json($smacaKpiMetadata ?? ['version' => '0.0.0', 'kpis' => (object) []]);
+    window.SMACA_CHART_METADATA = @json($smacaChartMetadata ?? ['version' => '0.0.0', 'charts' => (object) []]);
     (function () {
       try {
         var stored = localStorage.getItem('smaca_location_v1') || '';
@@ -372,7 +387,36 @@
       kpi_empty_energy: "{{ __('messages.kpi_empty.energy') }}",
       kpi_empty_occupancy: "{{ __('messages.kpi_empty.occupancy') }}",
       kpi_empty_environmental: "{{ __('messages.kpi_empty.environmental') }}",
-      kpi_empty_overview: "{{ __('messages.kpi_empty.overview') }}"
+      kpi_empty_overview: "{{ __('messages.kpi_empty.overview') }}",
+      // D5.1 clarity layer — KPI card "How to read this" labels
+      kpi_help_how_to_read: "{{ __('messages.kpi_help.how_to_read') }}",
+      kpi_help_hint: "{{ __('messages.kpi_help.hint') }}",
+      kpi_help_unit: "{{ __('messages.kpi_help.unit') }}",
+      kpi_help_current_status: "{{ __('messages.kpi_help.current_status') }}",
+      kpi_help_technical: "{{ __('messages.kpi_help.technical') }}",
+      kpi_help_formula: "{{ __('messages.kpi_help.formula') }}",
+      kpi_help_sensors: "{{ __('messages.kpi_help.sensors') }}",
+      kpi_help_confidence: "{{ __('messages.kpi_help.confidence') }}",
+      kpi_help_limitations: "{{ __('messages.kpi_help.limitations') }}",
+      // Chart explanation panel labels
+      chart_help_how_to_read: "{{ __('messages.chart_help.how_to_read') }}",
+      chart_help_hint: "{{ __('messages.chart_help.hint') }}",
+      chart_help_what: "{{ __('messages.chart_help.what') }}",
+      chart_help_data_source: "{{ __('messages.chart_help.data_source') }}",
+      chart_help_read: "{{ __('messages.chart_help.read') }}",
+      chart_help_timeframe: "{{ __('messages.chart_help.timeframe') }}",
+      chart_help_actions: "{{ __('messages.chart_help.actions') }}",
+      chart_help_limitations: "{{ __('messages.chart_help.limitations') }}",
+      // Source-type pills
+      source_type_measured: "{{ __('messages.source_type.measured') }}",
+      source_type_estimated: "{{ __('messages.source_type.estimated') }}",
+      source_type_proxy: "{{ __('messages.source_type.proxy') }}",
+      // Timeframe explanation tooltip (topbar)
+      timeframe_help_title: "{{ __('messages.timeframe_help.title') }}",
+      timeframe_help_24h: "{{ __('messages.timeframe_help.h24') }}",
+      timeframe_help_7d: "{{ __('messages.timeframe_help.d7') }}",
+      timeframe_help_30d: "{{ __('messages.timeframe_help.d30') }}",
+      timeframe_help_export_only: "{{ __('messages.timeframe_help.export_only') }}"
     };
   </script>
   <script defer src="{{ asset('assets/js/rbac.js') }}?v={{ $smacaAssetVersion('assets/js/rbac.js') }}"></script>
@@ -387,6 +431,7 @@
   <script defer src="{{ asset('assets/js/smaca-spatial.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-spatial.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-role.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-role.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-kpi-renderer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-kpi-renderer.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-chart-explainer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-chart-explainer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-data-normalizer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-loader.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-loader.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-adapter.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-adapter.js') }}"></script>

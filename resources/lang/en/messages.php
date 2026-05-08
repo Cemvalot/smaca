@@ -462,4 +462,41 @@ return [
         'occupancy' => 'No movement counters are available for this selected zone.',
         'environmental' => 'No UV/environmental sensor is available for this selected location.',
     ],
+
+    'kpi_help' => [
+        'how_to_read' => 'How to read this',
+        'hint' => 'Click to learn more',
+        'unit' => 'Unit',
+        'current_status' => 'Current status',
+        'technical' => 'Technical definition',
+        'formula' => 'Calculation',
+        'sensors' => 'Sensors used',
+        'confidence' => 'Confidence',
+        'limitations' => 'Limitations',
+    ],
+
+    'chart_help' => [
+        'how_to_read' => 'How to read this chart',
+        'hint' => 'Click to learn more',
+        'what' => 'What this shows',
+        'data_source' => 'Data source',
+        'read' => 'How to read peaks and trends',
+        'timeframe' => 'Timeframe',
+        'actions' => 'Actions to consider',
+        'limitations' => 'Limitations',
+    ],
+
+    'source_type' => [
+        'measured' => 'measured',
+        'estimated' => 'estimated',
+        'proxy' => 'proxy',
+    ],
+
+    'timeframe_help' => [
+        'title' => 'About timeframes',
+        'h24' => '24h means the last 24 hours of measurements.',
+        'd7' => '7d means the last 7 days of measurements.',
+        'd30' => '30d means the last 30 days of measurements.',
+        'export_only' => 'A 6-month range is only available in CSV/Excel exports, not in dashboard charts.',
+    ],
 ];

@@ -2,6 +2,7 @@
 
 use Carbon\Carbon;
 use App\Services\KPI\KPIInputAssembler;
+use App\Services\KPI\KPIMetadataService;
 use App\Services\KPI\KPIService;
 use App\Services\Spatial\SpatialService;
 use App\Services\Thresholds\ThresholdService;
@@ -165,14 +166,24 @@ Route::get('/api/sensors', function () {
         ->orderBy('s.id')
         ->get();
 
+    // SpatialService is locale-aware; instantiating once here keeps the
+    // per-row map() cheap and avoids re-resolving the active locale.
+    $spatial = new SpatialService();
+
     return response()->json([
-        'rows' => $rows->map(function ($row) {
+        'rows' => $rows->map(function ($row) use ($spatial) {
             return [
                 'id' => $row->id,
                 'sensor_uid' => $row->sensor_uid,
                 'name' => $row->name,
                 'sensor_name' => $row->latest_sensor_name ?: $row->name,
                 'sensor_location' => $row->latest_sensor_location,
+                // Human-readable label for the location code (e.g. "F0" →
+                // "Ground Floor"). Frontend / exports prefer this over the
+                // raw code; the raw code stays as technical metadata.
+                'sensor_location_label' => $row->latest_sensor_location
+                    ? $spatial->labelFor($row->latest_sensor_location)
+                    : null,
                 'device_type' => $row->device_type,
                 'is_active' => $row->is_active,
                 'last_seen_at' => smacaApiIso($row->last_seen_at),
@@ -225,6 +236,8 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
         ], 404);
     }
 
+    $spatial = new SpatialService();
+
     return response()->json([
         'row' => [
             'id' => $row->id,
@@ -232,6 +245,9 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
             'name' => $row->name,
             'sensor_name' => $row->latest_sensor_name ?: $row->name,
             'sensor_location' => $row->latest_sensor_location,
+            'sensor_location_label' => $row->latest_sensor_location
+                ? $spatial->labelFor($row->latest_sensor_location)
+                : null,
             'device_type' => $row->device_type,
             'is_active' => $row->is_active,
             'last_seen_at' => smacaApiIso($row->last_seen_at),
@@ -350,6 +366,56 @@ Route::get('/api/config/thresholds', function () {
     return response()->json([
         'thresholds' => $service->getPublicThresholds(),
     ]);
+});
+
+// D5.1 clarity layer — public-safe KPI metadata dictionary. Returns ALL KPIs
+// (locale-resolved). The frontend uses this to render "How to read this"
+// expandable details on every KPI card.
+Route::get('/api/config/kpis', function (Request $request) {
+    try {
+        $locale = $request->query('locale');
+        $service = new KPIMetadataService(is_string($locale) ? $locale : null);
+        return response()->json($service->getAllKpis());
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/config/kpis failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {}
+        return response()->json([
+            'version' => '0.0.0',
+            'locale' => 'en',
+            'source_types' => new \stdClass(),
+            'role_detail_level' => new \stdClass(),
+            'kpis' => new \stdClass(),
+            'error' => 'metadata_unavailable',
+        ], 200);
+    }
+});
+
+// D5.1 clarity layer — public-safe chart explanation dictionary. Used by the
+// `smaca-chart-explainer.js` module to inject expandable explanations under
+// every chart panel.
+Route::get('/api/config/charts', function (Request $request) {
+    try {
+        $locale = $request->query('locale');
+        $service = new KPIMetadataService(is_string($locale) ? $locale : null);
+        return response()->json($service->getAllCharts());
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/config/charts failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {}
+        return response()->json([
+            'version' => '0.0.0',
+            'locale' => 'en',
+            'charts' => new \stdClass(),
+            'error' => 'metadata_unavailable',
+        ], 200);
+    }
 });
 
 Route::get('/api/spatial/locations', function (Request $request) {

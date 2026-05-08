@@ -10,15 +10,32 @@ class KPIService
     private const DEFAULT_INSUFFICIENT_ACTION = 'Connect the required sensor stream to enable this KPI.';
 
     private SpatialService $spatialService;
+    private ?KPIMetadataService $metadataService;
 
     public function __construct(
         private KPIInputAssembler $inputAssembler,
         private ?ThresholdService $thresholdService = null,
-        ?SpatialService $spatialService = null
+        ?SpatialService $spatialService = null,
+        ?KPIMetadataService $metadataService = null
     )
     {
         $this->thresholdService = $this->thresholdService ?? new ThresholdService();
         $this->spatialService = $spatialService ?? new SpatialService();
+        // Lazily lazy-init: only create when actually used, so unit tests that
+        // bypass the framework still work.
+        $this->metadataService = $metadataService;
+    }
+
+    private function metadata(): KPIMetadataService
+    {
+        if ($this->metadataService === null) {
+            try {
+                $this->metadataService = new KPIMetadataService();
+            } catch (\Throwable $e) {
+                $this->metadataService = new KPIMetadataService('en');
+            }
+        }
+        return $this->metadataService;
     }
 
     /**
@@ -76,13 +93,74 @@ class KPIService
 
         $kpisByModule = $this->buildKpisByModule($inputs, $isPassageScope);
 
+        $kpis = $kpisByModule[$moduleKey] ?? $kpisByModule['overview'];
+
+        // D5.1 clarity layer: enrich each KPI item with locale-resolved
+        // metadata (plain_definition, unit_explanation, calculation_summary,
+        // limitations, source_type, d51_category, sensors_used and
+        // status-meaning for the current status). This is purely additive —
+        // existing keys (key, value, unit, status, description, recommended
+        // action, confidence) are preserved.
+        $kpis = $this->enrichKpisWithMetadata($kpis);
+
         return [
             'module' => $moduleKey,
             'location' => $normalizedLocation,
             'location_label' => $locationMeta['label'] ?? null,
             'timeframe' => $resolvedTimeframe,
-            'kpis' => $kpisByModule[$moduleKey] ?? $kpisByModule['overview'],
+            'kpis' => $kpis,
         ];
+    }
+
+    /**
+     * Attach locale-resolved metadata fields to every KPI item without
+     * touching pre-existing keys. If metadata is unavailable for a KPI key
+     * (e.g. an experimental KPI), the item is returned unchanged.
+     */
+    private function enrichKpisWithMetadata(array $kpis): array
+    {
+        try {
+            $service = $this->metadata();
+        } catch (\Throwable $e) {
+            return $kpis;
+        }
+
+        return array_map(function (array $kpi) use ($service): array {
+            $key = (string) ($kpi['key'] ?? '');
+            if ($key === '') return $kpi;
+
+            $meta = $service->forKpi($key);
+            if (!is_array($meta)) return $kpi;
+
+            $statusKey = strtolower((string) ($kpi['status'] ?? ''));
+            // Map renderer-side aliases back to canonical status meanings.
+            $aliasMap = [
+                'normal' => 'good',
+                'low' => 'good',
+                'medium' => 'warning',
+                'elevated' => 'warning',
+                'high' => 'critical',
+                'crowded' => 'critical',
+            ];
+            $canonical = $aliasMap[$statusKey] ?? $statusKey;
+            $statusMeaning = $meta['status_meanings'][$canonical] ?? null;
+
+            // Additive merge — never overwrite caller-provided fields.
+            return array_merge($kpi, [
+                'd51_category' => $meta['d51_category'] ?? null,
+                'd51_aligned' => $meta['d51_aligned'] ?? false,
+                'source_type' => $meta['source_type'] ?? 'measured',
+                'plain_definition' => $meta['plain_definition'] ?? null,
+                'technical_definition' => $meta['technical_definition'] ?? null,
+                'unit_label' => $meta['unit_label'] ?? ($kpi['unit'] ?? null),
+                'unit_explanation' => $meta['unit_explanation'] ?? null,
+                'calculation_summary' => $meta['calculation_summary'] ?? null,
+                'sensors_used' => $meta['sensors_used'] ?? [],
+                'limitations' => $meta['limitations'] ?? null,
+                'limitations_simple' => $meta['limitations_simple'] ?? null,
+                'status_meaning' => $statusMeaning,
+            ]);
+        }, $kpis);
     }
 
     private function buildKpisByModule(array $inputs, bool $isPassageScope = false): array

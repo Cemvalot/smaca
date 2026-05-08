@@ -152,9 +152,12 @@
       group.items.forEach(function (item) {
         if (!item || !item.code) return;
         var sel = (currentValue && item.code === currentValue) ? ' selected' : '';
+        // Show the raw code in parentheses only for admin/researcher (technical
+        // metadata). Normal users/students see only the human-readable label.
+        var includeRawCode = isAdminLike() && item.code !== item.label;
         html += '<option value="' + escapeAttr(item.code) + '"' + sel + '>'
           + escapeText(item.label || item.code)
-          + (item.code !== item.label ? ' (' + escapeText(item.code) + ')' : '')
+          + (includeRawCode ? ' (' + escapeText(item.code) + ')' : '')
           + '</option>';
       });
       html += '</optgroup>';

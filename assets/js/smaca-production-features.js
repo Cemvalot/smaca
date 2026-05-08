@@ -982,9 +982,16 @@ function renderManagementSensorsFromLiveData() {
     const locationLabel = (window.SMACASpatial && typeof window.SMACASpatial.labelFor === 'function')
       ? window.SMACASpatial.labelFor(rawLocationCode)
       : rawLocationCode;
+    // Secondary raw code (e.g. "F1") is technical metadata — only show it for
+    // admin/researcher views. Normal users/students see only the human label.
+    const showRawCode = !!(window.SMACARole && typeof window.SMACARole.shouldShowTechnicalLabels === 'function'
+      ? window.SMACARole.shouldShowTechnicalLabels()
+      : false);
     const sensorLocationCell = rawLocationCode
       ? `<span>${escapeSmacaHtml(locationLabel || rawLocationCode)}</span>`
-        + ` <span style="font-size: var(--font-size-xs); color: var(--muted); font-family: monospace; margin-left: var(--space-1);">${escapeSmacaHtml(rawLocationCode)}</span>`
+        + (showRawCode && rawLocationCode !== (locationLabel || '')
+          ? ` <span style="font-size: var(--font-size-xs); color: var(--muted); font-family: monospace; margin-left: var(--space-1);">${escapeSmacaHtml(rawLocationCode)}</span>`
+          : '')
       : escapeSmacaHtml('N/A');
     const batteryTextEscaped = escapeSmacaHtml(batteryText);
     const lastSeenEscaped = escapeSmacaHtml(lastSeenText);
@@ -3017,16 +3024,22 @@ function getOccupancyLocationLabel(item, sensorMetaById) {
     || item?.payload?.object?.location
     || item?.payload?.sensor_location
     || item?.payload?.location;
-  const label = payloadLocation
+  const rawCode = payloadLocation
     || item?.sensorLocation
     || item?.sensor_location
     || sensorMeta?.sensor_location
     || sensorMeta?.location
     || item?.location
-    || item?.siteName
-    || sensorMeta?.site?.name
-    || sensorMeta?.name;
-  return label ? String(label) : 'Unknown location';
+    || null;
+  // Resolve to a human-readable label whenever the spatial layer recognises
+  // the code (e.g. F0 → "Ground Floor", AUD-1 → "Auditorium Entrance 1").
+  if (rawCode && window.SMACASpatial && typeof window.SMACASpatial.labelFor === 'function') {
+    var resolved = window.SMACASpatial.labelFor(rawCode);
+    if (resolved && resolved !== rawCode) return String(resolved);
+  }
+  return rawCode
+    ? String(rawCode)
+    : (item?.siteName || sensorMeta?.site?.name || sensorMeta?.name || 'Unknown location');
 }
 
 function groupOccupancyByLocation(items) {
@@ -3495,13 +3508,19 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
 
   const getEnergyLocationLabel = function (sensorKey, locationHint) {
     const sensorMeta = sensorMetaById[String(sensorKey)];
-    const label = locationHint
+    const rawCode = locationHint
       || sensorMeta?.sensor_location
       || sensorMeta?.location
-      || sensorMeta?.site?.name
-      || sensorMeta?.siteName
-      || sensorMeta?.name;
-    return label ? String(label) : 'Unknown location';
+      || null;
+    // Prefer the human-readable spatial label (e.g. "1st Floor" rather than
+    // "F1") for any KPI card, chart axis, or "Top Contributor" caption.
+    if (rawCode && window.SMACASpatial && typeof window.SMACASpatial.labelFor === 'function') {
+      const resolved = window.SMACASpatial.labelFor(rawCode);
+      if (resolved && resolved !== rawCode) return String(resolved);
+    }
+    return rawCode
+      ? String(rawCode)
+      : (sensorMeta?.site?.name || sensorMeta?.siteName || sensorMeta?.name || 'Unknown location');
   };
 
   // Parse raw energy rows into per-sensor point list (real hydrated data only).

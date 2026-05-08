@@ -375,6 +375,9 @@
         + escapeText(tr('spatial_all_campus', 'All campus')) + '</button>';
       html += '</div>';
 
+      var role = (window.SMACA_USER && String(window.SMACA_USER.role || '').toLowerCase()) || 'user';
+      var isAdminLikeRole = (role === 'admin' || role === 'researcher');
+
       sections.forEach(function (section) {
         var items = (data[section.key] && data[section.key].items) || [];
         if (!items.length) return;
@@ -383,9 +386,14 @@
         items.forEach(function (item) {
           if (!item || !item.code) return;
           var pressed = (current === item.code) ? 'true' : 'false';
+          // Tooltip exposes the raw code only to admin/researcher — normal
+          // users see the human label only, no technical metadata on hover.
+          var titleAttr = isAdminLikeRole
+            ? ' title="' + escapeAttr(item.code) + '"'
+            : '';
           html += '<button type="button" class="smaca-spatial-scope-pill" '
-            + 'data-spatial-pick="' + escapeAttr(item.code) + '" aria-pressed="' + pressed + '" '
-            + 'title="' + escapeAttr(item.code) + '">'
+            + 'data-spatial-pick="' + escapeAttr(item.code) + '" aria-pressed="' + pressed + '"'
+            + titleAttr + '>'
             + escapeText(item.label || item.code) + '</button>';
         });
         html += '</div>';
