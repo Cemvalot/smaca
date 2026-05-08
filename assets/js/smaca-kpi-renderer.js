@@ -50,12 +50,25 @@
     return 'badge--danger';
   }
 
-  function formatValue(kpi) {
-    if (!kpi) return '--';
-    if (kpi.value === null || kpi.value === undefined) return '--';
+  function statusDotClass(status) {
+    const s = String(status || '').toLowerCase();
+    if (s === 'insufficient_data') return 'muted';
+    if (s === 'good' || s === 'normal' || s === 'low') return 'good';
+    if (s === 'warning' || s === 'medium') return 'warning';
+    return 'critical';
+  }
+
+  // Returns { value, unit } as separate display strings so the renderer can
+  // give each its own typographic weight (value = headline, unit = secondary).
+  function splitValueUnit(kpi) {
+    if (!kpi || kpi.value === null || kpi.value === undefined) {
+      return { value: '--', unit: '' };
+    }
+    if (kpi.unit === 'ratio') {
+      return { value: Number(kpi.value || 0).toFixed(2), unit: '' };
+    }
     var unitDisplay = kpi.unit_label || kpi.unit || '';
-    if (kpi.unit === 'ratio') return Number(kpi.value || 0).toFixed(2);
-    return `${kpi.value}${unitDisplay ? ` ${unitDisplay}` : ''}`;
+    return { value: String(kpi.value), unit: unitDisplay };
   }
 
   function formatConfidence(confidence) {
@@ -81,6 +94,26 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  // Tiny category icon, rendered top-right of each KPI card. Picked from a
+  // small fixed library — no new assets, no new translations, just inline
+  // 16px SVGs that match the existing nav iconography. Falls back to a dot.
+  var CATEGORY_ICONS = {
+    iaq: '<path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
+    occupancy: '<path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />',
+    energy: '<path d="M13 10V3L4 14h7v7l9-11h-7z" />',
+    comfort: '<path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-4-7 4V5a2 2 0 012-2h10a2 2 0 012 2v16z" />',
+    environmental: '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />',
+  };
+
+  function categoryIconSvg(category) {
+    var key = String(category || '').toLowerCase();
+    var path = CATEGORY_ICONS[key];
+    if (!path) {
+      return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" /></svg>';
+    }
+    return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg>';
   }
 
   function pillStyle() {
@@ -210,29 +243,72 @@
 
     const showConfidence = shouldShowConfidenceFlag();
 
-    container.innerHTML = list.map(function (kpi) {
+    var cards = list.map(function (kpi) {
       const confidence = formatConfidence(kpi.confidence);
-      const actionLabel = t('recommended_action', 'Recommended action');
-      const compactStyle = compact ? ' style="min-height: 132px;"' : '';
+      const compactStyle = compact ? ' style="min-height: 124px;"' : '';
       const descriptionText = kpi.description || '';
-      const actionText = kpi.recommended_action || '-';
       const helpBlock = compact ? '' : buildHelpBlock(kpi);
+      const vu = splitValueUnit(kpi);
+      const valueHtml = vu.unit
+        ? `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span><span class="stat-card__value-unit">${escapeHtml(vu.unit)}</span>`
+        : `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span>`;
+      const iconKey = String(kpi.d51_category || '').toLowerCase();
+      const iconHtml = `<span class="overview-kpi-card__icon" data-category="${escapeHtml(iconKey)}" aria-hidden="true">${categoryIconSvg(iconKey)}</span>`;
+      const dotClass = 'overview-kpi-card__dot overview-kpi-card__dot--' + statusDotClass(kpi.status);
       return `
         <article class="stat-card overview-kpi-card${compact ? ' overview-kpi-card--compact' : ''}"${compactStyle}>
+          ${iconHtml}
           <div class="stat-card__content">
             <div class="stat-card__label">${resolveLabel(kpi)}</div>
-            <div class="stat-card__value">${formatValue(kpi)}</div>
+            <div class="stat-card__value">${valueHtml}</div>
             <div class="stat-card__meta">
-              <span class="badge ${statusClass(kpi.status)} badge--sm">${formatStatus(kpi.status)}</span>
+              <span class="badge ${statusClass(kpi.status)} badge--sm overview-kpi-card__badge"><span class="${dotClass}"></span>${formatStatus(kpi.status)}</span>
               ${!compact && showConfidence && confidence ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
             </div>
-            ${compact ? '' : `<p class="overview-live-note" style="margin-top: var(--space-2);">${descriptionText}</p>`}
-            ${compact ? '' : `<p class="overview-live-note" style="margin-top: var(--space-1);"><strong>${actionLabel}:</strong> ${actionText}</p>`}
+            ${compact ? '' : `<p class="overview-live-note overview-kpi-card__desc">${descriptionText}</p>`}
             ${helpBlock}
           </div>
         </article>
       `;
-    }).join('');
+    });
+
+    // Optional: when the module response carries a single KPI, append a
+    // derived "status companion" card so the KPI grid is never lonely. The
+    // companion uses the same KPI item — no new data, no new API call.
+    if (renderOptions.withStatusCompanion && list.length === 1) {
+      cards.push(buildStatusCompanionCard(list[0]));
+    }
+
+    container.innerHTML = cards.join('');
+  }
+
+  // Produce a sibling card that surfaces status + plain definition + action
+  // prominently. Uses the same payload as the primary KPI card, so it never
+  // introduces new data or new API calls.
+  function buildStatusCompanionCard(kpi) {
+    if (!kpi) return '';
+    const status = String(kpi.status || 'unknown').toLowerCase();
+    const isInsufficient = status === 'insufficient_data';
+    const meaning = kpi.status_meaning || kpi.description || '';
+    const actionLabel = t('recommended_action', 'Recommended action');
+    const actionText = kpi.recommended_action || '-';
+    const companionLabel = t('kpi_companion_status', 'Status');
+    const valueText = isInsufficient
+      ? t('insufficient_data', 'insufficient data')
+      : t(status, status);
+
+    return `
+      <article class="stat-card overview-kpi-card overview-kpi-card--companion">
+        <div class="stat-card__content">
+          <div class="stat-card__label">${escapeHtml(companionLabel)}</div>
+          <div class="stat-card__value">
+            <span class="badge ${statusClass(status)} badge--lg">${escapeHtml(valueText)}</span>
+          </div>
+          ${meaning ? `<p class="overview-live-note" style="margin-top: var(--space-2);">${escapeHtml(meaning)}</p>` : ''}
+          <p class="overview-live-note" style="margin-top: var(--space-1);"><strong>${escapeHtml(actionLabel)}:</strong> ${escapeHtml(actionText)}</p>
+        </div>
+      </article>
+    `;
   }
 
   global.SMACAKPIRenderer = {

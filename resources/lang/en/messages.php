@@ -473,6 +473,7 @@ return [
         'sensors' => 'Sensors used',
         'confidence' => 'Confidence',
         'limitations' => 'Limitations',
+        'companion_status' => 'Status',
     ],
 
     'chart_help' => [

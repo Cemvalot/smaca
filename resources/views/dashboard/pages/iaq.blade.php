@@ -29,7 +29,7 @@
             </div>
             <div class="card__body">
               <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_iaq') }}</p>
-              <div id="iaq-kpi-summary-cards" class="grid grid--metrics grid--metrics-1">
+              <div id="iaq-kpi-summary-cards" class="grid grid--metrics grid--metrics-2">
                 <article class="stat-card overview-kpi-card"><div class="stat-card__content"><div class="stat-card__label">KPI</div><div class="stat-card__value">--</div></div></article>
               </div>
             </div>
@@ -101,10 +101,10 @@
     function loadIaqKpis() {
       window.SMACAApi.fetchKpiSummary('iaq')
         .then(function (payload) {
-          window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', payload, { compact: false });
+          window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', payload, { compact: false, withStatusCompanion: true });
         })
         .catch(function () {
-          window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', { kpis: [] }, { compact: false });
+          window.SMACAKPIRenderer.render('iaq-kpi-summary-cards', { kpis: [] }, { compact: false, withStatusCompanion: true });
         });
     }
 

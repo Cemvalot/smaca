@@ -474,6 +474,7 @@ return [
         'sensors' => 'Αισθητήρες που χρησιμοποιούνται',
         'confidence' => 'Εμπιστοσύνη',
         'limitations' => 'Περιορισμοί',
+        'companion_status' => 'Κατάσταση',
     ],
 
     'chart_help' => [

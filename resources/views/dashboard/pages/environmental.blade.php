@@ -157,10 +157,10 @@
     function loadEnvironmentalKpis() {
       window.SMACAApi.fetchKpiSummary('environmental')
         .then(function (payload) {
-          window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', payload, { compact: false });
+          window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', payload, { compact: false, withStatusCompanion: true });
         })
         .catch(function () {
-          window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', { kpis: [] }, { compact: false });
+          window.SMACAKPIRenderer.render('environmental-kpi-summary-cards', { kpis: [] }, { compact: false, withStatusCompanion: true });
         });
     }
 

@@ -398,6 +398,7 @@
       kpi_help_sensors: "{{ __('messages.kpi_help.sensors') }}",
       kpi_help_confidence: "{{ __('messages.kpi_help.confidence') }}",
       kpi_help_limitations: "{{ __('messages.kpi_help.limitations') }}",
+      kpi_companion_status: "{{ __('messages.kpi_help.companion_status') }}",
       // Chart explanation panel labels
       chart_help_how_to_read: "{{ __('messages.chart_help.how_to_read') }}",
       chart_help_hint: "{{ __('messages.chart_help.hint') }}",
@@ -432,6 +433,7 @@
   <script defer src="{{ asset('assets/js/smaca-role.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-role.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-kpi-renderer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-kpi-renderer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-chart-explainer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-chart-explainer.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-card-help.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-card-help.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-data-normalizer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-loader.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-loader.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-adapter.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-adapter.js') }}"></script>

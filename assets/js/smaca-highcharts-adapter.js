@@ -27,13 +27,84 @@ function smacaUiT(key, fallback) {
     return fallback;
   }
 
+  // Global theme — applied lazily when Highcharts loads. These defaults are
+  // visual-only and inherited by every chart unless explicitly overridden
+  // by per-chart options. They give the dashboard a unified, calmer look:
+  // softer gridlines, brighter active series on hover, dimmed siblings,
+  // rounded shadow-less tooltips matching the rest of the UI.
+  var GLOBAL_THEME_APPLIED = false;
   function ensureAccessibilityDisabled() {
     if (!hasHighcharts() || typeof window.Highcharts.setOptions !== 'function') return;
-    window.Highcharts.setOptions({
-      accessibility: {
-        enabled: false
-      }
-    });
+    if (GLOBAL_THEME_APPLIED) return;
+    GLOBAL_THEME_APPLIED = true;
+    try {
+      window.Highcharts.setOptions({
+        accessibility: { enabled: false },
+        chart: {
+          backgroundColor: 'transparent',
+          style: {
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+          }
+        },
+        title: { text: null },
+        credits: { enabled: false },
+        colors: ['#60a5fa', '#22d3ee', '#a78bfa', '#34d399', '#fbbf24', '#f472b6', '#f97316', '#94a3b8'],
+        xAxis: {
+          lineColor: 'rgba(148, 163, 184, 0.20)',
+          tickColor: 'rgba(148, 163, 184, 0.18)',
+          gridLineColor: 'rgba(148, 163, 184, 0.06)',
+          labels: {
+            style: { color: '#a3afc1', fontSize: '11px', textOutline: 'none' }
+          }
+        },
+        yAxis: {
+          lineColor: 'rgba(148, 163, 184, 0.18)',
+          gridLineColor: 'rgba(148, 163, 184, 0.10)',
+          gridLineDashStyle: 'Dash',
+          labels: {
+            style: { color: '#b4becf', fontSize: '11px', textOutline: 'none' }
+          },
+          title: {
+            style: { color: '#7c8ca2', fontSize: '10.5px', fontWeight: '500', letterSpacing: '0.04em' }
+          }
+        },
+        legend: {
+          itemStyle: { color: '#b4becf', fontSize: '11px', fontWeight: '500' },
+          itemHoverStyle: { color: '#f1f5f9' },
+          itemHiddenStyle: { color: 'rgba(148, 163, 184, 0.45)' }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.94)',
+          borderColor: 'rgba(148, 163, 184, 0.24)',
+          borderWidth: 1,
+          borderRadius: 12,
+          shadow: false,
+          padding: 10,
+          style: { color: '#e2e8f0', fontSize: '11.5px' },
+          useHTML: true
+        },
+        plotOptions: {
+          series: {
+            animation: { duration: 240 },
+            states: {
+              hover: {
+                lineWidthPlus: 0.4,
+                halo: { size: 6, opacity: 0.18 }
+              },
+              inactive: { opacity: 0.32 }
+            }
+          },
+          line: { lineWidth: 2.4, marker: { enabled: false } },
+          spline: { lineWidth: 2.4, marker: { enabled: false } },
+          areaspline: { lineWidth: 2.4, marker: { enabled: false } },
+          column: { borderWidth: 0, borderRadius: 3 },
+          bar: { borderWidth: 0, borderRadius: 3 }
+        }
+      });
+    } catch (e) {
+      // Best-effort theming — never block chart creation if a setOptions
+      // call fails on an older Highcharts build.
+    }
   }
 
   function ensureChartStore() {

@@ -29,7 +29,7 @@
             <div class="card__body">
               <p class="overview-live-note" style="margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
               <p class="overview-live-note" style="margin-bottom: var(--space-3); font-style: italic; color: var(--muted);">{{ __('messages.dashboard_i18n.flow_estimate_note') }}</p>
-              <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="grid grid--metrics grid--metrics-1">
+              <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="grid grid--metrics grid--metrics-2">
                 <p class="overview-live-note">{{ __('messages.common.loading') }}...</p>
               </div>
             </div>
@@ -122,19 +122,25 @@
     if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
 
     function loadOccupancyKpis() {
+      // Accept BOTH `crowd_density_level` (floor / area scope) and
+      // `movement_activity_index` (passage scope). The KPI engine emits
+      // exactly one of them depending on the selected location.
+      var allowedKeys = ['crowd_density_level', 'movement_activity_index'];
       window.SMACAApi.fetchKpiSummary('occupancy')
         .then(function (payload) {
           window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', payload, {
             compact: false,
             maxItems: 1,
-            allowedKeys: ['crowd_density_level']
+            allowedKeys: allowedKeys,
+            withStatusCompanion: true
           });
         })
         .catch(function () {
           window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', { kpis: [] }, {
             compact: false,
             maxItems: 1,
-            allowedKeys: ['crowd_density_level']
+            allowedKeys: allowedKeys,
+            withStatusCompanion: true
           });
         });
     }

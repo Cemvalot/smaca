@@ -1,20 +1,14 @@
 /**
- * SMACA Chart Explainer
- * =====================
+ * SMACA Chart Explainer (registry)
+ * ================================
  *
- * Auto-injects a collapsible "How to read this chart" panel directly under
- * every chart container that has metadata in `window.SMACA_CHART_METADATA`.
- *
- * Usage:
- *   - The metadata bootstrap in app.blade.php sets:
- *       window.SMACA_CHART_METADATA = { charts: { 'chart-id-1': {...}, ... } }
- *   - When DOMContentLoaded fires, this module finds matching `id` elements,
- *     skips ones already explained, and inserts the panel after them.
- *   - It re-runs on the custom `smaca:chart-rendered` event so dynamically
- *     created chart panels (e.g. Highcharts re-renders) also get covered.
+ * NOTE: Visual injection of inline "How to read this chart" panels has
+ * been retired in favour of the unified card-help popover system in
+ * `smaca-card-help.js`. This module now exposes only metadata lookup so
+ * external consumers (and tests) keep working.
  *
  * Public API:
- *   window.SMACAChartExplainer.refresh()  — re-scan and inject any new charts.
+ *   window.SMACAChartExplainer.refresh()  — no-op (compat).
  *   window.SMACAChartExplainer.metaFor(id) — locale-resolved metadata for `id`.
  */
 (function (global) {
@@ -74,70 +68,38 @@
     if (act) rows.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + lblAct + ':</strong> ' + act + '</p>');
     if (lim) rows.push('<p style="margin:0;color:var(--muted);"><strong>' + lblLim + ':</strong> ' + lim + '</p>');
 
+    // Inline, lightweight chrome — separation is provided by the wrapper's
+    // CSS rule (`.card .chart-placeholder ~ .smaca-chart-help`). The details
+    // element itself stays borderless to avoid a double divider.
     return [
-      '<details class="chart-help" data-smaca-chart-help="1" style="margin-top:var(--space-3);background:rgba(148,163,184,0.06);border:1px solid rgba(148,163,184,0.18);border-radius:6px;padding:var(--space-2) var(--space-3);">',
-      '  <summary style="cursor:pointer;font-size:11px;color:var(--muted);user-select:none;list-style:none;display:flex;align-items:center;gap:var(--space-1);">',
-      '    <span aria-hidden="true">&#9432;</span><span>' + summaryLabel + '</span>',
-      '    <span style="opacity:0.6;font-weight:400;">— ' + hint + '</span>',
+      '<details class="chart-help" data-smaca-chart-help="1">',
+      '  <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text);user-select:none;list-style:none;display:flex;align-items:center;gap:var(--space-2);">',
+      '    <span aria-hidden="true" style="opacity:0.6;">&#9432;</span><span>' + summaryLabel + '</span>',
+      '    <span style="opacity:0.55;font-weight:400;font-size:11px;">— ' + hint + '</span>',
       '  </summary>',
-      '  <div style="margin-top:var(--space-2);font-size:12px;line-height:1.5;color:var(--text);">',
+      '  <div style="margin-top:var(--space-3);font-size:11.5px;line-height:1.6;color:var(--muted);">',
       rows.join(''),
       '  </div>',
       '</details>'
     ].join('');
   }
 
-  // Insert the explanation panel after the chart container's enclosing card,
-  // so it does not push the chart itself out of place. Falls back to the
-  // chart container's parent if we cannot find a `.card` ancestor.
-  function injectFor(chartEl, meta) {
-    if (!chartEl || !meta) return;
-    var html = buildPanel(meta);
-    if (!html) return;
-
-    var hostCard = chartEl.closest ? chartEl.closest('.card') : null;
-    var anchor = hostCard || chartEl;
-
-    // Avoid duplicate injection — look for an immediately following sibling
-    // we already created.
-    var sibling = anchor.nextElementSibling;
-    while (sibling) {
-      if (sibling.dataset && sibling.dataset.smacaChartHelpFor === chartEl.id) return;
-      // stop scanning once we leave help blocks
-      if (!sibling.dataset || !sibling.dataset.smacaChartHelpFor) break;
-      sibling = sibling.nextElementSibling;
-    }
-
-    var wrapper = document.createElement('div');
-    wrapper.dataset.smacaChartHelpFor = chartEl.id;
-    wrapper.innerHTML = html;
-    anchor.parentNode.insertBefore(wrapper, anchor.nextSibling);
-  }
-
   function refresh() {
-    var dict = getMetaDictionary();
-    if (!dict) return;
-    Object.keys(dict).forEach(function (id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      injectFor(el, dict[id]);
-    });
+    // No-op: the unified card-help popover (smaca-card-help.js) reads chart
+    // metadata directly from window.SMACA_CHART_METADATA. We keep this
+    // method on the public API for backwards compatibility with any
+    // existing call sites.
+    return null;
   }
 
-  function bootOnReady() {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', refresh);
-    } else {
-      refresh();
-    }
-    // Allow manual triggers when charts are mounted lazily.
-    document.addEventListener('smaca:chart-rendered', refresh);
-  }
+  // The buildPanel function is intentionally kept for backwards-compat in
+  // case an external script wants to render the panel inline. It is no
+  // longer auto-injected.
+  // eslint-disable-next-line no-unused-vars
+  void buildPanel;
 
   global.SMACAChartExplainer = {
     refresh: refresh,
     metaFor: metaFor
   };
-
-  bootOnReady();
 })(typeof window !== 'undefined' ? window : this);

@@ -408,6 +408,227 @@
   display: flex;
   align-items: center;
 }
+/* Searchable spatial selector — trigger + floating popover. The native
+   <select> has been replaced with a custom keyboard-friendly listbox.
+   The legacy `.smaca-spatial-selector__*` classes are kept below as a
+   no-op safety net in case any external script targets them. */
+
+.smaca-spatial-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--r-md);
+  background: rgba(30, 41, 59, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  max-width: 280px;
+  min-width: 180px;
+}
+
+.smaca-spatial-trigger:hover {
+  border-color: rgba(96, 165, 250, 0.45);
+  background: rgba(30, 41, 59, 0.78);
+}
+
+.smaca-spatial-trigger:focus {
+  outline: none;
+  border-color: rgba(96, 165, 250, 0.65);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18);
+}
+
+.smaca-spatial-trigger[aria-expanded="true"] {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(59, 130, 246, 0.10);
+}
+
+.smaca-spatial-trigger__icon,
+.smaca-spatial-trigger__chevron {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.smaca-spatial-trigger:hover .smaca-spatial-trigger__icon,
+.smaca-spatial-trigger[aria-expanded="true"] .smaca-spatial-trigger__icon {
+  color: var(--accent-2);
+}
+
+.smaca-spatial-trigger__label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.smaca-spatial-trigger--loading {
+  cursor: wait;
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* Popover container */
+.smaca-spatial-popover {
+  position: fixed;
+  z-index: 1100;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(17, 24, 39, 0.94);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    0 22px 60px rgba(2, 6, 23, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  color: var(--text);
+  font-size: 13px;
+  opacity: 0;
+  transform: scale(0.96) translateY(-2px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.smaca-spatial-popover.is-positioning {
+  visibility: hidden;
+}
+
+.smaca-spatial-popover.is-open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+/* Sticky search */
+.smaca-spatial-popover__search-wrap {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(17, 24, 39, 0.92);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  z-index: 1;
+}
+
+.smaca-spatial-popover__search-icon {
+  color: rgba(148, 163, 184, 0.7);
+  flex: 0 0 auto;
+}
+
+.smaca-spatial-popover__search {
+  flex: 1 1 auto;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  padding: 0;
+  caret-color: var(--accent-2);
+}
+
+.smaca-spatial-popover__search::placeholder {
+  color: rgba(148, 163, 184, 0.65);
+}
+
+.smaca-spatial-popover__list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 6px 0 8px;
+  scrollbar-width: thin;
+}
+
+.smaca-spatial-popover__list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.smaca-spatial-popover__list::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+}
+
+.smaca-spatial-popover__group + .smaca-spatial-popover__group {
+  margin-top: 4px;
+}
+
+.smaca-spatial-popover__group-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.78);
+  padding: 8px 14px 4px;
+}
+
+.smaca-spatial-popover__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 7px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.smaca-spatial-popover__row:hover,
+.smaca-spatial-popover__row.is-active {
+  background: rgba(59, 130, 246, 0.13);
+  color: #f1f5f9;
+}
+
+.smaca-spatial-popover__row.is-selected {
+  color: var(--accent-2);
+  background: rgba(59, 130, 246, 0.10);
+}
+
+.smaca-spatial-popover__row--all {
+  font-weight: 600;
+}
+
+.smaca-spatial-popover__row-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.smaca-spatial-popover__row-code {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  color: rgba(148, 163, 184, 0.7);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.smaca-spatial-popover__check {
+  color: var(--accent-2);
+  flex: 0 0 auto;
+}
+
+.smaca-spatial-popover__empty {
+  padding: 18px 14px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Legacy fallback shells — keep them to avoid breaking any external CSS
+   targeting these classes. New trigger renders without them. */
 .smaca-spatial-selector__wrap {
   display: inline-flex;
   align-items: center;
@@ -2824,5 +3045,701 @@
   .accordion-content {
     font-size: 12px;
     line-height: 1.7;
+  }
+}
+
+/* =====================================================================
+   D5.1 UI/UX refinement pass — KPI hierarchy + companion + chart polish
+   Visual Polish & Density Refinement Pass — premium ops-dashboard feel
+   --------------------------------------------------------------------- */
+
+/* ---- KPI grid layouts ---------------------------------------------- */
+.grid--metrics-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.grid--metrics-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+/* ---- KPI card shell — compact, premium, high-information ----------- */
+.overview-kpi-card {
+  position: relative;
+  min-height: 0;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(96, 165, 250, 0.07) 0%, rgba(96, 165, 250, 0) 55%),
+    linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.96) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    0 6px 16px rgba(2, 6, 23, 0.28);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+  overflow: hidden;
+}
+
+.overview-kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(60% 40% at 50% 38%, rgba(96, 165, 250, 0.05) 0%, rgba(96, 165, 250, 0) 70%);
+  opacity: 0.7;
+}
+
+.overview-kpi-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 12px 26px rgba(2, 6, 23, 0.4);
+}
+
+.overview-kpi-card .stat-card__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-1);
+  height: auto;
+  justify-content: flex-start;
+}
+
+/* Tiny category icon, anchored top-right of every KPI card. */
+.overview-kpi-card__icon {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(148, 163, 184, 0.08);
+  color: rgba(148, 163, 184, 0.7);
+  z-index: 2;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.overview-kpi-card:hover .overview-kpi-card__icon {
+  color: var(--accent-2);
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.overview-kpi-card__icon[data-category="iaq"]      { color: #22d3ee; background: rgba(34, 211, 238, 0.10); }
+.overview-kpi-card__icon[data-category="energy"]   { color: #fbbf24; background: rgba(251, 191, 36, 0.10); }
+.overview-kpi-card__icon[data-category="occupancy"]{ color: #a78bfa; background: rgba(167, 139, 250, 0.10); }
+.overview-kpi-card__icon[data-category="comfort"]  { color: #34d399; background: rgba(52, 211, 153, 0.10); }
+.overview-kpi-card__icon[data-category="environmental"] { color: #f97316; background: rgba(249, 115, 22, 0.12); }
+
+/* ---- KPI value — the headline element, bigger + tighter ------------ */
+.overview-kpi-card .stat-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 var(--space-2);
+  max-width: 22ch;
+}
+
+.overview-kpi-card .stat-card__value {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  font-size: clamp(2.2rem, 2.6vw, 2.85rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.overview-kpi-card .stat-card__value-number {
+  color: var(--text);
+  text-shadow: 0 0 22px rgba(96, 165, 250, 0.10);
+}
+
+.overview-kpi-card .stat-card__value-unit {
+  font-size: 0.4em;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* ---- Status badge — tighter, dot prefix, sits below value ---------- */
+.overview-kpi-card .stat-card__meta {
+  margin-top: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.overview-kpi-card__badge {
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+}
+
+.overview-kpi-card__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+  background: currentColor;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+
+.overview-kpi-card__dot--good     { background: var(--success); }
+.overview-kpi-card__dot--warning  { background: var(--warning); }
+.overview-kpi-card__dot--critical { background: var(--danger); }
+.overview-kpi-card__dot--muted    { background: var(--muted); }
+
+/* ---- Description (1-line explanation) ------------------------------ */
+.overview-kpi-card .overview-live-note,
+.overview-kpi-card__desc {
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 36ch;
+  margin: var(--space-2) auto 0;
+}
+
+/* ---- Inline expandable help inside the KPI card -------------------- */
+.overview-kpi-card .kpi-help {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed rgba(148, 163, 184, 0.14);
+  width: 100%;
+  text-align: left;
+}
+
+.overview-kpi-card .kpi-help__summary {
+  text-align: center;
+}
+
+/* ---- Companion "Status" card --------------------------------------- */
+.overview-kpi-card--companion .stat-card__value {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.overview-kpi-card--companion .badge--lg {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+}
+
+/* ---- Section headers — subtle divider, brighter title -------------- */
+.dashboard-section > .section-header,
+.dashboard-section > .stack > .section-header {
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.10);
+}
+
+.section-header h1,
+.section-header h2 {
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+.section-subtitle {
+  color: rgba(156, 163, 175, 0.85);
+}
+
+/* ---- Card consistency — softer borders, unified radius ------------- */
+.card {
+  border-radius: var(--r-lg);
+  border-color: rgba(148, 163, 184, 0.12);
+  background:
+    linear-gradient(180deg, rgba(26, 31, 46, 1) 0%, rgba(20, 25, 39, 1) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 4px 14px rgba(2, 6, 23, 0.18);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.card__header {
+  border-bottom-color: rgba(148, 163, 184, 0.10);
+  padding: var(--space-4) var(--space-5);
+}
+
+.card__title {
+  color: #e8edf2;
+  letter-spacing: -0.005em;
+}
+
+.card__body {
+  padding: var(--space-5);
+}
+
+/* ---- Chart cards — embedded, breathable, subtly highlighted -------- */
+.card .chart-placeholder {
+  margin-bottom: 0;
+  padding: var(--space-2) 0;
+  border-radius: var(--r-md);
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(59, 130, 246, 0.04) 0%, rgba(59, 130, 246, 0) 60%);
+}
+
+.card .chart-placeholder + .smaca-accordion,
+.card .chart-placeholder + .smaca-chart-help,
+.card .chart-placeholder ~ .smaca-chart-help {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.smaca-chart-help details {
+  width: 100%;
+}
+
+.smaca-chart-help summary {
+  font-size: 11.5px;
+  color: rgba(156, 163, 175, 0.9);
+  letter-spacing: 0.02em;
+}
+
+.smaca-chart-help summary::-webkit-details-marker,
+.smaca-chart-help summary::marker {
+  display: none;
+}
+
+/* ---- Density tightening on the overview page ----------------------- */
+#overview > .stack {
+  gap: var(--space-5);
+}
+
+#overview .grid {
+  gap: var(--space-4);
+}
+
+#overview .card__body {
+  padding: var(--space-4) var(--space-5);
+}
+
+/* ---- Module pages — tighter rhythm, no skinny adjacent cards ------- */
+#iaq .grid,
+#energy .grid,
+#occupancy .grid,
+#environmental .grid {
+  gap: var(--space-4);
+}
+
+/* ---- Typography pass — slightly brighter labels, less aggressive uppercase */
+.card__header p {
+  color: rgba(156, 163, 175, 0.85);
+  font-size: 11.5px;
+}
+
+/* ---- Wide screens: more chart canvas, less inner gutter ------------ */
+@media (min-width: 1280px) {
+  .card .card__body {
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
+  }
+
+  #overview .grid--metrics-4 {
+    gap: var(--space-4);
+  }
+}
+
+/* ---- Tablet: graceful stacking ------------------------------------- */
+@media (max-width: 1024px) {
+  .grid--metrics-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- Mobile: KPI grid collapses, KPI value scales down ------------- */
+@media (max-width: 768px) {
+  .grid--metrics-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overview-kpi-card {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .overview-kpi-card .stat-card__value {
+    font-size: 1.85rem;
+  }
+
+  .overview-kpi-card__icon {
+    top: var(--space-2);
+    right: var(--space-2);
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* =====================================================================
+   Enterprise Refinement Pass — help popover, KPI glass, density,
+   responsive tightening. Pure presentation layer.
+   --------------------------------------------------------------------- */
+
+/* ---- Card help info button ----------------------------------------- */
+.smaca-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.55);
+  color: rgba(148, 163, 184, 0.78);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  flex: 0 0 auto;
+}
+
+.smaca-help-btn:hover {
+  color: var(--accent-2);
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(96, 165, 250, 0.4);
+  transform: translateY(-0.5px);
+}
+
+.smaca-help-btn:focus {
+  outline: none;
+  border-color: rgba(96, 165, 250, 0.6);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18);
+}
+
+.smaca-help-btn[aria-expanded="true"] {
+  color: var(--accent-2);
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(96, 165, 250, 0.55);
+}
+
+/* When the card has a header, the button mounts at the right edge of it. */
+.smaca-help-btn--inheader {
+  margin-left: var(--space-3);
+  align-self: center;
+}
+
+/* When the card has no header, float the button in the top-right corner. */
+.smaca-help-btn--floating {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 3;
+}
+
+/* Hide the legacy in-flow accordion blocks once the card is bound: the
+   content is preserved in the DOM so the popover can read it; the
+   accordion chrome itself is removed visually. */
+.has-card-help .smaca-accordion {
+  display: none !important;
+}
+
+.has-card-help .smaca-chart-help {
+  display: none !important;
+}
+
+/* When `smaca-card-help.js` is unavailable for any reason, the legacy
+   accordions stay visible as a graceful fallback (default behaviour). */
+
+/* Card header layout — keep existing flex defaults from base.css, just
+   ensure the help button always sits at the far right of the row. */
+.card__header {
+  position: relative;
+}
+
+.card__header > .smaca-help-btn--inheader {
+  margin-left: auto;
+  align-self: center;
+  flex: 0 0 auto;
+}
+
+/* ---- Help popover (frosted floating panel) ------------------------- */
+.smaca-help-popover {
+  position: fixed;
+  z-index: 1100;
+  min-width: 240px;
+  max-width: 320px;
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(17, 24, 39, 0.92);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow:
+    0 20px 50px rgba(2, 6, 23, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.6;
+  opacity: 0;
+  transform: scale(0.96) translateY(-2px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.smaca-help-popover.is-positioning {
+  visibility: hidden;
+}
+
+.smaca-help-popover.is-open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+.smaca-help-popover__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  max-height: min(70vh, 480px);
+}
+
+.smaca-help-popover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.smaca-help-popover__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e8edf2;
+  letter-spacing: 0.01em;
+}
+
+.smaca-help-popover__close {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  background: transparent;
+  color: rgba(148, 163, 184, 0.72);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 999px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.smaca-help-popover__close:hover {
+  color: #f1f5f9;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.smaca-help-popover__body {
+  overflow-y: auto;
+  padding-right: 2px;
+  color: rgba(229, 231, 235, 0.92);
+}
+
+.smaca-help-popover__body p {
+  margin: 0 0 var(--space-2) 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.smaca-help-popover__body p:last-child {
+  margin-bottom: 0;
+}
+
+.smaca-help-popover__body strong {
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.smaca-help-popover__body ul,
+.smaca-help-popover__body ol {
+  margin: 0 0 var(--space-2) 1.1em;
+  padding: 0;
+  font-size: 12px;
+}
+
+.smaca-help-popover__body li + li {
+  margin-top: 4px;
+}
+
+.smaca-help-popover__body .smaca-help-row--muted {
+  color: rgba(148, 163, 184, 0.92);
+  font-size: 11.5px;
+}
+
+.smaca-help-popover__body .smaca-help-row__divider {
+  border: 0;
+  border-top: 1px dashed rgba(148, 163, 184, 0.18);
+  margin: var(--space-2) 0;
+}
+
+/* ---- KPI cards: subtle glassmorphism and softer border glow -------- */
+.overview-kpi-card {
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  backdrop-filter: blur(8px) saturate(120%);
+}
+
+.overview-kpi-card:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 14px 28px rgba(2, 6, 23, 0.42),
+    0 0 0 1px rgba(96, 165, 250, 0.12);
+}
+
+/* ---- Highcharts container subtle accent (visual lift only) --------- */
+.card .chart-placeholder {
+  position: relative;
+}
+
+.card .chart-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: var(--r-md);
+  background: radial-gradient(120% 60% at 50% 0%, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0) 65%);
+  opacity: 0.85;
+  z-index: 0;
+}
+
+.card .chart-placeholder > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Page density tightening (13–14" laptops, 1080p) --------------- */
+@media (min-width: 1100px) and (max-width: 1599px) {
+  #overview > .stack,
+  #iaq .stack,
+  #energy .stack,
+  #occupancy .stack,
+  #environmental .stack {
+    gap: var(--space-4);
+  }
+
+  .card .card__body {
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .card__header {
+    padding: var(--space-3) var(--space-5);
+  }
+
+  .overview-kpi-card {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  /* Charts get a tighter top spacing so they sit closer to their headers. */
+  .card .chart-placeholder {
+    min-height: 260px;
+  }
+}
+
+/* ---- 15" / 1440p+ desktops — bigger chart canvas ------------------- */
+@media (min-width: 1600px) {
+  .card .chart-placeholder {
+    min-height: 320px;
+  }
+}
+
+/* ---- Tablet stack tightening --------------------------------------- */
+@media (min-width: 769px) and (max-width: 1099px) {
+  .grid--metrics-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid--metrics-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-kpi-card .stat-card__value {
+    font-size: clamp(1.85rem, 2.4vw, 2.3rem);
+  }
+
+  .smaca-help-popover {
+    max-width: 280px;
+  }
+}
+
+/* ---- Smartphone — single-column stack, popover full-width-ish ------ */
+@media (max-width: 540px) {
+  .smaca-help-popover,
+  .smaca-spatial-popover {
+    left: 12px !important;
+    right: 12px !important;
+    width: calc(100vw - 24px);
+    max-width: none;
+  }
+
+  .smaca-spatial-trigger {
+    min-width: 0;
+    max-width: 220px;
+  }
+}
+
+/* ---- Page density — tighten the giant inline-style margins between
+   the KPI summary card and the rest of the page. The inline styles in
+   the Blade templates use `margin: var(--space-6) 0;`; we override only
+   the top/bottom rhythm here, never the layout. ---------------------- */
+#iaq > section.card[style*="space-6"],
+#occupancy > section.card[style*="space-6"] {
+  margin: var(--space-4) 0 !important;
+}
+
+@media (min-width: 1100px) and (max-width: 1599px) {
+  #iaq > section.card[style*="space-6"],
+  #occupancy > section.card[style*="space-6"] {
+    margin: var(--space-3) 0 !important;
+  }
+}
+
+/* Occupancy operational summary card — already 2-col, tighten the gap
+   so the recommendation column reads as a peer not an afterthought. */
+#occupancy .card > .card__body > div[style*="display: flex"][style*="align-items: center"][style*="gap"] {
+  gap: var(--space-4);
+}
+
+/* IAQ admin row (sensor-health + data-source) — keep 2:1 grid but tighten
+   the column gap and bottom margin a touch. */
+@media (min-width: 1100px) {
+  #iaq > .grid[style*="2fr 1fr"] {
+    gap: var(--space-4) !important;
+    margin-bottom: var(--space-4) !important;
+  }
+}
+
+/* ---- Section hero — slightly tighter on dense screens -------------- */
+@media (min-width: 1100px) and (max-width: 1599px) {
+  .section-hero {
+    margin-bottom: var(--space-3);
+  }
+
+  .section-hero__title {
+    font-size: 22px;
   }
 }
