@@ -5173,6 +5173,7 @@ function drawOverviewSvgLineChart(container, payload) {
 
   function applyTimeframe(tf) {
     if (TIMEFRAMES.indexOf(tf) === -1) return;
+    if (global.lastRenderedTimeframe) global.lastRenderedTimeframe = null;
     if (global.SMACAState && typeof global.SMACAState.setTimeframe === 'function') {
       global.SMACAState.setTimeframe(tf);
     } else {
@@ -5225,11 +5226,18 @@ function drawOverviewSvgLineChart(container, payload) {
     if (page === 'iaq' && global.__SMACAIaqComputed) {
       rows.forEach(function (row) {
         if (row.chartId !== 'iaq-co2-band-chart') return;
-        var series = global.__SMACAIaqComputed.series || {};
-        var values = series.co2 && Array.isArray(series.co2.values) ? series.co2.values : [];
-        row.bucketCount = values.length || null;
-        row.populated = countFinite(values);
-        row.timeframe = global.__SMACAIaqComputed.timeframe || tf;
+        var computed = global.__SMACAIaqComputed;
+        var points = [];
+        if (computed.seriesByMetric && Array.isArray(computed.seriesByMetric.co2)) {
+          points = computed.seriesByMetric.co2;
+        } else if (computed.series && computed.series.co2 && Array.isArray(computed.series.co2.values)) {
+          points = computed.series.co2.values;
+        }
+        row.bucketCount = points.length || null;
+        row.populated = points.filter(function (p) {
+          return Number.isFinite(Number(p && p.value));
+        }).length;
+        row.timeframe = computed.timeframe || tf;
       });
     }
     if (page === 'occupancy' && global.__occupancyChartDebug) {
@@ -5407,11 +5415,30 @@ function drawOverviewSvgLineChart(container, payload) {
     });
   }
 
+  function flattenLegacyAuditResults(results) {
+    return (results || []).reduce(function (flat, block) {
+      (block.rows || []).forEach(function (row) {
+        (row.charts || []).forEach(function (chart) {
+          flat.push({
+            page: row.page,
+            timeframe: row.timeframe,
+            chartId: chart.chartId,
+            status: chart.status,
+            bucketCount: chart.bucketCount,
+            populated: chart.populated
+          });
+        });
+      });
+      return flat;
+    }, []);
+  }
+
   global.SMACALegacyCharts = {
     chartsForPage: function (page) { return (LEGACY_BY_PAGE[page || activePage()] || []).slice(); },
     collect: collectCurrentPage,
     auditTimeframes: auditLegacyTimeframes,
     auditAllPages: auditAllLegacyPages,
-    cancelAllPagesAudit: cancelAllLegacyAudit
+    cancelAllPagesAudit: cancelAllLegacyAudit,
+    flattenResults: flattenLegacyAuditResults
   };
 })(typeof window !== 'undefined' ? window : globalThis);
