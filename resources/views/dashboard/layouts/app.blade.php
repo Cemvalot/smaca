@@ -444,7 +444,6 @@
   <script defer src="{{ asset('assets/js/advanced-visualizations.js') }}?v={{ $smacaAssetVersion('assets/js/advanced-visualizations.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-dashboard.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-dashboard.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-production-features.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-production-features.js') }}"></script>
-  <script defer src="{{ asset('assets/js/smaca-legacy-charts-debug.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-legacy-charts-debug.js') }}"></script>
   @if(($smacaPage ?? 'overview') === 'ai-insights')
     <script defer src="{{ asset('assets/js/smaca-ai-insights.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-ai-insights.js') }}"></script>
   @endif
