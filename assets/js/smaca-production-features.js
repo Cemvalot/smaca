@@ -2910,6 +2910,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
     window.__occupancyChartDebug = {
       timeframe: timeframe,
       pointCount: bucketTimesMs.length,
+      populatedBuckets: activityData.filter(function (value) { return Number.isFinite(Number(value)); }).length,
       peakHour: peakHour,
       peakValue: Number.isFinite(Number(peakValue)) ? Number(peakValue) : null,
       locationSummary: {
@@ -5174,14 +5175,26 @@ function drawOverviewSvgLineChart(container, payload) {
   function applyTimeframe(tf) {
     if (TIMEFRAMES.indexOf(tf) === -1) return;
     if (global.lastRenderedTimeframe) global.lastRenderedTimeframe = null;
+    global.SMACA_TIMEFRAME = tf;
     if (global.SMACAState && typeof global.SMACAState.setTimeframe === 'function') {
-      global.SMACAState.setTimeframe(tf);
-    } else {
-      global.SMACA_TIMEFRAME = tf;
+      if (global.SMACAState.currentTimeframe !== tf) {
+        global.SMACAState.setTimeframe(tf);
+        return;
+      }
+      if (typeof global.SMACAState.invalidateFilteredCache === 'function') {
+        global.SMACAState.invalidateFilteredCache();
+      }
       try {
         global.dispatchEvent(new CustomEvent('smaca:timeframe-changed', { detail: { timeframe: tf } }));
       } catch (e) { /* noop */ }
+      if (typeof global.SMACAState.notifyListeners === 'function') {
+        global.SMACAState.notifyListeners();
+      }
+      return;
     }
+    try {
+      global.dispatchEvent(new CustomEvent('smaca:timeframe-changed', { detail: { timeframe: tf } }));
+    } catch (e2) { /* noop */ }
   }
 
   function waitIdle(ms) {
@@ -5243,9 +5256,12 @@ function drawOverviewSvgLineChart(container, payload) {
     if (page === 'occupancy' && global.__occupancyChartDebug) {
       rows.forEach(function (row) {
         if (row.chartId !== 'occupancy-flow-chart') return;
-        row.bucketCount = global.__occupancyChartDebug.pointCount;
-        row.populated = Number.isFinite(Number(global.__occupancyChartDebug.peakValue)) ? 1 : 0;
-        row.timeframe = global.__occupancyChartDebug.timeframe || tf;
+        var occ = global.__occupancyChartDebug;
+        row.bucketCount = occ.pointCount;
+        row.populated = Number.isFinite(Number(occ.populatedBuckets))
+          ? occ.populatedBuckets
+          : (Number.isFinite(Number(occ.peakValue)) ? 1 : 0);
+        row.timeframe = occ.timeframe || tf;
       });
     }
     if (page === 'energy' && global.__energyChartDebug) {
@@ -5282,6 +5298,12 @@ function drawOverviewSvgLineChart(container, payload) {
         }
       });
     }
+    rows.forEach(function (row) {
+      if (row.empty) return;
+      if (row.status === 'blank' && ((row.populated > 0) || (row.bucketCount > 0))) {
+        row.status = 'rendered';
+      }
+    });
     return rows;
   }
 
@@ -5297,14 +5319,33 @@ function drawOverviewSvgLineChart(container, payload) {
     };
   }
 
+  function waitForLegacyCharts(tf) {
+    var attempts = 0;
+    var maxAttempts = 5;
+    return new Promise(function (resolve) {
+      function tick() {
+        var snapshot = collectCurrentPage();
+        var pending = (snapshot.charts || []).some(function (chart) {
+          return chart.status === 'blank' && !chart.empty && chart.populated === null && chart.bucketCount === null;
+        });
+        if (!pending || attempts >= maxAttempts) {
+          resolve(snapshot);
+          return;
+        }
+        attempts += 1;
+        setTimeout(tick, 450);
+      }
+      applyTimeframe(tf);
+      setTimeout(tick, IDLE_MS);
+    });
+  }
+
   function auditLegacyTimeframes(timeframes) {
     var order = Array.isArray(timeframes) && timeframes.length ? timeframes.slice() : TIMEFRAMES.slice();
     var auditRows = [];
     return order.reduce(function (chain, tf) {
       return chain.then(function () {
-        applyTimeframe(tf);
-        return waitIdle().then(function () {
-          var snapshot = collectCurrentPage();
+        return waitForLegacyCharts(tf).then(function (snapshot) {
           auditRows.push({
             page: snapshot.page,
             timeframe: tf,
