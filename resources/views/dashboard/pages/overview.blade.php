@@ -20,49 +20,22 @@
     </div>
   </section>
 
-  <div class="grid grid--metrics grid--metrics-4 overview-kpi-grid">
-    <article class="stat-card overview-kpi-card">
-      <div class="stat-card__content">
-        <div class="stat-card__label">{{ __('messages.dashboard.active_sensors') }}</div>
-        <div id="overview-active-sensors" class="stat-card__value">24</div>
-        <div class="stat-card__meta">
-          <span id="overview-active-sensors-trend" class="overview-trend overview-trend--neutral">--</span>
-          <span class="overview-kpi-signal overview-kpi-signal--stable"></span>
-        </div>
-      </div>
-    </article>
-    <article class="stat-card overview-kpi-card">
-      <div class="stat-card__content">
-        <div class="stat-card__label">{{ __('messages.nav.iaq') }} {{ __('messages.dashboard.status') }}</div>
-        <div id="overview-air-quality-status" class="stat-card__value">--</div>
-        <div class="stat-card__meta">
-          <span id="overview-air-quality-trend" class="overview-trend overview-trend--neutral">--</span>
-          <span class="overview-kpi-signal overview-kpi-signal--success"></span>
-        </div>
-      </div>
-    </article>
-    <article class="stat-card overview-kpi-card">
-      <div class="stat-card__content">
-        <div class="stat-card__label">{{ __('messages.nav.occupancy') }} {{ __('messages.dashboard_i18n.load') }}</div>
-        <div id="overview-occupancy-load" class="stat-card__value">23</div>
-        <div class="stat-card__meta">
-          <span id="overview-occupancy-trend" class="overview-trend overview-trend--neutral">--</span>
-          <span class="overview-kpi-signal overview-kpi-signal--warning"></span>
-        </div>
-      </div>
-    </article>
-    @if($smacaIsAdmin)
-    <article class="stat-card overview-kpi-card">
-      <div class="stat-card__content">
-        <div class="stat-card__label">{{ __('messages.nav.connectivity') }} {{ __('messages.common.health') }}</div>
-        <div id="overview-connectivity-health" class="stat-card__value">98%</div>
-        <div class="stat-card__meta">
-          <span id="overview-connectivity-trend" class="overview-trend overview-trend--neutral">--</span>
-          <span class="overview-kpi-signal overview-kpi-signal--info"></span>
-        </div>
-      </div>
-    </article>
-    @endif
+  {{-- Legacy `.overview-kpi-grid` removed: it duplicated the new top
+       telemetry tiles below (module-health bars + sensor-status donut +
+       worst-module / alerts / top-CO₂ / stalest tiles cover the same
+       information) and held hardcoded placeholder values that
+       legacy JS was overwriting on load. Hidden DOM IDs are retained as
+       inert spans below so any pre-existing legacy bootstrap that still
+       references them via `getElementById` does not throw. --}}
+  <div data-smaca-legacy-overview-anchors hidden aria-hidden="true">
+    <span id="overview-active-sensors"></span>
+    <span id="overview-active-sensors-trend"></span>
+    <span id="overview-air-quality-status"></span>
+    <span id="overview-air-quality-trend"></span>
+    <span id="overview-occupancy-load"></span>
+    <span id="overview-occupancy-trend"></span>
+    <span id="overview-connectivity-health"></span>
+    <span id="overview-connectivity-trend"></span>
   </div>
 
   <section class="card smaca-telemetry-card">
@@ -71,163 +44,23 @@
       <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
     </div>
     <div class="card__body">
-      <div class="smaca-tg smaca-tg--6" data-smaca-telemetry="overview">
-        <div data-tile="active-sensors"></div>
-        <div data-tile="alerts"></div>
-        <div data-tile="co2-avg"></div>
-        <div data-tile="movement"></div>
-        <div data-tile="uv-now"></div>
-        <div data-tile="freshness"></div>
+      <div class="smaca-tg smaca-tg--rich" data-smaca-telemetry="overview">
+        <div data-tile="module-health"   class="smaca-tile--w6"></div>
+        <div data-tile="status-donut"    class="smaca-tile--w6"></div>
+        <div data-tile="worst-module"    class="smaca-tile--w3"></div>
+        <div data-tile="alerts"          class="smaca-tile--w3"></div>
+        <div data-tile="top-co2"         class="smaca-tile--w3"></div>
+        <div data-tile="stalest"         class="smaca-tile--w3"></div>
       </div>
     </div>
   </section>
 
-  <div class="overview-top-grid">
-    <section class="card overview-live-card">
-      <div class="card__header">
-        <div class="overview-live-header">
-          <div class="card__header-icon">
-            <div class="overview-live-icon-shell">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-              </svg>
-            </div>
-            <div class="overview-live-header-copy">
-              <h3 class="card__title">{{ __('messages.dashboard_i18n.campus_live_status') }}</h3>
-              <p class="overview-live-subtitle">
-                {{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}
-              </p>
-            </div>
-          </div>
-          <div class="overview-live-health">
-            <span class="overview-live-pulse" aria-hidden="true"></span>
-            <div class="overview-live-health__copy">
-              <span id="overview-live-overall-status" class="overview-live-health__label">{{ __('messages.dashboard_i18n.system_monitoring_active') }}</span>
-              <span id="overview-live-overall-detail" class="overview-live-health__detail">{{ __('messages.dashboard_i18n.operational_interpretation_updating') }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="card__body">
-        <div class="overview-status-groups">
-          <section id="overview-status-attention-group" class="overview-status-group overview-status-group--attention">
-            <header class="overview-status-group__header">
-              <h4 class="overview-status-group__title">{{ __('messages.dashboard.alerts') }}</h4>
-              <span id="overview-status-attention-count" class="overview-status-group__count">0 modules</span>
-            </header>
-            <div id="overview-status-attention-grid" class="overview-status-grid">
-              <!-- Filled dynamically based on module state -->
-            </div>
-          </section>
-          <section id="overview-status-operational-group" class="overview-status-group overview-status-group--operational">
-            <header class="overview-status-group__header">
-              <h4 class="overview-status-group__title">{{ __('messages.status.operational') }}</h4>
-              <span id="overview-status-operational-count" class="overview-status-group__count">0 modules</span>
-            </header>
-            <div id="overview-status-operational-grid" class="overview-status-grid">
-              <article class="overview-status-box overview-status-box--success" id="overview-status-tile-air-quality" data-tone="success">
-                <div class="overview-status-box__topline">
-                  <span class="overview-status-box__module">
-                    <i class="overview-dot overview-dot--success"></i>{{ __('messages.nav.iaq') }}
-                  </span>
-                  <span class="overview-status-chip overview-status-chip--success">{{ __('messages.status.healthy') }}</span>
-                </div>
-                <span class="overview-status-box__value" id="overview-badge-air-quality">{{ __('messages.common.loading') }}</span>
-                <p id="overview-insight-air-quality" class="overview-status-box__insight">{{ __('messages.dashboard_i18n.assessing_air_patterns') }}</p>
-              </article>
-              @if($smacaIsAdmin)
-              <article class="overview-status-box overview-status-box--info" id="overview-status-tile-connectivity" data-tone="info">
-                <div class="overview-status-box__topline">
-                  <span class="overview-status-box__module">
-                    <i class="overview-dot overview-dot--info"></i>{{ __('messages.nav.connectivity') }}
-                  </span>
-                  <span class="overview-status-chip overview-status-chip--info">{{ __('messages.status.stable') }}</span>
-                </div>
-                <span class="overview-status-box__value" id="overview-badge-connectivity">{{ __('messages.common.loading') }}</span>
-                <p id="overview-insight-connectivity" class="overview-status-box__insight">{{ __('messages.dashboard_i18n.validating_gateway_streams') }}</p>
-              </article>
-              @endif
-              <article class="overview-status-box overview-status-box--warning" id="overview-status-tile-occupancy" data-tone="warning">
-                <div class="overview-status-box__topline">
-                  <span class="overview-status-box__module">
-                    <i class="overview-dot overview-dot--warning"></i>{{ __('messages.nav.occupancy') }}
-                  </span>
-                  <span class="overview-status-chip overview-status-chip--warning">{{ __('messages.status.watch') }}</span>
-                </div>
-                <span class="overview-status-box__value" id="overview-badge-occupancy">{{ __('messages.common.loading') }}</span>
-                <p id="overview-insight-occupancy" class="overview-status-box__insight">{{ __('messages.dashboard_i18n.checking_activity_consistency') }}</p>
-              </article>
-              <article class="overview-status-box overview-status-box--accent" id="overview-status-tile-uv" data-tone="accent">
-                <div class="overview-status-box__topline">
-                  <span class="overview-status-box__module">
-                    <i class="overview-dot overview-dot--accent"></i>{{ __('messages.nav.environmental') }}
-                  </span>
-                  <span class="overview-status-chip overview-status-chip--accent">{{ __('messages.status.normal') }}</span>
-                </div>
-                <span class="overview-status-box__value" id="overview-badge-uv">{{ __('messages.common.loading') }}</span>
-                <p id="overview-insight-uv" class="overview-status-box__insight">{{ __('messages.dashboard_i18n.reviewing_exposure_trends') }}</p>
-              </article>
-            </div>
-          </section>
-        </div>
-        @if($smacaIsAdmin)
-          <div class="overview-live-telemetry">
-            <div class="overview-live-telemetry__item">
-              <span class="overview-live-telemetry__label">{{ __('messages.dashboard_i18n.live_stream_state') }}</span>
-              <span id="overview-live-streams-status" class="overview-live-telemetry__value data-status-pill data-status-pill--live">{{ __('messages.dashboard_i18n.live_streams') }}: --</span>
-            </div>
-            <div class="overview-live-telemetry__item">
-              <span class="overview-live-telemetry__label">{{ __('messages.common.data_freshness') }}</span>
-              <span id="overview-data-freshness" class="overview-live-telemetry__value overview-chip">{{ __('messages.common.data_freshness') }}: --</span>
-            </div>
-            <div class="overview-live-telemetry__item">
-              <span class="overview-live-telemetry__label">{{ __('messages.dashboard.last_update') }}</span>
-              <span id="overview-last-sync" class="overview-live-telemetry__value last-updated-pill">{{ __('messages.dashboard.last_update') }}: --</span>
-            </div>
-          </div>
-        @else
-          <p class="overview-live-note">{{ __('messages.dashboard_i18n.campus_conditions_normal') }}</p>
-        @endif
-      </div>
-    </section>
-
-    <aside class="overview-side-stack">
-      <section class="card overview-air-score-card">
-        <div class="card__header">
-          <h3 class="card__title">{{ __('messages.nav.iaq') }} {{ __('messages.dashboard_i18n.score') }}</h3>
-        </div>
-        <div class="card__body overview-air-score-body">
-          <div class="overview-gauge">
-            <div class="overview-gauge__ring">
-              <svg class="overview-gauge__svg" viewBox="0 0 132 132" aria-hidden="true">
-                <circle class="overview-gauge__track" cx="66" cy="66" r="52"></circle>
-                <circle id="overview-air-score-progress" class="overview-gauge__progress" cx="66" cy="66" r="52"></circle>
-              </svg>
-              <div class="overview-gauge__center">
-                <div id="overview-air-score-value" class="overview-gauge__value">--</div>
-                <div class="overview-gauge__label">{{ __('messages.dashboard_i18n.iaq_index') }}</div>
-              </div>
-            </div>
-          </div>
-          <p id="overview-air-score-meta" class="overview-air-score-meta">{{ __('messages.dashboard_i18n.awaiting_live_iaq_data') }}</p>
-        </div>
-      </section>
-
-      @if($smacaIsAdmin)
-        <section class="card overview-stability-card">
-          <div class="card__header">
-            <h3 class="card__title">{{ __('messages.common.health') }}</h3>
-          </div>
-          <div class="card__body">
-            <div class="stat-row"><span class="stat-row__label">{{ __('messages.dashboard.sensors') }} Online</span><span id="overview-sensors-online" class="stat-row__value">--</span></div>
-            <div class="stat-row"><span class="stat-row__label">{{ __('messages.common.data_freshness') }}</span><span id="overview-data-freshness-admin" class="stat-row__value">--</span></div>
-            <div class="stat-row"><span class="stat-row__label">{{ __('messages.dashboard.alerts') }} (24h)</span><span id="overview-ai-events" class="stat-row__value">--</span></div>
-          </div>
-        </section>
-      @endif
-    </aside>
-  </div>
-
+  {{-- The legacy "Campus live status" + status groups + Health card +
+       Module activity sidebar all duplicated information that is now
+       answered more clearly by the new top telemetry section
+       (module-health bars, sensor-status donut, alerts/stalest/top-CO₂ tiles).
+       Kept the IAQ Score gauge (still unique) and the campus trend chart
+       (timeseries view, complementary to the snapshot tiles above). --}}
   <div class="overview-middle-grid {{ $smacaIsAdmin ? '' : 'overview-middle-grid--single' }}">
     <section class="card overview-trend-card">
       <div class="card__header">
@@ -238,6 +71,7 @@
           </svg>
           <h3 class="card__title">{{ __('messages.nav.dashboard') }}</h3>
         </div>
+        <p class="card__subtitle">{{ app()->getLocale() === 'el' ? 'Συνολική πορεία CO₂, κίνησης, σύνδεσης και UV στο επιλεγμένο διάστημα.' : 'Combined CO₂, movement, connectivity and UV across the selected timeframe.' }}</p>
       </div>
       <div class="card__body">
         <div class="overview-chart-shell" aria-label="{{ __('messages.nav.dashboard') }} chart">
@@ -248,43 +82,32 @@
             <span><i class="overview-dot overview-dot--warning"></i> UV Index</span>
           </div>
           <div id="overview-campus-trend-chart" class="overview-chart-shell__plot overview-live-chart" role="img" aria-label="Campus trend line chart showing CO₂, occupancy, and connectivity over time"></div>
-          <p class="overview-chart-shell__helper">Trends are aggregated hourly from live campus telemetry in the selected time range.</p>
+          <p class="overview-chart-shell__helper">{{ app()->getLocale() === 'el' ? 'Οι τάσεις υπολογίζονται ωριαίως από τη ζωντανή τηλεμετρία στο επιλεγμένο διάστημα.' : 'Trends are aggregated hourly from live campus telemetry in the selected time range.' }}</p>
         </div>
       </div>
     </section>
 
-    @if($smacaIsAdmin)
-      <aside class="card overview-module-activity-card">
-        <div class="card__header">
-          <div class="card__header-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v18m14-18v18M3 7h18M3 17h18"></path>
+    <aside class="card overview-air-score-card">
+      <div class="card__header">
+        <h3 class="card__title">{{ __('messages.nav.iaq') }} {{ __('messages.dashboard_i18n.score') }}</h3>
+        <p class="card__subtitle">{{ app()->getLocale() === 'el' ? 'Συνολικός δείκτης ποιότητας αέρα από όλους τους αισθητήρες IAQ.' : 'Overall air-quality score across all IAQ sensors.' }}</p>
+      </div>
+      <div class="card__body overview-air-score-body">
+        <div class="overview-gauge">
+          <div class="overview-gauge__ring">
+            <svg class="overview-gauge__svg" viewBox="0 0 132 132" aria-hidden="true">
+              <circle class="overview-gauge__track" cx="66" cy="66" r="52"></circle>
+              <circle id="overview-air-score-progress" class="overview-gauge__progress" cx="66" cy="66" r="52"></circle>
             </svg>
-            <h3 class="card__title">{{ __('messages.dashboard.sensors') }}</h3>
-          </div>
-        </div>
-        <div class="card__body">
-          <div class="overview-module-activity-list">
-            <div class="overview-module-activity-item">
-              <span class="overview-module-activity-item__label">{{ __('messages.nav.iaq') }}</span>
-              <span id="overview-module-status-iaq" class="overview-module-activity-item__status overview-module-activity-item__status--active">--</span>
-            </div>
-            <div class="overview-module-activity-item">
-              <span class="overview-module-activity-item__label">{{ __('messages.nav.environmental') }}</span>
-              <span id="overview-module-status-environmental" class="overview-module-activity-item__status overview-module-activity-item__status--stable">--</span>
-            </div>
-            <div class="overview-module-activity-item">
-              <span class="overview-module-activity-item__label">{{ __('messages.nav.occupancy') }}</span>
-              <span id="overview-module-status-occupancy" class="overview-module-activity-item__status overview-module-activity-item__status--warning">--</span>
-            </div>
-            <div class="overview-module-activity-item">
-              <span class="overview-module-activity-item__label">{{ __('messages.nav.connectivity') }}</span>
-              <span id="overview-module-status-connectivity" class="overview-module-activity-item__status overview-module-activity-item__status--stable">--</span>
+            <div class="overview-gauge__center">
+              <div id="overview-air-score-value" class="overview-gauge__value">--</div>
+              <div class="overview-gauge__label">{{ __('messages.dashboard_i18n.iaq_index') }}</div>
             </div>
           </div>
         </div>
-      </aside>
-    @endif
+        <p id="overview-air-score-meta" class="overview-air-score-meta">{{ __('messages.dashboard_i18n.awaiting_live_iaq_data') }}</p>
+      </div>
+    </aside>
   </div>
 
   <section class="card overview-quick-access">

@@ -1603,6 +1603,9 @@
   gap: var(--space-6);
 }
 
+/* The legacy `.overview-kpi-grid` block has been removed from the
+   rendered DOM; the rule below is kept defensively in case any third
+   party page still emits it, so the spacing remains consistent. */
 .overview-kpi-grid {
   margin-bottom: 0;
 }
@@ -3805,6 +3808,35 @@
 .smaca-tg--5 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 .smaca-tg--6 { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
 
+/* Rich grid: explicit 12-col layout that supports wide tile spans
+   for chart-bearing cards on dense pages. Always falls back to
+   smaller column counts on narrower viewports via the responsive
+   collapse below. */
+.smaca-tg--rich {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  grid-auto-flow: row dense;
+}
+
+/* Each row inside a rich grid stretches all tiles to equal height,
+   so a chart panel and a value tile sit on the same baseline. */
+.smaca-tg--rich > * {
+  align-self: stretch;
+  min-height: 0;
+}
+
+.smaca-tile--w1  { grid-column: span 1;  }
+.smaca-tile--w2  { grid-column: span 2;  }
+.smaca-tile--w3  { grid-column: span 3;  }
+.smaca-tile--w4  { grid-column: span 4;  }
+.smaca-tile--w5  { grid-column: span 5;  }
+.smaca-tile--w6  { grid-column: span 6;  }
+.smaca-tile--w7  { grid-column: span 7;  }
+.smaca-tile--w8  { grid-column: span 8;  }
+.smaca-tile--w9  { grid-column: span 9;  }
+.smaca-tile--w12 { grid-column: span 12; }
+
 /* Single tile — compact, premium, fixed height for clean alignment. */
 .smaca-tile {
   position: relative;
@@ -3983,21 +4015,187 @@
   color: rgba(148, 163, 184, 0.85);
 }
 
-/* Responsive collapse — phones get 2-col, tablets 3-col, narrow laptops 4-col */
+/* Chart-bearing tile — taller, hosts a Highcharts micro-chart */
+.smaca-tile--chart {
+  min-height: 140px;
+  padding: 12px 14px 10px;
+}
+
+.smaca-tile--chart .smaca-tile__chart {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 6px;
+}
+
+.smaca-tile__chart-legend {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.75);
+  flex: 0 0 auto;
+}
+
+/* Intentional empty state — never blank, always reads as "we know" */
+.smaca-tile--empty {
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.55) 0%, rgba(15, 23, 42, 0.35) 100%);
+  border-color: rgba(148, 163, 184, 0.08);
+}
+
+.smaca-tile--empty::before {
+  background: radial-gradient(circle at top right, rgba(148, 163, 184, 0.05), transparent 55%);
+}
+
+.smaca-tile__empty-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: rgba(148, 163, 184, 0.65);
+}
+
+.smaca-tile__empty-glyph {
+  flex: 0 0 auto;
+  color: rgba(148, 163, 184, 0.55);
+}
+
+.smaca-tile__empty-text {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+/* Comparison bars — pollutant vs threshold, used in IAQ tile */
+.smaca-comparison-bars {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.smaca-cb__row {
+  display: grid;
+  grid-template-columns: 70px 1fr 56px;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.smaca-cb__label {
+  color: rgba(226, 232, 240, 0.85);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.smaca-cb__value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: rgba(226, 232, 240, 0.95);
+  font-weight: 600;
+}
+
+.smaca-cb__row[data-tone="critical"] .smaca-cb__value { color: #f87171; }
+.smaca-cb__row[data-tone="warning"]  .smaca-cb__value { color: #fbbf24; }
+.smaca-cb__row[data-tone="good"]     .smaca-cb__value { color: #34d399; }
+
+/* Ranking bars — top-N entities, used by Occupancy/Energy/Connectivity */
+.smaca-rank-bars {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.smaca-rank-bars__row {
+  display: grid;
+  grid-template-columns: 90px 1fr 60px;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.smaca-rank-bars__label {
+  color: rgba(226, 232, 240, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.smaca-rank-bars__bar {
+  height: 6px;
+  background: rgba(148, 163, 184, 0.10);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.smaca-rank-bars__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 280ms ease;
+}
+
+.smaca-rank-bars__value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: rgba(226, 232, 240, 0.92);
+  font-weight: 600;
+}
+
+/* Bullet host inside a tile — a thin band underneath the value */
+.smaca-tile .smaca-bullet {
+  margin-top: 4px;
+}
+
+.smaca-bullet__legend {
+  margin-top: 4px;
+  font-size: 10px;
+  color: rgba(148, 163, 184, 0.85);
+  letter-spacing: 0.02em;
+}
+
+/* ------------------------------------------------------------------ *
+ * Responsive collapse for telemetry grids.
+ * Desktop:  12-col rich grid keeps explicit spans.
+ * Laptop:   6-col rich grid (spans halve).
+ * Tablet:   3-col rich grid (spans collapse to 1/3).
+ * Phone:    2-col rich grid (every span = full row).
+ * ------------------------------------------------------------------ */
+
 @media (max-width: 540px) {
   .smaca-tg,
   .smaca-tg--3,
   .smaca-tg--4,
   .smaca-tg--5,
-  .smaca-tg--6 {
+  .smaca-tg--6,
+  .smaca-tg--rich {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
+  .smaca-tile--w1,
+  .smaca-tile--w2,
+  .smaca-tile--w3,
+  .smaca-tile--w4,
+  .smaca-tile--w5,
+  .smaca-tile--w6,
+  .smaca-tile--w7,
+  .smaca-tile--w8,
+  .smaca-tile--w9,
+  .smaca-tile--w12 { grid-column: span 2; }
   .smaca-tile {
     min-height: 84px;
     padding: 10px 12px;
   }
   .smaca-tile__value-number { font-size: 19px; }
+  .smaca-tile--chart { min-height: 120px; }
+  .smaca-cb__row,
+  .smaca-rank-bars__row {
+    grid-template-columns: 60px 1fr 50px;
+  }
 }
 
 @media (min-width: 541px) and (max-width: 900px) {
@@ -4008,6 +4206,35 @@
   .smaca-tg--6 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  .smaca-tg--rich {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .smaca-tile--w1,
+  .smaca-tile--w2,
+  .smaca-tile--w3 { grid-column: span 1; }
+  .smaca-tile--w4,
+  .smaca-tile--w5,
+  .smaca-tile--w6 { grid-column: span 2; }
+  .smaca-tile--w7,
+  .smaca-tile--w8,
+  .smaca-tile--w9,
+  .smaca-tile--w12 { grid-column: span 3; }
+}
+
+@media (min-width: 901px) and (max-width: 1099px) {
+  .smaca-tg--rich {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .smaca-tile--w1 { grid-column: span 1; }
+  .smaca-tile--w2 { grid-column: span 1; }
+  .smaca-tile--w3 { grid-column: span 2; }
+  .smaca-tile--w4 { grid-column: span 2; }
+  .smaca-tile--w5 { grid-column: span 3; }
+  .smaca-tile--w6 { grid-column: span 3; }
+  .smaca-tile--w7 { grid-column: span 4; }
+  .smaca-tile--w8 { grid-column: span 4; }
+  .smaca-tile--w9 { grid-column: span 5; }
+  .smaca-tile--w12 { grid-column: span 6; }
 }
 
 @media (min-width: 1100px) and (max-width: 1399px) {
@@ -4197,5 +4424,107 @@
   .grid--metrics-4 > .stat-card .stat-card__value {
     font-size: clamp(1.5rem, 1.7vw, 1.9rem);
   }
+}
+
+/* ---- Legacy 4-up KPI grids (#energy-kpi-grid, #environmental-kpi-grid,
+   .overview-kpi-grid) have been removed from the rendered Blade output
+   because the new top telemetry section already covers their information
+   more clearly. Inert <span> anchors with the same IDs are kept inside
+   `[data-smaca-legacy-*-anchors]` containers so any pre-existing JS that
+   still calls `getElementById` for those IDs does not throw. The hide
+   helper below ensures those anchor containers stay invisible no matter
+   what styles the legacy bootstrap might re-apply to them. */
+[data-smaca-legacy-overview-anchors],
+[data-smaca-legacy-energy-anchors],
+[data-smaca-legacy-env-anchors] {
+  display: none !important;
+}
+
+/* ---- Chart-tile equal-height row helper.
+   When two chart tiles sit side-by-side in a rich grid, this keeps
+   their rendered heights matched even when their content is async. */
+.smaca-tg--rich .smaca-tile--chart {
+  min-height: 220px;
+}
+
+@media (min-width: 1100px) and (max-width: 1399px) {
+  .smaca-tg--rich .smaca-tile--chart {
+    min-height: 200px;
+  }
+}
+
+@media (max-width: 900px) {
+  .smaca-tg--rich .smaca-tile--chart {
+    min-height: 180px;
+  }
+}
+
+/* When a heat-strip column tile shows the daily axis (7d / 30d) we
+   need a little more breathing room for the date labels. The
+   renderHeatStripColumn helper enforces the chart height; this rule
+   makes sure the surrounding tile container does not clip them. */
+.smaca-tg--rich .smaca-tile--chart:has(.smaca-tile__chart-body .highcharts-xaxis-labels) {
+  min-height: 230px;
+}
+
+/* Equal-height row helper for the "rich" telemetry grids. Without this
+   the third / fourth tile in a row could collapse to its content height
+   while the first chart tile stretches to ~220px, creating the visual
+   imbalance the user reported. */
+.smaca-tg--rich {
+  align-items: stretch;
+}
+.smaca-tg--rich > [class*="smaca-tile--w"] {
+  display: flex;
+  flex-direction: column;
+}
+.smaca-tg--rich > [class*="smaca-tile--w"] > * {
+  flex: 1 1 auto;
+}
+
+/* Sparse-data note (`renderSparseDataNote`) — placed above large legacy
+   charts when most timeframe buckets are empty. */
+.smaca-sparse-data-note {
+  margin-top: 0;
+}
+.smaca-sparse-data-note + .chart-placeholder {
+  margin-top: 0;
+}
+
+/* ---- Page rhythm — uniform vertical spacing between dashboard sections.
+   Keeps the page feeling like one cockpit, not a stack of cards. */
+.dashboard-section .smaca-telemetry-card + .smaca-telemetry-card,
+.dashboard-section .smaca-telemetry-card + .card,
+.dashboard-section .card + .smaca-telemetry-card {
+  margin-top: var(--space-4);
+}
+
+/* ---- Explanatory subtitle inside chart-tile cards.
+   Sits right under the tile title so the reader knows what the
+   chart shows before they scan the values. */
+.smaca-tile__subtitle {
+  margin: 0 0 6px 0;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: rgba(148, 163, 184, 0.78);
+  letter-spacing: 0.01em;
+}
+
+/* ---- Compact unit chip next to the tile title — surfaces the
+   unit (e.g. "kWh", "ppm", "%") so the chart axis can stay clean. */
+.smaca-tile__chart-unit {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  margin-left: 6px;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.10);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  color: rgba(226, 232, 240, 0.85);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 

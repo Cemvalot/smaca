@@ -226,10 +226,87 @@ function setCurrentPageLoadingState(isLoading) {
   else hideDashboardLoadingOverlay(page);
 }
 
+// Show or hide a small "sparse data" hint above a chart container when the
+// values populate only a tiny slice of the timeframe. The note prevents
+// 30d charts from looking like they pile data on the far right without
+// telling the user that the rest of the window genuinely had no readings.
+//   - `valuesWithData` is the count of buckets that have a real value.
+//   - `totalBuckets` is the total bucket count in the timeframe.
+// We only show the hint when there is some data AND less than 35% of
+// buckets are populated. The hint is appended once per chart container and
+// auto-removed when the chart re-renders into a non-sparse state.
+function renderSparseDataNote(containerId, valuesWithData, totalBuckets, timeframe) {
+  const el = document.getElementById(containerId);
+  if (!el || !el.parentNode) return;
+  const noteId = containerId + '__sparse-note';
+  const existing = document.getElementById(noteId);
+  const total = Number(totalBuckets) || 0;
+  const populated = Number(valuesWithData) || 0;
+  const ratio = total > 0 ? (populated / total) : 0;
+  const isSparse = total >= 7 && populated > 0 && ratio < 0.35;
+  if (!isSparse) {
+    if (existing) existing.remove();
+    return;
+  }
+  const window_ = (typeof window !== 'undefined') ? window : null;
+  const tfText = timeframe === '7d' ? smacaT('last_7_days', 'last 7 days')
+              : timeframe === '30d' ? smacaT('last_30_days', 'last 30 days')
+              : smacaT('selected_window', 'selected window');
+  const html =
+    '<div style="display:flex;align-items:center;gap:8px;margin:0 0 var(--space-2);' +
+    'padding:6px 10px;border-radius:8px;font-size:11px;color:#cbd5e1;' +
+    'background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+      ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M12 9v4"/><path d="M12 17h.01"/>' +
+        '<path d="M10.3 3.7L1.5 19a2 2 0 001.7 3h17.6a2 2 0 001.7-3L13.7 3.7a2 2 0 00-3.4 0z"/>' +
+      '</svg>' +
+      '<span><strong style="color:#fbbf24;">' +
+        smacaT('sparse_data', 'Sparse data') +
+      '</strong> · ' +
+      smacaT('sparse_data_explain', 'Only ') +
+      populated + '/' + total + ' ' +
+      smacaT('buckets_have_data', 'buckets have data — empty stretches reflect missing readings, not chart errors.') +
+      ' (' + tfText + ')' +
+      '</span>' +
+    '</div>';
+  if (existing) {
+    existing.innerHTML = html;
+  } else {
+    const note = document.createElement('div');
+    note.id = noteId;
+    note.className = 'smaca-sparse-data-note';
+    note.innerHTML = html;
+    el.parentNode.insertBefore(note, el);
+  }
+}
+
 function renderEmptyState(containerId, message) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  el.innerHTML = `<div style="color: var(--muted); text-align: center; padding: var(--space-6);">${message || smacaT('no_data_available','No data available')}</div>`;
+  const text = message || smacaT('no_data_available','No data available');
+  // Designed empty-state: a centred dim icon + headline + reason, instead
+  // of a bare blank Highcharts area. Keeps the dark SMACA look-and-feel
+  // and gives the user a visible reason when no data is available.
+  el.innerHTML =
+    '<div class="smaca-chart-empty" role="status" aria-live="polite"' +
+    ' style="display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+    'gap:8px;min-height:180px;padding:24px 16px;color:var(--muted);text-align:center;' +
+    'border:1px dashed rgba(148,163,184,0.18);border-radius:12px;' +
+    'background:rgba(15,23,42,0.35);">' +
+      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+      ' stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' +
+      ' style="opacity:0.55;">' +
+        '<rect x="3" y="3" width="18" height="18" rx="3"/>' +
+        '<line x1="9" y1="9" x2="15" y2="9"/>' +
+        '<line x1="9" y1="13" x2="15" y2="13"/>' +
+        '<line x1="9" y1="17" x2="13" y2="17"/>' +
+      '</svg>' +
+      '<div style="font-size:12px;font-weight:600;letter-spacing:0.02em;color:rgba(226,232,240,0.85);">' +
+        smacaT('no_data_available','No data available') +
+      '</div>' +
+      '<div style="font-size:11px;color:rgba(148,163,184,0.85);max-width:360px;">' + text + '</div>' +
+    '</div>';
 }
 
 function renderCurrentPageFailureState(page) {
@@ -3503,6 +3580,12 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     const lowercaseLocation = sensorLocation.toLowerCase();
     if (lowercaseName.includes('test') || lowercaseName.includes('mock')) return false;
     if (lowercaseLocation.includes('test') || lowercaseLocation.includes('mock')) return false;
+    // Reject the historical "Default Site" placeholder. Older readings
+    // (before the spatial taxonomy was wired up) used `sensor_location =
+    // 'Default Site'` and `sensor_name = 'Sensor <uid>'`. Including those
+    // pollutes per-location aggregates with a fake area bucket.
+    if (lowercaseLocation === 'default site') return false;
+    if (/^sensor\s+\w+/.test(sensorName) && lowercaseLocation === 'default site') return false;
     return true;
   };
 
@@ -3806,6 +3889,15 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     trendValues: trendValues
   });
   recreatedMainChart = recreatedMainChart || !!(mainRendered && mainRendered.recreated);
+
+  // Visual fairness: when data exists only in a tiny slice of the window
+  // (e.g. 30d view but only the last 4 days have readings), surface a
+  // banner so the empty left side is clearly explained rather than read
+  // as "the chart is broken".
+  const energyPopulatedBuckets = energyValues.filter(function (v) {
+    return Number.isFinite(Number(v));
+  }).length;
+  renderSparseDataNote(mainChartId, energyPopulatedBuckets, energyValues.length, timeframe);
 
   // Enforce a safe lifecycle pass after timeframe transitions.
   const mainChart = window.__smacaHighchartsStore?.charts?.['energy-main-combined'] || null;
@@ -4719,6 +4811,28 @@ function renderOverviewTrendChart(filteredData, timeframe) {
       { key: 'uv', label: 'UV', unit: '', color: '#f59e0b', values: uvSeries }
     ]
   });
+
+  // Surface a sparse-data note if most buckets are empty across all four
+  // tracked series. We count a bucket as "populated" if at least one
+  // series has a finite value at that index — this matches what the
+  // SVG line chart actually renders.
+  const populatedCount = buckets.reduce(function (acc, _ts, idx) {
+    const hasAny = Number.isFinite(co2Series[idx])
+      || Number.isFinite(occupancySeries[idx])
+      || Number.isFinite(connectivitySeries[idx])
+      || Number.isFinite(uvSeries[idx]);
+    return acc + (hasAny ? 1 : 0);
+  }, 0);
+  renderSparseDataNote('overview-campus-trend-chart', populatedCount, buckets.length, timeframe);
+
+  if (typeof window !== 'undefined') {
+    window.__overviewTrendDebug = {
+      timeframe: timeframe,
+      bucketCount: buckets.length,
+      populatedCount: populatedCount,
+      seriesKeys: ['co2', 'occupancy', 'connectivity', 'uv']
+    };
+  }
 }
 
 function getOverviewChartBucketMs(timeframe) {

@@ -170,19 +170,33 @@ Route::get('/api/sensors', function () {
     // per-row map() cheap and avoids re-resolving the active locale.
     $spatial = new SpatialService();
 
+    // Treat the historical "Default Site" placeholder (and null / empty) as
+    // "no real spatial code" so the dashboard doesn't render it as if it were
+    // a configured location. This is purely a presentation-layer cleanup —
+    // the underlying readings rows are untouched.
+    $sanitizeLocation = static function ($raw): ?string {
+        if ($raw === null) return null;
+        $trimmed = trim((string) $raw);
+        if ($trimmed === '' || strcasecmp($trimmed, 'Default Site') === 0) {
+            return null;
+        }
+        return $trimmed;
+    };
+
     return response()->json([
-        'rows' => $rows->map(function ($row) use ($spatial) {
+        'rows' => $rows->map(function ($row) use ($spatial, $sanitizeLocation) {
+            $location = $sanitizeLocation($row->latest_sensor_location);
             return [
                 'id' => $row->id,
                 'sensor_uid' => $row->sensor_uid,
                 'name' => $row->name,
                 'sensor_name' => $row->latest_sensor_name ?: $row->name,
-                'sensor_location' => $row->latest_sensor_location,
+                'sensor_location' => $location,
                 // Human-readable label for the location code (e.g. "F0" →
                 // "Ground Floor"). Frontend / exports prefer this over the
                 // raw code; the raw code stays as technical metadata.
-                'sensor_location_label' => $row->latest_sensor_location
-                    ? $spatial->labelFor($row->latest_sensor_location)
+                'sensor_location_label' => $location
+                    ? $spatial->labelFor($location)
                     : null,
                 'device_type' => $row->device_type,
                 'is_active' => $row->is_active,
@@ -238,15 +252,21 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
 
     $spatial = new SpatialService();
 
+    $rawLoc = $row->latest_sensor_location;
+    $trimmedLoc = $rawLoc === null ? null : trim((string) $rawLoc);
+    $location = ($trimmedLoc === null || $trimmedLoc === '' || strcasecmp($trimmedLoc, 'Default Site') === 0)
+        ? null
+        : $trimmedLoc;
+
     return response()->json([
         'row' => [
             'id' => $row->id,
             'sensor_uid' => $row->sensor_uid,
             'name' => $row->name,
             'sensor_name' => $row->latest_sensor_name ?: $row->name,
-            'sensor_location' => $row->latest_sensor_location,
-            'sensor_location_label' => $row->latest_sensor_location
-                ? $spatial->labelFor($row->latest_sensor_location)
+            'sensor_location' => $location,
+            'sensor_location_label' => $location
+                ? $spatial->labelFor($location)
                 : null,
             'device_type' => $row->device_type,
             'is_active' => $row->is_active,
@@ -448,6 +468,156 @@ Route::get('/api/spatial/locations', function (Request $request) {
             ],
             'degraded' => true,
         ]);
+    }
+});
+
+// -----------------------------------------------------------------------------
+// Admin-only timeframe / aggregation validation endpoint.
+//
+// For each module + timeframe combination, returns the actual SQL-level row
+// count, min / max measured_at inside the window, the bucket size that should
+// be used, and which source table the chart code is supposed to use. Also
+// reports the per-sensor delta sums for cumulative metrics so it is easy to
+// confirm by hand that an energy chart shows non-zero kWh for 7d or 30d.
+//
+// Read-only. Safe to call repeatedly. Honours the `excludeBadLocation` filter
+// so the row count matches what the dashboard sees.
+// -----------------------------------------------------------------------------
+Route::get('/api/admin/timeframe-validate', function (Request $request) {
+    if ((string) session('role', '') !== 'admin') {
+        return response()->json(['message' => 'Forbidden'], 403);
+    }
+
+    try {
+        $schema = DB::getSchemaBuilder();
+        $hasReadings = $schema->hasTable('readings');
+        if (!$hasReadings) {
+            return response()->json(['message' => 'readings table missing', 'degraded' => true], 200);
+        }
+
+        $hasMeasuredAt = $schema->hasColumn('readings', 'measured_at');
+        $hasLocation   = $schema->hasColumn('readings', 'sensor_location');
+        $hasUid        = $schema->hasColumn('readings', 'sensor_uid');
+        $hasSid        = $schema->hasColumn('readings', 'sensor_id');
+        $scopeCol      = $hasUid ? 'sensor_uid' : ($hasSid ? 'sensor_id' : null);
+
+        $timeframes = ['24h', '7d', '30d'];
+        $modules = [
+            'iaq'           => ['readings_metric' => 'co2_ppm',    'agg' => 'AVG',   'source' => 'readings.measured_at'],
+            'occupancy'     => ['readings_metric' => 'people_total_in', 'agg' => 'DELTA', 'source' => 'readings.measured_at'],
+            'energy'        => ['readings_metric' => 'energy_kwh', 'agg' => 'DELTA', 'source' => 'readings.measured_at'],
+            'environmental' => ['readings_metric' => 'uv_index',   'agg' => 'AVG',   'source' => 'readings.measured_at'],
+        ];
+
+        $location = $request->query('location');
+        $location = is_string($location) && trim($location) !== '' ? strtoupper(trim($location)) : null;
+
+        $results = [];
+        foreach ($timeframes as $tf) {
+            [$resolvedTf, $from] = smacaApiParseTimeframe($tf);
+            if (!$from) continue;
+
+            foreach ($modules as $modKey => $cfg) {
+                $metric = $cfg['readings_metric'];
+                $agg = $cfg['agg'];
+
+                $row = [
+                    'module' => $modKey,
+                    'timeframe' => $resolvedTf,
+                    'metric' => $metric,
+                    'aggregation' => $agg,
+                    'source_table' => 'readings',
+                    'window_start' => smacaApiIso($from),
+                    'window_end' => smacaApiIso(\Carbon\Carbon::now('Europe/Athens')),
+                    'row_count' => null,
+                    'min_measured_at' => null,
+                    'max_measured_at' => null,
+                    'distinct_days' => null,
+                    'expected_bucket' => $tf === '24h' ? 'hourly (24)' : ($tf === '7d' ? 'daily (7)' : 'daily (30)'),
+                    'distinct_sensor_count' => null,
+                    'metric_total_delta' => null,   // only for DELTA metrics
+                    'avg_metric_value' => null,     // only for AVG metrics
+                    'note' => null,
+                ];
+
+                if (!$hasMeasuredAt || !$schema->hasColumn('readings', $metric)) {
+                    $row['note'] = 'metric or measured_at column missing';
+                    $results[] = $row;
+                    continue;
+                }
+
+                try {
+                    // Total row count + min/max measured_at + distinct days inside window.
+                    $base = DB::table('readings')
+                        ->where('measured_at', '>=', $from)
+                        ->whereNotNull($metric);
+                    if ($location && $hasLocation) {
+                        $base->where('sensor_location', $location);
+                    }
+                    smacaApiExcludeBadLocation($base);
+
+                    $stats = (clone $base)
+                        ->selectRaw('COUNT(*) as cnt')
+                        ->selectRaw('MIN(measured_at) as min_at')
+                        ->selectRaw('MAX(measured_at) as max_at')
+                        ->selectRaw('COUNT(DISTINCT DATE(measured_at)) as days')
+                        ->first();
+                    $row['row_count'] = (int) ($stats->cnt ?? 0);
+                    $row['min_measured_at'] = smacaApiIso($stats->min_at ?? null);
+                    $row['max_measured_at'] = smacaApiIso($stats->max_at ?? null);
+                    $row['distinct_days'] = (int) ($stats->days ?? 0);
+
+                    if ($scopeCol) {
+                        $row['distinct_sensor_count'] = (int) (clone $base)
+                            ->distinct()
+                            ->count($scopeCol);
+                    }
+
+                    if ($agg === 'DELTA' && $scopeCol) {
+                        $sub = (clone $base)
+                            ->select([
+                                $scopeCol,
+                                DB::raw('MAX(' . $metric . ') as mx'),
+                                DB::raw('MIN(' . $metric . ') as mn'),
+                            ])
+                            ->groupBy($scopeCol)
+                            ->get();
+                        $sum = 0.0;
+                        foreach ($sub as $r) {
+                            $delta = (float) ($r->mx ?? 0) - (float) ($r->mn ?? 0);
+                            $sum += max(0.0, $delta);
+                        }
+                        $row['metric_total_delta'] = round($sum, 3);
+                    } else {
+                        $row['avg_metric_value'] = (float) (clone $base)->avg($metric);
+                    }
+                } catch (\Throwable $e) {
+                    $row['note'] = 'query failed: ' . $e->getMessage();
+                }
+
+                $results[] = $row;
+            }
+        }
+
+        return response()->json([
+            'generated_at' => \Carbon\Carbon::now('Europe/Athens')->toIso8601String(),
+            'location_filter' => $location,
+            'schema' => [
+                'has_measured_at' => $hasMeasuredAt,
+                'has_sensor_location' => $hasLocation,
+                'scope_column' => $scopeCol,
+                'excludes_default_site' => true,
+            ],
+            'rows' => $results,
+        ]);
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/admin/timeframe-validate failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {}
+        return response()->json(['message' => 'Validation endpoint unavailable', 'degraded' => true], 200);
     }
 });
 

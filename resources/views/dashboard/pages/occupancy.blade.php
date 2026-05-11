@@ -41,13 +41,15 @@
               <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
             </div>
             <div class="card__body">
-              <div class="smaca-tg smaca-tg--6" data-smaca-telemetry="occupancy">
-                <div data-tile="latest-activity"></div>
-                <div data-tile="net-balance"></div>
-                <div data-tile="total-in"></div>
-                <div data-tile="total-out"></div>
-                <div data-tile="busiest"></div>
-                <div data-tile="movement-kpi"></div>
+              <div class="smaca-tg smaca-tg--rich" data-smaca-telemetry="occupancy">
+                <div data-tile="in-out-stacked"    class="smaca-tile--w6"></div>
+                <div data-tile="busiest-rank"      class="smaca-tile--w6"></div>
+                <div data-tile="hourly-activity"   class="smaca-tile--w8"></div>
+                <div data-tile="flow-donut"        class="smaca-tile--w4"></div>
+                <div data-tile="peak-hour"         class="smaca-tile--w3"></div>
+                <div data-tile="net-balance"       class="smaca-tile--w3"></div>
+                <div data-tile="total-events"      class="smaca-tile--w3"></div>
+                <div data-tile="freshness"         class="smaca-tile--w3"></div>
               </div>
             </div>
           </section>
@@ -72,15 +74,20 @@
           </div>
           @endif
           
-          <!-- Domain-Driven Visualizations -->
-          <div class="grid occupancy-primary-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6);">
-            <div class="card occupancy-primary-card">
+          {{-- Removed `occupancy-density-timeline` card: its hour-of-day
+               heatmap duplicated the hourly-activity heat-strip in the new
+               top telemetry section, and its area chart largely repeated
+               the activity line of the flow-over-time chart kept below.
+               Flow-over-time chart is unique (multi-bucket in/out columns
+               + activity line) and stays full-width. --}}
+          <div class="grid" style="grid-template-columns: 1fr; gap: var(--space-6);">
+            <div class="card">
               <div class="card__header">
                 <h3 class="card__title">{{ __('messages.dashboard_i18n.flow_over_time') }}</h3>
-                  <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.decision_traffic_highest') }}</p>
+                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.decision_traffic_highest') }}</p>
               </div>
-              <div class="card__body occupancy-primary-card__body">
-                <div class="chart-placeholder occupancy-primary-chart" id="occupancy-flow-chart"></div>
+              <div class="card__body">
+                <div class="chart-placeholder" id="occupancy-flow-chart" style="min-height: 320px;"></div>
                 <div class="smaca-accordion smaca-accordion--collapsed">
                   <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
                     <span>{{ __('messages.status.what_is_this_graph') }}</span>
@@ -101,31 +108,6 @@
                         <li><strong>Interpretation:</strong> Use column heights + activity line to spot bursts</li>
                       </ul>
                       <p><strong>How to read:</strong> Compare the green and orange columns to see whether the building is dominated by arrivals or departures. The blue line highlights when overall movement is strongest.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="card occupancy-primary-card">
-              <div class="card__header">
-                <h3 class="card__title">{{ __('messages.dashboard_i18n.activity_over_time') }}</h3>
-                  <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.decision_occupancy_highest') }}</p>
-              </div>
-              <div class="card__body occupancy-primary-card__body">
-                <div class="chart-placeholder occupancy-primary-chart" id="occupancy-density-timeline"></div>
-                <div class="smaca-accordion smaca-accordion--collapsed">
-                  <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-                    <span>{{ __('messages.status.what_is_this_graph') }}</span>
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                  </button>
-                  <div class="smaca-accordion__body" hidden>
-                    <div class="accordion-content">
-                      <p><strong>Y-axis (Vertical):</strong></p>
-                      <ul>
-                        <li><strong>Blue area:</strong> Estimated people present in the bucket</li>
-                        <li><strong>Peak regions:</strong> Indicate higher occupancy density over time</li>
-                      </ul>
-                      <p><strong>Pattern heatmap (below the area):</strong> Recurring activity by hour-of-day. Hover a cell to see the aggregated activity for that hour.</p>
                     </div>
                   </div>
                 </div>

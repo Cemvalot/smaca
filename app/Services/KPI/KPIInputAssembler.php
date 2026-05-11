@@ -75,6 +75,12 @@ class KPIInputAssembler
                 if ($schema->hasColumn('sensor_latest', 'energy_kwh')) {
                     $latestSelects[] = 'AVG(energy_kwh) as avg_energy_kwh';
                 }
+                if ($schema->hasColumn('sensor_latest', 'uv_index')) {
+                    $latestSelects[] = 'AVG(uv_index) as avg_uv_index';
+                }
+                if ($schema->hasColumn('sensor_latest', 'solar_radiation')) {
+                    $latestSelects[] = 'AVG(solar_radiation) as avg_solar_radiation';
+                }
                 if ($schema->hasColumn('sensor_latest', 'people_total_in') && $schema->hasColumn('sensor_latest', 'people_total_out')) {
                     $latestSelects[] = 'AVG(COALESCE(people_total_in, 0) - COALESCE(people_total_out, 0)) as avg_people_present';
                 }
@@ -161,9 +167,16 @@ class KPIInputAssembler
                 // Some VS350 ingest paths store UV on a generic modbus channel.
                 $readingsSelects[] = 'AVG(modbus_chn_1) as avg_modbus_chn_1';
             }
-            if ($schema->hasColumn('readings', 'energy_kwh')) {
-                $readingsSelects[] = 'AVG(energy_kwh) as avg_energy_kwh_recent';
-            }
+            // NOTE: we deliberately do NOT do `AVG(energy_kwh)` here.
+            // `energy_kwh` is a CUMULATIVE meter reading, so the average has no
+            // physical meaning. The total kWh actually consumed inside the
+            // window is computed below via per-sensor MAX − MIN deltas. The
+            // legacy `avg_energy_kwh` field is then derived as
+            //   avg kW = total_kwh_window / timeframe_hours
+            // so downstream KPI math (`normalized_energy_intensity`,
+            // `base_load_index`) keeps a consistent, dimensionally-correct
+            // input.
+            //
             // NOTE: we deliberately stop AVG'ing (people_total_in - people_total_out).
             // Those are cumulative lifetime counters, NOT a "people present"
             // signal; averaging them produced absurd densities (e.g. 455×).
@@ -179,12 +192,29 @@ class KPIInputAssembler
                     ->selectRaw(implode(', ', $readingsSelects))
                     ->where('measured_at', '>=', $currentWindowStart);
                 $this->applyReadingsScope($q, $readingsScopeColumn, $sensorIdsScoped, $sensorIds, $sensorUidsScoped, $sensorUids);
+                $this->excludeBadLocation($q, $schema);
                 $currentReadings = $q->first();
             }
         } catch (\Throwable $e) {
             $this->safeLogWarning('KPIInputAssembler: 24h readings query failed', $e);
             $currentReadings = null;
         }
+
+        // ----- energy (per-sensor MAX-MIN deltas, summed) ------------------
+        // `energy_kwh` is a cumulative meter; the right semantics for "total
+        // energy consumed in the window" is per-sensor MAX-MIN, clamped to
+        // [0, MAX_DELTA_PER_METER] to absorb counter resets/rollovers.
+        $totalEnergyKwhWindow = $this->sumPerSensorDeltaInWindow(
+            $schema,
+            'energy_kwh',
+            $currentWindowStart,
+            $readingsScopeColumn,
+            $sensorIdsScoped,
+            $sensorIds,
+            $sensorUidsScoped,
+            $sensorUids,
+            500000.0  // 500k kWh per meter per window: very generous safety cap
+        );
 
         // ----- movement (per-sensor deltas, summed) -------------------------
         // people_total_in / people_total_out are cumulative lifetime counters
@@ -214,6 +244,7 @@ class KPIInputAssembler
                     ->whereNotNull('people_total_in')
                     ->groupBy($readingsScopeColumn);
                 $this->applyReadingsScope($sub, $readingsScopeColumn, $sensorIdsScoped, $sensorIds, $sensorUidsScoped, $sensorUids);
+                $this->excludeBadLocation($sub, $schema);
 
                 $rows = $sub->get();
                 $entrySum = 0.0; $exitSum = 0.0;
@@ -233,28 +264,62 @@ class KPIInputAssembler
         }
 
         // ----- base load (last 7d, off-hours) -------------------------------
-        $baseLoadData = null;
-        try {
-            if ($hasMeasuredAt && $schema->hasColumn('readings', 'energy_kwh')) {
-                $offHourCondition = "(
-                    HOUR(measured_at) BETWEEN 0 AND 6
-                    OR DAYOFWEEK(measured_at) IN (1, 7)
-                )";
-                $occupancyNearZero = '';
-                if ($schema->hasColumn('readings', 'people_total_in') && $schema->hasColumn('readings', 'people_total_out')) {
-                    $occupancyNearZero = " AND ABS(COALESCE(people_total_in, 0) - COALESCE(people_total_out, 0)) <= 1";
-                }
+        // Base-load semantics: ratio of off-hours energy delta to total energy
+        // delta over the last 7 days. Both halves use per-sensor MAX-MIN
+        // (clamped) so we never average cumulative meter readings.
+        // Pure-snapshot off-hours query: rows whose timestamp falls in the
+        // off-hours window AND whose occupancy is near zero (when those columns
+        // exist). MAX-MIN of the matched rows per sensor approximates the kWh
+        // consumed in those quiet periods.
+        $baseLoadTotalKwh7d = $this->sumPerSensorDeltaInWindow(
+            $schema,
+            'energy_kwh',
+            $offHoursStart,
+            $readingsScopeColumn,
+            $sensorIdsScoped,
+            $sensorIds,
+            $sensorUidsScoped,
+            $sensorUids,
+            500000.0
+        );
 
-                $q = DB::table('readings')
-                    ->selectRaw('AVG(energy_kwh) as avg_base_load_energy')
-                    ->selectRaw('AVG(CASE WHEN '.$offHourCondition.$occupancyNearZero.' THEN energy_kwh END) as avg_off_hours_energy')
-                    ->where('measured_at', '>=', $offHoursStart);
-                $this->applyReadingsScope($q, $readingsScopeColumn, $sensorIdsScoped, $sensorIds, $sensorUidsScoped, $sensorUids);
-                $baseLoadData = $q->first();
+        $baseLoadOffHoursKwh7d = null;
+        try {
+            if ($hasMeasuredAt
+                && $schema->hasColumn('readings', 'energy_kwh')
+                && $readingsScopeColumn !== null
+            ) {
+                $occupancyNearZeroSql = '';
+                if ($schema->hasColumn('readings', 'people_total_in')
+                    && $schema->hasColumn('readings', 'people_total_out')
+                ) {
+                    $occupancyNearZeroSql = ' AND ABS(COALESCE(people_total_in,0) - COALESCE(people_total_out,0)) <= 1';
+                }
+                $sub = DB::table('readings')
+                    ->select([
+                        $readingsScopeColumn,
+                        DB::raw('MAX(energy_kwh) as max_kwh'),
+                        DB::raw('MIN(energy_kwh) as min_kwh'),
+                    ])
+                    ->where('measured_at', '>=', $offHoursStart)
+                    ->whereNotNull('energy_kwh')
+                    // Off-hours predicate: nights (00:00–06:59) or weekends.
+                    ->whereRaw('(HOUR(measured_at) BETWEEN 0 AND 6 OR DAYOFWEEK(measured_at) IN (1, 7))' . $occupancyNearZeroSql)
+                    ->groupBy($readingsScopeColumn);
+                $this->applyReadingsScope($sub, $readingsScopeColumn, $sensorIdsScoped, $sensorIds, $sensorUidsScoped, $sensorUids);
+                $this->excludeBadLocation($sub, $schema);
+
+                $rows = $sub->get();
+                $sum = 0.0;
+                foreach ($rows as $r) {
+                    $delta = (float) ($r->max_kwh ?? 0) - (float) ($r->min_kwh ?? 0);
+                    $sum += max(0.0, min(500000.0, $delta));
+                }
+                $baseLoadOffHoursKwh7d = $sum;
             }
         } catch (\Throwable $e) {
-            $this->safeLogWarning('KPIInputAssembler: base-load query failed', $e);
-            $baseLoadData = null;
+            $this->safeLogWarning('KPIInputAssembler: base-load off-hours query failed', $e);
+            $baseLoadOffHoursKwh7d = null;
         }
 
         // ----- capacity / sensor counts -------------------------------------
@@ -305,12 +370,22 @@ class KPIInputAssembler
             ?? $this->toFloat($latest->avg_temperature_c ?? null);
         $avgHumidity = $this->toFloat($currentReadings->avg_humidity_rh_window ?? null)
             ?? $this->toFloat($latest->avg_humidity_rh ?? null);
-        $avgEnergy = $this->toFloat($currentReadings->avg_energy_kwh_recent ?? null)
-            ?? $this->toFloat($latest->avg_energy_kwh ?? null);
         $avgUv = $this->toFloat($currentReadings->avg_uv_index ?? null)
-            ?? $this->toFloat($currentReadings->avg_modbus_chn_1 ?? null);
+            ?? $this->toFloat($currentReadings->avg_modbus_chn_1 ?? null)
+            ?? $this->toFloat($latest->avg_uv_index ?? null);
+        $avgSolar = $this->toFloat($currentReadings->avg_solar_radiation ?? null)
+            ?? $this->toFloat($latest->avg_solar_radiation ?? null);
 
         $timeframeHours = self::timeframeHours($timeframe);
+
+        // Derive a dimensionally-correct `avg_energy_kwh` for downstream KPI
+        // math. Total kWh consumed during the window divided by the window
+        // length (in hours) gives average kW — a single representative power
+        // draw for the period.
+        $avgEnergy = null;
+        if ($totalEnergyKwhWindow !== null && $timeframeHours > 0) {
+            $avgEnergy = round($totalEnergyKwhWindow / max(1, $timeframeHours), 4);
+        }
 
         // For energy intensity we still need an "occupancy" proxy. Use the
         // movement entry rate (people who entered during the window) as a
@@ -318,6 +393,13 @@ class KPIInputAssembler
         $entryProxy = ($movementEntries !== null && $movementEntries > 0)
             ? min(2000.0, (float) $movementEntries)
             : null;
+
+        // Base-load inputs are now deltas, NOT averages of cumulative meter
+        // readings. Naming preserved for backward compatibility with KPIService
+        // (`avg_base_load_energy`, `avg_off_hours_energy`); the ratio
+        // off_hours / base remains valid because both halves are deltas now.
+        $baseLoadAvg = ($baseLoadTotalKwh7d !== null) ? (float) $baseLoadTotalKwh7d : null;
+        $offHoursAvg = ($baseLoadOffHoursKwh7d !== null) ? (float) $baseLoadOffHoursKwh7d : null;
 
         return [
             'avg_co2_ppm' => $avgCo2,
@@ -327,12 +409,13 @@ class KPIInputAssembler
             'avg_temperature_c' => $avgTemp,
             'avg_humidity_rh' => $avgHumidity,
             'avg_energy_kwh' => $avgEnergy,
+            'total_energy_kwh_window' => $totalEnergyKwhWindow,
             'avg_current_a' => $this->toFloat($currentReadings->avg_current_a ?? null),
             'avg_power_factor' => $this->toFloat($currentReadings->avg_power_factor ?? null),
             'avg_max_demand_kw' => $this->toFloat($currentReadings->avg_max_demand_kw ?? null),
             'avg_light_level' => $this->toFloat($currentReadings->avg_light_level ?? null),
             'avg_lux' => $this->toFloat($currentReadings->avg_lux ?? null),
-            'avg_solar_radiation' => $this->toFloat($currentReadings->avg_solar_radiation ?? null),
+            'avg_solar_radiation' => $avgSolar,
             'avg_uv_index' => $avgUv,
             'avg_people_present' => $entryProxy, // null when no movement data
             'movement_entries' => $movementEntries,
@@ -340,12 +423,92 @@ class KPIInputAssembler
             'timeframe_hours' => $timeframeHours,
             'max_capacity' => $this->toFloat($roomCapacity) ?? (float) $fallbackCapacity,
             'capacity_confidence' => $roomCapacity !== null ? 'measured' : 'estimated',
-            'avg_base_load_energy' => $this->toFloat($baseLoadData->avg_base_load_energy ?? null),
-            'avg_off_hours_energy' => $this->toFloat($baseLoadData->avg_off_hours_energy ?? null),
+            'avg_base_load_energy' => $baseLoadAvg,
+            'avg_off_hours_energy' => $offHoursAvg,
             'active_sensor_count' => $activeSensors,
             'has_scope' => $sensorIdsScoped || $sensorUidsScoped,
             'timeframe' => $timeframe,
         ];
+    }
+
+    /**
+     * Sum per-sensor (MAX − MIN) delta of a cumulative metric inside a window.
+     *
+     * Energy meters and people-counters are CUMULATIVE on the device; the
+     * physically-meaningful "consumed in window" value is the per-sensor
+     * MAX − MIN inside the window, then summed across in-scope sensors.
+     * Negative deltas (counter resets / rollovers) are clamped to zero, and
+     * each per-sensor delta is capped at $maxPerSensorDelta to absorb
+     * malformed data without poisoning the campus total.
+     *
+     * Returns null when the column is missing, the schema cannot be inspected,
+     * or the query fails for any reason — callers must treat null as
+     * "no usable data" and fall back accordingly.
+     */
+    private function sumPerSensorDeltaInWindow(
+        $schema,
+        string $metric,
+        Carbon $windowStart,
+        ?string $readingsScopeColumn,
+        bool $sensorIdsScoped,
+        ?array $sensorIds,
+        bool $sensorUidsScoped,
+        ?array $sensorUids,
+        float $maxPerSensorDelta
+    ): ?float {
+        try {
+            if (!$schema->hasColumn('readings', 'measured_at')
+                || !$schema->hasColumn('readings', $metric)
+                || $readingsScopeColumn === null
+            ) {
+                return null;
+            }
+            $sub = DB::table('readings')
+                ->select([
+                    $readingsScopeColumn,
+                    DB::raw('MAX(' . $metric . ') as max_v'),
+                    DB::raw('MIN(' . $metric . ') as min_v'),
+                ])
+                ->where('measured_at', '>=', $windowStart)
+                ->whereNotNull($metric)
+                ->groupBy($readingsScopeColumn);
+            $this->applyReadingsScope($sub, $readingsScopeColumn, $sensorIdsScoped, $sensorIds, $sensorUidsScoped, $sensorUids);
+            $this->excludeBadLocation($sub, $schema);
+
+            $rows = $sub->get();
+            if ($rows->isEmpty()) {
+                return null;
+            }
+            $sum = 0.0;
+            foreach ($rows as $r) {
+                $delta = (float) ($r->max_v ?? 0) - (float) ($r->min_v ?? 0);
+                $sum += max(0.0, min($maxPerSensorDelta, $delta));
+            }
+            return $sum;
+        } catch (\Throwable $e) {
+            $this->safeLogWarning('KPIInputAssembler: per-sensor delta query failed', $e, ['metric' => $metric]);
+            return null;
+        }
+    }
+
+    /**
+     * Apply the Default-Site / null-location exclusion to a `readings` query
+     * when the column is present. Aligns with `smacaApiExcludeBadLocation_impl`
+     * in the route helpers — kept here so the KPI assembler does not depend
+     * on the route layer.
+     */
+    private function excludeBadLocation($query, $schema): void
+    {
+        try {
+            if (!$schema->hasColumn('readings', 'sensor_location')) {
+                return;
+            }
+            $query->whereNotNull('sensor_location')
+                ->where('sensor_location', '<>', '')
+                ->where('sensor_location', '<>', 'Default Site');
+        } catch (\Throwable $e) {
+            $this->safeLogWarning('KPIInputAssembler: excludeBadLocation failed', $e);
+        }
     }
 
     /** Approximate hour count for a (validated) timeframe. */
@@ -440,6 +603,7 @@ class KPIInputAssembler
             'avg_temperature_c' => null,
             'avg_humidity_rh' => null,
             'avg_energy_kwh' => null,
+            'total_energy_kwh_window' => null,
             'avg_current_a' => null,
             'avg_power_factor' => null,
             'avg_max_demand_kw' => null,

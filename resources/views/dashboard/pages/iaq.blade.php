@@ -41,21 +41,17 @@
               <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
             </div>
             <div class="card__body">
-              <div class="smaca-tg smaca-tg--6" data-smaca-telemetry="iaq">
-                <div data-tile="co2"></div>
-                <div data-tile="pm25"></div>
-                <div data-tile="pm10"></div>
-                <div data-tile="tvoc"></div>
-                <div data-tile="humidity"></div>
-                <div data-tile="coverage"></div>
+              <div class="smaca-tg smaca-tg--rich" data-smaca-telemetry="iaq">
+                <div data-tile="pollutant-compare"  class="smaca-tile--w6"></div>
+                <div data-tile="threshold-rank"     class="smaca-tile--w6"></div>
+                <div data-tile="hourly-heat"        class="smaca-tile--w8"></div>
+                <div data-tile="top-concern"        class="smaca-tile--w4"></div>
+                <div data-tile="hot-location"       class="smaca-tile--w4"></div>
+                <div data-tile="coverage"           class="smaca-tile--w4"></div>
+                <div data-tile="freshness"          class="smaca-tile--w4"></div>
               </div>
             </div>
           </section>
-          
-          <!-- KPI Cards with Metric Definitions -->
-          <div id="iaq-kpi-cards" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
-            <!-- KPI cards will be rendered here by JavaScript -->
-          </div>
           
           @if($smacaIsAdmin)
           <!-- Sensor Health & Data Source (admin only) -->
@@ -65,7 +61,12 @@
           </div>
           @endif
           
-          <!-- Domain-Driven Visualizations -->
+          {{-- Removed `#iaq-hourly-heatstrip-panel`: the new top
+               telemetry section already shows the same hourly CO₂
+               pattern via a banded heat strip with explanatory subtitle.
+               Multi-metric trend chart kept (CO₂ / temperature / humidity
+               / PM2.5 / PM10 / TVOC toggle) since it's a unique multi-bucket
+               timeseries view. --}}
           <div class="grid" style="grid-template-columns: 1fr; gap: var(--space-6); margin-bottom: var(--space-6);">
             <div class="card">
               <div class="card__header">
@@ -107,7 +108,6 @@
                 </div>
               </div>
             </div>
-            <div id="iaq-hourly-heatstrip-panel"></div>
           </div>
         </div>
 <script>

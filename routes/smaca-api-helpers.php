@@ -86,3 +86,47 @@ if (!function_exists('smacaReadingsHasColumn_impl')) {
     }
 }
 
+/**
+ * Exclude historical "garbage" location rows from spatial / module aggregations.
+ *
+ * Background: early-deployment rows (before the spatial taxonomy was wired up)
+ * arrive with `sensor_location` either NULL, empty, or the literal string
+ * 'Default Site'. Including them in module-by-location aggregates pollutes
+ * charts with a fake "Default Site" bucket. Per-sensor charts are fine — this
+ * filter only matters when the chart groups by `sensor_location`.
+ *
+ * Safe to call on any builder: when the `sensor_location` column does not exist
+ * (older dev DBs), the helper is a no-op so it never raises a SQL error.
+ *
+ * Returns the same builder for chaining.
+ */
+if (!function_exists('smacaApiExcludeBadLocation_impl')) {
+    function smacaApiExcludeBadLocation_impl($query, string $table = 'readings')
+    {
+        if ($query === null) {
+            return $query;
+        }
+        try {
+            $hasColumn = DB::getSchemaBuilder()->hasColumn($table, 'sensor_location');
+        } catch (\Throwable $e) {
+            $hasColumn = false;
+        }
+        if (!$hasColumn) {
+            return $query;
+        }
+        // Use a closure so we OR-group all of the bad-location predicates and
+        // do not stomp on caller-supplied WHEREs.
+        $col = $table === 'readings' ? 'sensor_location' : ($table . '.sensor_location');
+        return $query->whereNotNull($col)
+            ->where($col, '<>', '')
+            ->where($col, '<>', 'Default Site');
+    }
+}
+
+if (!function_exists('smacaApiExcludeBadLocation')) {
+    function smacaApiExcludeBadLocation($query, string $table = 'readings')
+    {
+        return smacaApiExcludeBadLocation_impl($query, $table);
+    }
+}
+

@@ -38,50 +38,44 @@
               <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
             </div>
             <div class="card__body">
-              <div class="smaca-tg smaca-tg--5" data-smaca-telemetry="environmental">
-                <div data-tile="uv-now"></div>
-                <div data-tile="uv-peak"></div>
-                <div data-tile="exposure-risk"></div>
-                <div data-tile="outdoor-sensors"></div>
-                <div data-tile="advisory"></div>
+              <div class="smaca-tg smaca-tg--rich" data-smaca-telemetry="environmental">
+                <div data-tile="uv-bands"      class="smaca-tile--w4"></div>
+                <div data-tile="uv-strip"      class="smaca-tile--w8"></div>
+                <div data-tile="peak-window"   class="smaca-tile--w3"></div>
+                <div data-tile="exposure-risk" class="smaca-tile--w3"></div>
+                <div data-tile="uv-trend"      class="smaca-tile--w3"></div>
+                <div data-tile="advisory"      class="smaca-tile--w3"></div>
               </div>
             </div>
           </section>
-          <div class="grid grid--metrics grid--metrics-4" id="environmental-kpi-grid">
-            <article class="stat-card" title="Current UV index at the latest measurement">
-              <div class="stat-card__content">
-                <div class="stat-card__label">{{ __('messages.dashboard_i18n.current_uv_index') }}</div>
-                <div id="env-kpi-current-uv" class="stat-card__value">6.5</div>
-                <div id="env-kpi-current-uv-meta" class="stat-card__meta">{{ __('messages.dashboard.live') }} reading</div>
-              </div>
-            </article>
-            <article class="stat-card" title="Current UV exposure category">
-              <div class="stat-card__content">
-                <div class="stat-card__label">{{ __('messages.dashboard.status') }}</div>
-                <div id="env-kpi-exposure" class="stat-card__value">{{ __('messages.status.high') }}</div>
-                <div id="env-kpi-exposure-meta" class="stat-card__meta">Protection advised</div>
-              </div>
-            </article>
-            <article class="stat-card" title="{{ __('messages.dashboard.uv_peak_today') }}">
-              <div class="stat-card__content">
-                <div class="stat-card__label">{{ __('messages.dashboard_i18n.peak_today') }}</div>
-                <div id="env-kpi-peak" class="stat-card__value">8.2</div>
-                <div id="env-kpi-peak-meta" class="stat-card__meta">{{ __('messages.dashboard_i18n.daily_maximum') }}</div>
-              </div>
-            </article>
-            <article class="stat-card" title="{{ __('messages.dashboard_i18n.direction_uv_change_previous') }}">
-              <div class="stat-card__content">
-                <div class="stat-card__label">{{ __('messages.status.trend') }}</div>
-                <div id="env-kpi-trend" class="stat-card__value">{{ __('messages.status.rising') }}</div>
-                <div id="env-kpi-trend-meta" class="stat-card__meta">{{ __('messages.dashboard_i18n.vs_previous_reading') }}</div>
-              </div>
-            </article>
+          {{-- Legacy `#environmental-kpi-grid` removed: it held hardcoded
+               UV placeholder values (6.5 / High / 8.2 / Rising) that were
+               misleading before live data loaded. The new top telemetry
+               section already covers all of these:
+                 · Current UV index   → uv-bands radial
+                 · Status / advisory  → advisory tile
+                 · Peak today         → peak-window tile
+                 · Trend              → uv-trend tile
+               Inert spans retained so legacy JS that writes to these
+               IDs does not throw. --}}
+          <div data-smaca-legacy-env-anchors hidden aria-hidden="true">
+            <span id="env-kpi-current-uv"></span><span id="env-kpi-current-uv-meta"></span>
+            <span id="env-kpi-exposure"></span><span id="env-kpi-exposure-meta"></span>
+            <span id="env-kpi-peak"></span><span id="env-kpi-peak-meta"></span>
+            <span id="env-kpi-trend"></span><span id="env-kpi-trend-meta"></span>
           </div>
 
-          <div class="environmental-main-grid">
+          {{-- Removed two duplicates already covered by the top telemetry:
+                 · UV advisory aside        → advisory + peak-window + uv-trend tiles
+                 · Hourly UV pattern card   → uv-strip heat-strip tile
+               Kept the multi-bucket UV trend chart (timeseries) and the
+               daily UV comparison chart (cross-day comparison) — both
+               unique angles. --}}
+          <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6);">
             <section class="card environmental-chart-card">
               <div class="card__header">
                 <h3 class="card__title">{{ __('messages.dashboard_i18n.uv_trend') }}</h3>
+                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ app()->getLocale() === 'el' ? 'Πορεία UV στο επιλεγμένο διάστημα, με ζώνες κινδύνου στο φόντο.' : 'UV behaviour across the selected window, with risk bands in the background.' }}</p>
               </div>
               <div class="card__body">
                 <div class="chart-placeholder environmental-chart-placeholder" id="uv-main-chart"></div>
@@ -100,51 +94,10 @@
               </div>
             </section>
 
-            <aside class="card environmental-summary-card">
-              <div class="card__header">
-                <h3 class="card__title">{{ __('messages.dashboard_i18n.uv_advisory') }}</h3>
-              </div>
-              <div class="card__body">
-                <div class="stat-row"><span class="stat-row__label">{{ __('messages.dashboard_i18n.current_uv_level') }}</span><span id="env-summary-current" class="stat-row__value">6.5 ({{ __('messages.status.high') }})</span></div>
-                <div class="stat-row"><span class="stat-row__label">{{ __('messages.dashboard_i18n.peak_in_window') }}</span><span id="env-summary-peak" class="stat-row__value">8.2</span></div>
-                <div class="stat-row"><span class="stat-row__label">{{ __('messages.dashboard_i18n.strongest_exposure_period') }}</span><span id="env-summary-period" class="stat-row__value">11:00–14:00</span></div>
-                <div class="prediction-insight">
-                  <svg class="prediction-insight__icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22a10 10 0 100-20 10 10 0 000 20z"></path></svg>
-                  <p id="env-summary-guidance" class="prediction-insight__text">Limit direct sun exposure and use sunscreen, hat, and sunglasses during peak hours.</p>
-                </div>
-              </div>
-            </aside>
-          </div>
-
-          <div class="environmental-bottom-grid">
-            <section class="card">
-              <div class="card__header">
-                <h3 class="card__title">{{ __('messages.dashboard_i18n.hourly_uv_pattern') }}</h3>
-              </div>
-              <div class="card__body environmental-pattern-body">
-                <div class="chart-placeholder" id="uv-pattern-chart"></div>
-                <div class="smaca-accordion smaca-accordion--collapsed">
-                  <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-                    <span>{{ __('messages.status.what_is_this_graph') }}</span>
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                  </button>
-                  <div class="smaca-accordion__body" hidden>
-                    <div class="accordion-content"></div>
-                  </div>
-                </div>
-                <div class="environmental-zone-grid" aria-label="UV exposure zones">
-                  <span class="environmental-zone environmental-zone--low">{{ __('messages.dashboard_i18n.low_0_2') }}</span>
-                  <span class="environmental-zone environmental-zone--moderate">{{ __('messages.status.moderate') }} (3-5)</span>
-                  <span class="environmental-zone environmental-zone--high">{{ __('messages.status.high') }} (6-7)</span>
-                  <span class="environmental-zone environmental-zone--very-high">{{ __('messages.dashboard_i18n.very_high_8_10') }}</span>
-                  <span class="environmental-zone environmental-zone--extreme">{{ __('messages.dashboard_i18n.extreme_11_plus') }}</span>
-                </div>
-              </div>
-            </section>
-
             <section class="card environmental-meaning-card">
               <div class="card__header">
                 <h3 class="card__title">{{ __('messages.dashboard_i18n.daily_uv_comparison') }}</h3>
+                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ app()->getLocale() === 'el' ? 'Μέγιστη ημερήσια UV — σύγκριση ανά ημέρα.' : 'Daily peak UV — compare exposure across days.' }}</p>
               </div>
               <div class="card__body">
                 <div class="chart-placeholder" id="uv-daily-comparison-chart"></div>

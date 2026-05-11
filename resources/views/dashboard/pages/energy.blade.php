@@ -14,14 +14,14 @@
         <p class="section-hero__subtitle">{{ __('messages.dashboard_i18n.energy_hero_subtitle') }}</p>
       </div>
       <div class="section-hero__stat">
-        <div id="energy-daily-consumption" class="section-hero__stat-value">1688</div>
+        <div id="energy-daily-consumption" class="section-hero__stat-value">{{ __('messages.common.loading') }}...</div>
         <div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.kwh_today') }}</div>
       </div>
     </div>
   </div>
   <div class="section-meta">
     <span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span>
-    <span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: 2 min ago</span>
+    <span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span>
   </div>
   <section class="card" style="margin-top: var(--space-6);">
     <div class="card__header">
@@ -41,47 +41,28 @@
       <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
     </div>
     <div class="card__body">
-      <div class="smaca-tg smaca-tg--6" data-smaca-telemetry="energy">
-        <div data-tile="total"></div>
-        <div data-tile="peak-meter"></div>
-        <div data-tile="avg-meter"></div>
-        <div data-tile="top-area"></div>
-        <div data-tile="efficiency-kpi"></div>
-        <div data-tile="base-load"></div>
+      <div class="smaca-tg smaca-tg--rich" data-smaca-telemetry="energy">
+        <div data-tile="energy-by-area"  class="smaca-tile--w6"></div>
+        <div data-tile="load-profile"    class="smaca-tile--w6"></div>
+        <div data-tile="energy-share"    class="smaca-tile--w4"></div>
+        <div data-tile="base-load"       class="smaca-tile--w4"></div>
+        <div data-tile="peak-hour"       class="smaca-tile--w4"></div>
       </div>
     </div>
   </section>
 
-  <!-- KPI row -->
-  <div class="grid grid--metrics grid--metrics-4" id="energy-kpi-grid" style="margin-top: var(--space-6);">
-    <article class="stat-card" title="Total energy used in the selected timeframe">
-      <div class="stat-card__content">
-        <div class="stat-card__label">{{ __('messages.dashboard_i18n.total_energy_used') }}</div>
-        <div id="energy-kpi-total" class="stat-card__value">--</div>
-        <div id="energy-kpi-total-meta" class="stat-card__meta">--</div>
-      </div>
-    </article>
-    <article class="stat-card" title="Peak energy bucket in the selected timeframe">
-      <div class="stat-card__content">
-        <div class="stat-card__label">{{ __('messages.dashboard_i18n.peak_bucket') }}</div>
-        <div id="energy-kpi-peak" class="stat-card__value">--</div>
-        <div id="energy-kpi-peak-meta" class="stat-card__meta">--</div>
-      </div>
-    </article>
-    <article class="stat-card" title="Average energy usage per bucket">
-      <div class="stat-card__content">
-        <div class="stat-card__label">{{ __('messages.dashboard_i18n.avg_per_bucket') }}</div>
-        <div id="energy-kpi-avg" class="stat-card__value">--</div>
-        <div id="energy-kpi-avg-meta" class="stat-card__meta">--</div>
-      </div>
-    </article>
-    <article class="stat-card" title="Top energy-contributing location in the selected timeframe">
-      <div class="stat-card__content">
-        <div class="stat-card__label">{{ __('messages.dashboard_i18n.top_contributor') }}</div>
-        <div id="energy-kpi-top-location" class="stat-card__value">--</div>
-        <div id="energy-kpi-top-location-meta" class="stat-card__meta">--</div>
-      </div>
-    </article>
+  {{-- Legacy `#energy-kpi-grid` (Total / Peak / Avg / Top Contributor)
+       removed from the rendered DOM: the new top telemetry section
+       already shows the same information more clearly via the
+       energy-by-area ranked bar (top contributors), the load-profile
+       heat strip (peaks) and the energy-share donut (totals).
+       Inert anchors retained so legacy bootstrap JS that still tries
+       to write to these IDs does not throw. --}}
+  <div data-smaca-legacy-energy-anchors hidden aria-hidden="true">
+    <span id="energy-kpi-total"></span><span id="energy-kpi-total-meta"></span>
+    <span id="energy-kpi-peak"></span><span id="energy-kpi-peak-meta"></span>
+    <span id="energy-kpi-avg"></span><span id="energy-kpi-avg-meta"></span>
+    <span id="energy-kpi-top-location"></span><span id="energy-kpi-top-location-meta"></span>
   </div>
 
   <!-- Main chart -->
@@ -110,8 +91,14 @@
     </div>
   </div>
 
-  <!-- Secondary row -->
-  <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6); margin-top: var(--space-6);">
+  {{-- Removed three duplicates that the new top telemetry section
+       already covers more clearly:
+         · usage-pattern-by-hour  → covered by load-profile heat strip
+         · distribution-by-location → covered by energy-by-area ranked bar
+         · energy-share-donut       → covered by energy-share donut tile
+       Demand-trend stays full-width — it's a unique demand-intensity
+       view that the snapshot tiles do not replicate. --}}
+  <div class="grid" style="grid-template-columns: 1fr; gap: var(--space-6); margin-top: var(--space-6);">
     <div class="card">
       <div class="card__header">
         <h3 class="card__title">{{ __('messages.dashboard_i18n.demand_trend') }}</h3>
@@ -119,70 +106,6 @@
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-demand-trend-chart" style="min-height: 300px;"></div>
-        <div class="smaca-accordion smaca-accordion--collapsed">
-          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>{{ __('messages.status.what_is_this_graph') }}</span>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </button>
-          <div class="smaca-accordion__body" hidden>
-            <div class="accordion-content"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card__header">
-        <h3 class="card__title">{{ __('messages.dashboard_i18n.usage_pattern_by_hour') }}</h3>
-        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.recurring_hour_energy_pattern') }}</p>
-      </div>
-      <div class="card__body">
-        <div class="chart-placeholder" id="energy-usage-pattern-hour-chart" style="min-height: 300px;"></div>
-        <div class="smaca-accordion smaca-accordion--collapsed">
-          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>{{ __('messages.status.what_is_this_graph') }}</span>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </button>
-          <div class="smaca-accordion__body" hidden>
-            <div class="accordion-content"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Third row -->
-  <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-6); margin-top: var(--space-6);">
-    <div class="card">
-      <div class="card__header">
-        <h3 class="card__title">{{ __('messages.dashboard_i18n.energy_distribution_by_location') }}</h3>
-        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.top_locations_energy_usage') }}</p>
-      </div>
-      <div class="card__body">
-        <div class="chart-placeholder" id="energy-distribution-location-chart" style="min-height: 320px;"></div>
-        <div class="smaca-accordion smaca-accordion--collapsed">
-          <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
-            <span>{{ __('messages.status.what_is_this_graph') }}</span>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </button>
-          <div class="smaca-accordion__body" hidden>
-            <div class="accordion-content"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card__header">
-        <h3 class="card__title">{{ __('messages.dashboard_i18n.energy_share') }}</h3>
-        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.relative_contribution_donut') }}</p>
-      </div>
-      <div class="card__body">
-        <div class="chart-placeholder" id="energy-share-donut-chart" style="min-height: 320px;"></div>
         <div class="smaca-accordion smaca-accordion--collapsed">
           <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
             <span>{{ __('messages.status.what_is_this_graph') }}</span>

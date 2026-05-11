@@ -76,6 +76,9 @@ const mockData = {
 
 // IAQ Data Loading
 function loadIAQData() {
+  if (typeof window !== 'undefined' && window.SMACAState) {
+    return;
+  }
   const data = mockData.iaq;
   
   // Update current values in the status cards

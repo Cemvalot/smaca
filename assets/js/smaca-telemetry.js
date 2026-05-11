@@ -6,15 +6,22 @@
  * across every dashboard module (Overview, IAQ, Occupancy, Energy,
  * Environmental, Connectivity). Each tile is small, dense, and carries a
  * unique signal: a value, optional unit, status colour, optional delta
- * indicator, and optional micro-chart (sparkline, mini-bar, bullet, gauge).
+ * indicator, and optional micro-chart (sparkline, mini-bar, bullet, gauge,
+ * stacked column, ranking bars, heat strip, banded bullet).
  *
  * Public API:
- *   SMACATelemetry.renderTile(container, opts)       — populate a single tile.
- *   SMACATelemetry.renderSparkline(container, opts)  — Highcharts areaspline.
- *   SMACATelemetry.renderMiniBar(container, opts)    — Highcharts column.
- *   SMACATelemetry.renderBullet(container, opts)     — bar with target marker.
- *   SMACATelemetry.renderGauge(container, opts)      — radial solidgauge or fallback.
- *   SMACATelemetry.formatDelta(curr, prev, opts)     — { label, direction }.
+ *   SMACATelemetry.renderTile(container, opts)              — populate a single tile.
+ *   SMACATelemetry.renderEmptyTile(container, opts)         — intentional empty state.
+ *   SMACATelemetry.renderChartTile(container, opts)         — title + chart area.
+ *   SMACATelemetry.renderSparkline(container, opts)         — Highcharts areaspline.
+ *   SMACATelemetry.renderMiniBar(container, opts)           — Highcharts column.
+ *   SMACATelemetry.renderHeatStripColumn(container, opts)   — column chart with per-bar colour bands.
+ *   SMACATelemetry.renderStackedColumn(container, opts)     — stacked column chart.
+ *   SMACATelemetry.renderHorizontalBars(container, opts)    — SVG ranking bars.
+ *   SMACATelemetry.renderComparisonBars(container, opts)    — value vs threshold per category.
+ *   SMACATelemetry.renderBullet(container, opts)            — bar with target marker (banded variant supported).
+ *   SMACATelemetry.renderGauge(container, opts)             — radial gauge (SVG fallback).
+ *   SMACATelemetry.formatDelta(curr, prev, opts)            — { label, direction }.
  *
  * Notes:
  *  - All methods are no-throw; they degrade gracefully when:
@@ -77,6 +84,42 @@
     return !!(global.Highcharts && typeof global.Highcharts.chart === 'function');
   }
 
+  // Track Highcharts instances by host element so we can destroy them
+  // safely before re-rendering. Without this, repeatedly populating the
+  // same tile (e.g. on timeframe changes) would orphan chart instances.
+  var CHART_INSTANCES = new WeakMap();
+
+  function attachChart(container, chart) {
+    if (!container) return chart;
+    var prev = CHART_INSTANCES.get(container);
+    if (prev && typeof prev.destroy === 'function' && prev !== chart) {
+      try { prev.destroy(); } catch (e) { /* swallow */ }
+    }
+    if (chart) {
+      CHART_INSTANCES.set(container, chart);
+    } else {
+      CHART_INSTANCES.delete(container);
+    }
+    return chart;
+  }
+
+  // Safe destroy of any chart attached to `container` *before* the
+  // caller wipes its innerHTML. Lets `renderChartTile` rebuild a tile
+  // shell on every refresh without leaking chart instances.
+  function destroyChartIn(container) {
+    if (!container) return;
+    var chartHosts = [container].concat(
+      Array.prototype.slice.call(container.querySelectorAll('[data-smaca-chart="1"]'))
+    );
+    chartHosts.forEach(function (host) {
+      var prev = CHART_INSTANCES.get(host);
+      if (prev && typeof prev.destroy === 'function') {
+        try { prev.destroy(); } catch (e) { /* swallow */ }
+      }
+      CHART_INSTANCES.delete(host);
+    });
+  }
+
   // -----------------------------------------------------------------------
   // Tile DOM
   // -----------------------------------------------------------------------
@@ -105,6 +148,8 @@
   function renderTile(target, opts) {
     var el = resolveContainer(target);
     if (!el) return null;
+    destroyChartIn(el);
+    el.classList.remove('smaca-tile--empty', 'smaca-tile--chart');
     var safeOpts = opts || {};
     var tone = safeOpts.accent || statusToTone(safeOpts.status);
     var hasValue = safeOpts.value !== undefined && safeOpts.value !== null && safeOpts.value !== '';
@@ -182,6 +227,74 @@
   }
 
   // -----------------------------------------------------------------------
+  // Intentional empty state — small, low-emphasis, never blank
+  // -----------------------------------------------------------------------
+  // Renders a compact empty-state version of a tile. Callers should use
+  // this whenever the data needed for the tile is unavailable. Avoids the
+  // "huge blank card" effect that shows when only a value is set to "—".
+  function renderEmptyTile(target, opts) {
+    var el = resolveContainer(target);
+    if (!el) return null;
+    destroyChartIn(el);
+    var safeOpts = opts || {};
+    el.classList.add('smaca-tile');
+    el.classList.add('smaca-tile--empty');
+    el.classList.remove('smaca-tile--chart');
+    el.setAttribute('data-tone', 'muted');
+    var iconHtml = safeOpts.icon
+      ? '<span class="smaca-tile__icon" data-tone="muted" aria-hidden="true">'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+        + safeOpts.icon
+        + '</svg></span>'
+      : '';
+    el.innerHTML = ''
+      + '<div class="smaca-tile__head">'
+      +   iconHtml
+      +   '<span class="smaca-tile__label">' + safe(safeOpts.label || '') + '</span>'
+      + '</div>'
+      + '<div class="smaca-tile__empty-body">'
+      +   '<svg class="smaca-tile__empty-glyph" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      +     '<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.8" fill="currentColor"/>'
+      +   '</svg>'
+      +   '<span class="smaca-tile__empty-text">' + safe(safeOpts.message || 'No data') + '</span>'
+      + '</div>';
+    return el;
+  }
+
+  // Render a chart-only tile shell: a small title bar at the top and a
+  // chart-host element below for the caller's Highcharts call. Designed
+  // for `smaca-tile--chart` tiles (often combined with `--w2/--w3/--w6`).
+  function renderChartTile(target, opts) {
+    var el = resolveContainer(target);
+    if (!el) return null;
+    destroyChartIn(el);
+    var safeOpts = opts || {};
+    el.classList.add('smaca-tile');
+    el.classList.add('smaca-tile--chart');
+    el.classList.remove('smaca-tile--empty');
+    el.setAttribute('data-tone', safeOpts.accent || statusToTone(safeOpts.status));
+    var legendHtml = safeOpts.legend
+      ? '<span class="smaca-tile__chart-legend">' + safe(safeOpts.legend) + '</span>'
+      : '';
+    var unitChip = safeOpts.unit
+      ? '<span class="smaca-tile__chart-unit">' + safe(safeOpts.unit) + '</span>'
+      : '';
+    var subtitle = safeOpts.subtitle
+      ? '<p class="smaca-tile__subtitle">' + safe(safeOpts.subtitle) + '</p>'
+      : '';
+    el.innerHTML = ''
+      + '<div class="smaca-tile__head">'
+      +   '<span class="smaca-tile__label">' + safe(safeOpts.label || '') + '</span>'
+      +   unitChip
+      +   legendHtml
+      + '</div>'
+      + subtitle
+      + '<div class="smaca-tile__chart" data-smaca-chart="1"></div>'
+      + (safeOpts.meta ? '<div class="smaca-tile__meta">' + safe(safeOpts.meta) + '</div>' : '');
+    return el.querySelector('[data-smaca-chart="1"]');
+  }
+
+  // -----------------------------------------------------------------------
   // Highcharts micro-charts
   // -----------------------------------------------------------------------
   function renderSparkline(target, params) {
@@ -234,7 +347,7 @@
       }]
     };
     try {
-      return global.Highcharts.chart(el, options);
+      return attachChart(el, global.Highcharts.chart(el, options));
     } catch (e) {
       return null;
     }
@@ -279,15 +392,512 @@
       series: [{ type: 'column', data: data }]
     };
     try {
-      return global.Highcharts.chart(el, options);
+      return attachChart(el, global.Highcharts.chart(el, options));
     } catch (e) {
       return null;
     }
   }
 
+  // Heat-strip column: a very compact column chart where each bar gets
+  // its own colour based on a threshold band. Useful for hourly risk /
+  // activity strips (24 columns, one per hour). Each input point is
+  // either a number or an object `{ y, color }`.
+  function renderHeatStripColumn(target, params) {
+    var el = resolveContainer(target);
+    if (!el) return null;
+    if (!hasHighcharts()) return null;
+    var raw = (params && Array.isArray(params.data)) ? params.data : [];
+    if (!raw.length) return null;
+    var bands = (params && Array.isArray(params.bands)) ? params.bands : null;
+    var data = raw.map(function (entry) {
+      if (entry && typeof entry === 'object') {
+        var y = toNumber(entry.y);
+        if (y === null) y = 0;
+        var color = entry.color || colorForBand(y, bands);
+        return { y: y, color: color };
+      }
+      var n = toNumber(entry);
+      var nv = n === null ? 0 : n;
+      return { y: nv, color: colorForBand(nv, bands) };
+    });
+    var showAxis = !!(params && params.showAxis);
+    var height = (params && params.height) || 56;
+    if (showAxis && height < 100) height = 100;
+    var bottomMargin = showAxis ? 26 : 14;
+    var stepOverride = (params && Number.isFinite(params.step) && params.step >= 1) ? Math.floor(params.step) : null;
+    var autoStep = Math.max(1, Math.floor(data.length / 6));
+    var options = {
+      chart: {
+        type: 'column',
+        height: height,
+        margin: [4, 0, bottomMargin, 0],
+        backgroundColor: 'transparent',
+        animation: false,
+        spacing: [0, 0, 0, 0]
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        categories: (params && params.categories) || null,
+        visible: showAxis,
+        labels: {
+          style: { color: 'rgba(148,163,184,0.6)', fontSize: '9px' },
+          step: stepOverride || autoStep
+        },
+        lineColor: 'transparent',
+        tickWidth: 0
+      },
+      yAxis: { visible: false, min: 0 },
+      tooltip: {
+        enabled: !!(params && params.tooltipFormatter),
+        formatter: (params && params.tooltipFormatter) || null,
+        useHTML: true,
+        backgroundColor: 'rgba(15,23,42,0.95)',
+        borderWidth: 0,
+        style: { color: '#e2e8f0', fontSize: '11px' }
+      },
+      plotOptions: {
+        column: {
+          animation: false,
+          borderWidth: 0,
+          borderRadius: 1.5,
+          pointPadding: 0.06,
+          groupPadding: 0.04,
+          states: { hover: { enabled: !!(params && params.tooltipFormatter) } },
+          enableMouseTracking: !!(params && params.tooltipFormatter)
+        }
+      },
+      series: [{ type: 'column', data: data }]
+    };
+    try {
+      return attachChart(el, global.Highcharts.chart(el, options));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Stacked mini column: two-series stacked column suitable for
+  // operational in/out, on/off-peak, etc.
+  // params: { categories, series: [{ name, color, data }] }
+  function renderStackedColumn(target, params) {
+    var el = resolveContainer(target);
+    if (!el) return null;
+    if (!hasHighcharts()) return null;
+    var p = params || {};
+    var series = Array.isArray(p.series) ? p.series : [];
+    if (!series.length) return null;
+    var height = p.height || 88;
+    var options = {
+      chart: {
+        type: 'column',
+        height: height,
+        margin: [6, 4, 22, 24],
+        backgroundColor: 'transparent',
+        animation: false
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: {
+        enabled: !!p.showLegend,
+        align: 'right',
+        verticalAlign: 'top',
+        layout: 'horizontal',
+        itemStyle: { color: 'rgba(148,163,184,0.85)', fontSize: '10px', fontWeight: '500' },
+        symbolRadius: 2,
+        margin: 0,
+        padding: 0
+      },
+      xAxis: {
+        categories: p.categories || [],
+        labels: {
+          style: { color: 'rgba(148,163,184,0.55)', fontSize: '9px' },
+          step: Math.max(1, Math.floor((p.categories || []).length / 6))
+        },
+        lineColor: 'rgba(148,163,184,0.10)',
+        tickWidth: 0
+      },
+      yAxis: {
+        visible: true,
+        title: { text: null },
+        labels: { style: { color: 'rgba(148,163,184,0.5)', fontSize: '9px' }, x: -2 },
+        gridLineColor: 'rgba(148,163,184,0.08)',
+        gridLineDashStyle: 'Dot'
+      },
+      tooltip: {
+        enabled: true,
+        shared: true,
+        useHTML: true,
+        backgroundColor: 'rgba(15,23,42,0.95)',
+        borderWidth: 0,
+        style: { color: '#e2e8f0', fontSize: '11px' }
+      },
+      plotOptions: {
+        column: {
+          stacking: 'normal',
+          borderWidth: 0,
+          borderRadius: 1.5,
+          pointPadding: 0.06,
+          groupPadding: 0.06
+        }
+      },
+      series: series.map(function (s) {
+        return {
+          type: 'column',
+          name: s.name,
+          color: s.color,
+          data: s.data || []
+        };
+      })
+    };
+    try {
+      return attachChart(el, global.Highcharts.chart(el, options));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Comparison bars: per-category current value rendered as a horizontal
+  // bullet with a threshold marker. Useful for "pollutant vs limit"
+  // visualisation. Implemented in SVG so it stays compact.
+  // params: { items: [{ label, value, max, threshold, tone }] }
+  function renderComparisonBars(target, params) {
+    var el = resolveContainer(target);
+    if (!el) return null;
+    var items = (params && Array.isArray(params.items)) ? params.items : [];
+    if (!items.length) {
+      el.classList.add('smaca-tile--empty');
+      el.innerHTML = '<span class="smaca-tile__empty-text">' + safe((params && params.emptyText) || 'No data') + '</span>';
+      return el;
+    }
+    el.classList.add('smaca-comparison-bars');
+    var rows = items.map(function (item) {
+      var value = toNumber(item.value);
+      var max = toNumber(item.max) || 100;
+      var threshold = toNumber(item.threshold);
+      var pct = isFiniteNumber(value) ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+      var tPct = (threshold !== null) ? Math.min(100, Math.max(0, (threshold / max) * 100)) : null;
+      var tone = item.tone || statusToTone(item.status);
+      var color = item.color || toneToColor(tone === 'muted' ? 'info' : tone);
+      var valueDisplay = isFiniteNumber(value)
+        ? (item.unit ? value.toFixed(item.decimals || 0) + ' ' + item.unit : value.toFixed(item.decimals || 0))
+        : '—';
+      return ''
+        + '<div class="smaca-cb__row" data-tone="' + safe(tone) + '">'
+        +   '<div class="smaca-cb__label">' + safe(item.label) + '</div>'
+        +   '<div class="smaca-cb__bar">'
+        +     '<svg viewBox="0 0 100 6" preserveAspectRatio="none" width="100%" height="6" aria-hidden="true">'
+        +       '<rect x="0" y="2" width="100" height="2" rx="1" fill="rgba(148,163,184,0.16)"/>'
+        +       '<rect x="0" y="2" width="' + pct.toFixed(2) + '" height="2" rx="1" fill="' + color + '"/>'
+        +       (tPct !== null ? '<line x1="' + tPct.toFixed(2) + '" y1="0" x2="' + tPct.toFixed(2) + '" y2="6" stroke="rgba(241,245,249,0.85)" stroke-width="0.9" />' : '')
+        +     '</svg>'
+        +   '</div>'
+        +   '<div class="smaca-cb__value">' + safe(valueDisplay) + '</div>'
+        + '</div>';
+    });
+    el.innerHTML = rows.join('');
+    return el;
+  }
+
+  // Horizontal ranking bars: top-N entities by value. SVG-based, very
+  // compact. params: { items: [{ label, value, color? }], unit, max }
+  function renderHorizontalBars(target, params) {
+    var el = resolveContainer(target);
+    if (!el) return null;
+    var raw = (params && Array.isArray(params.items)) ? params.items : [];
+    var items = raw
+      .filter(function (i) { return i && isFiniteNumber(toNumber(i.value)); })
+      .map(function (i) { return Object.assign({}, i, { value: toNumber(i.value) }); });
+    if (!items.length) {
+      el.classList.add('smaca-tile--empty');
+      el.innerHTML = '<span class="smaca-tile__empty-text">' + safe((params && params.emptyText) || 'No data') + '</span>';
+      return el;
+    }
+    var max = toNumber((params && params.max));
+    if (!isFiniteNumber(max) || max <= 0) {
+      max = items.reduce(function (acc, i) { return Math.max(acc, i.value); }, 0) || 1;
+    }
+    var unit = (params && params.unit) || '';
+    el.classList.add('smaca-rank-bars');
+    var rows = items.map(function (item) {
+      var pct = Math.min(100, Math.max(0, (item.value / max) * 100));
+      var color = item.color || '#60a5fa';
+      var valueDisplay = (typeof item.displayValue === 'string') ? item.displayValue
+        : (isFiniteNumber(item.value)
+          ? (Math.abs(item.value) >= 1000 ? (item.value / 1000).toFixed(1) + 'k' : item.value.toFixed((item.value < 10) ? 1 : 0))
+          + (unit ? ' ' + unit : '')
+          : '—');
+      return ''
+        + '<div class="smaca-rank-bars__row">'
+        +   '<div class="smaca-rank-bars__label" title="' + safe(item.label) + '">' + safe(item.label) + '</div>'
+        +   '<div class="smaca-rank-bars__bar">'
+        +     '<div class="smaca-rank-bars__fill" style="width: ' + pct.toFixed(2) + '%; background: ' + color + ';"></div>'
+        +   '</div>'
+        +   '<div class="smaca-rank-bars__value">' + safe(valueDisplay) + '</div>'
+        + '</div>';
+    });
+    el.innerHTML = rows.join('');
+    return el;
+  }
+
+  // Donut / ring chart — Highcharts pie with `innerSize` and a
+  // dominant centre label. params: { data: [{name, y, color}], total,
+  // centerLabel, height }.
+  function renderDonut(target, params) {
+    var el = resolveContainer(target);
+    if (!el) return null;
+    if (!hasHighcharts()) return null;
+    var p = params || {};
+    var data = (Array.isArray(p.data) ? p.data : []).filter(function (d) {
+      return d && isFiniteNumber(toNumber(d.y));
+    }).map(function (d) {
+      return { name: d.name, y: toNumber(d.y), color: d.color };
+    });
+    if (!data.length) return null;
+    var height = p.height || 130;
+    var totalText = (p.centerLabel !== undefined && p.centerLabel !== null)
+      ? String(p.centerLabel)
+      : '';
+    var subText = p.centerSubLabel ? String(p.centerSubLabel) : '';
+    var options = {
+      chart: {
+        type: 'pie',
+        height: height,
+        backgroundColor: 'transparent',
+        margin: [6, 4, 6, 4],
+        spacing: [0, 0, 0, 0],
+        animation: { duration: 240 },
+        events: {
+          load: function () {
+            var chart = this;
+            if (chart.titleNode) chart.titleNode.destroy();
+            chart.titleNode = chart.renderer
+              .text(totalText, chart.plotLeft + chart.plotWidth / 2, chart.plotTop + chart.plotHeight / 2 + 2)
+              .css({
+                color: '#e2e8f0',
+                fontSize: '18px',
+                fontWeight: '700',
+                fontFamily: 'inherit'
+              })
+              .attr({ 'text-anchor': 'middle', 'aria-hidden': 'true' })
+              .add();
+            if (subText) {
+              chart.subTitleNode = chart.renderer
+                .text(subText, chart.plotLeft + chart.plotWidth / 2, chart.plotTop + chart.plotHeight / 2 + 16)
+                .css({
+                  color: 'rgba(148,163,184,0.85)',
+                  fontSize: '9.5px',
+                  fontWeight: '500',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  fontFamily: 'inherit'
+                })
+                .attr({ 'text-anchor': 'middle', 'aria-hidden': 'true' })
+                .add();
+            }
+          }
+        }
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: {
+        enabled: !!p.showLegend,
+        align: 'right',
+        verticalAlign: 'middle',
+        layout: 'vertical',
+        symbolRadius: 2,
+        itemStyle: { color: 'rgba(148,163,184,0.9)', fontSize: '10px', fontWeight: '500' },
+        itemHoverStyle: { color: '#e2e8f0' },
+        margin: 0,
+        padding: 0
+      },
+      tooltip: {
+        useHTML: true,
+        backgroundColor: 'rgba(15,23,42,0.96)',
+        borderWidth: 0,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        pointFormat: '<b>{point.name}</b>: {point.y} ({point.percentage:.1f}%)'
+      },
+      plotOptions: {
+        pie: {
+          innerSize: p.innerSize || '68%',
+          borderWidth: 1,
+          borderColor: 'rgba(15, 23, 42, 0.85)',
+          dataLabels: { enabled: false },
+          states: { hover: { brightness: 0.08, halo: { size: 4 } } }
+        }
+      },
+      series: [{ type: 'pie', name: p.seriesName || '', data: data }]
+    };
+    try {
+      return attachChart(el, global.Highcharts.chart(el, options));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Ranked horizontal bar chart (Highcharts) — richer than the SVG
+  // version with tooltips + animation. Each bar is a category.
+  // params: { categories, values, color, unit, height }
+  function renderRankedBarChart(target, params) {
+    var el = resolveContainer(target);
+    if (!el) return null;
+    if (!hasHighcharts()) return null;
+    var p = params || {};
+    var categories = Array.isArray(p.categories) ? p.categories : [];
+    var values = Array.isArray(p.values) ? p.values : [];
+    if (!categories.length || !values.length) return null;
+    var color = p.color || '#60a5fa';
+    var unit = p.unit || '';
+    var options = {
+      chart: {
+        type: 'bar',
+        height: p.height || (28 + categories.length * 22),
+        backgroundColor: 'transparent',
+        margin: [6, 14, 18, 4],
+        animation: { duration: 240 }
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        categories: categories,
+        lineColor: 'rgba(148,163,184,0.10)',
+        tickWidth: 0,
+        labels: { style: { color: 'rgba(226,232,240,0.85)', fontSize: '10px' }, x: -2 }
+      },
+      yAxis: {
+        title: { text: null },
+        gridLineColor: 'rgba(148,163,184,0.06)',
+        gridLineDashStyle: 'Dot',
+        labels: {
+          style: { color: 'rgba(148,163,184,0.6)', fontSize: '9px' },
+          formatter: function () { return unit ? this.value + ' ' + unit : this.value; }
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(15,23,42,0.96)',
+        borderWidth: 0,
+        style: { color: '#e2e8f0', fontSize: '11px' },
+        pointFormat: '<b>{point.y}' + (unit ? ' ' + unit : '') + '</b>'
+      },
+      plotOptions: {
+        bar: {
+          borderWidth: 0,
+          borderRadius: 2,
+          color: color,
+          pointPadding: 0.04,
+          groupPadding: 0.04,
+          dataLabels: {
+            enabled: !!p.showLabels,
+            inside: false,
+            align: 'left',
+            style: { color: 'rgba(226,232,240,0.95)', fontWeight: '600', textOutline: 'none', fontSize: '10px' },
+            formatter: function () {
+              return Math.abs(this.y) >= 1000
+                ? (this.y / 1000).toFixed(1) + 'k' + (unit ? ' ' + unit : '')
+                : this.y.toFixed(this.y < 10 ? 1 : 0) + (unit ? ' ' + unit : '');
+            }
+          }
+        }
+      },
+      series: [{ type: 'bar', data: values }]
+    };
+    try {
+      return attachChart(el, global.Highcharts.chart(el, options));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Grouped column (multi-series, NOT stacked).
+  // params: { categories, series: [{ name, color, data }], height }
+  function renderGroupedColumn(target, params) {
+    var el = resolveContainer(target);
+    if (!el) return null;
+    if (!hasHighcharts()) return null;
+    var p = params || {};
+    var series = Array.isArray(p.series) ? p.series : [];
+    if (!series.length) return null;
+    var options = {
+      chart: {
+        type: 'column',
+        height: p.height || 100,
+        margin: [6, 4, 22, 24],
+        backgroundColor: 'transparent',
+        animation: { duration: 240 }
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: {
+        enabled: !!p.showLegend,
+        align: 'right',
+        verticalAlign: 'top',
+        layout: 'horizontal',
+        itemStyle: { color: 'rgba(148,163,184,0.9)', fontSize: '10px', fontWeight: '500' },
+        symbolRadius: 2,
+        margin: 0,
+        padding: 0
+      },
+      xAxis: {
+        categories: p.categories || [],
+        lineColor: 'rgba(148,163,184,0.10)',
+        tickWidth: 0,
+        labels: {
+          style: { color: 'rgba(148,163,184,0.6)', fontSize: '9px' },
+          step: Math.max(1, Math.floor((p.categories || []).length / 6))
+        }
+      },
+      yAxis: {
+        title: { text: null },
+        gridLineColor: 'rgba(148,163,184,0.06)',
+        gridLineDashStyle: 'Dot',
+        labels: { style: { color: 'rgba(148,163,184,0.5)', fontSize: '9px' }, x: -2 }
+      },
+      tooltip: {
+        shared: true,
+        useHTML: true,
+        backgroundColor: 'rgba(15,23,42,0.96)',
+        borderWidth: 0,
+        style: { color: '#e2e8f0', fontSize: '11px' }
+      },
+      plotOptions: {
+        column: {
+          borderWidth: 0,
+          borderRadius: 2,
+          pointPadding: 0.06,
+          groupPadding: 0.10
+        }
+      },
+      series: series.map(function (s) {
+        return { type: 'column', name: s.name, color: s.color, data: s.data || [] };
+      })
+    };
+    try {
+      return attachChart(el, global.Highcharts.chart(el, options));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Color picker for heat strips. Bands is an array of
+  // [{ from, to, color }]; falls back to neutral when no match.
+  function colorForBand(value, bands) {
+    if (!bands || !bands.length) return '#60a5fa';
+    for (var i = 0; i < bands.length; i++) {
+      var b = bands[i];
+      var from = isFiniteNumber(b.from) ? b.from : -Infinity;
+      var to = isFiniteNumber(b.to) ? b.to : Infinity;
+      if (value >= from && value < to) return b.color;
+    }
+    return bands[bands.length - 1].color || '#60a5fa';
+  }
+
   // Bullet visual: a thin horizontal track with a filled progress portion,
   // a target marker, and an optional accent strip. Implemented in SVG for
   // consistency across pages — not a Highcharts chart.
+  // Supports a `bands` option: [{ from, to, color }] painted as background
+  // segments behind the value bar (e.g. UV risk bands).
   function renderBullet(target, params) {
     var el = resolveContainer(target);
     if (!el) return null;
@@ -301,14 +911,28 @@
     var color = p.color || toneToColor(tone === 'muted' ? 'info' : tone);
     var pct = pctRaw.toFixed(1);
     var targetPct = targetPctRaw !== null ? targetPctRaw.toFixed(1) : null;
+    var bands = Array.isArray(p.bands) ? p.bands : null;
     el.classList.add('smaca-bullet');
     var trackW = 100;
+    var bandsSvg = '';
+    if (bands) {
+      bandsSvg = bands.map(function (b) {
+        var from = isFiniteNumber(toNumber(b.from)) ? toNumber(b.from) : 0;
+        var to = isFiniteNumber(toNumber(b.to)) ? toNumber(b.to) : max;
+        var x = Math.min(100, Math.max(0, (from / max) * 100));
+        var w = Math.min(100 - x, Math.max(0, ((to - from) / max) * 100));
+        return '<rect x="' + x.toFixed(2) + '" y="2" width="' + w.toFixed(2) + '" height="4" rx="2" fill="' + (b.color || 'rgba(96,165,250,0.18)') + '" opacity="' + (b.opacity || 0.55) + '" />';
+      }).join('');
+    }
     el.innerHTML = ''
       + '<svg viewBox="0 0 ' + trackW + ' 8" preserveAspectRatio="none" width="100%" height="8" aria-hidden="true">'
       + '  <rect x="0" y="2" width="' + trackW + '" height="4" rx="2" fill="rgba(148,163,184,0.18)" />'
-      + '  <rect x="0" y="2" width="' + (pctRaw).toFixed(2) + '" height="4" rx="2" fill="' + color + '" />'
+      +    bandsSvg
+      + (isFiniteNumber(value)
+        ? '  <line x1="' + pctRaw.toFixed(2) + '" y1="0" x2="' + pctRaw.toFixed(2) + '" y2="8" stroke="' + color + '" stroke-width="2.4" />'
+        : '')
       + (targetPct !== null
-        ? '  <line x1="' + targetPct + '" y1="0" x2="' + targetPct + '" y2="8" stroke="rgba(241,245,249,0.85)" stroke-width="1.2" />'
+        ? '  <line x1="' + targetPct + '" y1="0" x2="' + targetPct + '" y2="8" stroke="rgba(241,245,249,0.85)" stroke-width="1.2" stroke-dasharray="2 2" />'
         : '')
       + '</svg>'
       + (p.legend
@@ -419,8 +1043,17 @@
 
   global.SMACATelemetry = {
     renderTile: renderTile,
+    renderEmptyTile: renderEmptyTile,
+    renderChartTile: renderChartTile,
     renderSparkline: renderSparkline,
     renderMiniBar: renderMiniBar,
+    renderHeatStripColumn: renderHeatStripColumn,
+    renderStackedColumn: renderStackedColumn,
+    renderGroupedColumn: renderGroupedColumn,
+    renderRankedBarChart: renderRankedBarChart,
+    renderDonut: renderDonut,
+    renderHorizontalBars: renderHorizontalBars,
+    renderComparisonBars: renderComparisonBars,
     renderBullet: renderBullet,
     renderGauge: renderGauge,
     formatDelta: formatDelta,
