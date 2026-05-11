@@ -69,7 +69,7 @@ function finalizeIaqPageRenderCleanup() {
   });
 }
 
-function initAccurateIAQDashboard() {
+function initAccurateIAQDashboard(forceRefresh) {
   
   // Check if already rendering
   if (typeof window !== 'undefined' && window.iaqDashboardRendering) {
@@ -89,9 +89,17 @@ function initAccurateIAQDashboard() {
     console.debug('[SMACA][IAQ] timeframe change start', { from: lastRendered, to: currentTimeframe });
   }
   console.debug('[SMACA][IAQ] active timeframe = ' + currentTimeframe);
-  
-  // Skip if timeframe hasn't changed and we've already rendered
-  if (lastRendered === currentTimeframe && lastRendered !== null) {
+
+  const filteredIAQ = SMACAState.getFilteredIAQ();
+  const dataStamp = [
+    currentTimeframe,
+    (typeof SMACAState !== 'undefined' ? SMACAState.cacheVersion : 0),
+    Array.isArray(filteredIAQ) ? filteredIAQ.length : 0
+  ].join('|');
+  const lastDataStamp = typeof window !== 'undefined' ? window.__SMACA_IaqLastDataStamp : null;
+
+  // Skip if timeframe and hydrated data are unchanged.
+  if (!forceRefresh && lastRendered === currentTimeframe && lastDataStamp === dataStamp && lastRendered !== null) {
     return;
   }
   
@@ -99,9 +107,6 @@ function initAccurateIAQDashboard() {
   if (typeof window !== 'undefined') {
     window.iaqDashboardRendering = true;
   }
-  
-  // Get filtered data from state manager
-  const filteredIAQ = SMACAState.getFilteredIAQ();
   
   if (!filteredIAQ || filteredIAQ.length === 0) {
     if (typeof window !== 'undefined' && window.SMACAHighchartsAdapter && typeof window.SMACAHighchartsAdapter.destroyIaqTrendHighchart === 'function') {
@@ -114,6 +119,7 @@ function initAccurateIAQDashboard() {
     });
     if (typeof window !== 'undefined') {
       window.lastRenderedTimeframe = currentTimeframe;
+      window.__SMACA_IaqLastDataStamp = dataStamp;
       window.iaqDashboardRendering = false; // Release lock
     }
     finalizeIaqPageRenderCleanup();
@@ -131,6 +137,7 @@ function initAccurateIAQDashboard() {
     // Update last rendered timeframe and release lock
     if (typeof window !== 'undefined') {
       window.lastRenderedTimeframe = currentTimeframe;
+      window.__SMACA_IaqLastDataStamp = dataStamp;
       window.iaqDashboardRendering = false;
     }
   } catch (error) {
@@ -195,13 +202,37 @@ function parseUtcMs(value) {
   return Number.isFinite(ms) ? ms : NaN;
 }
 
-function computeIaqDashboardData(normalizedRows, timeframe) {
-  const rows = Array.isArray(normalizedRows) ? normalizedRows : [];
-  const metrics = ['co2', 'temperature', 'humidity', 'pm2_5', 'pm10', 'tvoc'];
+function getIaqChartWindow(timeframe) {
+  if (typeof window !== 'undefined' && window.SMACAChartTime && typeof window.SMACAChartTime.getLineChartWindow === 'function') {
+    return window.SMACAChartTime.getLineChartWindow(timeframe);
+  }
   const bucketMs = getBucketMsForTimeframe(timeframe);
   const windowMs = getTimeframeWindowMs(timeframe);
   const windowEndMs = Date.now();
   const windowStartMs = windowEndMs - windowMs;
+  return {
+    timeframe: timeframe,
+    bucketMs: bucketMs,
+    bucketTimesMs: [],
+    rangeStartMs: windowStartMs,
+    rangeEndMs: windowEndMs
+  };
+}
+
+function resolveIaqChartBucketKey(timeMs, chartWindow) {
+  if (typeof window !== 'undefined' && window.SMACAChartTime && typeof window.SMACAChartTime.resolveBucketKey === 'function') {
+    return window.SMACAChartTime.resolveBucketKey(timeMs, chartWindow);
+  }
+  if (!chartWindow || !Number.isFinite(timeMs)) return null;
+  return Math.floor(timeMs / chartWindow.bucketMs) * chartWindow.bucketMs;
+}
+
+function computeIaqDashboardData(normalizedRows, timeframe) {
+  const rows = Array.isArray(normalizedRows) ? normalizedRows : [];
+  const metrics = ['co2', 'temperature', 'humidity', 'pm2_5', 'pm10', 'tvoc'];
+  const chartWindow = getIaqChartWindow(timeframe);
+  const windowStartMs = chartWindow.rangeStartMs;
+  const windowEndMs = chartWindow.rangeEndMs;
   const sortedRaw = rows
     .map(function (row) { return { row: row, timeMs: parseUtcMs(row?.time) }; })
     .filter(function (item) { return Number.isFinite(item.timeMs); })
@@ -227,7 +258,8 @@ function computeIaqDashboardData(normalizedRows, timeframe) {
         latestPerSensor[key] = { timeMs: timeMs, row: row };
       }
     }
-    const bucket = Math.floor(timeMs / bucketMs) * bucketMs;
+    const bucket = resolveIaqChartBucketKey(timeMs, chartWindow);
+    if (bucket === null) return;
     const bucketKey = String(bucket);
     if (!grouped[bucketKey]) {
       grouped[bucketKey] = {
@@ -613,9 +645,11 @@ function renderIaqMainTrendChart(computed) {
       chartEl.innerHTML = '<div style="padding: var(--space-6); text-align:center; color: var(--muted);">No IAQ data available</div>';
       return;
     }
+    const chartWindow = getIaqChartWindow(computed.timeframe);
     const rendered = window.SMACAHighchartsAdapter.createIaqTrendHighchart('iaq-co2-band-chart', {
       metric: metric,
       timeframe: computed.timeframe,
+      chartWindow: chartWindow,
       yDomain: { min: min, max: max },
       seriesData: highchartsSeries
     });

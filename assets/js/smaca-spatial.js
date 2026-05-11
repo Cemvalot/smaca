@@ -496,15 +496,20 @@
   // Value application + scope-change broadcast
   // -----------------------------------------------------------------------
   function dispatchScopeChange(code, label) {
+    var detail = { location: code || null, label: label || null, module: currentModule() };
     try {
-      var event = new CustomEvent('smaca:scope-change', {
-        detail: { location: code || null, label: label || null, module: currentModule() }
-      });
-      window.dispatchEvent(event);
+      window.dispatchEvent(new CustomEvent('smaca:scope-change', { detail: detail }));
     } catch (e) {
       var fallback = document.createEvent('Event');
       fallback.initEvent('smaca:scope-change', true, true);
       window.dispatchEvent(fallback);
+    }
+    try {
+      window.dispatchEvent(new CustomEvent('smaca:scope-changed', { detail: detail }));
+    } catch (e2) {
+      var fallbackChanged = document.createEvent('Event');
+      fallbackChanged.initEvent('smaca:scope-changed', true, true);
+      window.dispatchEvent(fallbackChanged);
     }
   }
 

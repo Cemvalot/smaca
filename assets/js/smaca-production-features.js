@@ -175,6 +175,120 @@ function getCachedTimeseriesKey(sensorId, timeframe, bucket, metric) {
 function clearSmacaTimeseriesCache() {
   SMACA_TS_CACHE.timeseries = {};
   SMACA_TS_CACHE.latest = {};
+  SMACA_TS_CACHE.render = {};
+}
+
+const SMACA_CHART_HOUR_MS = 60 * 60 * 1000;
+const SMACA_CHART_DAY_MS = 24 * SMACA_CHART_HOUR_MS;
+
+function getSmacaLineChartWindow(timeframe) {
+  const tf = timeframe || '24h';
+  const now = Date.now();
+  if (tf === '24h') {
+    const alignedEndBucketMs = Math.floor(now / SMACA_CHART_HOUR_MS) * SMACA_CHART_HOUR_MS;
+    const bucketCount = 24;
+    const bucketTimesMs = Array.from({ length: bucketCount }, function (_, idx) {
+      return alignedEndBucketMs - (bucketCount - 1 - idx) * SMACA_CHART_HOUR_MS;
+    });
+    return {
+      timeframe: '24h',
+      bucketMs: SMACA_CHART_HOUR_MS,
+      bucketCount: bucketCount,
+      bucketTimesMs: bucketTimesMs,
+      rangeStartMs: bucketTimesMs[0],
+      rangeEndMs: now
+    };
+  }
+
+  const days = tf === '7d' ? 7 : 30;
+  const alignedEndBucketMs = Math.floor(now / SMACA_CHART_DAY_MS) * SMACA_CHART_DAY_MS;
+  const bucketTimesMs = Array.from({ length: days }, function (_, idx) {
+    return alignedEndBucketMs - (days - 1 - idx) * SMACA_CHART_DAY_MS;
+  });
+  return {
+    timeframe: tf,
+    bucketMs: SMACA_CHART_DAY_MS,
+    bucketCount: days,
+    bucketTimesMs: bucketTimesMs,
+    rangeStartMs: bucketTimesMs[0],
+    rangeEndMs: now
+  };
+}
+
+function parseSmacaRowTimeMs(value) {
+  if (value === null || value === undefined) return NaN;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+  const raw = String(value).trim();
+  if (!raw) return NaN;
+  const hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
+  const normalized = hasTz ? raw : raw.replace(' ', 'T') + 'Z';
+  const ms = Date.parse(normalized);
+  return Number.isFinite(ms) ? ms : NaN;
+}
+
+function resolveSmacaChartBucketKey(timeMs, chartWindow) {
+  if (!chartWindow || !Number.isFinite(timeMs)) return null;
+  const bucketTimes = Array.isArray(chartWindow.bucketTimesMs) ? chartWindow.bucketTimesMs : [];
+  if (!bucketTimes.length) return null;
+  const bucketKey = Math.floor(timeMs / chartWindow.bucketMs) * chartWindow.bucketMs;
+  return bucketTimes.indexOf(bucketKey) >= 0 ? bucketKey : null;
+}
+
+function getOverviewModuleRows(module, filteredData, timeframe) {
+  const state = typeof SMACAState !== 'undefined' ? SMACAState : null;
+  const raw = state && Array.isArray(state.rawData?.[module]) ? state.rawData[module] : [];
+  if (state && typeof state.filterByTimeframe === 'function' && raw.length) {
+    return state.filterByTimeframe(raw, timeframe);
+  }
+  const fallback = filteredData && filteredData[module];
+  return Array.isArray(fallback) ? fallback : raw;
+}
+
+function resolveOverviewMetricValue(row, metricKey) {
+  const obj = row?.payload?.object || row?.object || row?.payload || {};
+  const aliases = {
+    co2: ['co2', 'co2_ppm'],
+    uv_index: ['uv_index', 'modbus_chn_1', 'uv']
+  };
+  const keys = aliases[metricKey] || [metricKey];
+  for (let i = 0; i < keys.length; i += 1) {
+    const value = Number(obj[keys[i]]);
+    if (Number.isFinite(value)) return value;
+  }
+  return NaN;
+}
+
+function formatSmacaChartAxisLabel(timestampMs, timeframe) {
+  const date = new Date(timestampMs);
+  if (!Number.isFinite(date.getTime())) return '';
+  if (timeframe === '24h') {
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+  if (timeframe === '7d') {
+    return date.toLocaleDateString(undefined, { weekday: 'short', day: '2-digit' });
+  }
+  return date.toLocaleDateString(undefined, { month: 'short', day: '2-digit' });
+}
+
+function getSmacaHighchartsAxisBounds(chartWindow) {
+  if (!chartWindow || !Array.isArray(chartWindow.bucketTimesMs) || !chartWindow.bucketTimesMs.length) {
+    return {};
+  }
+  const first = chartWindow.bucketTimesMs[0];
+  const last = chartWindow.bucketTimesMs[chartWindow.bucketTimesMs.length - 1];
+  return {
+    min: first,
+    max: last + chartWindow.bucketMs
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.SMACAChartTime = {
+    getLineChartWindow: getSmacaLineChartWindow,
+    resolveBucketKey: resolveSmacaChartBucketKey,
+    formatAxisLabel: formatSmacaChartAxisLabel,
+    getHighchartsAxisBounds: getSmacaHighchartsAxisBounds
+  };
 }
 
 function setSectionLoadingState(sectionId, isLoading) {
@@ -445,11 +559,11 @@ function renderIAQSection(reason, allowDeferred) {
     return;
   }
 
+  const forceRefresh = reason === 'sensor-selected-api'
+    || reason === 'sensor-selected-event'
+    || reason === 'section-visible';
   if (typeof initAccurateIAQDashboard === 'function') {
-    if (typeof window !== 'undefined') {
-      window.lastRenderedTimeframe = null;
-    }
-    initAccurateIAQDashboard();
+    initAccurateIAQDashboard(forceRefresh);
   } else {
     // Backward-compatible fallback if advanced IAQ renderer is unavailable.
     updateIAQDashboardWithTrends(filteredIAQ, SMACAState.currentTimeframe);
@@ -848,7 +962,7 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
         nextHydratedState[bucketPayload.bucket] = Array.isArray(bucketPayload.items) ? bucketPayload.items : [];
       }
     });
-    applyHydratedState(nextHydratedState, false);
+    applyHydratedState(nextHydratedState, true);
 
     if (shouldHydrateLatestRows) {
       await hydrateSensorLatestRowsForUi(sensors, forceRefresh);
@@ -872,7 +986,19 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
       sensorId: Number.isFinite(canonicalSensorId) ? canonicalSensorId : null
     };
   }
-  if (refreshSucceeded) SMACAState.setTimeframe(tf);
+  if (refreshSucceeded) {
+    if (SMACAState.currentTimeframe !== tf) {
+      SMACAState.setTimeframe(tf);
+    } else {
+      SMACAState.invalidateFilteredCache();
+      SMACAState.notifyListeners();
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.__smacaRefreshDashboardForSelection = refreshDashboardForSelection;
+  window.SMACA_PAGE_BUCKETS = SMACA_PAGE_BUCKETS;
 }
 
 async function setCurrentSensorAndReload(selectedSensorId, options) {
@@ -2054,8 +2180,14 @@ function setupTimeRangeSelector() {
         // summaries re-fetch consistently. setTimeframe dispatches
         // `smaca:timeframe-changed`, which KPI pages listen for.
         SMACAState.setTimeframe(timeframe);
-        if (window.SMACAApi && window.SMACACurrentSensorId) {
-          await refreshDashboardForSelection(window.SMACACurrentSensorId, timeframe);
+        if (window.SMACAApi) {
+          const selectedId = Number.isFinite(Number(window.SMACACurrentSensorId))
+            ? Number(window.SMACACurrentSensorId)
+            : chooseDefaultSensorIdFromSnapshots(
+              window.SMACADashboardContext?.overview,
+              window.SMACADashboardContext?.sensors || []
+            );
+          await refreshDashboardForSelection(selectedId, timeframe, { forceRefresh: true });
         }
       } catch (error) {
         console.error('Failed to refresh timeframe from API:', error);
@@ -2194,6 +2326,8 @@ function renderCurrentPageOnly(timeframe, filteredData) {
     currentPage,
     timeframe,
     window.SMACACurrentSensorId || 'none',
+    window.SMACA_LOCATION || 'all',
+    SMACAState.cacheVersion || 0,
     (filteredData?.iaq || []).length,
     (filteredData?.occupancy || []).length,
     (filteredData?.environmental || []).length,
@@ -2553,16 +2687,11 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     return Number.isFinite(ms) ? ms : NaN;
   };
 
-  const HOUR_MS = 60 * 60 * 1000;
-  const DAY_MS = 24 * HOUR_MS;
-  const bucketMs = tf === '24h' ? HOUR_MS : DAY_MS;
-  const bucketCount = tf === '24h' ? 24 : (tf === '7d' ? 7 : 30);
-  const rangeEndMs = Date.now();
-  const rangeStartMs = rangeEndMs - (bucketMs * bucketCount);
-  const alignedEndBucketMs = Math.floor(rangeEndMs / bucketMs) * bucketMs;
-  const bucketTimesMs = Array.from({ length: bucketCount }, function (_, idx) {
-    return alignedEndBucketMs - ((bucketCount - 1 - idx) * bucketMs);
-  });
+  const chartWindow = getSmacaLineChartWindow(tf);
+  const bucketMs = chartWindow.bucketMs;
+  const bucketTimesMs = chartWindow.bucketTimesMs;
+  const rangeStartMs = chartWindow.rangeStartMs;
+  const rangeEndMs = chartWindow.rangeEndMs;
 
   const rawRows = Array.isArray(SMACAState.rawData?.environmental)
     ? SMACAState.rawData.environmental
@@ -2606,7 +2735,8 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
 
   const bucketMap = {};
   filteredRows.forEach(function (entry) {
-    const bucketTime = Math.floor(entry.timeMs / bucketMs) * bucketMs;
+    const bucketTime = resolveSmacaChartBucketKey(entry.timeMs, chartWindow);
+    if (bucketTime === null) return;
     if (!bucketMap[bucketTime]) bucketMap[bucketTime] = [];
     bucketMap[bucketTime].push(entry.uv);
   });
@@ -2768,32 +2898,25 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
 
   smacaDebug('[SMACA][OCCUPANCY] chart update start', { timeframe: timeframe });
 
-  const HOUR_MS = 60 * 60 * 1000;
-  const DAY_MS = 24 * HOUR_MS;
-  const bucketMs = timeframe === '24h' ? HOUR_MS : DAY_MS;
-  const bucketCount = timeframe === '24h' ? 24 : (timeframe === '7d' ? 7 : 30);
-
-  const rangeEndMs = Date.now();
-  const rangeStartMs = rangeEndMs - (bucketMs * bucketCount);
-
-  // Align to full bucket boundaries so the chart is consistent across refreshes.
-  const alignedEndBucketMs = Math.floor(rangeEndMs / bucketMs) * bucketMs;
-  const bucketTimesMs = Array.from({ length: bucketCount }, function (_, idx) {
-    return alignedEndBucketMs - (bucketCount - 1 - idx) * bucketMs;
-  });
+  const chartWindow = getSmacaLineChartWindow(timeframe);
+  const bucketMs = chartWindow.bucketMs;
+  const bucketTimesMs = chartWindow.bucketTimesMs;
+  const rangeStartMs = chartWindow.rangeStartMs;
+  const rangeEndMs = chartWindow.rangeEndMs;
 
   const grouped = {};
   occupancyRows.forEach(function (item) {
     const timeMs = parseUtcMs(item?.time || item?.timestamp || 0);
     if (!Number.isFinite(timeMs)) return;
-    if (timeMs < bucketTimesMs[0] || timeMs > bucketTimesMs[bucketTimesMs.length - 1] + bucketMs) return;
+    if (timeMs < rangeStartMs || timeMs > rangeEndMs) return;
 
     const peopleIn = Number(item?.payload?.object?.people_in);
     const peopleOut = Number(item?.payload?.object?.people_out);
     const peopleTotalIn = Number(item?.payload?.object?.people_total_in);
     const peopleTotalOut = Number(item?.payload?.object?.people_total_out);
 
-    const bucketKey = Math.floor(timeMs / bucketMs) * bucketMs;
+    const bucketKey = resolveSmacaChartBucketKey(timeMs, chartWindow);
+    if (bucketKey === null) return;
     if (!grouped[bucketKey]) grouped[bucketKey] = { in: 0, out: 0, totalIn: null, totalOut: null };
     if (Number.isFinite(peopleIn)) grouped[bucketKey].in += peopleIn;
     if (Number.isFinite(peopleOut)) grouped[bucketKey].out += peopleOut;
@@ -2849,8 +2972,9 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
       const activity = (hasIn ? peopleInVal : 0) + (hasOut ? peopleOutVal : 0);
       if (!Number.isFinite(activity)) return;
 
-      const dayKey = Math.floor(timeMs / DAY_MS) * DAY_MS;
-      const hourOfDay = new Date(timeMs).getUTCHours();
+      const dayKey = resolveSmacaChartBucketKey(timeMs, chartWindow);
+      if (dayKey === null) return;
+      const hourOfDay = new Date(timeMs).getHours();
       const cellKey = String(dayKey) + '|' + String(hourOfDay);
       if (!cellSums[cellKey]) cellSums[cellKey] = 0;
       cellSums[cellKey] += activity;
@@ -3548,16 +3672,11 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   smacaDebug('[SMACA][ENERGY] chart update start', { timeframe: timeframe });
 
   const HOUR_MS = 60 * 60 * 1000;
-  const DAY_MS = 24 * HOUR_MS;
-  const bucketMs = timeframe === '24h' ? HOUR_MS : DAY_MS;
-  const bucketCount = timeframe === '24h' ? 24 : (timeframe === '7d' ? 7 : 30);
-
-  const rangeEndMs = Date.now();
-  const rangeStartMs = rangeEndMs - (timeframe === '24h' ? (24 * HOUR_MS) : (timeframe === '7d' ? (7 * DAY_MS) : (30 * DAY_MS)));
-  const alignedEndBucketMs = Math.floor(rangeEndMs / bucketMs) * bucketMs;
-  const bucketTimesMs = Array.from({ length: bucketCount }, function (_, idx) {
-    return alignedEndBucketMs - (bucketCount - 1 - idx) * bucketMs;
-  });
+  const chartWindow = getSmacaLineChartWindow(timeframe);
+  const bucketMs = chartWindow.bucketMs;
+  const bucketTimesMs = chartWindow.bucketTimesMs;
+  const rangeStartMs = chartWindow.rangeStartMs;
+  const rangeEndMs = chartWindow.rangeEndMs;
 
   const metricUsed = 'energy_kwh';
   const bucketStrategy = 'per-sensor delta using last value in bucket (delta>=0) summed across sensors';
@@ -3659,8 +3778,8 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   // Track last reading per sensor per bucket.
   const lastBySensorByBucket = {};
   filteredEnergyPoints.forEach(function (p) {
-    const bucketKey = Math.floor(p.timeMs / bucketMs) * bucketMs;
-    if (bucketKey < bucketMin || bucketKey > bucketMax) return;
+    const bucketKey = resolveSmacaChartBucketKey(p.timeMs, chartWindow);
+    if (bucketKey === null || bucketKey < bucketMin || bucketKey > bucketMax) return;
     const sensorKey = String(p.sensorId);
     if (!lastBySensorByBucket[sensorKey]) lastBySensorByBucket[sensorKey] = {};
     const existing = lastBySensorByBucket[sensorKey][bucketKey];
@@ -3969,7 +4088,8 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     timeframe: timeframe,
     rangeStart: new Date(rangeStartMs).toISOString(),
     rangeEnd: new Date(rangeEndMs).toISOString(),
-    pointCount: bucketCount,
+    pointCount: bucketTimesMs.length,
+    populatedBuckets: energyPopulatedBuckets,
     metricUsed: metricUsed,
     bucketStrategy: bucketStrategy,
     validSensorCount: sensorIds.length,
@@ -4742,61 +4862,46 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   const chartEl = document.getElementById('overview-campus-trend-chart');
   if (!chartEl) return;
 
-  const iaqRows = Array.isArray(SMACAState.rawData?.iaq) && SMACAState.rawData.iaq.length > 0
-    ? SMACAState.rawData.iaq
-    : (filteredData?.iaq || []);
-  const occupancyRows = Array.isArray(SMACAState.rawData?.occupancy) && SMACAState.rawData.occupancy.length > 0
-    ? SMACAState.rawData.occupancy
-    : (filteredData?.occupancy || []);
-  const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) && SMACAState.rawData.environmental.length > 0
-    ? SMACAState.rawData.environmental
-    : (filteredData?.environmental || []);
-  const energyRows = Array.isArray(SMACAState.rawData?.energy) && SMACAState.rawData.energy.length > 0
-    ? SMACAState.rawData.energy
-    : (filteredData?.energy || []);
+  const iaqRows = getOverviewModuleRows('iaq', filteredData, timeframe);
+  const occupancyRows = getOverviewModuleRows('occupancy', filteredData, timeframe);
+  const environmentalRows = getOverviewModuleRows('environmental', filteredData, timeframe);
+  const energyRows = getOverviewModuleRows('energy', filteredData, timeframe);
 
   const allRows = []
     .concat(iaqRows, occupancyRows, environmentalRows, energyRows)
     .filter(Boolean);
 
-  const startMs = getOverviewChartStartTimestamp(timeframe);
-  const bucketMs = getOverviewChartBucketMs(timeframe);
-  const bucketCount = getOverviewChartBucketCount(timeframe);
-  const now = Date.now();
-  const endMs = Math.max(now, startMs + (bucketCount - 1) * bucketMs);
-  const buckets = Array.from({ length: bucketCount }, function (_, idx) {
-    return startMs + idx * bucketMs;
+  const chartWindow = getSmacaLineChartWindow(timeframe);
+  const buckets = chartWindow.bucketTimesMs.slice();
+  const startMs = chartWindow.rangeStartMs;
+  const endMs = chartWindow.rangeEndMs;
+
+  const co2ByBucket = aggregateMetricByBucket(iaqRows, 'co2', chartWindow);
+  const occupancyByBucket = aggregateOccupancyByBucket(occupancyRows, chartWindow);
+  const connectivityByBucket = aggregateConnectivityByBucket(allRows, chartWindow);
+  const uvByBucket = aggregateMetricByBucket(environmentalRows, 'uv_index', chartWindow);
+
+  const co2SeriesRaw = buckets.map(function (bucket) {
+    const value = co2ByBucket[bucket];
+    return Number.isFinite(value) ? value : null;
+  });
+  const occupancySeriesRaw = buckets.map(function (bucket) {
+    const value = occupancyByBucket[bucket];
+    return Number.isFinite(value) ? value : null;
+  });
+  const connectivitySeriesRaw = buckets.map(function (bucket) {
+    const value = connectivityByBucket[bucket];
+    return Number.isFinite(value) ? value : null;
+  });
+  const uvSeriesRaw = buckets.map(function (bucket) {
+    const value = uvByBucket[bucket];
+    return Number.isFinite(value) ? value : null;
   });
 
-  const co2ByBucket = aggregateMetricByBucket(iaqRows, 'co2', startMs, endMs, bucketMs);
-  const occupancyByBucket = aggregateOccupancyByBucket(occupancyRows, startMs, endMs, bucketMs);
-  const connectivityByBucket = aggregateConnectivityByBucket(allRows, startMs, endMs, bucketMs);
-  const uvByBucket = aggregateMetricByBucket(environmentalRows, 'uv_index', startMs, endMs, bucketMs);
-
-  const co2Series = carryForwardSeries(
-    buckets.map(function (bucket) {
-      const value = co2ByBucket[bucket];
-      return Number.isFinite(value) ? value : null;
-    })
-  );
-  const occupancySeries = carryForwardSeries(
-    buckets.map(function (bucket) {
-      const value = occupancyByBucket[bucket];
-      return Number.isFinite(value) ? value : null;
-    })
-  );
-  const connectivitySeries = carryForwardSeries(
-    buckets.map(function (bucket) {
-      const value = connectivityByBucket[bucket];
-      return Number.isFinite(value) ? value : null;
-    })
-  );
-  const uvSeries = carryForwardSeries(
-    buckets.map(function (bucket) {
-      const value = uvByBucket[bucket];
-      return Number.isFinite(value) ? value : null;
-    })
-  );
+  const co2Series = carryForwardSeries(co2SeriesRaw);
+  const occupancySeries = carryForwardSeries(occupancySeriesRaw);
+  const connectivitySeries = carryForwardSeries(connectivitySeriesRaw);
+  const uvSeries = carryForwardSeries(uvSeriesRaw);
 
   if (!co2Series.some(Number.isFinite) && !occupancySeries.some(Number.isFinite) && !connectivitySeries.some(Number.isFinite) && !uvSeries.some(Number.isFinite)) {
     renderEmptyState('overview-campus-trend-chart', 'No trend data available for the selected range');
@@ -4804,6 +4909,7 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   }
 
   drawOverviewSvgLineChart(chartEl, {
+    timeframe: timeframe,
     buckets: buckets,
     series: [
       { key: 'co2', label: 'CO₂', unit: 'ppm', color: '#3b82f6', values: co2Series },
@@ -4824,49 +4930,39 @@ function renderOverviewTrendChart(filteredData, timeframe) {
       || Number.isFinite(uvSeries[idx]);
     return acc + (hasAny ? 1 : 0);
   }, 0);
-  renderSparseDataNote('overview-campus-trend-chart', populatedCount, buckets.length, timeframe);
+  const rawPopulatedCount = buckets.reduce(function (acc, _ts, idx) {
+    const hasAny = Number.isFinite(co2SeriesRaw[idx])
+      || Number.isFinite(occupancySeriesRaw[idx])
+      || Number.isFinite(connectivitySeriesRaw[idx])
+      || Number.isFinite(uvSeriesRaw[idx]);
+    return acc + (hasAny ? 1 : 0);
+  }, 0);
+  renderSparseDataNote('overview-campus-trend-chart', rawPopulatedCount, buckets.length, timeframe);
 
   if (typeof window !== 'undefined') {
     window.__overviewTrendDebug = {
       timeframe: timeframe,
       bucketCount: buckets.length,
       populatedCount: populatedCount,
+      rawPopulatedCount: rawPopulatedCount,
+      rangeStart: new Date(startMs).toISOString(),
+      rangeEnd: new Date(endMs).toISOString(),
       seriesKeys: ['co2', 'occupancy', 'connectivity', 'uv']
     };
   }
 }
 
-function getOverviewChartBucketMs(timeframe) {
-  if (timeframe === '7d') return 6 * 60 * 60 * 1000;
-  if (timeframe === '30d') return 24 * 60 * 60 * 1000;
-  return 60 * 60 * 1000;
-}
-
-function getOverviewChartBucketCount(timeframe) {
-  if (timeframe === '7d') return 28;
-  if (timeframe === '30d') return 30;
-  return 24;
-}
-
-function getOverviewChartStartTimestamp(timeframe) {
-  const now = new Date();
-  if (timeframe === '7d') {
-    return now.getTime() - 7 * 24 * 60 * 60 * 1000;
-  }
-  if (timeframe === '30d') {
-    return now.getTime() - 30 * 24 * 60 * 60 * 1000;
-  }
-  return now.getTime() - 24 * 60 * 60 * 1000;
-}
-
-function aggregateMetricByBucket(rows, metricKey, startMs, endMs, bucketMs) {
+function aggregateMetricByBucket(rows, metricKey, chartWindow) {
   const byBucket = {};
   const safeRows = Array.isArray(rows) ? rows : [];
+  const startMs = chartWindow?.rangeStartMs;
+  const endMs = chartWindow?.rangeEndMs;
   safeRows.forEach(function (item) {
-    const t = new Date(item?.time || item?.timestamp || 0).getTime();
-    const value = Number(item?.payload?.object?.[metricKey]);
+    const t = parseSmacaRowTimeMs(item?.time || item?.timestamp || 0);
+    const value = resolveOverviewMetricValue(item, metricKey);
     if (!Number.isFinite(t) || !Number.isFinite(value) || t < startMs || t > endMs) return;
-    const bucket = startMs + Math.floor((t - startMs) / bucketMs) * bucketMs;
+    const bucket = resolveSmacaChartBucketKey(t, chartWindow);
+    if (bucket === null) return;
     if (!byBucket[bucket]) byBucket[bucket] = [];
     byBucket[bucket].push(value);
   });
@@ -4877,15 +4973,18 @@ function aggregateMetricByBucket(rows, metricKey, startMs, endMs, bucketMs) {
   }, {});
 }
 
-function aggregateOccupancyByBucket(rows, startMs, endMs, bucketMs) {
+function aggregateOccupancyByBucket(rows, chartWindow) {
   const safeRows = Array.isArray(rows) ? rows : [];
   const rawByBucket = {};
+  const startMs = chartWindow?.rangeStartMs;
+  const endMs = chartWindow?.rangeEndMs;
   safeRows.forEach(function (item) {
-    const t = new Date(item?.time || item?.timestamp || 0).getTime();
+    const t = parseSmacaRowTimeMs(item?.time || item?.timestamp || 0);
     if (!Number.isFinite(t) || t < startMs || t > endMs) return;
     const resolvedValue = resolveOccupancyValueFromPayload(item?.payload?.object);
     if (!Number.isFinite(resolvedValue)) return;
-    const bucket = startMs + Math.floor((t - startMs) / bucketMs) * bucketMs;
+    const bucket = resolveSmacaChartBucketKey(t, chartWindow);
+    if (bucket === null) return;
     if (!rawByBucket[bucket]) rawByBucket[bucket] = [];
     rawByBucket[bucket].push(resolvedValue);
   });
@@ -4899,17 +4998,20 @@ function aggregateOccupancyByBucket(rows, startMs, endMs, bucketMs) {
   return avgByBucket;
 }
 
-function aggregateConnectivityByBucket(rows, startMs, endMs, bucketMs) {
+function aggregateConnectivityByBucket(rows, chartWindow) {
   const safeRows = Array.isArray(rows) ? rows : [];
   const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
   const totalSensors = Math.max(1, sensors.length);
   const bucketSensorSet = {};
+  const startMs = chartWindow?.rangeStartMs;
+  const endMs = chartWindow?.rangeEndMs;
 
   safeRows.forEach(function (item) {
-    const t = new Date(item?.time || item?.timestamp || 0).getTime();
+    const t = parseSmacaRowTimeMs(item?.time || item?.timestamp || 0);
     const sensorId = item?.sensorId;
     if (!Number.isFinite(t) || t < startMs || t > endMs || sensorId === null || sensorId === undefined) return;
-    const bucket = startMs + Math.floor((t - startMs) / bucketMs) * bucketMs;
+    const bucket = resolveSmacaChartBucketKey(t, chartWindow);
+    if (bucket === null) return;
     if (!bucketSensorSet[bucket]) bucketSensorSet[bucket] = new Set();
     bucketSensorSet[bucket].add(String(sensorId));
   });
@@ -4969,10 +5071,7 @@ function drawOverviewSvgLineChart(container, payload) {
     return;
   }
 
-  const dateFormatter = new Intl.DateTimeFormat(undefined, {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const timeframe = payload.timeframe || '24h';
 
   const toPath = function (points) {
     if (!points.length) return '';
@@ -5034,7 +5133,7 @@ function drawOverviewSvgLineChart(container, payload) {
   }).join('');
   const xLabels = xTickIndexes.map(function (idx) {
     const x = xScale(idx);
-    return `<text class="chart-label" x="${x}" y="${chartHeight + 18}" text-anchor="middle">${dateFormatter.format(new Date(payload.buckets[idx]))}</text>`;
+    return `<text class="chart-label" x="${x}" y="${chartHeight + 18}" text-anchor="middle">${formatSmacaChartAxisLabel(payload.buckets[idx], timeframe)}</text>`;
   }).join('');
   const seriesPaths = payload.series.map(function (series, seriesIndex) {
     const points = pointsBySeries[seriesIndex];
@@ -5105,7 +5204,7 @@ function drawOverviewSvgLineChart(container, payload) {
     }).join('');
 
     tooltip.innerHTML = `
-      <div class="overview-chart-tooltip__time">${dateFormatter.format(new Date(payload.buckets[index]))}</div>
+      <div class="overview-chart-tooltip__time">${formatSmacaChartAxisLabel(payload.buckets[index], timeframe)}</div>
       ${rows}
     `;
     tooltip.classList.add('is-visible');
@@ -5232,7 +5331,9 @@ function drawOverviewSvgLineChart(container, payload) {
       rows.forEach(function (row) {
         if (row.chartId !== 'overview-campus-trend-chart') return;
         row.bucketCount = global.__overviewTrendDebug.bucketCount;
-        row.populated = global.__overviewTrendDebug.populatedCount;
+        row.populated = Number.isFinite(Number(global.__overviewTrendDebug.rawPopulatedCount))
+          ? global.__overviewTrendDebug.rawPopulatedCount
+          : global.__overviewTrendDebug.populatedCount;
         row.timeframe = global.__overviewTrendDebug.timeframe || tf;
       });
     }
@@ -5270,7 +5371,9 @@ function drawOverviewSvgLineChart(container, payload) {
       rows.forEach(function (row) {
         if (row.chartId === 'energy-main-combined-chart') {
           row.bucketCount = main.length || energy.pointCount || null;
-          row.populated = countFinite(main);
+          row.populated = Number.isFinite(Number(energy.populatedBuckets))
+            ? energy.populatedBuckets
+            : countFinite(main);
           row.timeframe = energy.timeframe || tf;
         }
         if (row.chartId === 'energy-demand-trend-chart') {
@@ -5278,7 +5381,9 @@ function drawOverviewSvgLineChart(container, payload) {
             ? energy.demandTrendSeries.data
             : main;
           row.bucketCount = demand.length || energy.pointCount || null;
-          row.populated = countFinite(demand);
+          row.populated = Number.isFinite(Number(energy.populatedBuckets))
+            ? energy.populatedBuckets
+            : countFinite(demand);
           row.timeframe = energy.timeframe || tf;
         }
       });
@@ -5319,24 +5424,37 @@ function drawOverviewSvgLineChart(container, payload) {
     };
   }
 
+  function refreshForLegacyAudit(tf) {
+    var refresh = global.__smacaRefreshDashboardForSelection;
+    if (typeof refresh !== 'function') {
+      applyTimeframe(tf);
+      return Promise.resolve();
+    }
+    var sensorId = Number.isFinite(Number(global.SMACACurrentSensorId))
+      ? Number(global.SMACACurrentSensorId)
+      : null;
+    return Promise.resolve(refresh(sensorId, tf, { forceRefresh: true }));
+  }
+
   function waitForLegacyCharts(tf) {
     var attempts = 0;
     var maxAttempts = 5;
-    return new Promise(function (resolve) {
-      function tick() {
-        var snapshot = collectCurrentPage();
-        var pending = (snapshot.charts || []).some(function (chart) {
-          return chart.status === 'blank' && !chart.empty && chart.populated === null && chart.bucketCount === null;
-        });
-        if (!pending || attempts >= maxAttempts) {
-          resolve(snapshot);
-          return;
+    return refreshForLegacyAudit(tf).then(function () {
+      return new Promise(function (resolve) {
+        function tick() {
+          var snapshot = collectCurrentPage();
+          var pending = (snapshot.charts || []).some(function (chart) {
+            return chart.status === 'blank' && !chart.empty && chart.populated === null && chart.bucketCount === null;
+          });
+          if (!pending || attempts >= maxAttempts) {
+            resolve(snapshot);
+            return;
+          }
+          attempts += 1;
+          setTimeout(tick, 450);
         }
-        attempts += 1;
-        setTimeout(tick, 450);
-      }
-      applyTimeframe(tf);
-      setTimeout(tick, IDLE_MS);
+        setTimeout(tick, IDLE_MS);
+      });
     });
   }
 
@@ -5474,12 +5592,488 @@ function drawOverviewSvgLineChart(container, payload) {
     }, []);
   }
 
+  function auditConnectivityTelemetry(timeframes) {
+    var boot = global.SMACATelemetryBootstrap && global.SMACATelemetryBootstrap.debug;
+    if (!boot || typeof boot.auditTimeframes !== 'function') {
+      return Promise.resolve({ skipped: 'SMACATelemetryBootstrap.debug.auditTimeframes unavailable' });
+    }
+    var order = Array.isArray(timeframes) && timeframes.length ? timeframes.slice() : TIMEFRAMES.slice();
+    return Promise.resolve(boot.auditTimeframes(order));
+  }
+
   global.SMACALegacyCharts = {
     chartsForPage: function (page) { return (LEGACY_BY_PAGE[page || activePage()] || []).slice(); },
     collect: collectCurrentPage,
     auditTimeframes: auditLegacyTimeframes,
+    auditConnectivityTelemetry: auditConnectivityTelemetry,
     auditAllPages: auditAllLegacyPages,
     cancelAllPagesAudit: cancelAllLegacyAudit,
     flattenResults: flattenLegacyAuditResults
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+(function (global) {
+  'use strict';
+
+  var TIMEFRAMES = ['24h', '7d', '30d'];
+  var MODULE_SPECS = [
+    { module: 'iaq', metric: 'co2_ppm', deviceTypes: ['iaq'] },
+    { module: 'occupancy', metric: 'people_total_in', deviceTypes: ['occupancy'] },
+    { module: 'energy', metric: 'energy_kwh', deviceTypes: ['energy'] },
+    { module: 'environmental', metric: 'uv_index', deviceTypes: ['environmental', 'uv'] }
+  ];
+
+  function currentPage() {
+    if (global.SMACA_CURRENT_PAGE) return String(global.SMACA_CURRENT_PAGE);
+    var parts = (global.location && global.location.pathname || '').split('/').filter(Boolean);
+    return parts.length > 1 ? parts[1] : 'overview';
+  }
+
+  function hydratedBucketsForPage(page) {
+    var map = global.SMACA_PAGE_BUCKETS || {
+      overview: ['iaq', 'occupancy', 'environmental'],
+      iaq: ['iaq'],
+      occupancy: ['occupancy'],
+      environmental: ['environmental'],
+      connectivity: [],
+      'ai-insights': [],
+      energy: ['energy', 'occupancy'],
+      management: []
+    };
+    return Array.isArray(map[page]) ? map[page].slice() : [];
+  }
+
+  function api() {
+    return global.SMACAApi || null;
+  }
+
+  function stateManager() {
+    return global.SMACAState || null;
+  }
+
+  function activeTimeframe() {
+    var state = stateManager();
+    if (state && TIMEFRAMES.indexOf(String(state.currentTimeframe)) !== -1) {
+      return String(state.currentTimeframe);
+    }
+    if (TIMEFRAMES.indexOf(String(global.SMACA_TIMEFRAME)) !== -1) {
+      return String(global.SMACA_TIMEFRAME);
+    }
+    return '24h';
+  }
+
+  function activeLocation() {
+    try {
+      var value = (global.SMACA_LOCATION || '').toString().trim();
+      return value || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function parseTs(value) {
+    if (value === null || value === undefined) return NaN;
+    if (typeof value === 'number') return value;
+    var raw = String(value).trim();
+    if (!raw) return NaN;
+    var hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
+    var normalized = hasTz ? raw : raw.replace(' ', 'T') + 'Z';
+    var ms = Date.parse(normalized);
+    return Number.isFinite(ms) ? ms : NaN;
+  }
+
+  function distinctDays(times) {
+    var days = {};
+    (times || []).forEach(function (ms) {
+      if (!Number.isFinite(ms)) return;
+      days[new Date(ms).toISOString().slice(0, 10)] = true;
+    });
+    return Object.keys(days).length;
+  }
+
+  function pickSensorForModule(sensors, spec) {
+    var rows = Array.isArray(sensors) ? sensors : [];
+    var types = (spec.deviceTypes || []).map(function (t) { return String(t).toLowerCase(); });
+    var matches = rows.filter(function (row) {
+      var type = String(row && row.device_type || '').toLowerCase();
+      return types.indexOf(type) !== -1 && Number.isFinite(Number(row.id));
+    });
+    if (spec.module === 'energy' && matches.length) {
+      return pickEnergySensorCandidates(matches)[0] || null;
+    }
+    if (matches.length) return matches[0];
+    for (var j = 0; j < rows.length; j++) {
+      if (Number.isFinite(Number(rows[j].id))) return rows[j];
+    }
+    return null;
+  }
+
+  function pickEnergySensorCandidates(matches) {
+    var pool = Array.isArray(matches) ? matches.slice() : [];
+    if (!pool.length) return [];
+    var withLatest = pool.filter(function (row) {
+      return Number.isFinite(Number(row && row.latest && row.latest.energy_kwh));
+    });
+    if (withLatest.length) pool = withLatest;
+    pool.sort(function (a, b) {
+      var aVal = Number(a && a.latest && a.latest.energy_kwh);
+      var bVal = Number(b && b.latest && b.latest.energy_kwh);
+      return (Number.isFinite(bVal) ? bVal : -1) - (Number.isFinite(aVal) ? aVal : -1);
+    });
+    return pool;
+  }
+
+  function pickSensorForTimeseriesAudit(sensors, spec, timeframe) {
+    if (spec.module !== 'energy') {
+      return Promise.resolve(pickSensorForModule(sensors, spec));
+    }
+    var client = api();
+    var types = (spec.deviceTypes || []).map(function (t) { return String(t).toLowerCase(); });
+    var rows = Array.isArray(sensors) ? sensors : [];
+    var matches = rows.filter(function (row) {
+      var type = String(row && row.device_type || '').toLowerCase();
+      return types.indexOf(type) !== -1 && Number.isFinite(Number(row.id));
+    });
+    var candidates = pickEnergySensorCandidates(matches);
+    if (!client || !candidates.length) {
+      return Promise.resolve(pickSensorForModule(sensors, spec));
+    }
+    var idx = 0;
+    function tryNext() {
+      if (idx >= candidates.length) {
+        return Promise.resolve(candidates[0] || pickSensorForModule(sensors, spec));
+      }
+      var sensor = candidates[idx];
+      idx += 1;
+      return client.fetchSensorTimeseries(sensor.id, spec.metric, timeframe).then(function (payload) {
+        var points = Array.isArray(payload && payload.points) ? payload.points.length : 0;
+        if (points > 0) return sensor;
+        return tryNext();
+      }).catch(function () {
+        return tryNext();
+      });
+    }
+    return tryNext();
+  }
+
+  function stateRawCount(module) {
+    var state = stateManager();
+    if (!state || !state.rawData) return null;
+    var raw = state.rawData[module];
+    return Array.isArray(raw) ? raw.length : 0;
+  }
+
+  function stateFilteredCount(module, timeframe) {
+    var state = stateManager();
+    if (!state || typeof state.filterByTimeframe !== 'function') return null;
+    var raw = state.rawData && state.rawData[module];
+    if (!Array.isArray(raw)) return 0;
+    return state.filterByTimeframe(raw, timeframe).length;
+  }
+
+  function summarizeTimeseries(payload) {
+    var points = (payload && Array.isArray(payload.points)) ? payload.points : [];
+    var times = points.map(function (p) { return parseTs(p && p.time); }).filter(Number.isFinite);
+    var values = points.map(function (p) { return Number(p && p.value); }).filter(Number.isFinite);
+    return {
+      points: points.length,
+      minTs: times.length ? Math.min.apply(null, times) : null,
+      maxTs: times.length ? Math.max.apply(null, times) : null,
+      distinctDays: distinctDays(times),
+      finiteValues: values.length
+    };
+  }
+
+  function summarizeKpis(payload) {
+    var kpis = (payload && Array.isArray(payload.kpis)) ? payload.kpis : [];
+    var populated = kpis.filter(function (k) {
+      return k && k.value !== null && k.value !== undefined && Number.isFinite(Number(k.value));
+    });
+    return {
+      kpiCount: kpis.length,
+      populatedKpis: populated.length,
+      emptyKpis: kpis.filter(function (k) {
+        return !k || k.value === null || k.value === undefined || !Number.isFinite(Number(k.value));
+      }).map(function (k) { return k.key; })
+    };
+  }
+
+  function auditTimeseriesRow(sensor, spec, timeframe, opts) {
+    var auditOpts = opts || {};
+    var uiTimeframe = auditOpts.uiTimeframe || activeTimeframe();
+    var client = api();
+    if (!client || !sensor || !Number.isFinite(Number(sensor.id))) {
+      return Promise.resolve({
+        kind: 'timeseries',
+        module: spec.module,
+        timeframe: timeframe,
+        uiTimeframe: uiTimeframe,
+        sensorId: null,
+        metric: spec.metric,
+        points: 0,
+        finiteValues: 0,
+        distinctDays: 0,
+        minTs: null,
+        maxTs: null,
+        rawRows: stateRawCount(spec.module),
+        stateRows: stateFilteredCount(spec.module, timeframe),
+        note: 'no sensor'
+      });
+    }
+    return client.fetchSensorTimeseries(sensor.id, spec.metric, timeframe).then(function (payload) {
+      var summary = summarizeTimeseries(payload);
+      var rawRows = stateRawCount(spec.module);
+      var stateRows = stateFilteredCount(spec.module, timeframe);
+      var page = currentPage();
+      var hydratedBuckets = hydratedBucketsForPage(page);
+      var note = '';
+      if (stateRows === null) {
+        note = 'SMACAState unavailable on window';
+      } else if (hydratedBuckets.indexOf(spec.module) === -1 && rawRows === 0) {
+        note = 'bucket not hydrated on ' + page + ' page (api probe only)';
+      } else if (summary.points >= 2 && stateRows === 0) {
+        note = 'api has points but SMACAState raw/filter is empty';
+      } else if (spec.module === 'energy' && stateRows > 0 && summary.points === 0) {
+        note = 'state has rows but probed sensor has no energy_kwh timeseries';
+      } else if (summary.points < 2) {
+        note = 'fewer than 2 api points';
+      } else if (uiTimeframe !== timeframe) {
+        note = 'stateRows reflect ui timeframe ' + uiTimeframe + ', not probe ' + timeframe;
+      }
+      return {
+        kind: 'timeseries',
+        page: page,
+        module: spec.module,
+        timeframe: timeframe,
+        uiTimeframe: uiTimeframe,
+        sensorId: Number(sensor.id),
+        metric: spec.metric,
+        points: summary.points,
+        finiteValues: summary.finiteValues,
+        distinctDays: summary.distinctDays,
+        minTs: summary.minTs,
+        maxTs: summary.maxTs,
+        rawRows: rawRows,
+        stateRows: stateRows,
+        note: note
+      };
+    }).catch(function (err) {
+      return {
+        kind: 'timeseries',
+        module: spec.module,
+        timeframe: timeframe,
+        uiTimeframe: uiTimeframe,
+        sensorId: Number(sensor.id),
+        metric: spec.metric,
+        points: 0,
+        finiteValues: 0,
+        distinctDays: 0,
+        minTs: null,
+        maxTs: null,
+        rawRows: stateRawCount(spec.module),
+        stateRows: stateFilteredCount(spec.module, timeframe),
+        note: 'request failed: ' + (err && err.message ? err.message : 'unknown')
+      };
+    });
+  }
+
+  function auditKpiRow(module, timeframe) {
+    var client = api();
+    if (!client || typeof client.fetchKpiSummary !== 'function') {
+      return Promise.resolve({
+        kind: 'kpi',
+        module: module,
+        timeframe: timeframe,
+        kpiCount: 0,
+        populatedKpis: 0,
+        emptyKpis: [],
+        note: 'SMACAApi.fetchKpiSummary unavailable'
+      });
+    }
+    return client.fetchKpiSummary(module, { timeframe: timeframe, location: activeLocation() }).then(function (payload) {
+      var summary = summarizeKpis(payload);
+      return {
+        kind: 'kpi',
+        module: module,
+        timeframe: timeframe,
+        kpiCount: summary.kpiCount,
+        populatedKpis: summary.populatedKpis,
+        emptyKpis: summary.emptyKpis,
+        note: summary.populatedKpis ? '' : 'no populated KPI values'
+      };
+    }).catch(function (err) {
+      return {
+        kind: 'kpi',
+        module: module,
+        timeframe: timeframe,
+        kpiCount: 0,
+        populatedKpis: 0,
+        emptyKpis: [],
+        note: 'request failed: ' + (err && err.message ? err.message : 'unknown')
+      };
+    });
+  }
+
+  function finalizeAuditRows(rows, meta) {
+    try {
+      console.log('[SMACA_DATA] timeframe audit complete', meta || {
+        page: currentPage(),
+        hydratedBuckets: hydratedBucketsForPage(currentPage()),
+        location: activeLocation(),
+        uiTimeframe: activeTimeframe()
+      });
+      console.table(rows);
+    } catch (e) { /* noop */ }
+    return rows;
+  }
+
+  function auditModulesForTimeframe(tf, auditOpts) {
+    var client = api();
+    return client.fetchSensors().then(function (payload) {
+      var sensors = (payload && Array.isArray(payload.rows)) ? payload.rows : [];
+      var tasks = [];
+      MODULE_SPECS.forEach(function (spec) {
+        tasks.push(
+          pickSensorForTimeseriesAudit(sensors, spec, tf).then(function (sensor) {
+            return auditTimeseriesRow(sensor, spec, tf, auditOpts);
+          })
+        );
+        tasks.push(auditKpiRow(spec.module, tf));
+      });
+      return Promise.all(tasks);
+    });
+  }
+
+  function auditTimeframes(options) {
+    var opts = options || {};
+    var order = Array.isArray(opts.timeframes) && opts.timeframes.length
+      ? opts.timeframes.slice()
+      : TIMEFRAMES.slice();
+    var client = api();
+    if (!client) {
+      return Promise.resolve({ skipped: 'SMACAApi missing' });
+    }
+    var refresh = global.__smacaRefreshDashboardForSelection;
+    if (opts.refreshEachTimeframe && typeof refresh === 'function') {
+      return order.reduce(function (chain, tf) {
+        return chain.then(function (acc) {
+          var sensorId = Number.isFinite(Number(global.SMACACurrentSensorId))
+            ? Number(global.SMACACurrentSensorId)
+            : null;
+          return Promise.resolve(refresh(sensorId, tf, { forceRefresh: true }))
+            .then(function () {
+              return auditModulesForTimeframe(tf, { uiTimeframe: tf });
+            })
+            .then(function (rows) {
+              return acc.concat(rows);
+            });
+        });
+      }, Promise.resolve([])).then(function (rows) {
+        return finalizeAuditRows(rows, {
+          page: currentPage(),
+          hydratedBuckets: hydratedBucketsForPage(currentPage()),
+          location: activeLocation(),
+          uiTimeframe: 'per-timeframe refresh',
+          refreshEachTimeframe: true
+        });
+      });
+    }
+    var uiTimeframe = activeTimeframe();
+    var tasks = [];
+    order.forEach(function (tf) {
+      tasks.push(
+        auditModulesForTimeframe(tf, { uiTimeframe: uiTimeframe }).then(function (rows) {
+          return rows;
+        })
+      );
+    });
+    return Promise.all(tasks).then(function (groups) {
+      var rows = [];
+      groups.forEach(function (group) {
+        if (Array.isArray(group)) rows = rows.concat(group);
+      });
+      return finalizeAuditRows(rows);
+    });
+  }
+
+  function auditCurrentTimeframe() {
+    return auditTimeframes({ timeframes: [activeTimeframe()] });
+  }
+
+  function refreshAndAudit(options) {
+    var opts = options || {};
+    var refresh = global.__smacaRefreshDashboardForSelection;
+    if (typeof refresh !== 'function') {
+      return auditTimeframes(opts);
+    }
+    var tf = opts.timeframe || activeTimeframe();
+    var sensorId = Number.isFinite(Number(global.SMACACurrentSensorId))
+      ? Number(global.SMACACurrentSensorId)
+      : null;
+    return Promise.resolve(refresh(sensorId, tf, { forceRefresh: true }))
+      .then(function () { return auditTimeframes(opts); });
+  }
+
+  function refreshAndAuditAllTimeframes(options) {
+    return auditTimeframes(Object.assign({}, options || {}, { refreshEachTimeframe: true }));
+  }
+
+  function adminWindowRows() {
+    var location = activeLocation();
+    var url = '/api/admin/timeframe-validate' + (location ? ('?location=' + encodeURIComponent(location)) : '');
+    return fetch(url, { credentials: 'same-origin' })
+      .then(function (res) {
+        if (!res.ok) {
+          return {
+            skipped: true,
+            status: res.status,
+            message: res.status === 403 ? 'admin only — sign in as admin or use auditTimeframes()' : 'request failed'
+          };
+        }
+        return res.json();
+      })
+      .then(function (payload) {
+        if (payload && payload.skipped) {
+          try { console.warn('[SMACA_DATA] admin timeframe validate skipped', payload); } catch (e) { /* noop */ }
+          return payload;
+        }
+        var rows = Array.isArray(payload) ? payload : (Array.isArray(payload && payload.results) ? payload.results : []);
+        try {
+          console.log('[SMACA_DATA] admin timeframe validate');
+          console.table(rows);
+        } catch (e2) { /* noop */ }
+        return rows;
+      })
+      .catch(function (err) {
+        return { skipped: true, message: err && err.message ? err.message : 'request failed' };
+      });
+  }
+
+  function help() {
+    try {
+      console.log([
+        'SMACADataAudit.help()',
+        'SMACADataAudit.auditTimeframes().then(console.table)',
+        'SMACADataAudit.auditTimeframes({ refreshEachTimeframe: true }).then(console.table)',
+        'SMACADataAudit.refreshAndAudit().then(console.table)',
+        'SMACADataAudit.refreshAndAuditAllTimeframes().then(console.table)',
+        'SMACADataAudit.auditCurrent().then(console.table)',
+        'SMACADataAudit.adminWindow().then(console.table)',
+        'Connectivity telemetry: SMACALegacyCharts.auditConnectivityTelemetry().then(console.table)',
+        'rawRows = SMACAState.rawData[module].length; stateRows = filterByTimeframe for probe timeframe.',
+        'Without per-timeframe refresh, stateRows track the active UI timeframe (uiTimeframe column).',
+        'Compare api points vs rawRows/stateRows; energy may show stateRows>0 with 0 energy_kwh api points.',
+        'adminWindow() is admin-only; non-admin sessions get a skipped warning.'
+      ].join('\n'));
+    } catch (e) { /* noop */ }
+  }
+
+  global.SMACADataAudit = {
+    help: help,
+    auditTimeframes: auditTimeframes,
+    refreshAndAudit: refreshAndAudit,
+    refreshAndAuditAllTimeframes: refreshAndAuditAllTimeframes,
+    auditCurrent: auditCurrentTimeframe,
+    adminWindow: adminWindowRows
   };
 })(typeof window !== 'undefined' ? window : globalThis);

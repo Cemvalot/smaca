@@ -549,12 +549,8 @@
     if (!sensor || !sensor.id) return Promise.resolve(null);
     return loadTimeseries(sensor.id, metric).then(function (resp) {
       var pts = (resp && Array.isArray(resp.points)) ? resp.points : [];
-      var windowMs = timeframeWindowMs(activeTimeframe());
-      var earliestAllowed = Date.now() - windowMs * 1.05;
-      var inWindow = pts.filter(function (p) {
-        var t = Date.parse(p.time || 0);
-        return Number.isFinite(t) && t >= earliestAllowed;
-      });
+      // Timeseries responses are already scoped to the requested timeframe.
+      var inWindow = pts;
       if (inWindow.length < 2) return null;
       var values = inWindow
         .map(function (p) { return toNumber(p.value); })

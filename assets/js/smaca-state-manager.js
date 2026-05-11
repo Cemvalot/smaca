@@ -210,3 +210,7 @@ const SMACAState = {
     return filtered.length >= requiredPoints;
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.SMACAState = SMACAState;
+}

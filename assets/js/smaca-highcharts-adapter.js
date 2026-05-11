@@ -150,6 +150,34 @@ function smacaUiT(key, fallback) {
     });
   }
 
+  function getDatetimeAxisBounds(params) {
+    if (params?.xAxisMin != null && params?.xAxisMax != null) {
+      return { min: params.xAxisMin, max: params.xAxisMax };
+    }
+    const chartWindow = params?.chartWindow;
+    if (chartWindow && typeof window !== 'undefined' && window.SMACAChartTime && typeof window.SMACAChartTime.getHighchartsAxisBounds === 'function') {
+      return window.SMACAChartTime.getHighchartsAxisBounds(chartWindow);
+    }
+    return {};
+  }
+
+  function buildChartWindowFromBucketTimes(timeframe, times) {
+    const bucketTimesMs = Array.isArray(times) ? times : [];
+    if (!bucketTimesMs.length) return null;
+    const bucketMs = timeframe === '24h' ? 3600000 : 86400000;
+    return {
+      timeframe: timeframe,
+      bucketMs: bucketMs,
+      bucketTimesMs: bucketTimesMs,
+      rangeStartMs: Number(bucketTimesMs[0]),
+      rangeEndMs: Number(bucketTimesMs[bucketTimesMs.length - 1]) + bucketMs
+    };
+  }
+
+  function mergeDatetimeXAxis(base, chartWindow) {
+    return Object.assign({}, base || {}, getDatetimeAxisBounds({ chartWindow: chartWindow }));
+  }
+
   function createOrUpdateChart(params) {
     if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
     ensureAccessibilityDisabled();
@@ -161,6 +189,13 @@ function smacaUiT(key, fallback) {
     if (!container) return { ok: false, reason: 'missing-container' };
     const store = ensureChartStore();
     if (!store) return { ok: false, reason: 'missing-window' };
+    if (!store.meta) store.meta = {};
+
+    const timeKey = params?.timeKey != null ? String(params.timeKey) : null;
+    const priorTimeKey = store.meta[chartKey]?.timeKey || null;
+    if (timeKey && priorTimeKey && priorTimeKey !== timeKey) {
+      destroyChart(chartKey);
+    }
 
     const options = mergeOptions(DEFAULT_CHART_OPTIONS, params.options || {});
     const existingChart = getChartByKey(chartKey);
@@ -183,6 +218,10 @@ function smacaUiT(key, fallback) {
       setTimeout(function () {
         try { chart.reflow(); } catch (e) {}
       }, 0);
+    }
+
+    if (timeKey) {
+      store.meta[chartKey] = { timeKey: timeKey };
     }
 
     return { ok: true, initialized: isFirstRender, chartKey: chartKey, recreated: needsRecreate };
@@ -319,6 +358,7 @@ function smacaUiT(key, fallback) {
     const seriesLineWidth = isCo2 ? 3 : 2.35;
     const fillTopAlpha = isCo2 ? 0.22 : 0.12;
     const seriesData = Array.isArray(params.seriesData) ? params.seriesData : [];
+    const axisBounds = getDatetimeAxisBounds(params);
     const latestPoint = seriesData.length ? seriesData[seriesData.length - 1] : null;
     const maxPoint = seriesData.length
       ? seriesData.reduce(function (currentMax, point) {
@@ -381,7 +421,7 @@ function smacaUiT(key, fallback) {
       credits: { enabled: false },
       legend: { enabled: false },
       time: { useUTC: false },
-      xAxis: {
+      xAxis: Object.assign({
         type: 'datetime',
         lineColor: 'rgba(148, 163, 184, 0.28)',
         tickColor: 'rgba(148, 163, 184, 0.22)',
@@ -397,11 +437,11 @@ function smacaUiT(key, fallback) {
           autoRotationLimit: 80,
           formatter: function () {
             if (params.timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
-            if (params.timeframe === '7d') return window.Highcharts.dateFormat('%d %b', this.value);
+            if (params.timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
         }
-      },
+      }, axisBounds),
       yAxis: {
         title: {
           text: cfg.unit,
@@ -667,6 +707,10 @@ function smacaUiT(key, fallback) {
     const rendered = createOrUpdateChart({
       chartKey: 'iaq-trend-main',
       containerId: containerId,
+      timeKey: params.timeframe,
+      chartWindow: params.chartWindow,
+      xAxisMin: params.xAxisMin,
+      xAxisMax: params.xAxisMax,
       options: options
     });
     if (!rendered.ok) return rendered;
@@ -707,6 +751,7 @@ function smacaUiT(key, fallback) {
     const inValues = Array.isArray(params?.peopleIn) ? params.peopleIn : [];
     const outValues = Array.isArray(params?.peopleOut) ? params.peopleOut : [];
     const timeframe = params?.timeframe || '24h';
+    const chartWindow = buildChartWindowFromBucketTimes(timeframe, times);
 
     const inSeries = times.map(function (t, i) {
       const v = Number(inValues[i]);
@@ -759,7 +804,7 @@ function smacaUiT(key, fallback) {
         itemHoverStyle: { color: '#e2e8f0' }
       },
       time: { useUTC: false },
-      xAxis: {
+      xAxis: mergeDatetimeXAxis({
         type: 'datetime',
         lineColor: 'rgba(148, 163, 184, 0.28)',
         tickColor: 'rgba(148, 163, 184, 0.22)',
@@ -772,10 +817,11 @@ function smacaUiT(key, fallback) {
           y: 12,
           formatter: function () {
             if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
         }
-      },
+      }, chartWindow),
       yAxis: {
         title: {
           text: 'People',
@@ -867,6 +913,7 @@ function smacaUiT(key, fallback) {
     return createOrUpdateChart({
       chartKey: 'occupancy-main-combined',
       containerId: containerId,
+      timeKey: timeframe,
       options: options
     });
   }
@@ -878,6 +925,7 @@ function smacaUiT(key, fallback) {
       ? params.values
       : (Array.isArray(params?.presence) ? params.presence : (Array.isArray(params?.activity) ? params.activity : []));
     const timeframe = params?.timeframe || '24h';
+    const chartWindow = buildChartWindowFromBucketTimes(timeframe, times);
     const seriesName = params?.seriesName || smacaUiT('activity','Activity');
     const seriesColor = params?.color || '#93c5fd';
     const series = times.map(function (t, i) {
@@ -909,7 +957,7 @@ function smacaUiT(key, fallback) {
       credits: { enabled: false },
       legend: { enabled: false },
       time: { useUTC: false },
-      xAxis: {
+      xAxis: mergeDatetimeXAxis({
         type: 'datetime',
         lineColor: 'rgba(148, 163, 184, 0.28)',
         tickColor: 'rgba(148, 163, 184, 0.22)',
@@ -922,10 +970,11 @@ function smacaUiT(key, fallback) {
           y: 12,
           formatter: function () {
             if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
         }
-      },
+      }, chartWindow),
       yAxis: {
         title: { text: null },
         min: 0,
@@ -947,7 +996,7 @@ function smacaUiT(key, fallback) {
         formatter: function () {
           const header = timeframe === '24h'
             ? window.Highcharts.dateFormat('%H:%M', this.x)
-            : window.Highcharts.dateFormat('%d %b', this.x);
+            : (timeframe === '7d' ? window.Highcharts.dateFormat('%a %d', this.x) : window.Highcharts.dateFormat('%d %b', this.x));
           const value = Number(this.y);
           const text = Number.isFinite(value) ? String(Math.round(value)) : 'N/A';
           return (
@@ -1005,6 +1054,7 @@ function smacaUiT(key, fallback) {
     return createOrUpdateChart({
       chartKey: 'occupancy-activity-trend',
       containerId: containerId,
+      timeKey: timeframe,
       options: options
     });
   }
@@ -1383,6 +1433,7 @@ function smacaUiT(key, fallback) {
     const timeframe = params?.timeframe || '24h';
     const times = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
     const values = Array.isArray(params?.values) ? params.values : [];
+    const chartWindow = buildChartWindowFromBucketTimes(timeframe, times);
     const series = times.map(function (t, i) {
       const v = Number(values[i]);
       return [Number(t), Number.isFinite(v) ? Number(v.toFixed(2)) : null];
@@ -1407,7 +1458,7 @@ function smacaUiT(key, fallback) {
       credits: { enabled: false },
       legend: { enabled: false },
       time: { useUTC: false },
-      xAxis: {
+      xAxis: mergeDatetimeXAxis({
         type: 'datetime',
         lineColor: 'rgba(148, 163, 184, 0.28)',
         tickColor: 'rgba(148, 163, 184, 0.22)',
@@ -1420,10 +1471,11 @@ function smacaUiT(key, fallback) {
           y: 12,
           formatter: function () {
             if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
         }
-      },
+      }, chartWindow),
       yAxis: {
         min: 0,
         max: yMax,
@@ -1515,6 +1567,7 @@ function smacaUiT(key, fallback) {
     return createOrUpdateChart({
       chartKey: 'uv-main-trend',
       containerId: containerId,
+      timeKey: timeframe,
       options: options
     });
   }
@@ -1694,6 +1747,7 @@ function smacaUiT(key, fallback) {
     const bucketTimesMs = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
     const energyValues = Array.isArray(params?.energyValues) ? params.energyValues : [];
     const trendValues = Array.isArray(params?.trendValues) ? params.trendValues : [];
+    const chartWindow = buildChartWindowFromBucketTimes(timeframe, bucketTimesMs);
 
     const numericEnergy = energyValues
       .map(function (v) { return Number(v); })
@@ -1725,7 +1779,7 @@ function smacaUiT(key, fallback) {
       credits: { enabled: false },
       legend: { enabled: false },
       time: { useUTC: false },
-      xAxis: {
+      xAxis: mergeDatetimeXAxis({
         type: 'datetime',
         tickLength: 0,
         tickColor: 'rgba(148, 163, 184, 0.22)',
@@ -1738,10 +1792,11 @@ function smacaUiT(key, fallback) {
           y: 12,
           formatter: function () {
             if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
         }
-      },
+      }, chartWindow),
       yAxis: [{
         title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', letterSpacing: '0.04em' } },
         min: 0,
@@ -1835,6 +1890,7 @@ function smacaUiT(key, fallback) {
     return createOrUpdateChart({
       chartKey: 'energy-main-combined',
       containerId: containerId,
+      timeKey: timeframe,
       options: options
     });
   }
@@ -1844,6 +1900,7 @@ function smacaUiT(key, fallback) {
     const timeframe = params?.timeframe || '24h';
     const bucketTimesMs = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
     const values = Array.isArray(params?.values) ? params.values : [];
+    const chartWindow = buildChartWindowFromBucketTimes(timeframe, bucketTimesMs);
 
     if (!bucketTimesMs.length || bucketTimesMs.length !== values.length) {
       return { ok: false, reason: 'missing-data' };
@@ -1879,7 +1936,7 @@ function smacaUiT(key, fallback) {
       credits: { enabled: false },
       legend: { enabled: false },
       time: { useUTC: false },
-      xAxis: {
+      xAxis: mergeDatetimeXAxis({
         type: 'datetime',
         tickLength: 0,
         tickColor: 'rgba(148, 163, 184, 0.22)',
@@ -1892,10 +1949,11 @@ function smacaUiT(key, fallback) {
           y: 12,
           formatter: function () {
             if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
         }
-      },
+      }, chartWindow),
       yAxis: {
         title: { text: 'kWh', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', letterSpacing: '0.04em' } },
         min: 0,
@@ -1917,7 +1975,7 @@ function smacaUiT(key, fallback) {
         formatter: function () {
           const header = timeframe === '24h'
             ? window.Highcharts.dateFormat('%H:%M', this.x)
-            : window.Highcharts.dateFormat('%d %b', this.x);
+            : (timeframe === '7d' ? window.Highcharts.dateFormat('%a %d', this.x) : window.Highcharts.dateFormat('%d %b', this.x));
           const value = Number(this.y);
           const text = Number.isFinite(value) ? value.toFixed(1) : 'N/A';
           return (
@@ -1981,6 +2039,7 @@ function smacaUiT(key, fallback) {
     return createOrUpdateChart({
       chartKey: 'energy-demand-trend',
       containerId: containerId,
+      timeKey: timeframe,
       options: options
     });
   }

@@ -370,11 +370,11 @@ class KPIInputAssembler
             ?? $this->toFloat($latest->avg_temperature_c ?? null);
         $avgHumidity = $this->toFloat($currentReadings->avg_humidity_rh_window ?? null)
             ?? $this->toFloat($latest->avg_humidity_rh ?? null);
-        $avgUv = $this->toFloat($currentReadings->avg_uv_index ?? null)
-            ?? $this->toFloat($currentReadings->avg_modbus_chn_1 ?? null)
-            ?? $this->toFloat($latest->avg_uv_index ?? null);
-        $avgSolar = $this->toFloat($currentReadings->avg_solar_radiation ?? null)
-            ?? $this->toFloat($latest->avg_solar_radiation ?? null);
+        $avgUv = $this->toFloat($currentReadings?->avg_uv_index ?? null)
+            ?? $this->toFloat($currentReadings?->avg_modbus_chn_1 ?? null)
+            ?? $this->toFloat($latest?->avg_uv_index ?? null);
+        $avgSolar = $this->toFloat($currentReadings?->avg_solar_radiation ?? null)
+            ?? $this->toFloat($latest?->avg_solar_radiation ?? null);
 
         $timeframeHours = self::timeframeHours($timeframe);
 
@@ -534,10 +534,12 @@ class KPIInputAssembler
     /** Return the Carbon start-of-window for a (validated) timeframe. */
     public static function timeframeStart(string $timeframe): Carbon
     {
+        $nowAthens = Carbon::now('Europe/Athens');
+
         return match ($timeframe) {
-            '7d' => Carbon::now()->subDays(7),
-            '30d' => Carbon::now()->subDays(30),
-            default => Carbon::now()->subHours(24),
+            '7d' => $nowAthens->copy()->subDays(7),
+            '30d' => $nowAthens->copy()->subDays(30),
+            default => $nowAthens->copy()->subHours(24),
         };
     }
 
