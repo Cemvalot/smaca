@@ -24,8 +24,40 @@
 
   var confidenceValue = 91;
   var heroChart;
+  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function initSectionParallax() {
+    var dividers = document.querySelectorAll('.section-divider--parallax');
+    if (!dividers.length || prefersReducedMotion) {
+      return;
+    }
+
+    dividers.forEach(function (divider) {
+      divider.addEventListener('mousemove', function (event) {
+        var rect = divider.getBoundingClientRect();
+        var offsetX = (event.clientX - rect.left) / rect.width - 0.5;
+        var offsetY = (event.clientY - rect.top) / rect.height - 0.5;
+        divider.style.setProperty('--parallax-x', (offsetX * 30).toFixed(2) + 'px');
+        divider.style.setProperty('--parallax-y', (offsetY * 18).toFixed(2) + 'px');
+      });
+
+      divider.addEventListener('mouseleave', function () {
+        divider.style.setProperty('--parallax-x', '0px');
+        divider.style.setProperty('--parallax-y', '0px');
+      });
+    });
+  }
 
   function initScrollReveal() {
+    var revealElements = document.querySelectorAll('.scroll-reveal');
+
+    if (prefersReducedMotion) {
+      revealElements.forEach(function (el) {
+        el.classList.add('is-visible');
+      });
+      return;
+    }
+
     var observerOptions = {
       root: null,
       rootMargin: '0px 0px -80px 0px',
@@ -40,7 +72,7 @@
       });
     }, observerOptions);
 
-    document.querySelectorAll('.scroll-reveal').forEach(function (el) {
+    revealElements.forEach(function (el) {
       observer.observe(el);
     });
   }
@@ -189,9 +221,24 @@
     }
   }
 
+  function formatConfidenceLabel(value) {
+    var confidenceLabel = document.getElementById('confidenceLabel');
+    if (!confidenceLabel) {
+      return value + '%';
+    }
+
+    var template = confidenceLabel.getAttribute('data-confidence-template');
+    if (template && template.indexOf(':value') !== -1) {
+      return template.replace(':value', value);
+    }
+
+    return confidenceLabel.textContent.replace(/\d+/, String(value));
+  }
+
   function updateConfidence() {
     var confidenceBar = document.getElementById('confidenceBar');
     var confidenceLabel = document.getElementById('confidenceLabel');
+    var confidenceProgress = confidenceBar ? confidenceBar.closest('[role="progressbar"]') : null;
     if (!confidenceBar || !confidenceLabel) {
       return;
     }
@@ -199,12 +246,19 @@
 
     confidenceBar.style.width = confidenceValue + '%';
     confidenceBar.textContent = confidenceValue + '%';
-    confidenceLabel.textContent = 'Confidence: ' + confidenceValue + '%';
+    confidenceLabel.textContent = formatConfidenceLabel(confidenceValue);
+    if (confidenceProgress) {
+      confidenceProgress.setAttribute('aria-valuenow', String(confidenceValue));
+    }
   }
 
   function initPredictiveStream() {
     addLogLine('Predictive pipeline initialized for 4 module domains.');
     addLogLine('Baseline intelligence model loaded for active building portfolio.');
+
+    if (prefersReducedMotion) {
+      return;
+    }
 
     setInterval(function () {
       addLogLine(randomFrom(smacaData.activity));
@@ -253,6 +307,7 @@
   }
 
   initScrollReveal();
+  initSectionParallax();
   initHeroChart();
   initPlatformChart();
   updateHeroSnapshot();

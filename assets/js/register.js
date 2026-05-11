@@ -1,31 +1,13 @@
 document.addEventListener('DOMContentLoaded', function () {
-  // Image carousel - change every 4 seconds
-  (function initCarousel() {
-    const slides = document.querySelectorAll('.carousel-slide');
-    const dots = document.querySelectorAll('.image-carousel .dot');
-    if (slides.length === 0) return;
-    const interval = 4000;
-    let current = 0;
+  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function showSlide(index) {
-      current = ((index % slides.length) + slides.length) % slides.length;
-      slides.forEach(function (s, i) { s.classList.toggle('active', i === current); });
-      dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
-    }
-
-    function next() { showSlide(current + 1); }
-    setInterval(next, interval);
-
-    dots.forEach(function (dot, i) {
-      dot.addEventListener('click', function () { showSlide(i); });
-    });
-  })();
-
-  // Password visibility toggles
   document.querySelectorAll('.pwd-toggle').forEach(function (toggle) {
     var wrapper = toggle.closest('.input-wrapper--password');
     var input = wrapper ? wrapper.querySelector('input') : null;
-    if (!input) return;
+    if (!input) {
+      return;
+    }
+
     toggle.addEventListener('click', function () {
       var type = input.type === 'password' ? 'text' : 'password';
       input.type = type;
@@ -36,17 +18,100 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  const form = document.getElementById('registerForm');
-  if (!form) return;
+  var passwordInput = document.getElementById('password');
+  var confirmInput = document.getElementById('confirmPassword');
+  var strengthMeter = document.getElementById('passwordStrength');
+  var matchHint = document.getElementById('passwordMatchHint');
 
-  form.addEventListener('submit', function (e) {
+  function scorePassword(value) {
+    var score = 0;
+    if (!value) {
+      return 0;
+    }
+    if (value.length >= 8) {
+      score += 1;
+    }
+    if (/[A-Z]/.test(value) && /[a-z]/.test(value)) {
+      score += 1;
+    }
+    if (/\d/.test(value)) {
+      score += 1;
+    }
+    if (/[^A-Za-z0-9]/.test(value)) {
+      score += 1;
+    }
+    return score;
+  }
+
+  function updatePasswordStrength() {
+    if (!passwordInput || !strengthMeter) {
+      return;
+    }
+
+    var level = scorePassword(passwordInput.value);
+    if (level > 0) {
+      strengthMeter.setAttribute('data-level', String(level));
+      strengthMeter.removeAttribute('aria-hidden');
+    } else {
+      strengthMeter.removeAttribute('data-level');
+      strengthMeter.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function updatePasswordMatch() {
+    if (!passwordInput || !confirmInput || !matchHint) {
+      return;
+    }
+
+    if (!confirmInput.value) {
+      matchHint.textContent = '';
+      matchHint.className = 'field-hint';
+      return;
+    }
+
+    if (passwordInput.value === confirmInput.value) {
+      matchHint.textContent = 'Passwords match.';
+      matchHint.className = 'field-hint is-match';
+    } else {
+      matchHint.textContent = 'Passwords do not match.';
+      matchHint.className = 'field-hint is-mismatch';
+    }
+  }
+
+  if (passwordInput) {
+    passwordInput.addEventListener('input', function () {
+      updatePasswordStrength();
+      updatePasswordMatch();
+    });
+  }
+
+  if (confirmInput) {
+    confirmInput.addEventListener('input', updatePasswordMatch);
+  }
+
+  var form = document.getElementById('registerForm');
+  if (!form) {
+    return;
+  }
+
+  form.addEventListener('submit', function (event) {
     var pwd = document.getElementById('password');
     var confirm = document.getElementById('confirmPassword');
     if (pwd && confirm && pwd.value !== confirm.value) {
-      e.preventDefault();
-      alert('Passwords do not match.');
+      event.preventDefault();
+      updatePasswordMatch();
       return;
+    }
+
+    var submitButton = form.querySelector('.btn-signin');
+    if (!submitButton || submitButton.classList.contains('is-loading')) {
+      return;
+    }
+
+    submitButton.classList.add('is-loading');
+    submitButton.disabled = true;
+    if (!prefersReducedMotion) {
+      submitButton.textContent = submitButton.getAttribute('data-loading-label') || submitButton.textContent;
     }
   });
 });
-

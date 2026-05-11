@@ -9,6 +9,9 @@
   <link rel="icon" type="image/svg+xml" href="{{ asset('assets/brand/smaca-favicon.svg') }}">
   <link rel="shortcut icon" href="{{ asset('assets/brand/favicon.ico') }}">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/brand/smaca-favicon-180.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v=4">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-logo.css') }}?v={{ time() }}">
   <link rel="stylesheet" href="{{ asset('assets/css/auth.css') }}?v={{ time() }}">
@@ -16,7 +19,14 @@
 <body class="login-page">
   <div class="auth-wrapper">
     <div class="auth-card">
-      <!-- Left Panel (Form) -->
+      <div class="auth-card-header">
+        <nav class="auth-locale" aria-label="{{ __('messages.language.label') }}">
+          <a href="{{ url('/language/en') }}" class="auth-locale__link @if(app()->getLocale() === 'en') is-active @endif">{{ __('messages.language.english') }}</a>
+          <a href="{{ url('/language/el') }}" class="auth-locale__link @if(app()->getLocale() === 'el') is-active @endif">{{ __('messages.language.greek') }}</a>
+        </nav>
+        <a href="{{ url('/landing') }}" class="auth-card-back">{{ __('messages.auth.back_to_website') }} →</a>
+      </div>
+      <div class="auth-card-body">
       <div class="auth-left">
         <div class="form-shell">
           <div class="left-top">
@@ -35,11 +45,6 @@
               </div>
               <span class="smaca-logo__caption">{{ __('messages.auth.smart_campus_platform') }}</span>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-            <a href="{{ url('/landing') }}" class="back-btn">{{ __('messages.auth.back_to_website') }} →</a>
-            <a href="{{ url('/language/en') }}" class="back-btn">{{ __('messages.language.english') }}</a>
-            <a href="{{ url('/language/el') }}" class="back-btn">{{ __('messages.language.greek') }}</a>
-          </div>
           </div>
           <div class="form-header">
             <h1 class="form-title">{{ __('messages.auth.sign_in') }}</h1>
@@ -91,26 +96,30 @@
               </label>
               <a href="{{ url('/forgot-password') }}" class="forgot-link">{{ __('messages.auth.forgot_password') }}</a>
             </div>
-            <button type="submit" class="btn-signin">{{ __('messages.auth.sign_in') }}</button>
+            <button type="submit" class="btn-signin" data-loading-label="{{ __('messages.auth.sign_in') }}">{{ __('messages.auth.sign_in') }}</button>
           </form>
 
           <p class="form-footer">{{ __('messages.auth.dont_have_account') }} <a href="{{ url('/register') }}">{{ __('messages.auth.register') }}</a></p>
         </div>
       </div>
 
-      <!-- Right Panel (Visual) -->
       <div class="auth-right">
-        <div class="visual-panel">
+        <div class="visual-stage">
+          <div class="auth-telemetry-grid" aria-hidden="true"></div>
+          <span class="auth-telemetry-node auth-telemetry-node--a" aria-hidden="true"></span>
+          <span class="auth-telemetry-node auth-telemetry-node--b" aria-hidden="true"></span>
+          <span class="auth-telemetry-node auth-telemetry-node--c" aria-hidden="true"></span>
           <div class="visual-copy">
             <h2 class="headline">{{ __('messages.auth.secure_access_title') }}</h2>
             <p class="subline">{{ __('messages.auth.secure_access_subtitle') }}</p>
           </div>
-          <img src="{{ asset('assets/login.svg') }}" alt="Secure access dashboard illustration" class="auth-illustration">
+          <img src="{{ asset('assets/login.svg') }}" alt="" class="auth-illustration" aria-hidden="true">
         </div>
+      </div>
       </div>
     </div>
   </div>
 
-  <!--<script src="{{ asset('assets/js/login.js') }}"></script>-->
+  <script src="{{ asset('assets/js/login.js') }}"></script>
 </body>
 </html>
