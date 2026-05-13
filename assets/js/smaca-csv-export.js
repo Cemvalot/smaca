@@ -89,8 +89,32 @@ const SMACACSVExport = {
     people_out: 'People Out',
     people_total_in: 'People Total In',
     people_total_out: 'People Total Out',
+    remaining_inside: 'Remaining Inside',
+    crowd_density: 'Auditorium Crowd Density',
+    auditorium_crowd_density: 'Auditorium Crowd Density',
+    peak: 'Peak Entries',
+    sensor_floor: 'Sensor Floor',
+    is_auditorium_sensor: 'Is Auditorium Sensor',
+    calculation_window_start: 'Calculation Window Start',
+    calculation_window_end: 'Calculation Window End',
+    sensor_scope_key: 'Sensor Scope Key',
     occupancy: 'Occupancy'
   },
+
+  OCCUPANCY_METRICS_COLUMNS: [
+    'people_in',
+    'people_out',
+    'remaining_inside',
+    'crowd_density',
+    'auditorium_crowd_density',
+    'peak',
+    'sensor_scope_key',
+    'sensor_location',
+    'sensor_floor',
+    'is_auditorium_sensor',
+    'calculation_window_start',
+    'calculation_window_end'
+  ],
 
   CONTEXT_FIELDS: new Set([
     'timestamp',
@@ -284,6 +308,56 @@ const SMACACSVExport = {
     return { columns, rows };
   },
 
+  buildOccupancyMetricsExportData(metrics) {
+    if (!metrics || typeof metrics !== 'object') return null;
+
+    const windowStart = metrics.calculation_window_start || null;
+    const windowEnd = metrics.calculation_window_end || null;
+    const summaryRow = {
+      people_in: metrics.people_in,
+      people_out: metrics.people_out,
+      remaining_inside: metrics.remaining_inside,
+      crowd_density: metrics.crowd_density,
+      auditorium_crowd_density: metrics.auditorium_crowd_density,
+      peak: metrics.peak,
+      sensor_scope_key: 'summary',
+      sensor_location: null,
+      sensor_floor: null,
+      is_auditorium_sensor: null,
+      calculation_window_start: windowStart,
+      calculation_window_end: windowEnd
+    };
+
+    const sensorRows = (Array.isArray(metrics.sensors) ? metrics.sensors : []).map(function (sensor) {
+      return {
+        people_in: sensor?.people_in,
+        people_out: sensor?.people_out,
+        remaining_inside: sensor?.remaining_inside,
+        crowd_density: sensor?.is_auditorium_sensor ? sensor?.remaining_inside : null,
+        auditorium_crowd_density: sensor?.is_auditorium_sensor ? sensor?.remaining_inside : null,
+        peak: sensor?.is_auditorium_sensor ? null : sensor?.people_in,
+        sensor_scope_key: sensor?.sensor_scope_key,
+        sensor_location: sensor?.sensor_location,
+        sensor_floor: sensor?.sensor_floor,
+        is_auditorium_sensor: sensor?.is_auditorium_sensor,
+        calculation_window_start: windowStart,
+        calculation_window_end: windowEnd
+      };
+    });
+
+    const rows = [summaryRow].concat(sensorRows);
+    return { columns: this.OCCUPANCY_METRICS_COLUMNS, rows: rows };
+  },
+
+  exportDataToCSV(exportData) {
+    if (!exportData || !Array.isArray(exportData.columns) || !Array.isArray(exportData.rows)) return '';
+    const headerRow = exportData.columns.map((key) => this.toLabel(key)).join(this.CSV_DELIMITER);
+    const rows = exportData.rows.map((row) => {
+      return exportData.columns.map((key) => this.formatCell(row[key])).join(this.CSV_DELIMITER);
+    });
+    return [headerRow].concat(rows).join('\r\n');
+  },
+
   parseTimestamp(value) {
     if (!this.hasValue(value)) return null;
     if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
@@ -411,6 +485,28 @@ const SMACACSVExport = {
     } catch (error) {
       console.error('Excel export failed, falling back to CSV:', error);
       const csv = this.arrayToCSV(filteredData);
+      this.downloadCSV(csv, csvFilename);
+      alert('Excel export is not available right now. Downloaded CSV fallback.');
+    }
+  },
+
+  async exportOccupancyData(filteredData, timeframe, metrics) {
+    const exportData = this.buildOccupancyMetricsExportData(metrics);
+    if (!exportData) {
+      alert('No occupancy metrics available for export');
+      return;
+    }
+
+    const timestamp = this.buildFileTimestamp();
+    const tf = timeframe || '24h';
+    const csvFilename = `smaca-occupancy-metrics-${tf}-${timestamp}.csv`;
+    const xlsxFilename = `smaca-occupancy-metrics-${tf}-${timestamp}.xlsx`;
+
+    try {
+      await this.downloadExcel(exportData, xlsxFilename);
+    } catch (error) {
+      console.error('Occupancy Excel export failed, falling back to CSV:', error);
+      const csv = this.exportDataToCSV(exportData);
       this.downloadCSV(csv, csvFilename);
       alert('Excel export is not available right now. Downloaded CSV fallback.');
     }

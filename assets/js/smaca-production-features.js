@@ -1876,7 +1876,8 @@ function updateOverviewCountersFromApi(overview, sensors) {
     const occupancyTrendEl = document.getElementById('overview-occupancy-trend');
     if (occupancyTrendEl) {
       if (Number.isFinite(resolvedOccupancy)) {
-        occupancyTrendEl.textContent = `Net ${Math.round(resolvedOccupancy)} (IN-OUT, ${timeframe})`;
+        const remainingLabel = smacaT('occupancy_metric_remaining_inside', 'Remaining inside');
+        occupancyTrendEl.textContent = `${remainingLabel} ${Math.round(resolvedOccupancy)} (${timeframe})`;
       } else {
         occupancyTrendEl.textContent = 'No occupancy data';
       }
@@ -2215,8 +2216,24 @@ function setupExportButton() {
   const exportBtn = document.getElementById('export-btn');
   if (exportBtn) {
     exportBtn.addEventListener('click', async function() {
+      const timeframe = SMACAState.currentTimeframe;
+      const currentPage = getSmacaCurrentPage();
+      if (currentPage === 'occupancy') {
+        let metrics = null;
+        if (window.SMACAApi && typeof window.SMACAApi.fetchKpiSummary === 'function') {
+          try {
+            const payload = await window.SMACAApi.fetchKpiSummary('occupancy');
+            metrics = payload && payload.occupancy_metrics ? payload.occupancy_metrics : null;
+          } catch (error) {
+            console.error('Occupancy metrics export fetch failed:', error);
+          }
+        }
+        await SMACACSVExport.exportOccupancyData(SMACAState.getFilteredOccupancy(), timeframe, metrics);
+        return;
+      }
+
       const filteredIAQ = SMACAState.getFilteredIAQ();
-      await SMACACSVExport.exportSensorData(filteredIAQ, SMACAState.currentTimeframe, 'xlsx');
+      await SMACACSVExport.exportSensorData(filteredIAQ, timeframe, 'xlsx');
     });
   }
 }
@@ -2555,32 +2572,38 @@ function updateOccupancyDashboardWithTrends(filteredOccupancy, timeframe) {
     return;
   }
 
-  const occupancyTrend = SMACATrendCalculator.calculateMetricTrend(occupancyRows, 'people_in', timeframe);
   const latestPeopleIn = sumLatestMetricAcrossSensors(occupancyRows, 'people_in');
   const latestPeopleOut = sumLatestMetricAcrossSensors(occupancyRows, 'people_out');
-  const latestTotalIn = sumLatestMetricAcrossSensors(occupancyRows, 'people_total_in');
-  const latestTotalOut = sumLatestMetricAcrossSensors(occupancyRows, 'people_total_out');
   const latestActivity = Number(latestPeopleIn || 0) + Number(latestPeopleOut || 0);
-  const occupancyTrendFormatted = SMACATrendCalculator.formatTrend(occupancyTrend);
-  
+  let latestSampleMs = null;
+  occupancyRows.forEach(function (item) {
+    const raw = item?.time || item?.timestamp || item?.measured_at;
+    if (!raw) return;
+    const ms = new Date(raw).getTime();
+    if (!Number.isFinite(ms)) return;
+    if (latestSampleMs === null || ms > latestSampleMs) latestSampleMs = ms;
+  });
+
   const summaryValueEl = document.getElementById('occupancy-operational-summary-value');
   if (summaryValueEl) {
-    const hasAnyOccupancyMetric = [latestPeopleIn, latestPeopleOut, latestTotalIn, latestTotalOut].some(function (value) {
+    const hasAnyOccupancyMetric = [latestPeopleIn, latestPeopleOut].some(function (value) {
       return Number.isFinite(Number(value));
     });
     summaryValueEl.textContent = hasAnyOccupancyMetric ? String(Math.round(latestActivity)) : 'No occupancy data available';
   }
-  const heroLabel = occupancySection.querySelector('.section-hero__stat-label');
-  if (heroLabel) heroLabel.textContent = 'Recent movements';
-  const summaryLabel = document.getElementById('occupancy-operational-summary-label');
-  if (summaryLabel && !summaryLabel.textContent) summaryLabel.textContent = smacaT('current_activity', 'Current activity');
   const summarySubLabel = document.getElementById('occupancy-operational-summary-sub');
   if (summarySubLabel) {
-    const netCumulative = Number.isFinite(Number(latestTotalIn)) && Number.isFinite(Number(latestTotalOut))
-      ? (Number(latestTotalIn) - Number(latestTotalOut))
-      : null;
-    summarySubLabel.textContent =
-      `Cumulative entries: ${Number.isFinite(Number(latestTotalIn)) ? Math.round(Number(latestTotalIn)) : 'N/A'} | exits: ${Number.isFinite(Number(latestTotalOut)) ? Math.round(Number(latestTotalOut)) : 'N/A'} | net: ${Number.isFinite(Number(netCumulative)) ? Math.round(Number(netCumulative)) : 'N/A'}`;
+    const entriesLabel = smacaT('occupancy_operational_latest_entries', 'Latest entries sample');
+    const exitsLabel = smacaT('occupancy_operational_latest_exits', 'Latest exits sample');
+    const freshnessLabel = smacaT('occupancy_operational_latest_freshness', 'Latest sample freshness');
+    const entriesText = Number.isFinite(Number(latestPeopleIn)) ? String(Math.round(Number(latestPeopleIn))) : 'N/A';
+    const exitsText = Number.isFinite(Number(latestPeopleOut)) ? String(Math.round(Number(latestPeopleOut))) : 'N/A';
+    let freshnessText = 'N/A';
+    if (Number.isFinite(latestSampleMs)) {
+      const minutesAgo = Math.max(0, Math.round((Date.now() - latestSampleMs) / 60000));
+      freshnessText = minutesAgo + ' min ago';
+    }
+    summarySubLabel.textContent = entriesLabel + ': ' + entriesText + ' · ' + exitsLabel + ': ' + exitsText + ' · ' + freshnessLabel + ': ' + freshnessText;
   }
   const occupancyCounter = document.getElementById('occupancy-current-count');
   if (occupancyCounter) {
@@ -3001,15 +3024,15 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
   // High-level debug KPIs (no mock/demo values)
   const totalIn = safeFlowIn.reduce(function (s, v) { return s + (Number.isFinite(Number(v)) ? Number(v) : 0); }, 0);
   const totalOut = safeFlowOut.reduce(function (s, v) { return s + (Number.isFinite(Number(v)) ? Number(v) : 0); }, 0);
-  const netFlow = totalIn - totalOut;
 
-  const byLocation = groupOccupancyByLocation(occupancyRows);
+  const timeframeRows = occupancyRows.filter(function (item) {
+    const timeMs = parseUtcMs(item?.time || item?.timestamp || 0);
+    return Number.isFinite(timeMs) && timeMs >= rangeStartMs && timeMs <= rangeEndMs;
+  });
+  const byLocation = groupOccupancyByLocation(timeframeRows);
   const locationLabelsCount = Object.keys(byLocation).length;
-  const entriesByLocation = getTotalEntriesPerLocation(byLocation)
-    .sort(function (a, b) { return Number(b.totalEntries) - Number(a.totalEntries); });
-
-  const topLocation = entriesByLocation.length ? entriesByLocation[0].location : null;
-  const topLocationValue = entriesByLocation.length ? entriesByLocation[0].totalEntries : null;
+  const movementByLocation = getActivityPerLocation(byLocation)
+    .sort(function (a, b) { return Number(b.activity) - Number(a.activity); });
 
   let peakHour = null;
   let peakValue = null;
@@ -3039,21 +3062,14 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
       peakValue: Number.isFinite(Number(peakValue)) ? Number(peakValue) : null,
       locationSummary: {
         locationCount: locationLabelsCount,
-        topLocation: topLocation,
-        topLocationValue: topLocationValue
+        topLocation: movementByLocation.length ? movementByLocation[0].location : null,
+        topLocationValue: movementByLocation.length ? movementByLocation[0].activity : null
       }
     };
   }
 
   // Update charts after layout is measurable.
   setTimeout(function () {
-    const occupancySection = document.querySelector('#occupancy');
-    const heroLabel = occupancySection ? occupancySection.querySelector('.section-hero__stat-label') : null;
-    if (heroLabel && peakHourLabel) {
-      const topLocShort = topLocation ? String(topLocation).slice(0, 28) : 'N/A';
-      heroLabel.textContent = 'Recent movements · peak ' + peakHourLabel + ' · top ' + topLocShort;
-    }
-
     if (hasHighcharts) {
       smacaDebug('[SMACA][OCCUPANCY] renderer = highcharts');
       try {
@@ -3095,7 +3111,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
             timeframe: timeframe,
             bucketTimesMs: bucketTimesMs,
             values: activityData,
-            seriesName: 'Movement intensity',
+            seriesName: smacaT('occupancy_tile_total_movement_title', 'Total Movement Events'),
             color: '#60a5fa'
           });
 
@@ -3114,21 +3130,21 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
         }
 
         // Top Traffic Locations (merged)
-        const byLoc = groupOccupancyByLocation(occupancyRows);
+        const byLoc = groupOccupancyByLocation(timeframeRows);
         const locCount = Object.keys(byLoc).length;
-        if (locCount > 1) {
+        if (locCount > 0) {
           const topN = 7;
-          const entries = getTotalEntriesPerLocation(byLoc)
-            .sort(function (a, b) { return Number(b.totalEntries) - Number(a.totalEntries); })
+          const movement = getActivityPerLocation(byLoc)
+            .sort(function (a, b) { return Number(b.activity) - Number(a.activity); })
             .slice(0, topN);
 
-          if (entries.length) {
+          if (movement.length) {
             adapter.createOccupancyTopTrafficLocationsChart('occupancy-top-traffic-locations-chart', {
               chartKey: 'occupancy-top-traffic-locations',
               timeframe: timeframe,
-              categories: entries.map(function (i) { return i.location; }),
-              values: entries.map(function (i) { return i.totalEntries; }),
-              seriesName: 'Total entries',
+              categories: movement.map(function (i) { return i.location; }),
+              values: movement.map(function (i) { return i.activity; }),
+              seriesName: smacaT('occupancy_tile_total_movement_title', 'Total Movement Events'),
               color: 'rgba(16, 185, 129, 0.85)'
             });
           } else {
@@ -3219,6 +3235,14 @@ function renderOccupancyChartWhenReady(containerId, renderFn, onFailure) {
   tryRender();
 }
 
+function truncateOccupancyLabel(text, maxLen) {
+  const value = String(text || '').trim();
+  if (!value) return 'Unknown location';
+  const limit = Number.isFinite(Number(maxLen)) ? Number(maxLen) : 40;
+  if (value.length <= limit) return value;
+  return value.slice(0, Math.max(0, limit - 1)).trim() + '…';
+}
+
 function getOccupancyLocationLabel(item, sensorMetaById) {
   const sensorId = Number(item?.sensorId);
   const sensorMeta = Number.isFinite(sensorId) ? sensorMetaById[String(sensorId)] : null;
@@ -3233,15 +3257,29 @@ function getOccupancyLocationLabel(item, sensorMetaById) {
     || sensorMeta?.location
     || item?.location
     || null;
-  // Resolve to a human-readable label whenever the spatial layer recognises
-  // the code (e.g. F0 → "Ground Floor", AUD-1 → "Auditorium Entrance 1").
+  let primary = null;
   if (rawCode && window.SMACASpatial && typeof window.SMACASpatial.labelFor === 'function') {
-    var resolved = window.SMACASpatial.labelFor(rawCode);
-    if (resolved && resolved !== rawCode) return String(resolved);
+    const resolved = window.SMACASpatial.labelFor(rawCode);
+    if (resolved && resolved !== rawCode) primary = String(resolved);
   }
-  return rawCode
-    ? String(rawCode)
-    : (item?.siteName || sensorMeta?.site?.name || sensorMeta?.name || 'Unknown location');
+  if (!primary) {
+    if (rawCode && /^AUD/i.test(String(rawCode))) {
+      primary = smacaT('occupancy_group_auditorium', 'Auditorium');
+    } else if (rawCode) {
+      primary = String(rawCode);
+    } else {
+      primary = item?.siteName || sensorMeta?.site?.name || sensorMeta?.name || 'Unknown location';
+    }
+  }
+  const floor = sensorMeta?.sensor_floor
+    || sensorMeta?.floor
+    || item?.sensor_floor
+    || null;
+  let label = primary;
+  if (floor && !String(label).toLowerCase().includes(String(floor).toLowerCase())) {
+    label = String(floor) + ' · ' + label;
+  }
+  return truncateOccupancyLabel(label, 42);
 }
 
 function groupOccupancyByLocation(items) {
@@ -3277,6 +3315,13 @@ function getFlowTotalsPerLocation(itemsByLocation) {
 }
 
 function getActivityPerLocation(itemsByLocation) {
+  const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
+  const sensorMetaById = sensors.reduce(function (acc, sensor) {
+    const sensorId = Number(sensor?.id);
+    if (Number.isFinite(sensorId)) acc[String(sensorId)] = sensor;
+    return acc;
+  }, {});
+
   return Object.keys(itemsByLocation).map(function (location) {
     const rows = itemsByLocation[location] || [];
     const activity = rows.reduce(function (sum, item) {
@@ -3284,7 +3329,14 @@ function getActivityPerLocation(itemsByLocation) {
       const peopleOut = Number(item?.payload?.object?.people_out);
       return sum + (Number.isFinite(peopleIn) ? peopleIn : 0) + (Number.isFinite(peopleOut) ? peopleOut : 0);
     }, 0);
-    return { location: location, activity: activity };
+    const sample = rows[0] || null;
+    const sensorId = Number(sample?.sensorId);
+    const sensorMeta = Number.isFinite(sensorId) ? sensorMetaById[String(sensorId)] : null;
+    const rawId = sensorMeta?.sensor_uid || sensorMeta?.name || (Number.isFinite(sensorId) ? ('Sensor ' + sensorId) : null);
+    const displayLocation = rawId && rawId !== location
+      ? (location + ' (' + truncateOccupancyLabel(rawId, 18) + ')')
+      : location;
+    return { location: displayLocation, activity: activity };
   }).filter(function (entry) {
     return Number.isFinite(entry.activity) && entry.activity > 0;
   });
@@ -3316,6 +3368,7 @@ function ensureOccupancyLocationChartContainers() {
     <div class="card" style="grid-column: 1 / -1;">
       <div class="card__header">
         <h3 class="card__title">${smacaT('top_traffic_locations', 'Top Traffic Locations')}</h3>
+        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">${smacaT('occupancy_chart_top_traffic_subtitle', 'Highest movement locations in the selected timeframe.')}</p>
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="occupancy-top-traffic-locations-chart"></div>
@@ -3326,8 +3379,8 @@ function ensureOccupancyLocationChartContainers() {
           </button>
           <div class="smaca-accordion__body" hidden>
             <div class="accordion-content">
-              <p><strong>${smacaT('what_it_shows', 'What it shows:')}</strong> ${smacaT('top_locations_cumulative_entries', 'Highest cumulative entries by location in the selected timeframe.')}</p>
-              <p><strong>${smacaT('how_to_read_chart', 'How to read this chart:')}</strong> ${smacaT('longer_bars_more_inbound', 'Longer bars mean more inbound activity. Hover to see exact totals.')}</p>
+              <p><strong>${smacaT('what_it_shows', 'What it shows:')}</strong> ${smacaT('occupancy_chart_explainer_top_traffic', 'Shows locations with the highest movement in the selected timeframe, based on entries + exits.')}</p>
+              <p><strong>${smacaT('how_to_read_chart', 'How to read this chart:')}</strong> ${smacaT('longer_bars_more_inbound', 'Longer bars mean more movement events. Hover to see exact totals.')}</p>
             </div>
           </div>
         </div>

@@ -1279,10 +1279,20 @@
   // =======================================================================
   // OCCUPANCY — stacked + ranked + hourly heat + flow donut + 4 tiles
   // =======================================================================
+  function occupancyLabel(key, fallbackEn, fallbackEl) {
+    var map = global.SMACA_TRANSLATIONS || {};
+    if (Object.prototype.hasOwnProperty.call(map, key) && map[key]) {
+      return map[key];
+    }
+    return locText(fallbackEn, fallbackEl);
+  }
+
   function bootOccupancy() {
     var grid = document.querySelector('[data-smaca-telemetry="occupancy"]');
     if (!grid) return Promise.resolve({ skipped: 'no-grid', module: 'occupancy' });
-    return loadSensors().then(function (sensorsResp) {
+    return Promise.all([loadSensors(), loadKpiSummary('occupancy')]).then(function (results) {
+      var sensorsResp = results[0];
+      var occupancyMetrics = results[1] && results[1].occupancy_metrics ? results[1].occupancy_metrics : null;
       var rowsAll = (sensorsResp && Array.isArray(sensorsResp.rows)) ? sensorsResp.rows : [];
       var rows = filterToScope(rowsAll);
       var occ = rows.filter(function (s) {
@@ -1297,25 +1307,16 @@
         latestEvents += (toNumber(s.latest && s.latest.people_in) || 0) + (toNumber(s.latest && s.latest.people_out) || 0);
       });
 
-      // Identify top 5 passages by latest activity (heuristic for which
-      // sensors to fetch deltas for — we can't pull every passage's full
-      // timeseries on every render).
-      var byActivity = occ
-        .map(function (s) {
-          var v = (toNumber(s.latest && s.latest.people_in) || 0)
-                + (toNumber(s.latest && s.latest.people_out) || 0)
-                + (toNumber(s.latest && s.latest.people_total_in) || 0) / 1e6
-                + (toNumber(s.latest && s.latest.people_total_out) || 0) / 1e6;
-          return { sensor: s, weight: v };
-        })
-        .sort(function (a, b) { return b.weight - a.weight; })
-        .map(function (e) { return e.sensor; })
-        .slice(0, 5);
+      // Fetch timeframe-aware MAX−MIN deltas for every passage in scope.
+      var passageSensors = occ.slice().sort(function (a, b) {
+        var aw = (toNumber(a.latest && a.latest.people_in) || 0)
+          + (toNumber(a.latest && a.latest.people_out) || 0);
+        var bw = (toNumber(b.latest && b.latest.people_in) || 0)
+          + (toNumber(b.latest && b.latest.people_out) || 0);
+        return bw - aw;
+      });
 
-      // Fetch timeframe-aware MAX−MIN deltas for the top 5 passages.
-      // This makes the stacked column / donut / net balance honestly
-      // reflect the selected 24h / 7d / 30d window, not lifetime totals.
-      var deltaPromises = byActivity.map(function (s) {
+      var deltaPromises = passageSensors.map(function (s) {
         return Promise.all([
           fetchSensorDelta(s, 'people_total_in'),
           fetchSensorDelta(s, 'people_total_out')
@@ -1338,44 +1339,41 @@
       Promise.all(deltaPromises).then(function (perPassage) {
         var usable = perPassage.filter(function (p) { return p.usable && (p.inV + p.outV) > 0; });
         usable.sort(function (a, b) { return (b.inV + b.outV) - (a.inV + a.outV); });
+        var stackedPassages = usable.slice(0, 5);
         var totalIn  = usable.reduce(function (a, p) { return a + p.inV; }, 0);
         var totalOut = usable.reduce(function (a, p) { return a + p.outV; }, 0);
-        var net = totalIn - totalOut;
 
-        // --- 1) Timeframe-aware stacked column (top 5 passages) ---
+        // --- 1) Timeframe-aware stacked column (top 5 passages in scope) ---
         var stackedEl = grid.querySelector('[data-tile="in-out-stacked"]');
         if (stackedEl && tile()) {
-          if (!usable.length) {
+          if (!stackedPassages.length) {
             tile().renderEmptyTile(stackedEl, {
-              label: locText('In vs Out · top passages', 'Είσοδοι vs Έξοδοι'),
+              label: occupancyLabel('occupancy_chart_in_out_top_title', 'In vs Out · Top Passages', 'Είσοδοι vs Έξοδοι · Κορυφαία περάσματα'),
               message: noTfDataMsg()
             });
             logChart('occupancy:in-out-stacked', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries (no usable data)', points: 0, note: 'empty-state' });
           } else {
             var hostStacked = tile().renderChartTile(stackedEl, {
-              label: locText('In vs Out · top passages', 'Είσοδοι vs Έξοδοι'),
-              subtitle: locText(
-                'Entries (green) and exits (blue) per passage inside the selected timeframe.',
-                'Είσοδοι (πράσινο) και έξοδοι (μπλε) ανά πέρασμα στο επιλεγμένο διάστημα.'
-              ),
+              label: occupancyLabel('occupancy_chart_in_out_top_title', 'In vs Out · Top Passages', 'Είσοδοι vs Έξοδοι · Κορυφαία περάσματα'),
+              subtitle: occupancyLabel('occupancy_chart_in_out_top_subtitle', 'Entries and exits per passage in the selected timeframe.', 'Είσοδοι και έξοδοι ανά πέρασμα στο επιλεγμένο διάστημα.'),
               unit: locText('events', 'συμβ.'),
-              meta: locText('Computed as MAX − MIN of cumulative counters', 'MAX − MIN των σωρευτικών μετρητών')
+              meta: occupancyLabel('occupancy_chart_in_out_top_meta_top5', 'Top 5 passages shown; totals use all passages in scope.', 'Εμφανίζονται τα 5 κορυφαία περάσματα· τα σύνολα χρησιμοποιούν όλα τα περάσματα στην εμβέλεια.')
             });
             if (hostStacked) {
               tile().renderStackedColumn(hostStacked, {
-                categories: usable.map(function (p) { return p.label; }),
+                categories: stackedPassages.map(function (p) { return p.label; }),
                 showLegend: true,
                 height: 180,
                 series: [
-                  { name: locText('In', 'Είσ.'),  color: '#34d399', data: usable.map(function (p) { return Math.round(p.inV); }) },
-                  { name: locText('Out', 'Έξ.'), color: '#60a5fa', data: usable.map(function (p) { return Math.round(p.outV); }) }
+                  { name: locText('In', 'Είσ.'),  color: '#34d399', data: stackedPassages.map(function (p) { return Math.round(p.inV); }) },
+                  { name: locText('Out', 'Έξ.'), color: '#60a5fa', data: stackedPassages.map(function (p) { return Math.round(p.outV); }) }
                 ]
               });
             }
             logChart('occupancy:in-out-stacked', {
               module: 'occupancy',
               endpoint: '/api/sensors/{id}/timeseries?metric=people_total_in|out',
-              points: usable.reduce(function (a, p) { return a + p.points; }, 0),
+              points: stackedPassages.reduce(function (a, p) { return a + p.points; }, 0),
               minTs: Math.min.apply(null, usable.map(function (p) { return p.minTs; }).filter(Number.isFinite)) || null,
               maxTs: Math.max.apply(null, usable.map(function (p) { return p.maxTs; }).filter(Number.isFinite)) || null,
               note: 'MAX-MIN delta per passage'
@@ -1383,33 +1381,26 @@
           }
         }
 
-        // --- 2) Busiest passage ranking — kept as snapshot of latest
-        //        period activity (people_in + people_out at last sample).
-        //        Subtitle makes the snapshot framing explicit. ---
-        var topRanked = occ
-          .map(function (s) {
-            var v = (toNumber(s.latest && s.latest.people_in) || 0) + (toNumber(s.latest && s.latest.people_out) || 0);
-            return { sensor: s, value: v, label: labelForLocation(s.sensor_location, s.name || s.sensor_uid) };
+        // --- 2) Busiest passage ranking — timeframe movement events ---
+        var topRanked = usable
+          .map(function (p) {
+            return { label: p.label, value: p.inV + p.outV };
           })
-          .filter(function (e) { return e.value > 0; })
           .sort(function (a, b) { return b.value - a.value; })
           .slice(0, 6);
         var rankEl = grid.querySelector('[data-tile="busiest-rank"]');
         if (rankEl && tile()) {
           if (!topRanked.length) {
             tile().renderEmptyTile(rankEl, {
-              label: locText('Busiest passages now', 'Πιο συχνά περάσματα'),
-              message: locText('No activity right now', 'Χωρίς δραστηριότητα τώρα')
+              label: occupancyLabel('occupancy_chart_busiest_title', 'Busiest Passages', 'Πιο κινητικά περάσματα'),
+              message: noTfDataMsg()
             });
           } else {
             var hostRank = tile().renderChartTile(rankEl, {
-              label: locText('Busiest passages now', 'Πιο συχνά περάσματα'),
-              subtitle: locText(
-                'Latest reported period — events at each passage in the most recent sample.',
-                'Πρόσφατη ένδειξη — συμβάντα ανά πέρασμα στο τελευταίο δείγμα.'
-              ),
+              label: occupancyLabel('occupancy_chart_busiest_title', 'Busiest Passages', 'Πιο κινητικά περάσματα'),
+              subtitle: occupancyLabel('occupancy_chart_busiest_subtitle', 'Top passages by movement events in the selected timeframe.', 'Κορυφαία περάσματα βάσει γεγονότων κίνησης στο επιλεγμένο διάστημα.'),
               unit: locText('events', 'συμβ.'),
-              meta: locText('Snapshot, not timeframe-aggregated', 'Στιγμιότυπο, όχι σύνολο διαστήματος')
+              meta: locText('Selected timeframe · top passages', 'Επιλεγμένο διάστημα · κορυφαία περάσματα')
             });
             if (hostRank) {
               tile().renderRankedBarChart(hostRank, {
@@ -1420,7 +1411,7 @@
                 height: 30 + topRanked.length * 22
               });
             }
-            logChart('occupancy:busiest-rank', { module: 'occupancy', endpoint: '/api/sensors (latest snapshot)', points: topRanked.length, note: 'snapshot of latest period_in+period_out' });
+            logChart('occupancy:busiest-rank', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries?metric=people_total_in|out', points: topRanked.length, note: 'timeframe movement events per passage' });
           }
         }
 
@@ -1429,19 +1420,16 @@
         if (donutEl && tile()) {
           if ((totalIn + totalOut) <= 0) {
             tile().renderEmptyTile(donutEl, {
-              label: locText('Flow balance', 'Ισορροπία ροής'),
+              label: occupancyLabel('occupancy_chart_share_title', 'Entry/Exit Share', 'Μερίδιο εισόδων/εξόδων'),
               message: noTfDataMsg()
             });
             logChart('occupancy:flow-donut', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries (no usable data)', points: 0, note: 'empty-state' });
           } else {
             var balancePct = ((totalIn / (totalIn + totalOut)) * 100).toFixed(0);
             var hostDonut = tile().renderChartTile(donutEl, {
-              label: locText('Flow balance', 'Ισορροπία ροής'),
-              subtitle: locText(
-                'Share of entries vs exits inside the selected timeframe.',
-                'Ποσοστό εισόδων και εξόδων στο επιλεγμένο διάστημα.'
-              ),
-              meta: locText('Centre = % inbound · top 5 passages', 'Κέντρο = % εισόδων · top 5 περάσματα')
+              label: occupancyLabel('occupancy_chart_share_title', 'Entry/Exit Share', 'Μερίδιο εισόδων/εξόδων'),
+              subtitle: occupancyLabel('occupancy_chart_share_subtitle', 'Share of entries vs exits in the selected timeframe. This is movement share, not live occupancy.', 'Μερίδιο εισόδων και εξόδων στο επιλεγμένο διάστημα. Είναι μερίδιο κίνησης, όχι ζωντανό headcount.'),
+              meta: occupancyLabel('occupancy_chart_share_scope_note', 'Share uses all passages in the current scope.', 'Το μερίδιο βασίζεται σε όλα τα περάσματα της τρέχουσας εμβέλειας.')
             });
             if (hostDonut) {
               tile().renderDonut(hostDonut, {
@@ -1459,79 +1447,96 @@
           }
         }
 
-        // --- 4) Net balance — timeframe-aware ---
+        // --- 4) Daily remaining inside (occupancy_metrics) ---
         var netEl = grid.querySelector('[data-tile="net-balance"]');
         if (netEl && tile()) {
-          if (!usable.length) {
+          var remainingLabel = occupancyLabel('occupancy_tile_daily_remaining_title', 'Remaining inside (daily)', 'Παραμένοντες εντός (ημερήσιο)');
+          var remainingSubtitle = occupancyLabel('occupancy_tile_daily_remaining_subtitle', 'Net result of today’s entry/exit counters for scope (Athens day).', 'Καθαρό αποτέλεσμα των σημερινών μετρητών εισόδου/εξόδου για την εμβέλεια (ημέρα Athens).');
+          var remainingMeta = occupancyLabel('occupancy_tile_daily_remaining_meta', 'Resets at midnight. Not the same as total movement events.', 'Μηδενίζεται τα μεσάνυχτα. Δεν είναι το ίδιο με τα συνολικά γεγονότα κίνησης.');
+          var backendRemaining = occupancyMetrics && occupancyMetrics.remaining_inside;
+          if (backendRemaining !== null && backendRemaining !== undefined && Number.isFinite(Number(backendRemaining))) {
+            tile().renderTile(netEl, {
+              label: remainingLabel,
+              subtitle: remainingSubtitle,
+              value: String(Math.round(Number(backendRemaining))),
+              status: Math.abs(Number(backendRemaining)) < 5 ? 'good' : 'warning',
+              icon: ICONS.flow,
+              meta: remainingMeta
+            });
+          } else {
             tile().renderEmptyTile(netEl, {
-              label: locText('Net balance', 'Καθαρό υπόλοιπο'),
+              label: remainingLabel,
+              subtitle: remainingSubtitle,
               icon: ICONS.flow,
               message: noTfDataMsg()
             });
-          } else {
-            tile().renderTile(netEl, {
-              label: locText('Net balance', 'Καθαρό υπόλοιπο'),
-              value: (net >= 0 ? '+' : '') + Math.round(net),
-              status: Math.abs(net) < 5 ? 'good' : 'warning',
-              icon: ICONS.flow,
-              meta: locText('In − Out · selected timeframe', 'Είσοδοι − Έξοδοι · επιλεγμένο διάστημα')
-            });
           }
-          logChart('occupancy:net-balance', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries?metric=people_total_in|out', points: usable.length });
+          logChart('occupancy:net-balance', { module: 'occupancy', endpoint: '/api/kpis/summary?module=occupancy', points: usable.length });
         }
 
         // --- 5) Total events — timeframe-aware sum ---
         var totalEl = grid.querySelector('[data-tile="total-events"]');
         if (totalEl && tile()) {
           var totalEvents = totalIn + totalOut;
+          var totalSubtitle = occupancyLabel('occupancy_tile_total_movement_subtitle', 'Every entry and exit at passage counters in scope, added together for the selected timeframe.', 'Κάθε είσοδος και έξοδος στα περάσματα της εμβέλειας, αθροισμένα για το επιλεγμένο διάστημα.');
+          var totalMeta = occupancyLabel('occupancy_tile_total_movement_tooltip', 'Counts traffic volume, not people currently inside a room. Separate from the daily remaining-inside card.', 'Μετρά όγκο κίνησης, όχι άτομα που είναι μέσα σε χώρο τώρα. Ξεχωριστό από το ημερήσιο «παραμένοντες εντός».');
           if (!usable.length || totalEvents <= 0) {
             tile().renderEmptyTile(totalEl, {
-              label: locText('Total events', 'Συνολικά συμβάντα'),
+              label: occupancyLabel('occupancy_tile_total_movement_title', 'Total Movement Events', 'Συνολικά γεγονότα κίνησης'),
+              subtitle: totalSubtitle,
               icon: ICONS.walk,
               message: noTfDataMsg()
             });
           } else {
             tile().renderTile(totalEl, {
-              label: locText('Total events', 'Συνολικά συμβάντα'),
+              label: occupancyLabel('occupancy_tile_total_movement_title', 'Total Movement Events', 'Συνολικά γεγονότα κίνησης'),
+              subtitle: totalSubtitle,
               value: fmtCompact(totalEvents),
               unit: locText('events', 'συμβ.'),
               status: 'accent',
               icon: ICONS.walk,
-              meta: locText('Sum across top 5 passages · ' + activeTimeframe(), 'Σύνολο top 5 περασμάτων · ' + activeTimeframe())
+              meta: totalMeta
             });
           }
           logChart('occupancy:total-events', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries?metric=people_total_in|out', points: usable.length, note: 'sum of MAX-MIN deltas' });
         }
       });
 
-      // --- 4) Hourly activity heat strip + peak hour ---
-      var freshest = freshestSensor(occ, function (s) { return isFiniteNum(toNumber(s.latest.people_total_in)); });
+      // --- Hourly activity heat strip + peak hour (aggregated across scope) ---
       var heatEl = grid.querySelector('[data-tile="hourly-activity"]');
-      if (!freshest || !heatEl) {
+      if (!occ.length || !heatEl) {
         if (heatEl) {
-          emptyChart(grid, 'hourly-activity', locText('Hourly activity', 'Ωριαία δραστηριότητα'), noTfDataMsg());
-          logChart('occupancy:hourly-activity', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries (no freshest)', points: 0, note: 'empty-state' });
+          emptyChart(grid, 'hourly-activity', occupancyLabel('occupancy_chart_hourly_title', 'Hourly Movement Pattern', 'Ωριαίο μοτίβο κίνησης'), noTfDataMsg());
+          logChart('occupancy:hourly-activity', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries (no scope passages)', points: 0, note: 'empty-state' });
         }
         renderValueOrEmpty(grid, 'peak-hour', {
-          label: locText('Peak hour today', 'Ώρα αιχμής'), icon: ICONS.peak
+          label: occupancyLabel('occupancy_tile_peak_hour_title', 'Peak Hour', 'Ώρα αιχμής'), icon: ICONS.peak
         }, { message: locText('No data', 'Χωρίς δεδομένα') });
       } else if (tile()) {
-        Promise.all([
-          loadTimeseries(freshest.id, 'people_in'),
-          loadTimeseries(freshest.id, 'people_out')
-        ]).then(function (results) {
-          var inPts = (results[0] && Array.isArray(results[0].points)) ? results[0].points : [];
-          var outPts = (results[1] && Array.isArray(results[1].points)) ? results[1].points : [];
-          if (inPts.length < 3 && outPts.length < 3) {
-            emptyChart(grid, 'hourly-activity', locText('Hourly activity', 'Ωριαία δραστηριότητα'), noTfDataMsg());
+        Promise.all(occ.map(function (s) {
+          return Promise.all([
+            loadTimeseries(s.id, 'people_in'),
+            loadTimeseries(s.id, 'people_out')
+          ]);
+        })).then(function (perSensorSeries) {
+          var inPts = [];
+          var outPts = [];
+          perSensorSeries.forEach(function (pair) {
+            var inSeries = (pair[0] && Array.isArray(pair[0].points)) ? pair[0].points : [];
+            var outSeries = (pair[1] && Array.isArray(pair[1].points)) ? pair[1].points : [];
+            inPts = inPts.concat(inSeries);
+            outPts = outPts.concat(outSeries);
+          });
+          if (inPts.length < 1 && outPts.length < 1) {
+            emptyChart(grid, 'hourly-activity', occupancyLabel('occupancy_chart_hourly_title', 'Hourly Movement Pattern', 'Ωριαίο μοτίβο κίνησης'), noTfDataMsg());
             logChart('occupancy:hourly-activity', {
               module: 'occupancy',
-              endpoint: '/api/sensors/' + freshest.id + '/timeseries?metric=people_in|out&timeframe=' + activeTimeframe(),
-              points: inPts.length + outPts.length,
+              endpoint: '/api/sensors/{id}/timeseries?metric=people_in|out&timeframe=' + activeTimeframe(),
+              points: 0,
               note: 'insufficient points'
             });
             renderValueOrEmpty(grid, 'peak-hour', {
-              label: locText('Peak hour today', 'Ώρα αιχμής'), icon: ICONS.peak
+              label: occupancyLabel('occupancy_tile_peak_hour_title', 'Peak Hour', 'Ώρα αιχμής'), icon: ICONS.peak
             }, { message: locText('No data', 'Χωρίς δεδομένα') });
             return;
           }
@@ -1544,18 +1549,17 @@
             { from: maxVal * 0.33, to: maxVal * 0.66, color: '#a78bfa' },
             { from: maxVal * 0.66, to: maxVal + 1,    color: '#f97316' }
           ];
-          var subtitleText = inBucket.bucket === 'hourly'
-            ? locText('Total movement per hour over the last 24 hours.', 'Σύνολο κίνησης ανά ώρα τις τελευταίες 24 ώρες.')
-            : locText('Daily total movement across the selected window.', 'Ημερήσιο σύνολο κίνησης στο επιλεγμένο διάστημα.');
+          var subtitleText = occupancyLabel('occupancy_chart_hourly_subtitle', 'When entries and exits are busiest by hour across all passages in scope.', 'Πότε είναι πιο έντονες οι είσοδοι και οι έξοδοι ανά ώρα, σε όλα τα περάσματα της εμβέλειας.');
+          var hourlyHelp = occupancyLabel('occupancy_chart_hourly_help', 'Use this to spot peak hours and quieter periods. It does not show how many people are inside right now.', 'Βοηθά να εντοπίζεις ώρες αιχμής και ήσυχες περιόδους. Δεν δείχνει πόσα άτομα είναι μέσα τώρα.');
           var legendText = inBucket.bucket === 'hourly'
             ? '0–23 h'
             : (inBucket.labels[0] + ' → ' + inBucket.labels[inBucket.labels.length - 1]);
           var heatHost = tile().renderChartTile(heatEl, {
-            label: locText('Movement pattern', 'Μοτίβο κίνησης'),
+            label: occupancyLabel('occupancy_chart_hourly_title', 'Hourly Movement Pattern', 'Ωριαίο μοτίβο κίνησης'),
             subtitle: subtitleText,
             unit: locText('events', 'συμβ.'),
             legend: legendText,
-            meta: labelForLocation(freshest.sensor_location, freshest.name) + ' · ' + activeTimeframe()
+            meta: hourlyHelp + ' · ' + occupancyLabel('occupancy_chart_hourly_scope_meta', 'All passages in current scope', 'Όλα τα περάσματα στην τρέχουσα εμβέλεια') + ' · ' + activeTimeframe()
           });
           if (heatHost) {
             var axisOptsOcc = axisOptsForBucket(inBucket);
@@ -1568,19 +1572,18 @@
             ? (inBucket.bucket === 'hourly' ? inBucket.labels[peakIdx] + ':00' : inBucket.labels[peakIdx])
             : null;
           renderValueOrEmpty(grid, 'peak-hour', {
-            label: inBucket.bucket === 'hourly'
-              ? locText('Peak hour', 'Ώρα αιχμής')
-              : locText('Peak day', 'Ημέρα αιχμής'),
+            label: occupancyLabel('occupancy_tile_peak_hour_title', 'Peak Hour', 'Ώρα αιχμής'),
+            subtitle: occupancyLabel('occupancy_tile_peak_hour_subtitle', 'The hour with the most entry + exit movement across all passages in scope.', 'Η ώρα με τα περισσότερα γεγονότα εισόδου + εξόδου σε όλα τα περάσματα της εμβέλειας.'),
             value: peakLabel,
             status: 'accent',
             icon: ICONS.peak,
-            meta: locText('Across the selected ' + activeTimeframe(), 'Στο επιλεγμένο ' + activeTimeframe())
+            meta: occupancyLabel('occupancy_tile_peak_hour_meta', 'Taken from the hourly movement pattern for the selected timeframe.', 'Προκύπτει από το ωριαίο μοτίβο κίνησης στο επιλεγμένο διάστημα.')
           });
           var allTs = inPts.concat(outPts).map(function (p) { return Date.parse(p.time); }).filter(Number.isFinite);
           var combinedStats = seriesStats(combined);
           logChart('occupancy:hourly-activity', {
             module: 'occupancy',
-            endpoint: '/api/sensors/' + freshest.id + '/timeseries?metric=people_in|out&timeframe=' + activeTimeframe(),
+            endpoint: '/api/sensors/{id}/timeseries?metric=people_in|out&timeframe=' + activeTimeframe(),
             points: inPts.length + outPts.length,
             minTs: allTs.length ? Math.min.apply(null, allTs) : null,
             maxTs: allTs.length ? Math.max.apply(null, allTs) : null,
@@ -1588,31 +1591,34 @@
             bucketCount: inBucket.binCount,
             seriesLength: combinedStats.seriesLength,
             yMin: combinedStats.yMin,
-            yMax: combinedStats.yMax
+            yMax: combinedStats.yMax,
+            note: 'aggregated across scope'
           });
         });
       }
 
-      // (net-balance + total-events are populated inside the Promise.all
+      // (daily remaining + total-events are populated inside the Promise.all
       // above with timeframe-aware MAX-MIN deltas — no duplicate snapshot
       // tiles here.)
 
-      // --- Freshness — snapshot of last reading age (always "now") ---
+      // --- Freshness — newest passage reading in scope ---
+      var freshest = freshestSensor(occ, function (s) { return s && s.latest && s.latest.measured_at; });
       if (freshest) {
         var fmin = relativeMinutes(freshest.latest && freshest.latest.measured_at);
         renderValueOrEmpty(grid, 'freshness', {
-          label: locText('Freshest passage', 'Πιο φρέσκο πέρασμα'),
+          label: occupancyLabel('occupancy_tile_latest_passage_update_title', 'Latest passage update', 'Τελευταία ενημέρωση περάσματος'),
+          subtitle: occupancyLabel('occupancy_tile_latest_passage_update_subtitle', 'How fresh the newest passage reading is.', 'Πόσο πρόσφατη είναι η νεότερη ανάγνωση περάσματος.'),
           value: isFiniteNum(fmin) ? fmin : null,
           unit: locText('min ago', 'λ. πριν'),
           status: !isFiniteNum(fmin) ? 'muted'
             : (fmin < 5 ? 'good' : (fmin < 30 ? 'warning' : 'critical')),
           icon: ICONS.clock,
-          meta: labelForLocation(freshest.sensor_location, freshest.name)
+          meta: occupancyLabel('occupancy_tile_latest_passage_update_meta', 'Shows data latency only, not occupancy or headcount.', 'Δείχνει μόνο φρεσκάδα δεδομένων, όχι occupancy ή headcount.') + ' · ' + labelForLocation(freshest.sensor_location, freshest.name)
         });
         logChart('occupancy:freshness', { module: 'occupancy', endpoint: '/api/sensors (latest snapshot)', points: 1 });
       } else {
         renderValueOrEmpty(grid, 'freshness', {
-          label: locText('Freshest passage', 'Πιο φρέσκο πέρασμα'),
+          label: occupancyLabel('occupancy_tile_latest_passage_update_title', 'Latest passage update', 'Τελευταία ενημέρωση περάσματος'),
           icon: ICONS.clock
         }, { message: locText('No data', 'Χωρίς δεδομένα') });
       }

@@ -2,6 +2,7 @@
 
 namespace App\Services\KPI;
 
+use App\Services\Occupancy\OccupancyMetricsService;
 use App\Services\Spatial\SpatialService;
 use App\Services\Thresholds\ThresholdService;
 
@@ -11,6 +12,7 @@ class KPIService
 
     private SpatialService $spatialService;
     private ?KPIMetadataService $metadataService;
+    private ?OccupancyMetricsService $occupancyMetricsService = null;
 
     public function __construct(
         private KPIInputAssembler $inputAssembler,
@@ -36,6 +38,15 @@ class KPIService
             }
         }
         return $this->metadataService;
+    }
+
+    private function occupancyMetrics(): OccupancyMetricsService
+    {
+        if ($this->occupancyMetricsService === null) {
+            $this->occupancyMetricsService = new OccupancyMetricsService($this->spatialService);
+        }
+
+        return $this->occupancyMetricsService;
     }
 
     /**
@@ -103,13 +114,33 @@ class KPIService
         // action, confidence) are preserved.
         $kpis = $this->enrichKpisWithMetadata($kpis);
 
-        return [
+        $response = [
             'module' => $moduleKey,
             'location' => $normalizedLocation,
             'location_label' => $locationMeta['label'] ?? null,
             'timeframe' => $resolvedTimeframe,
             'kpis' => $kpis,
         ];
+
+        if ($moduleKey === 'occupancy') {
+            try {
+                $response['occupancy_metrics'] = $this->occupancyMetrics()->build($sensorIds, $sensorUids);
+            } catch (\Throwable $e) {
+                try {
+                    \Illuminate\Support\Facades\Log::warning('KPIService: occupancy metrics failed, returning empty payload', [
+                        'exception' => get_class($e),
+                        'message' => $e->getMessage(),
+                        'module' => $moduleKey,
+                        'location' => $normalizedLocation,
+                    ]);
+                } catch (\Throwable $ignored) {}
+                $response['occupancy_metrics'] = $this->occupancyMetrics()->emptyPayload(
+                    $this->occupancyMetrics()->dailyWindow()
+                );
+            }
+        }
+
+        return $response;
     }
 
     /**

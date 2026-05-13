@@ -762,24 +762,33 @@ function smacaUiT(key, fallback) {
       return [Number(t), Number.isFinite(v) ? v : null];
     });
 
-    const netSeries = times.map(function (t, i) {
+    const entriesSeriesLabel = smacaUiT('occupancy_metric_people_in', 'Entries');
+    const exitsSeriesLabel = smacaUiT('occupancy_metric_people_out', 'Exits');
+    const remainingSeriesLabel = smacaUiT('occupancy_metric_remaining_inside', 'Remaining inside');
+    const remainingTooltipNote = smacaUiT(
+      'occupancy_chart_flow_remaining_tooltip',
+      'Remaining inside = max(0, cumulative entries − cumulative exits) within the selected timeframe. Derived from entry/exit counters, not a live headcount.'
+    );
+
+    let cumulativeIn = 0;
+    let cumulativeOut = 0;
+    const remainingSeries = times.map(function (t, i) {
       const inV = Number(inValues[i]);
       const outV = Number(outValues[i]);
-      const hasIn = Number.isFinite(inV);
-      const hasOut = Number.isFinite(outV);
-      if (!hasIn && !hasOut) return [Number(t), null];
-      const net = (hasIn ? inV : 0) - (hasOut ? outV : 0);
-      return [Number(t), Number.isFinite(net) ? net : null];
+      if (Number.isFinite(inV)) cumulativeIn += inV;
+      if (Number.isFinite(outV)) cumulativeOut += outV;
+      if (!Number.isFinite(inV) && !Number.isFinite(outV)) return [Number(t), null];
+      return [Number(t), Math.max(0, cumulativeIn - cumulativeOut)];
     });
 
     const numericIn = inValues.map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); });
     const numericOut = outValues.map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); });
-    const numericNet = netSeries.map(function (p) { return Number(p?.[1]); }).filter(function (v) { return Number.isFinite(v); });
+    const numericRemaining = remainingSeries.map(function (p) { return Number(p?.[1]); }).filter(function (v) { return Number.isFinite(v); });
     const maxColumns = Math.max(1, numericIn.length ? Math.max.apply(null, numericIn) : 1, numericOut.length ? Math.max.apply(null, numericOut) : 1);
-    const maxNetAbs = numericNet.length ? Math.max.apply(null, numericNet.map(function (v) { return Math.abs(v); })) : 0;
+    const maxRemaining = numericRemaining.length ? Math.max.apply(null, numericRemaining) : 0;
     const yPad = 0.1;
-    const axisMax = Math.max(maxColumns, maxNetAbs) * (1 + yPad);
-    const axisMin = -maxNetAbs * (1 + yPad);
+    const axisMax = Math.max(maxColumns, maxRemaining) * (1 + yPad);
+    const axisMin = 0;
 
     const options = {
       chart: {
@@ -824,7 +833,7 @@ function smacaUiT(key, fallback) {
       }, chartWindow),
       yAxis: {
         title: {
-          text: 'People',
+          text: 'Movement events',
           style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.04em' }
         },
         min: axisMin,
@@ -853,18 +862,20 @@ function smacaUiT(key, fallback) {
             const value = Number(p.y);
             let valueText = 'N/A';
             if (Number.isFinite(value)) {
-              const rounded = Math.round(value);
-              valueText = name === 'Net Flow' ? (rounded > 0 ? ('+' + rounded) : String(rounded)) : String(rounded);
+              valueText = String(Math.round(value));
             }
             const color = p.color || '#94a3b8';
+            const remainingNote = name === remainingSeriesLabel
+              ? ('<div style="margin-top:6px;color:#94a3b8;font-size:10px;line-height:1.4;">' + remainingTooltipNote + '</div>')
+              : '';
             return (
               '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:6px;">' +
               '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
               '<span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:' + color + ';"></span>' +
               '<span style="font-weight:500;">' + name + '</span>' +
               '</span>' +
-              '<strong style="color:#f8fbff;">' + valueText + ' ppl</strong>' +
-              '</div>'
+              '<strong style="color:#f8fbff;">' + valueText + '</strong>' +
+              '</div>' + remainingNote
             );
           }).join('');
           return (
@@ -890,23 +901,22 @@ function smacaUiT(key, fallback) {
       },
       series: [{
         type: 'column',
-        name: 'People In',
+        name: entriesSeriesLabel,
         color: 'rgba(16, 185, 129, 0.85)',
         data: inSeries
       }, {
         type: 'column',
-        name: 'People Out',
+        name: exitsSeriesLabel,
         color: 'rgba(249, 115, 22, 0.85)',
         data: outSeries
       }, {
         type: 'spline',
-        name: 'Net Flow',
+        name: remainingSeriesLabel,
         color: 'rgba(125, 211, 252, 0.98)',
         lineWidth: 3.2,
         marker: { enabled: false },
-        data: netSeries,
-        states: { hover: { lineWidthPlus: 0.25 } },
-        tooltip: { valueSuffix: ' ppl' }
+        data: remainingSeries,
+        states: { hover: { lineWidthPlus: 0.25 } }
       }]
     };
 
@@ -1163,7 +1173,8 @@ function smacaUiT(key, fallback) {
           const outPoint = (this.points || []).find(function (p) { return p.series && p.series.name === 'People Out'; });
           const inVal = inPoint ? Number(inPoint.y) : null;
           const outVal = outPoint ? Number(outPoint.y) : null;
-          const net = (Number.isFinite(inVal) ? inVal : 0) - (Number.isFinite(outVal) ? outVal : 0);
+          const balance = (Number.isFinite(inVal) ? inVal : 0) - (Number.isFinite(outVal) ? outVal : 0);
+          const balanceLabel = smacaUiT('occupancy_metric_remaining_inside', 'Remaining inside');
           return (
             '<div style="min-width:190px;">' +
             '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + cat + '</div>' +
@@ -1184,9 +1195,9 @@ function smacaUiT(key, fallback) {
             '</div>' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:4px;padding-top:6px;border-top:1px solid rgba(148, 163, 184, 0.18);">' +
             '<span style="display:inline-flex;align-items:center;gap:7px;color:#93a7bf;">' +
-            '<span style="font-weight:500;">Net (In - Out)</span>' +
+            '<span style="font-weight:500;">' + balanceLabel + '</span>' +
             '</span>' +
-            '<strong style="font-size:12px;color:#f8fbff;">' + Math.round(net) + '</strong>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + Math.round(balance) + '</strong>' +
             '</div>' +
             '</div>' +
             '</div>'

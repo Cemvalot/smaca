@@ -183,6 +183,9 @@
       ? '<span class="smaca-tile__value-number">' + safe(safeOpts.value) + '</span>' + unitHtml
       : '<span class="smaca-tile__value-number smaca-tile__value-number--muted">—</span>';
 
+    var subtitleHtml = safeOpts.subtitle
+      ? '<p class="smaca-tile__subtitle">' + safe(safeOpts.subtitle) + '</p>'
+      : '';
     var metaHtml = safeOpts.meta
       ? '<div class="smaca-tile__meta">' + safe(safeOpts.meta) + '</div>'
       : '';
@@ -195,6 +198,7 @@
       +   '<span class="smaca-tile__label">' + safe(safeOpts.label || '') + '</span>'
       +   deltaHtml
       + '</div>'
+      + subtitleHtml
       + '<div class="smaca-tile__value">' + valueHtml + '</div>'
       + sparkHtml
       + metaHtml;
@@ -252,6 +256,7 @@
       +   iconHtml
       +   '<span class="smaca-tile__label">' + safe(safeOpts.label || '') + '</span>'
       + '</div>'
+      + (safeOpts.subtitle ? '<p class="smaca-tile__subtitle">' + safe(safeOpts.subtitle) + '</p>' : '')
       + '<div class="smaca-tile__empty-body">'
       +   '<svg class="smaca-tile__empty-glyph" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
       +     '<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.8" fill="currentColor"/>'

@@ -128,20 +128,20 @@ return [
         'occupancy-flow-chart' => [
             'category' => 'Occupancy',
             'title' => [
-                'en' => 'Occupancy flow over time',
-                'el' => 'Ροή πληρότητας σε χρόνο',
+                'en' => 'Entry/Exit Flow Over Time',
+                'el' => 'Ροή Εισόδων/Εξόδων στον Χρόνο',
             ],
             'what' => [
-                'en' => 'Entries and exits detected by people counters in the selected location over the selected timeframe.',
-                'el' => 'Είσοδοι και έξοδοι που ανιχνεύθηκαν από μετρητές ατόμων στην επιλεγμένη τοποθεσία στο διάστημα.',
+                'en' => 'Entry and exit movement events per bucket, plus remaining inside derived from those counters across the selected timeframe.',
+                'el' => 'Γεγονότα εισόδου/εξόδου ανά κάδο, συν παραμένοντες εντός από τους ίδιους μετρητές στο επιλεγμένο διάστημα.',
             ],
             'data_source' => [
-                'en' => 'Entry/exit counters show movement through passages. They do not directly measure how many people are inside a room.',
-                'el' => 'Οι μετρητές εισόδου/εξόδου δείχνουν κίνηση από περάσματα. Δεν μετρούν άμεσα πόσοι άνθρωποι είναι μέσα στον χώρο.',
+                'en' => 'Passage counters (people_in / people_out). The remaining-inside line is max(0, cumulative entries − exits) for the selected timeframe, derived from entry/exit counters, not live headcount.',
+                'el' => 'Μετρητές περάσματος (people_in / people_out). Η γραμμή παραμένοντες εντός είναι max(0, αθροιστικές είσοδοι − έξοδοι) για το επιλεγμένο διάστημα, από μετρητές εισόδου/εξόδου, όχι ζωντανό headcount.',
             ],
             'how_to_read' => [
-                'en' => 'Peaks correspond to busy passage moments. Compare entries and exits to spot net flow direction.',
-                'el' => 'Οι κορυφές αντιστοιχούν σε στιγμές αυξημένης διέλευσης. Συγκρίνετε εισόδους και εξόδους για την καθαρή ροή.',
+                'en' => 'Compare entries and exits to see movement bursts. The remaining-inside line shows how many people are estimated inside based on those counters for the selected timeframe.',
+                'el' => 'Συγκρίνετε εισόδους και εξόδους για κύματα κίνησης. Η γραμμή παραμένοντες εντός δείχνει πόσοι εκτιμώνται εντός από τους μετρητές στο επιλεγμένο διάστημα.',
             ],
             'timeframe_note' => [
                 'en' => 'Buckets follow the selected timeframe (24h → 1h buckets, 7d / 30d → 1d buckets).',

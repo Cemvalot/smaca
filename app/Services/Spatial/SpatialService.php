@@ -314,6 +314,10 @@ class SpatialService
             }
         }
 
+        if ($moduleFilter === 'occupancy') {
+            $merged = $this->filterLocationsToOccupancySensors($merged, $observedDays);
+        }
+
         $groupsMeta = $this->getConfiguredGroups();
         $defaultGroups = [
             'floors' => ['label' => 'Floors', 'order' => 1],
@@ -368,10 +372,6 @@ class SpatialService
         return $this->getGroupedLocations(30, $module, $role);
     }
 
-    /**
-     * @return array<int, string>  Distinct sensor_location values seen in
-     *                              `readings` over the lookback window.
-     */
     public function getObservedLocationCodes(int $observedDays = 30): array
     {
         try {
@@ -403,6 +403,101 @@ class SpatialService
             $this->safeLogWarning('SpatialService::getObservedLocationCodes failed', $e);
             return [];
         }
+    }
+
+    /**
+     * Location codes with occupancy movement readings in the lookback window.
+     *
+     * @return array<int, string>
+     */
+    public function getOccupancyActiveLocationCodes(int $observedDays = 30): array
+    {
+        try {
+            $schema = DB::getSchemaBuilder();
+            if (!$schema->hasTable('readings') || !$schema->hasColumn('readings', 'sensor_location')) {
+                return [];
+            }
+
+            $since = now()->subDays(max(1, $observedDays));
+            $query = DB::table('readings')
+                ->select('sensor_location')
+                ->where('measured_at', '>=', $since)
+                ->whereNotNull('sensor_location')
+                ->where('sensor_location', '!=', '');
+
+            $query->where(function ($q) use ($schema) {
+                if ($schema->hasColumn('readings', 'people_total_in')) {
+                    $q->orWhereNotNull('people_total_in');
+                }
+                if ($schema->hasColumn('readings', 'people_total_out')) {
+                    $q->orWhereNotNull('people_total_out');
+                }
+                if ($schema->hasColumn('readings', 'people_in')) {
+                    $q->orWhereNotNull('people_in');
+                }
+                if ($schema->hasColumn('readings', 'people_out')) {
+                    $q->orWhereNotNull('people_out');
+                }
+            });
+
+            $rows = $query->distinct()->limit(500)->pluck('sensor_location');
+            $codes = [];
+            foreach ($rows as $raw) {
+                $norm = $this->normalizeLocation((string) $raw);
+                if ($norm !== null) {
+                    $codes[$norm] = true;
+                }
+            }
+
+            return array_keys($codes);
+        } catch (\Throwable $e) {
+            $this->safeLogWarning('SpatialService::getOccupancyActiveLocationCodes failed', $e);
+
+            return [];
+        }
+    }
+
+    /**
+     * Keep only locations that have occupancy sensors (or parent/child of one).
+     *
+     * @param array<string, array<string, mixed>> $merged
+     * @return array<string, array<string, mixed>>
+     */
+    private function filterLocationsToOccupancySensors(array $merged, int $observedDays): array
+    {
+        $activeCodes = $this->getOccupancyActiveLocationCodes($observedDays);
+        if ($activeCodes === []) {
+            return [];
+        }
+
+        $activeSet = array_fill_keys($activeCodes, true);
+        $filtered = [];
+        foreach ($merged as $code => $entry) {
+            if ($this->locationHasOccupancySensorCoverage($code, $activeSet)) {
+                $filtered[$code] = $entry;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * @param array<string, true> $activeSet
+     */
+    private function locationHasOccupancySensorCoverage(string $code, array $activeSet): bool
+    {
+        if (isset($activeSet[$code])) {
+            return true;
+        }
+
+        $prefix = $code . '-';
+        foreach (array_keys($activeSet) as $activeCode) {
+            if (str_starts_with($activeCode, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function shapeEntry(string $code, array $meta, bool $inferred): array

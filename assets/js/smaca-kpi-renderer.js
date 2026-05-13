@@ -272,9 +272,6 @@
       `;
     });
 
-    // Optional: when the module response carries a single KPI, append a
-    // derived "status companion" card so the KPI grid is never lonely. The
-    // companion uses the same KPI item — no new data, no new API call.
     if (renderOptions.withStatusCompanion && list.length === 1) {
       cards.push(buildStatusCompanionCard(list[0]));
     }
@@ -282,9 +279,239 @@
     container.innerHTML = cards.join('');
   }
 
-  // Produce a sibling card that surfaces status + plain definition + action
-  // prominently. Uses the same payload as the primary KPI card, so it never
-  // introduces new data or new API calls.
+  function formatOccupancyMetricValue(value) {
+    if (value === null || value === undefined) return '--';
+    var numeric = Number(value);
+    if (!Number.isFinite(numeric)) return '--';
+    var rounded = Math.round(numeric * 10) / 10;
+    return String(Math.round(rounded) === rounded ? Math.round(rounded) : rounded);
+  }
+
+  function floorLabelForOccupancy(floorCode) {
+    var code = String(floorCode || '').trim();
+    if (!code || code === '—') return '—';
+    if (code === 'AUD') return t('occupancy_group_auditorium', 'Auditorium');
+    if (global.SMACASpatial && typeof global.SMACASpatial.labelFor === 'function') {
+      var spatialLabel = global.SMACASpatial.labelFor(code);
+      if (spatialLabel) return spatialLabel;
+    }
+    return code;
+  }
+
+  function sensorLabelParts(sensor) {
+    if (!sensor) return { primary: '—', secondary: '' };
+    var rawId = sensor.sensor_location ? String(sensor.sensor_location) : '';
+    if (!rawId && sensor.sensor_scope_key !== null && sensor.sensor_scope_key !== undefined && sensor.sensor_scope_key !== '') {
+      rawId = String(sensor.sensor_scope_key);
+    }
+    var primary = rawId || t('occupancy_sensor_table_sensor', 'Sensor');
+    if (rawId && global.SMACASpatial && typeof global.SMACASpatial.labelFor === 'function') {
+      var resolved = global.SMACASpatial.labelFor(rawId);
+      if (resolved && resolved !== rawId) primary = String(resolved);
+    } else if (rawId && /^AUD/i.test(rawId)) {
+      primary = t('occupancy_group_auditorium', 'Auditorium');
+      var suffix = rawId.indexOf('-') > -1 ? rawId.split('-').slice(1).join('-') : '';
+      if (suffix) primary += ' ' + suffix;
+    }
+    var secondary = rawId && rawId !== primary ? rawId : '';
+    return { primary: primary, secondary: secondary };
+  }
+
+  function occupancyImbalanceWarning(sensor) {
+    var entries = Number(sensor && sensor.people_in);
+    var exits = Number(sensor && sensor.people_out);
+    if (!Number.isFinite(entries) || !Number.isFinite(exits)) return false;
+    var max = Math.max(entries, exits);
+    if (max <= 0) return false;
+    return Math.abs(entries - exits) / max > 0.5;
+  }
+
+  function sumOccupancySensors(sensors, key) {
+    return sensors.reduce(function (sum, sensor) {
+      var value = Number(sensor && sensor[key]);
+      return Number.isFinite(value) ? sum + value : sum;
+    }, 0);
+  }
+
+  function buildOccupancySensorCard(sensor, windowNote) {
+    var labels = sensorLabelParts(sensor);
+    var warning = occupancyImbalanceWarning(sensor)
+      ? '<span class="badge badge--warning badge--sm occupancy-sensor-card__warning">' + escapeHtml(t('occupancy_sensor_imbalance_warning', 'Possible entry/exit imbalance')) + '</span>'
+      : '';
+    var auditoriumBadge = sensor.is_auditorium_sensor
+      ? '<span class="badge badge--warning badge--sm occupancy-sensor-badge">' + escapeHtml(t('occupancy_badge_auditorium_sensor', 'Auditorium sensor')) + '</span>'
+      : '';
+  var secondary = labels.secondary
+      ? '<span class="occupancy-sensor-card__secondary">' + escapeHtml(labels.secondary) + '</span>'
+      : '';
+    var details = [
+      { label: t('occupancy_sensor_details_key', 'Sensor key'), value: sensor.sensor_scope_key },
+      { label: t('occupancy_sensor_details_location', 'Location'), value: sensor.sensor_location || '—' },
+      { label: t('occupancy_sensor_details_floor', 'Floor'), value: sensor.sensor_floor || '—' },
+      { label: t('occupancy_metric_people_in', 'Entries'), value: formatOccupancyMetricValue(sensor.people_in) },
+      { label: t('occupancy_metric_people_out', 'Exits'), value: formatOccupancyMetricValue(sensor.people_out) },
+      { label: t('occupancy_metric_remaining_inside', 'Remaining inside'), value: formatOccupancyMetricValue(sensor.remaining_inside) },
+      { label: t('occupancy_sensor_details_auditorium', 'Auditorium sensor'), value: sensor.is_auditorium_sensor ? t('occupancy_details_yes', 'Yes') : t('occupancy_details_no', 'No') }
+    ];
+    if (windowNote) {
+      details.push({ label: t('occupancy_sensor_details_window', 'Calculation window'), value: windowNote });
+    }
+    var detailRows = details.map(function (row) {
+      return '<div class="occupancy-sensor-card__detail-row"><span>' + escapeHtml(row.label) + '</span><strong>' + escapeHtml(String(row.value)) + '</strong></div>';
+    }).join('');
+
+    return (
+      '<article class="occupancy-sensor-card">' +
+      '<button type="button" class="occupancy-sensor-card__trigger" aria-expanded="false">' +
+      '<span class="occupancy-sensor-card__main">' +
+      '<span class="occupancy-sensor-card__name">' + escapeHtml(labels.primary) + secondary + auditoriumBadge + warning + '</span>' +
+      '<span class="occupancy-sensor-card__metrics">' +
+      '<span>' + escapeHtml(t('occupancy_metric_people_in', 'Entries')) + ': ' + escapeHtml(formatOccupancyMetricValue(sensor.people_in)) + '</span>' +
+      '<span>' + escapeHtml(t('occupancy_metric_people_out', 'Exits')) + ': ' + escapeHtml(formatOccupancyMetricValue(sensor.people_out)) + '</span>' +
+      '<span>' + escapeHtml(t('occupancy_metric_remaining_inside', 'Remaining inside')) + ': ' + escapeHtml(formatOccupancyMetricValue(sensor.remaining_inside)) + '</span>' +
+      '</span>' +
+      '</span>' +
+      '</button>' +
+      '<div class="occupancy-sensor-card__details" hidden>' +
+      '<div class="occupancy-sensor-card__details-inner">' +
+      '<div class="occupancy-sensor-card__details-title">' + escapeHtml(t('occupancy_sensor_details_title', 'Sensor details')) + '</div>' +
+      detailRows +
+      '</div>' +
+      '</div>' +
+      '</article>'
+    );
+  }
+
+  function bindOccupancySensorGroupInteractions(container) {
+    if (!container || container.__smacaOccupancyGroupsBound) return;
+    container.__smacaOccupancyGroupsBound = true;
+    container.addEventListener('click', function (event) {
+      var floorTrigger = event.target.closest('.occupancy-sensor-floor__trigger');
+      if (floorTrigger) {
+        var floor = floorTrigger.closest('.occupancy-sensor-floor');
+        if (floor) floor.classList.toggle('is-open');
+        return;
+      }
+      var cardTrigger = event.target.closest('.occupancy-sensor-card__trigger');
+      if (!cardTrigger) return;
+      var card = cardTrigger.closest('.occupancy-sensor-card');
+      if (!card) return;
+      var details = card.querySelector('.occupancy-sensor-card__details');
+      var open = !card.classList.contains('is-open');
+      card.classList.toggle('is-open', open);
+      cardTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (details) details.hidden = !open;
+    });
+  }
+
+  function buildOccupancyMetricCard(labelKey, tooltipKey, value) {
+    var label = t(labelKey, labelKey);
+    var tooltip = t(tooltipKey, '');
+    return (
+      '<article class="stat-card overview-kpi-card">' +
+      '<span class="overview-kpi-card__icon" data-category="occupancy" aria-hidden="true">' + categoryIconSvg('occupancy') + '</span>' +
+      '<div class="stat-card__content">' +
+      '<div class="stat-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
+      '<div class="stat-card__value"><span class="stat-card__value-number">' + escapeHtml(formatOccupancyMetricValue(value)) + '</span></div>' +
+      (tooltip ? '<p class="overview-live-note occupancy-metric-card__tooltip">' + escapeHtml(tooltip) + '</p>' : '') +
+      '</div>' +
+      '</article>'
+    );
+  }
+
+  function renderOccupancyMetrics(summaryContainerId, payload) {
+    var container = document.getElementById(summaryContainerId);
+    if (!container) return;
+    var metrics = payload && payload.occupancy_metrics ? payload.occupancy_metrics : null;
+    if (!metrics) {
+      var hasLocation = Boolean(payload && payload.location);
+      var msg = hasLocation
+        ? t('kpi_empty_occupancy', 'No movement counters are available for this selected zone.')
+        : t('no_occupancy_data', 'No occupancy data');
+      container.innerHTML = '<p class="overview-live-note">' + escapeHtml(msg) + '</p>';
+      return;
+    }
+
+    var cards = [
+      buildOccupancyMetricCard('occupancy_metric_people_in', 'occupancy_tooltip_people_in', metrics.people_in),
+      buildOccupancyMetricCard('occupancy_metric_people_out', 'occupancy_tooltip_people_out', metrics.people_out),
+      buildOccupancyMetricCard('occupancy_metric_remaining_inside', 'occupancy_tooltip_remaining_inside', metrics.remaining_inside),
+      buildOccupancyMetricCard('occupancy_metric_crowd_density', 'occupancy_tooltip_crowd_density', metrics.crowd_density),
+      buildOccupancyMetricCard('occupancy_metric_peak', 'occupancy_tooltip_peak', metrics.peak)
+    ];
+
+    var windowNote = '';
+    if (metrics.calculation_window_start && metrics.calculation_window_end) {
+      windowNote = t('occupancy_metrics_daily_window', 'Daily window: :start – :end (:timezone)')
+        .replace(':start', metrics.calculation_window_start)
+        .replace(':end', metrics.calculation_window_end)
+        .replace(':timezone', metrics.calculation_window_timezone || 'Europe/Athens');
+    }
+
+    container.innerHTML = cards.join('') + (windowNote
+      ? '<p class="overview-live-note occupancy-metrics-window-note">' + escapeHtml(windowNote) + '</p>'
+      : '');
+  }
+
+  function renderOccupancySensorGroups(groupsContainerId, payload) {
+    var container = document.getElementById(groupsContainerId);
+    if (!container) return;
+    var metrics = payload && payload.occupancy_metrics ? payload.occupancy_metrics : null;
+    var sensors = metrics && Array.isArray(metrics.sensors) ? metrics.sensors : [];
+    if (!sensors.length) {
+      container.innerHTML = '';
+      container.hidden = true;
+      return;
+    }
+
+    container.hidden = false;
+    var groups = {};
+    sensors.forEach(function (sensor) {
+      if (!sensor) return;
+      var floor = sensor.sensor_floor || '—';
+      if (!groups[floor]) groups[floor] = [];
+      groups[floor].push(sensor);
+    });
+
+    var floorCodes = Object.keys(groups).sort(function (a, b) {
+      if (a === 'AUD') return -1;
+      if (b === 'AUD') return 1;
+      return a.localeCompare(b);
+    });
+
+    var sensorWindowNote = '';
+    if (metrics.calculation_window_start && metrics.calculation_window_end) {
+      sensorWindowNote = metrics.calculation_window_start + ' – ' + metrics.calculation_window_end;
+    }
+
+    var sections = floorCodes.map(function (floorCode) {
+      var floorSensors = groups[floorCode];
+      var floorSummary = t('occupancy_sensor_floor_summary', ':entries entries · :exits exits · :balance balance · :count sensors')
+        .replace(':entries', formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'people_in')))
+        .replace(':exits', formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'people_out')))
+        .replace(':balance', formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'remaining_inside')))
+        .replace(':count', String(floorSensors.length));
+      var cards = floorSensors.map(function (sensor) {
+        return buildOccupancySensorCard(sensor, sensorWindowNote);
+      }).join('');
+
+      return (
+        '<section class="occupancy-sensor-floor is-open">' +
+        '<button type="button" class="occupancy-sensor-floor__trigger" aria-expanded="true">' +
+        '<span class="occupancy-sensor-floor__title">' + escapeHtml(floorLabelForOccupancy(floorCode)) + '</span>' +
+        '<span class="occupancy-sensor-floor__summary">' + escapeHtml(floorSummary) + '</span>' +
+        '</button>' +
+        '<div class="occupancy-sensor-floor__body">' +
+        '<div class="occupancy-sensor-list">' + cards + '</div>' +
+        '</div>' +
+        '</section>'
+      );
+    });
+
+    container.innerHTML = '<h4 class="occupancy-sensor-groups__title">' + escapeHtml(t('occupancy_sensor_breakdown_title', 'Sensor breakdown by floor')) + '</h4>' + sections.join('');
+    bindOccupancySensorGroupInteractions(container);
+  }
+
   function buildStatusCompanionCard(kpi) {
     if (!kpi) return '';
     const status = String(kpi.status || 'unknown').toLowerCase();
@@ -312,6 +539,8 @@
   }
 
   global.SMACAKPIRenderer = {
-    render: render
+    render: render,
+    renderOccupancyMetrics: renderOccupancyMetrics,
+    renderOccupancySensorGroups: renderOccupancySensorGroups
   };
 })(typeof window !== 'undefined' ? window : this);

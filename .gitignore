@@ -30,6 +30,6 @@ temp/
 .env.*.local
 
 # Build output
-dist/
+dist/§
 build/
 *.min.js.map

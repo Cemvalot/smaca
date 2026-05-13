@@ -27,20 +27,23 @@
               <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_occupancy') }}</h3>
             </div>
             <div class="card__body">
+              <p class="overview-live-note" style="margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.occupancy_scope_daily_note') }}</p>
               <p class="overview-live-note" style="margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
               <p class="overview-live-note" style="margin-bottom: var(--space-3); font-style: italic; color: var(--muted);">{{ __('messages.dashboard_i18n.flow_estimate_note') }}</p>
-              <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="grid grid--metrics grid--metrics-2">
+              <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="grid grid--metrics grid--metrics-2 occupancy-metrics-grid">
                 <p class="overview-live-note">{{ __('messages.common.loading') }}...</p>
               </div>
+              <div id="occupancy-sensor-groups" class="occupancy-sensor-groups" hidden></div>
             </div>
           </section>
 
           <section class="card smaca-telemetry-card">
             <div class="card__header">
               <h3 class="card__title">{{ __('messages.nav.occupancy') }} · {{ __('messages.dashboard.live') }}</h3>
-              <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
+              <p class="card__subtitle">{{ __('messages.dashboard_i18n.occupancy_scope_timeframe_note') }}</p>
             </div>
             <div class="card__body">
+              <p class="occupancy-tile-guide__intro">{{ __('messages.dashboard_i18n.occupancy_movement_tiles_intro') }}</p>
               <div class="smaca-tg smaca-tg--rich" data-smaca-telemetry="occupancy">
                 <div data-tile="in-out-stacked"    class="smaca-tile--w6"></div>
                 <div data-tile="busiest-rank"      class="smaca-tile--w6"></div>
@@ -53,6 +56,33 @@
               </div>
             </div>
           </section>
+
+          <section class="card occupancy-chart-guide">
+            <div class="card__body">
+              <div class="smaca-accordion smaca-accordion--collapsed">
+                <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+                  <span>{{ __('messages.status.what_is_this_graph') }} · {{ __('messages.dashboard_i18n.occupancy_chart_hourly_title') }}</span>
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div class="smaca-accordion__body" hidden>
+                  <div class="accordion-content">
+                    <p>{{ __('messages.dashboard_i18n.occupancy_chart_explainer_hourly') }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="smaca-accordion smaca-accordion--collapsed">
+                <button type="button" class="smaca-accordion__trigger" aria-expanded="false">
+                  <span>{{ __('messages.status.what_is_this_graph') }} · {{ __('messages.dashboard_i18n.occupancy_tile_total_movement_title') }}</span>
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div class="smaca-accordion__body" hidden>
+                  <div class="accordion-content">
+                    <p>{{ __('messages.dashboard_i18n.occupancy_chart_explainer_total_movement') }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
           
           @if($smacaIsAdmin)
           <!-- Operational movement summary (admin only — raw counters) -->
@@ -60,10 +90,10 @@
             <div class="card__body">
               <div style="display: flex; align-items: center; gap: var(--space-6);">
                 <div>
-                  <div id="occupancy-operational-summary-label" style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">{{ __('messages.dashboard_i18n.operational_card_current_activity_title') }}</div>
-                  <div id="occupancy-operational-summary-helper" style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.operational_card_current_activity_helper') }}</div>
+                  <div id="occupancy-operational-summary-label" style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">{{ __('messages.dashboard_i18n.occupancy_operational_latest_sample_title') }}</div>
+                  <div id="occupancy-operational-summary-helper" style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.occupancy_operational_latest_sample_helper') }}</div>
                   <div id="occupancy-operational-summary-value" style="font-size: 36px; font-weight: 600; color: var(--text);">{{ __('messages.common.loading') }}...</div>
-                  <div id="occupancy-operational-summary-sub" style="font-size: 11px; color: var(--muted);">{{ __('messages.dashboard_i18n.cumulative_entries_exits') }}</div>
+                  <div id="occupancy-operational-summary-sub" style="font-size: 11px; color: var(--muted);"></div>
                 </div>
                 <div style="flex: 1; border-left: 1px solid var(--border); padding-left: var(--space-6);">
                   <div style="font-size: 11px; color: var(--muted); margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.occupancy_explain_iaq') }}</div>
@@ -84,7 +114,7 @@
             <div class="card">
               <div class="card__header">
                 <h3 class="card__title">{{ __('messages.dashboard_i18n.flow_over_time') }}</h3>
-                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.decision_traffic_highest') }}</p>
+                <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.occupancy_chart_flow_subtitle') }}</p>
               </div>
               <div class="card__body">
                 <div class="chart-placeholder" id="occupancy-flow-chart" style="min-height: 320px;"></div>
@@ -95,19 +125,7 @@
                   </button>
                   <div class="smaca-accordion__body" hidden>
                     <div class="accordion-content">
-                      <p><strong>Y-axis (Vertical):</strong></p>
-                      <ul>
-                        <li><strong>Green columns:</strong> People entering</li>
-                        <li><strong>Orange columns:</strong> People leaving</li>
-                        <li><strong>Blue activity line:</strong> Overall activity (in + out)</li>
-                        <li><strong>Column height:</strong> Number of people in the bucket</li>
-                      </ul>
-                      <p><strong>X-axis (Horizontal):</strong></p>
-                      <ul>
-                        <li><strong>Time periods:</strong> Each bucket represents one time interval</li>
-                        <li><strong>Interpretation:</strong> Use column heights + activity line to spot bursts</li>
-                      </ul>
-                      <p><strong>How to read:</strong> Compare the green and orange columns to see whether the building is dominated by arrivals or departures. The blue line highlights when overall movement is strongest.</p>
+                    <p>{{ __('messages.dashboard_i18n.occupancy_chart_explainer_flow') }}</p>
                     </div>
                   </div>
                 </div>
@@ -121,26 +139,22 @@
     if (!window.SMACAKPIRenderer || typeof window.SMACAKPIRenderer.render !== 'function') return;
 
     function loadOccupancyKpis() {
-      // Accept BOTH `crowd_density_level` (floor / area scope) and
-      // `movement_activity_index` (passage scope). The KPI engine emits
-      // exactly one of them depending on the selected location.
-      var allowedKeys = ['crowd_density_level', 'movement_activity_index'];
       window.SMACAApi.fetchKpiSummary('occupancy')
         .then(function (payload) {
-          window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', payload, {
-            compact: false,
-            maxItems: 1,
-            allowedKeys: allowedKeys,
-            withStatusCompanion: true
-          });
+          if (window.SMACAKPIRenderer && typeof window.SMACAKPIRenderer.renderOccupancyMetrics === 'function') {
+            window.SMACAKPIRenderer.renderOccupancyMetrics('occupancy-kpi-summary-cards', payload);
+          }
+          if (window.SMACAKPIRenderer && typeof window.SMACAKPIRenderer.renderOccupancySensorGroups === 'function') {
+            window.SMACAKPIRenderer.renderOccupancySensorGroups('occupancy-sensor-groups', payload);
+          }
         })
         .catch(function () {
-          window.SMACAKPIRenderer.render('occupancy-kpi-summary-cards', { kpis: [] }, {
-            compact: false,
-            maxItems: 1,
-            allowedKeys: allowedKeys,
-            withStatusCompanion: true
-          });
+          if (window.SMACAKPIRenderer && typeof window.SMACAKPIRenderer.renderOccupancyMetrics === 'function') {
+            window.SMACAKPIRenderer.renderOccupancyMetrics('occupancy-kpi-summary-cards', { occupancy_metrics: null });
+          }
+          if (window.SMACAKPIRenderer && typeof window.SMACAKPIRenderer.renderOccupancySensorGroups === 'function') {
+            window.SMACAKPIRenderer.renderOccupancySensorGroups('occupancy-sensor-groups', { occupancy_metrics: { sensors: [] } });
+          }
         });
     }
 
