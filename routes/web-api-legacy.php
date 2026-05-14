@@ -138,7 +138,7 @@ Route::get('/api/sensors', function () {
         ->leftJoin('sites as si', 'si.id', '=', 's.site_id')
         ->leftJoin('sensor_latest as sl', 'sl.sensor_id', '=', 's.id')
         ->leftJoin('readings as r', 'r.id', '=', 'sl.reading_id')
-        ->select([
+        ->select(array_merge([
             's.id',
             's.external_id as sensor_uid',
             's.name',
@@ -162,7 +162,7 @@ Route::get('/api/sensors', function () {
             'sl.people_out',
             'sl.people_total_in',
             'sl.people_total_out',
-        ])
+        ], smacaApiSensorLatestOptionalSelectColumns_impl()))
         ->orderBy('s.id')
         ->get();
 
@@ -216,7 +216,7 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
         ->leftJoin('sites as si', 'si.id', '=', 's.site_id')
         ->leftJoin('sensor_latest as sl', 'sl.sensor_id', '=', 's.id')
         ->leftJoin('readings as r', 'r.id', '=', 'sl.reading_id')
-        ->select([
+        ->select(array_merge([
             's.id',
             's.external_id as sensor_uid',
             's.name',
@@ -240,7 +240,7 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
             'sl.people_out',
             'sl.people_total_in',
             'sl.people_total_out',
-        ])
+        ], smacaApiSensorLatestOptionalSelectColumns_impl()))
         ->where('s.id', (int) $id)
         ->first();
 

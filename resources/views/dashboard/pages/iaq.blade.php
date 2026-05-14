@@ -49,6 +49,16 @@
             </div>
           </section>
 
+          <section class="card smaca-iaq-zone smaca-iaq-zone--sensor-breakdown" style="margin: var(--space-6) 0;" aria-labelledby="iaq-sensor-breakdown-title">
+            <div class="card__header">
+              <h3 id="iaq-sensor-breakdown-title" class="card__title">{{ __('messages.dashboard_i18n.iaq_sensor_breakdown_title') }}</h3>
+              <p class="card__subtitle">{{ __('messages.dashboard_i18n.iaq_sensor_breakdown_subtitle') }}</p>
+            </div>
+            <div class="card__body">
+              <div id="iaq-sensor-groups" class="iaq-sensor-groups" hidden></div>
+            </div>
+          </section>
+
           <div class="smaca-iaq-zone-block" data-iaq-zone-group="live-measurements">
             <header class="smaca-iaq-zone-block__head">
               <h2 class="smaca-iaq-zone-block__title">{{ __('messages.dashboard_i18n.iaq_live_zone_title') }}</h2>
@@ -157,6 +167,15 @@
     loadIaqKpis();
     window.addEventListener('smaca:scope-change', loadIaqKpis);
     window.addEventListener('smaca:timeframe-changed', loadIaqKpis);
+
+    function loadIaqSensorBreakdown() {
+      if (window.SMACAIaqSensorBreakdown && typeof window.SMACAIaqSensorBreakdown.refresh === 'function') {
+        window.SMACAIaqSensorBreakdown.refresh();
+      }
+    }
+    loadIaqSensorBreakdown();
+    window.addEventListener('smaca:scope-change', loadIaqSensorBreakdown);
+    window.addEventListener('smaca:scope-changed', loadIaqSensorBreakdown);
   });
 </script>
 @endsection

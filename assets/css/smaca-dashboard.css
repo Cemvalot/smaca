@@ -5175,5 +5175,674 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .iaq-sensor-floor__trigger {
+    grid-template-columns: 1fr;
+  }
+
+  .iaq-sensor-floor__metrics {
+    grid-template-columns: repeat(2, minmax(84px, 1fr));
+  }
+
+  .iaq-sensor-floor__right {
+    justify-content: flex-start;
+  }
+
+  .iaq-sensor-card__main {
+    grid-template-columns: 1fr;
+  }
+
+  .iaq-sensor-card__metrics--dense {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .iaq-detail__measure-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .iaq-detail__semantic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .iaq-detail__identity-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
+/* --------------------------------------------------------------------------
+   IAQ sensor breakdown — same glass / accordion direction as occupancy floors
+   -------------------------------------------------------------------------- */
+.iaq-sensor-groups {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.iaq-sensor-floor {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(30, 41, 59, 0.70), rgba(15, 23, 42, 0.64)),
+    radial-gradient(120% 100% at 100% 0%, rgba(34, 211, 238, 0.10), transparent 62%);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.iaq-sensor-floor:hover {
+  border-color: rgba(45, 212, 191, 0.32);
+  transform: translateY(-1px);
+}
+
+.iaq-sensor-floor + .iaq-sensor-floor {
+  margin-top: var(--space-3);
+}
+
+.iaq-sensor-floor__trigger {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.32fr) minmax(280px, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4);
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+}
+
+.iaq-sensor-floor__trigger:focus-visible {
+  outline: 2px solid rgba(45, 212, 191, 0.55);
+  outline-offset: -2px;
+}
+
+.iaq-sensor-floor__left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.iaq-sensor-floor__icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #5eead4;
+  background: linear-gradient(160deg, rgba(13, 148, 136, 0.22), rgba(14, 116, 144, 0.12));
+  border: 1px solid rgba(45, 212, 191, 0.32);
+  flex: 0 0 auto;
+}
+
+.iaq-sensor-floor__identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.iaq-sensor-floor__code {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #99f6e4;
+  background: rgba(13, 148, 136, 0.18);
+  border: 1px solid rgba(45, 212, 191, 0.28);
+}
+
+.iaq-sensor-floor__title {
+  font-size: 15px;
+  font-weight: 650;
+  color: #f1f5f9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iaq-sensor-floor__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: var(--space-2);
+}
+
+.iaq-sensor-floor__metrics--summary {
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  max-width: 100%;
+}
+
+.iaq-sensor-floor__metrics span {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.iaq-sensor-floor__metrics small {
+  font-size: 10px;
+  color: rgba(148, 163, 184, 0.95);
+  letter-spacing: 0.02em;
+}
+
+.iaq-sensor-floor__metrics strong {
+  font-size: 13px;
+  line-height: 1.1;
+  color: #e2e8f0;
+}
+
+.iaq-sensor-floor__right {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.iaq-sensor-floor__count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.iaq-sensor-floor__chevron {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: rgba(148, 163, 184, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  transition: transform 0.22s ease, color 0.22s ease;
+}
+
+.iaq-sensor-floor__body {
+  display: block;
+  padding: 0 var(--space-4) var(--space-4);
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.28s ease, opacity 0.22s ease, padding-top 0.2s ease;
+}
+
+.iaq-sensor-floor.is-open .iaq-sensor-floor__body {
+  max-height: 2400px;
+  opacity: 1;
+  padding-top: var(--space-3);
+}
+
+.iaq-sensor-floor.is-open .iaq-sensor-floor__chevron {
+  transform: rotate(180deg);
+  color: #5eead4;
+}
+
+.iaq-sensor-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.iaq-sensor-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.52);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.iaq-sensor-card:hover {
+  border-color: rgba(45, 212, 191, 0.28);
+  background: rgba(15, 23, 42, 0.64);
+}
+
+.iaq-sensor-card__trigger {
+  width: 100%;
+  display: block;
+  padding: var(--space-3);
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.iaq-sensor-card__main {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.4fr) minmax(220px, 1fr) auto;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+}
+
+.iaq-sensor-card__identity {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.iaq-sensor-card__name {
+  font-size: 13px;
+  font-weight: 650;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iaq-sensor-card__secondary {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.iaq-sensor-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.iaq-sensor-card__warn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.iaq-sensor-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: var(--space-2);
+}
+
+.iaq-sensor-card__metrics--dense {
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 6px;
+}
+
+/* Collapsed row: mini operational metric */
+.iaq-mini-metric--collapsed {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-height: 52px;
+  padding: 6px 8px 6px 6px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.iaq-mini-metric--collapsed .iaq-mini-metric__icon {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+  opacity: 0.45;
+  color: rgba(94, 234, 212, 0.9);
+  flex: 0 0 auto;
+}
+
+.iaq-mini-metric--collapsed .iaq-mini-metric__stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.iaq-mini-metric--collapsed .iaq-mini-metric__value {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #f1f5f9;
+  letter-spacing: -0.02em;
+}
+
+.iaq-mini-metric--collapsed .iaq-mini-metric__suffix {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(148, 163, 184, 0.88);
+  margin-left: 2px;
+}
+
+.iaq-mini-metric--collapsed .iaq-sensor-card__unit {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(148, 163, 184, 0.88);
+  margin-left: 3px;
+}
+
+.iaq-mini-metric--collapsed .iaq-mini-metric__label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(148, 163, 184, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Severity tints — collapsed + detail cards */
+.iaq-mini-metric.iaq-sev--co2-good { border-color: rgba(52, 211, 153, 0.28); background: linear-gradient(165deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.5)); }
+.iaq-mini-metric.iaq-sev--co2-warning { border-color: rgba(251, 191, 36, 0.35); background: linear-gradient(165deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.52)); }
+.iaq-mini-metric.iaq-sev--co2-critical { border-color: rgba(248, 113, 113, 0.4); background: linear-gradient(165deg, rgba(239, 68, 68, 0.12), rgba(15, 23, 42, 0.55)); }
+
+.iaq-mini-metric.iaq-sev--pm-healthy { border-color: rgba(52, 211, 153, 0.22); }
+.iaq-mini-metric.iaq-sev--pm-elevated { border-color: rgba(251, 191, 36, 0.32); }
+.iaq-mini-metric.iaq-sev--pm-unhealthy { border-color: rgba(248, 113, 113, 0.38); }
+
+.iaq-mini-metric.iaq-sev--thermal-ok { border-color: rgba(56, 189, 248, 0.22); }
+.iaq-mini-metric.iaq-sev--thermal-bad { border-color: rgba(251, 191, 36, 0.32); }
+
+.iaq-mini-metric.iaq-sev--light-minimal { border-color: rgba(129, 140, 248, 0.28); }
+.iaq-mini-metric.iaq-sev--light-office { border-color: rgba(45, 212, 191, 0.22); }
+.iaq-mini-metric.iaq-sev--light-intense { border-color: rgba(251, 191, 36, 0.3); }
+
+.iaq-mini-metric.iaq-sev--tvoc-ok { border-color: rgba(45, 212, 191, 0.2); }
+.iaq-mini-metric.iaq-sev--tvoc-warn { border-color: rgba(251, 191, 36, 0.32); }
+.iaq-mini-metric.iaq-sev--tvoc-bad { border-color: rgba(248, 113, 113, 0.38); }
+
+.iaq-mini-metric.iaq-sev--na { border-color: rgba(148, 163, 184, 0.14); }
+
+/* Expanded detail panel */
+.iaq-sensor-card__details {
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.iaq-sensor-card__details-inner {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  display: block;
+}
+
+.iaq-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.iaq-detail__block {
+  padding: var(--space-2) var(--space-3);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.iaq-detail__block--identity {
+  padding: var(--space-2) var(--space-3);
+}
+
+.iaq-detail__block--warnings {
+  background: rgba(30, 27, 15, 0.35);
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.iaq-detail__block-title {
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(148, 163, 184, 0.88);
+  margin-bottom: var(--space-2);
+}
+
+.iaq-detail__identity-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.iaq-detail__identity-names {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.iaq-detail__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.25;
+}
+
+.iaq-detail__sub {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.iaq-detail__uid {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  color: #cbd5e1;
+}
+
+.iaq-detail__idsep,
+.iaq-detail__idnum {
+  font-size: 10px;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.iaq-detail__floorline {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.iaq-detail__codepill {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #99f6e4;
+  background: rgba(13, 148, 136, 0.2);
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  vertical-align: middle;
+}
+
+.iaq-detail__fresh {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.92);
+}
+
+.iaq-detail__time {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.iaq-detail__status-slot {
+  flex: 0 0 auto;
+}
+
+.iaq-detail__measure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.iaq-mini-metric--detail {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-height: 76px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.iaq-mini-metric--detail .iaq-mini-metric__value-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+}
+
+.iaq-mini-metric--detail .iaq-mini-metric__value {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #f8fafc;
+  letter-spacing: -0.03em;
+}
+
+.iaq-mini-metric--detail .iaq-mini-metric__unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.iaq-mini-metric--detail .iaq-mini-metric__hint {
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(203, 213, 225, 0.92);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.iaq-mini-metric--detail .iaq-mini-metric__label {
+  margin-top: auto;
+  padding-top: 2px;
+  font-size: 9px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.iaq-detail__semantic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.iaq-semantic-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  min-height: 72px;
+}
+
+.iaq-semantic-pill__body {
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: #e2e8f0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.iaq-semantic-pill__title {
+  margin-top: auto;
+  font-size: 9px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.iaq-detail__warn-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.iaq-detail__warn-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  max-width: 100%;
+}
+
+.iaq-sensor-card__side {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iaq-sensor-card__status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.iaq-sensor-card__status-chip--ok {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.iaq-sensor-card__status-chip--warning {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.iaq-sensor-card__status-chip--critical {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+}
+
+.iaq-sensor-card__chevron {
+  font-size: 18px;
+  color: rgba(148, 163, 184, 0.9);
+  transition: transform 0.2s ease;
+}
+
+.iaq-sensor-card.is-open .iaq-sensor-card__chevron {
+  transform: rotate(90deg);
+}

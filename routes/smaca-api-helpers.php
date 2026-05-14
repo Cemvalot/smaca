@@ -75,7 +75,34 @@ if (!function_exists('smacaApiSnapshotFromRow_impl')) {
             'people_out' => $row->people_out ?? null,
             'people_total_in' => $row->people_total_in ?? null,
             'people_total_out' => $row->people_total_out ?? null,
+            'tvoc_index' => isset($row->tvoc_index) ? $row->tvoc_index : null,
+            'light_level' => isset($row->light_level) ? $row->light_level : null,
+            'lux' => isset($row->lux) ? $row->lux : null,
         ];
+    }
+}
+
+if (!function_exists('smacaApiSensorLatestOptionalSelectColumns_impl')) {
+    /**
+     * Optional `sensor_latest` columns (present only when migrated / deployed).
+     *
+     * @return array<int, string>
+     */
+    function smacaApiSensorLatestOptionalSelectColumns_impl(): array
+    {
+        $cols = [];
+        try {
+            $schema = DB::getSchemaBuilder();
+            foreach (['tvoc_index', 'light_level', 'lux'] as $column) {
+                if ($schema->hasColumn('sensor_latest', $column)) {
+                    $cols[] = 'sl.'.$column;
+                }
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        return $cols;
     }
 }
 
