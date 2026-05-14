@@ -22,11 +22,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="base-url" content="{{ url('/') }}">
   <title>{{ __('messages.app.title') }}</title>
-  <link rel="icon" type="image/x-icon" href="{{ asset('assets/brand/favicon.ico') }}">
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/brand/smaca-favicon-32.png') }}">
-  <link rel="icon" type="image/svg+xml" href="{{ asset('assets/brand/smaca-favicon.svg') }}">
-  <link rel="shortcut icon" href="{{ asset('assets/brand/favicon.ico') }}">
-  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/brand/smaca-favicon-180.png') }}">
+  @include('partials.favicons')
   <link rel="stylesheet" href="{{ asset('assets/css/base.css') }}?v={{ $smacaAssetVersion('assets/css/base.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-logo.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-logo.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $smacaAssetVersion('assets/css/dashboard.css') }}">
@@ -407,6 +403,21 @@
       iaq_sensor_breakdown_warn_lighting: "{{ __('messages.dashboard_i18n.iaq_sensor_breakdown_warn_lighting') }}",
       iaq_sensor_breakdown_unknown_location: "{{ __('messages.dashboard_i18n.iaq_sensor_breakdown_unknown_location') }}",
       iaq_sensor_breakdown_status_critical: "{{ __('messages.dashboard_i18n.iaq_sensor_breakdown_status_critical') }}",
+      iaq_metric_na: "{{ __('messages.dashboard_i18n.iaq_metric_na') }}",
+      iaq_light_fallback_level_instead_of_lux: "{{ __('messages.dashboard_i18n.iaq_light_fallback_level_instead_of_lux') }}",
+      iaq_light_fallback_lux_instead_of_level: "{{ __('messages.dashboard_i18n.iaq_light_fallback_lux_instead_of_level') }}",
+      iaq_warn_temp_low: "{{ __('messages.dashboard_i18n.iaq_warn_temp_low') }}",
+      iaq_warn_temp_high: "{{ __('messages.dashboard_i18n.iaq_warn_temp_high') }}",
+      iaq_warn_rh_low: "{{ __('messages.dashboard_i18n.iaq_warn_rh_low') }}",
+      iaq_warn_rh_high: "{{ __('messages.dashboard_i18n.iaq_warn_rh_high') }}",
+      iaq_health_stale: "{{ __('messages.dashboard_i18n.iaq_health_stale') }}",
+      iaq_health_healthy: "{{ __('messages.dashboard_i18n.iaq_health_healthy') }}",
+      iaq_health_partial: "{{ __('messages.dashboard_i18n.iaq_health_partial') }}",
+      iaq_health_missing_metrics: "{{ __('messages.dashboard_i18n.iaq_health_missing_metrics') }}",
+      iaq_health_limited_telemetry: "{{ __('messages.dashboard_i18n.iaq_health_limited_telemetry') }}",
+      iaq_semantic_coverage_full: "{{ __('messages.dashboard_i18n.iaq_semantic_coverage_full') }}",
+      iaq_semantic_coverage_partial: "{{ __('messages.dashboard_i18n.iaq_semantic_coverage_partial') }}",
+      iaq_semantic_coverage_limited: "{{ __('messages.dashboard_i18n.iaq_semantic_coverage_limited') }}",
       iaq_co2_band_outdoor_normal: "{{ __('messages.iaq_co2_band.outdoor_normal') }}",
       iaq_co2_band_good_ventilation: "{{ __('messages.iaq_co2_band.good_ventilation') }}",
       iaq_co2_band_poor_ventilation: "{{ __('messages.iaq_co2_band.poor_ventilation') }}",

@@ -174,7 +174,7 @@
       }
     }
     loadIaqSensorBreakdown();
-    window.addEventListener('smaca:scope-change', loadIaqSensorBreakdown);
+    /* Scope: spatial dispatches both `smaca:scope-change` and `smaca:scope-changed`; breakdown refresh is debounced in JS — listen once to avoid double scheduling. */
     window.addEventListener('smaca:scope-changed', loadIaqSensorBreakdown);
   });
 </script>
