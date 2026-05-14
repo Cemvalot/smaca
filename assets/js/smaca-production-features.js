@@ -215,6 +215,57 @@ function getSmacaLineChartWindow(timeframe) {
   };
 }
 
+function getSmacaOccupancyFlowWindow(timeframe) {
+  const tf = timeframe || '24h';
+  const now = new Date();
+  if (tf === '24h') {
+    const dayStartLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+    const bucketCount = 24;
+    const bucketTimesMs = Array.from({ length: bucketCount }, function (_, idx) {
+      return dayStartLocal + (idx * SMACA_CHART_HOUR_MS);
+    });
+    return {
+      timeframe: '24h',
+      bucketMs: SMACA_CHART_HOUR_MS,
+      bucketCount: bucketCount,
+      bucketTimesMs: bucketTimesMs,
+      rangeStartMs: dayStartLocal,
+      rangeEndMs: dayStartLocal + (24 * SMACA_CHART_HOUR_MS) - 1
+    };
+  }
+
+  if (tf === '7d') {
+    const todayLocalStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+    const weekStartLocal = todayLocalStart - (6 * SMACA_CHART_DAY_MS);
+    const bucketTimesMs = Array.from({ length: 7 }, function (_, idx) {
+      return weekStartLocal + (idx * SMACA_CHART_DAY_MS);
+    });
+    return {
+      timeframe: '7d',
+      bucketMs: SMACA_CHART_DAY_MS,
+      bucketCount: 7,
+      bucketTimesMs: bucketTimesMs,
+      rangeStartMs: weekStartLocal,
+      rangeEndMs: weekStartLocal + (7 * SMACA_CHART_DAY_MS) - 1
+    };
+  }
+
+  const monthStartLocal = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).getTime();
+  const nextMonthStartLocal = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0).getTime();
+  const monthDays = Math.max(1, Math.round((nextMonthStartLocal - monthStartLocal) / SMACA_CHART_DAY_MS));
+  const bucketTimesMs = Array.from({ length: monthDays }, function (_, idx) {
+    return monthStartLocal + (idx * SMACA_CHART_DAY_MS);
+  });
+  return {
+    timeframe: tf,
+    bucketMs: SMACA_CHART_DAY_MS,
+    bucketCount: monthDays,
+    bucketTimesMs: bucketTimesMs,
+    rangeStartMs: monthStartLocal,
+    rangeEndMs: nextMonthStartLocal - 1
+  };
+}
+
 function parseSmacaRowTimeMs(value) {
   if (value === null || value === undefined) return NaN;
   if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
@@ -230,8 +281,13 @@ function resolveSmacaChartBucketKey(timeMs, chartWindow) {
   if (!chartWindow || !Number.isFinite(timeMs)) return null;
   const bucketTimes = Array.isArray(chartWindow.bucketTimesMs) ? chartWindow.bucketTimesMs : [];
   if (!bucketTimes.length) return null;
-  const bucketKey = Math.floor(timeMs / chartWindow.bucketMs) * chartWindow.bucketMs;
-  return bucketTimes.indexOf(bucketKey) >= 0 ? bucketKey : null;
+  const bucketMs = Number(chartWindow.bucketMs) || SMACA_CHART_HOUR_MS;
+  for (let i = 0; i < bucketTimes.length; i += 1) {
+    const start = Number(bucketTimes[i]);
+    const end = start + bucketMs;
+    if (timeMs >= start && timeMs < end) return start;
+  }
+  return null;
 }
 
 function getOverviewModuleRows(module, filteredData, timeframe) {
@@ -1430,7 +1486,7 @@ function ensureManagementSettingsActions() {
     const raw = String(value).trim();
     if (!raw) return NaN;
     const hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
-    const normalized = hasTz ? raw : raw.replace(' ', 'T') + 'Z';
+    const normalized = hasTz ? raw : raw.replace(' ', 'T');
     const ms = new Date(normalized).getTime();
     return Number.isFinite(ms) ? ms : NaN;
   };
@@ -2705,7 +2761,7 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     const raw = String(value).trim();
     if (!raw) return NaN;
     const hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
-    const normalized = hasTz ? raw : raw.replace(' ', 'T') + 'Z';
+    const normalized = hasTz ? raw : raw.replace(' ', 'T');
     const ms = new Date(normalized).getTime();
     return Number.isFinite(ms) ? ms : NaN;
   };
@@ -2910,7 +2966,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
     const raw = String(value).trim();
     if (!raw) return NaN;
     const hasTz = /[zZ]$|[+-]\d{2}:\d{2}$/.test(raw);
-    const normalized = hasTz ? raw : raw.replace(' ', 'T') + 'Z';
+    const normalized = hasTz ? raw : raw.replace(' ', 'T');
     const ms = new Date(normalized).getTime();
     return Number.isFinite(ms) ? ms : NaN;
   };
@@ -2921,7 +2977,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
 
   smacaDebug('[SMACA][OCCUPANCY] chart update start', { timeframe: timeframe });
 
-  const chartWindow = getSmacaLineChartWindow(timeframe);
+  const chartWindow = getSmacaOccupancyFlowWindow(timeframe);
   const bucketMs = chartWindow.bucketMs;
   const bucketTimesMs = chartWindow.bucketTimesMs;
   const rangeStartMs = chartWindow.rangeStartMs;
@@ -2974,7 +3030,7 @@ function updateOccupancyCharts(filteredOccupancy, timeframe) {
     patternCategories = Array.from({ length: 24 }, function (_, h) { return String(h).padStart(2, '0'); });
     patternValues = Array.from({ length: 24 }, function () { return null; });
     bucketTimesMs.forEach(function (t, idx) {
-      const hour = new Date(t).getUTCHours();
+      const hour = new Date(t).getHours();
       if (Number.isFinite(hour) && hour >= 0 && hour <= 23) {
         patternValues[hour] = activityData[idx];
       }

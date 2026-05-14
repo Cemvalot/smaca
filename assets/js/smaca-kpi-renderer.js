@@ -291,6 +291,10 @@
     var code = String(floorCode || '').trim();
     if (!code || code === '—') return '—';
     if (code === 'AUD') return t('occupancy_group_auditorium', 'Auditorium');
+    if (code === 'B1') return t('occupancy_group_basement_1', 'Basement 1');
+    if (code === 'B2') return t('occupancy_group_basement_2', 'Basement 2');
+    if (code === 'F0') return t('occupancy_group_ground_floor', 'Ground Floor');
+    if (code === 'F1') return t('occupancy_group_first_floor', '1st Floor');
     if (global.SMACASpatial && typeof global.SMACASpatial.labelFor === 'function') {
       var spatialLabel = global.SMACASpatial.labelFor(code);
       if (spatialLabel) return spatialLabel;
@@ -298,22 +302,68 @@
     return code;
   }
 
+  function floorSortWeight(code) {
+    var key = String(code || '').toUpperCase();
+    if (key === 'AUD') return -2;
+    if (key === 'B2') return -1;
+    if (key === 'B1') return 0;
+    if (key === 'F0') return 1;
+    if (key === 'F1') return 2;
+    return 50;
+  }
+
+  function floorCodeLabel(code) {
+    var key = String(code || '').toUpperCase();
+    if (key === 'AUD' || key === 'B1' || key === 'B2' || key === 'F0' || key === 'F1') return key;
+    return key || '—';
+  }
+
+  function floorIconSvg(code) {
+    var key = String(code || '').toUpperCase();
+    if (key === 'AUD') {
+      return '<path d="M4 19v-7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7M6 10V8a2 2 0 0 1 2-2h1M18 10V8a2 2 0 0 0-2-2h-1M9 14h.01M12 14h.01M15 14h.01M9 17h.01M12 17h.01M15 17h.01" />';
+    }
+    if (/^B\d+$/.test(key)) {
+      return '<path d="M7 4h10M7 9h10M7 14h6M10 20l4-4 4 4" />';
+    }
+    if (key === 'F0') {
+      return '<path d="M3 10 12 3l9 7M5 9v11h14V9M9 20v-6h6v6" />';
+    }
+    return '<path d="M7 4h10M7 9h10M7 14h6M10 16l4 4 4-4" />';
+  }
+
+  function resolveReadableSensorLabel(sensor) {
+    if (!sensor) return '';
+    var candidates = [
+      sensor.spatial_label,
+      sensor.location_label,
+      sensor.name,
+      sensor.sensor_location
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      var candidate = candidates[i];
+      if (candidate === null || candidate === undefined) continue;
+      var clean = String(candidate).trim();
+      if (clean) return clean;
+    }
+    return '';
+  }
+
   function sensorLabelParts(sensor) {
     if (!sensor) return { primary: '—', secondary: '' };
-    var rawId = sensor.sensor_location ? String(sensor.sensor_location) : '';
-    if (!rawId && sensor.sensor_scope_key !== null && sensor.sensor_scope_key !== undefined && sensor.sensor_scope_key !== '') {
-      rawId = String(sensor.sensor_scope_key);
+    var primary = resolveReadableSensorLabel(sensor);
+    var spatialProbe = sensor.sensor_location || '';
+    if (spatialProbe && global.SMACASpatial && typeof global.SMACASpatial.labelFor === 'function') {
+      var resolved = global.SMACASpatial.labelFor(String(spatialProbe));
+      if (resolved && resolved !== spatialProbe && (!primary || primary === String(spatialProbe))) {
+        primary = String(resolved);
+      }
     }
-    var primary = rawId || t('occupancy_sensor_table_sensor', 'Sensor');
-    if (rawId && global.SMACASpatial && typeof global.SMACASpatial.labelFor === 'function') {
-      var resolved = global.SMACASpatial.labelFor(rawId);
-      if (resolved && resolved !== rawId) primary = String(resolved);
-    } else if (rawId && /^AUD/i.test(rawId)) {
-      primary = t('occupancy_group_auditorium', 'Auditorium');
-      var suffix = rawId.indexOf('-') > -1 ? rawId.split('-').slice(1).join('-') : '';
-      if (suffix) primary += ' ' + suffix;
-    }
-    var secondary = rawId && rawId !== primary ? rawId : '';
+    if (!primary) primary = t('occupancy_sensor_table_sensor', 'Sensor');
+
+    var secondary = sensor.sensor_location || '';
+    secondary = secondary ? String(secondary).trim() : '';
+    if (secondary && secondary === primary) secondary = '';
     return { primary: primary, secondary: secondary };
   }
 
@@ -335,22 +385,28 @@
 
   function buildOccupancySensorCard(sensor, windowNote) {
     var labels = sensorLabelParts(sensor);
-    var warning = occupancyImbalanceWarning(sensor)
+    var isWarning = occupancyImbalanceWarning(sensor);
+    var warning = isWarning
       ? '<span class="badge badge--warning badge--sm occupancy-sensor-card__warning">' + escapeHtml(t('occupancy_sensor_imbalance_warning', 'Possible entry/exit imbalance')) + '</span>'
       : '';
+    var okBadge = isWarning
+      ? ''
+      : '<span class="badge badge--success badge--sm occupancy-sensor-card__ok">' + escapeHtml(t('occupancy_sensor_ok', 'OK')) + '</span>';
     var auditoriumBadge = sensor.is_auditorium_sensor
-      ? '<span class="badge badge--warning badge--sm occupancy-sensor-badge">' + escapeHtml(t('occupancy_badge_auditorium_sensor', 'Auditorium sensor')) + '</span>'
+      ? '<span class="badge badge--warning badge--sm occupancy-sensor-badge">AUD</span>'
       : '';
-  var secondary = labels.secondary
+    var secondary = labels.secondary
       ? '<span class="occupancy-sensor-card__secondary">' + escapeHtml(labels.secondary) + '</span>'
       : '';
+    var statusChip = isWarning
+      ? '<span class="occupancy-sensor-card__status-chip occupancy-sensor-card__status-chip--warning">' + escapeHtml(t('warning', 'Warning')) + '</span>'
+      : '<span class="occupancy-sensor-card__status-chip occupancy-sensor-card__status-chip--ok">' + escapeHtml(t('stable', 'Stable')) + '</span>';
     var details = [
-      { label: t('occupancy_sensor_details_key', 'Sensor key'), value: sensor.sensor_scope_key },
       { label: t('occupancy_sensor_details_location', 'Location'), value: sensor.sensor_location || '—' },
       { label: t('occupancy_sensor_details_floor', 'Floor'), value: sensor.sensor_floor || '—' },
       { label: t('occupancy_metric_people_in', 'Entries'), value: formatOccupancyMetricValue(sensor.people_in) },
       { label: t('occupancy_metric_people_out', 'Exits'), value: formatOccupancyMetricValue(sensor.people_out) },
-      { label: t('occupancy_metric_remaining_inside', 'Remaining inside'), value: formatOccupancyMetricValue(sensor.remaining_inside) },
+      { label: t('occupancy_sensor_balance_label', 'Calculated balance'), value: formatOccupancyMetricValue(sensor.remaining_inside) },
       { label: t('occupancy_sensor_details_auditorium', 'Auditorium sensor'), value: sensor.is_auditorium_sensor ? t('occupancy_details_yes', 'Yes') : t('occupancy_details_no', 'No') }
     ];
     if (windowNote) {
@@ -364,12 +420,17 @@
       '<article class="occupancy-sensor-card">' +
       '<button type="button" class="occupancy-sensor-card__trigger" aria-expanded="false">' +
       '<span class="occupancy-sensor-card__main">' +
-      '<span class="occupancy-sensor-card__name">' + escapeHtml(labels.primary) + secondary + auditoriumBadge + warning + '</span>' +
-      '<span class="occupancy-sensor-card__metrics">' +
-      '<span>' + escapeHtml(t('occupancy_metric_people_in', 'Entries')) + ': ' + escapeHtml(formatOccupancyMetricValue(sensor.people_in)) + '</span>' +
-      '<span>' + escapeHtml(t('occupancy_metric_people_out', 'Exits')) + ': ' + escapeHtml(formatOccupancyMetricValue(sensor.people_out)) + '</span>' +
-      '<span>' + escapeHtml(t('occupancy_metric_remaining_inside', 'Remaining inside')) + ': ' + escapeHtml(formatOccupancyMetricValue(sensor.remaining_inside)) + '</span>' +
+      '<span class="occupancy-sensor-card__identity">' +
+      '<span class="occupancy-sensor-card__name">' + escapeHtml(labels.primary) + '</span>' +
+      secondary +
+      '<span class="occupancy-sensor-card__badges">' + auditoriumBadge + warning + okBadge + '</span>' +
       '</span>' +
+      '<span class="occupancy-sensor-card__metrics">' +
+      '<span><small>' + escapeHtml(t('occupancy_metric_people_in', 'Entries')) + '</small><strong>' + escapeHtml(formatOccupancyMetricValue(sensor.people_in)) + '</strong></span>' +
+      '<span><small>' + escapeHtml(t('occupancy_metric_people_out', 'Exits')) + '</small><strong>' + escapeHtml(formatOccupancyMetricValue(sensor.people_out)) + '</strong></span>' +
+      '<span><small>' + escapeHtml(t('occupancy_sensor_balance_label', 'Calculated balance')) + '</small><strong>' + escapeHtml(formatOccupancyMetricValue(sensor.remaining_inside)) + '</strong></span>' +
+      '</span>' +
+      '<span class="occupancy-sensor-card__side">' + statusChip + '<span class="occupancy-sensor-card__chevron" aria-hidden="true">›</span></span>' +
       '</span>' +
       '</button>' +
       '<div class="occupancy-sensor-card__details" hidden>' +
@@ -385,11 +446,23 @@
   function bindOccupancySensorGroupInteractions(container) {
     if (!container || container.__smacaOccupancyGroupsBound) return;
     container.__smacaOccupancyGroupsBound = true;
+    function setFloorState(floor, open) {
+      if (!floor) return;
+      floor.classList.toggle('is-open', open);
+      var trigger = floor.querySelector('.occupancy-sensor-floor__trigger');
+      var body = floor.querySelector('.occupancy-sensor-floor__body');
+      if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (body) body.hidden = !open;
+      var floorCode = floor.getAttribute('data-floor-code');
+      if (!floorCode) return;
+      if (!container.__smacaFloorState) container.__smacaFloorState = {};
+      container.__smacaFloorState[floorCode] = open;
+    }
     container.addEventListener('click', function (event) {
       var floorTrigger = event.target.closest('.occupancy-sensor-floor__trigger');
       if (floorTrigger) {
         var floor = floorTrigger.closest('.occupancy-sensor-floor');
-        if (floor) floor.classList.toggle('is-open');
+        if (floor) setFloorState(floor, !floor.classList.contains('is-open'));
         return;
       }
       var cardTrigger = event.target.closest('.occupancy-sensor-card__trigger');
@@ -401,6 +474,14 @@
       card.classList.toggle('is-open', open);
       cardTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (details) details.hidden = !open;
+    });
+    container.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      var floorTrigger = event.target.closest('.occupancy-sensor-floor__trigger');
+      if (floorTrigger) {
+        event.preventDefault();
+        floorTrigger.click();
+      }
     });
   }
 
@@ -474,9 +555,9 @@
     });
 
     var floorCodes = Object.keys(groups).sort(function (a, b) {
-      if (a === 'AUD') return -1;
-      if (b === 'AUD') return 1;
-      return a.localeCompare(b);
+      var weightDiff = floorSortWeight(a) - floorSortWeight(b);
+      if (weightDiff !== 0) return weightDiff;
+      return String(a).localeCompare(String(b));
     });
 
     var sensorWindowNote = '';
@@ -486,22 +567,41 @@
 
     var sections = floorCodes.map(function (floorCode) {
       var floorSensors = groups[floorCode];
-      var floorSummary = t('occupancy_sensor_floor_summary', ':entries entries · :exits exits · :balance balance · :count sensors')
-        .replace(':entries', formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'people_in')))
-        .replace(':exits', formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'people_out')))
-        .replace(':balance', formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'remaining_inside')))
-        .replace(':count', String(floorSensors.length));
+      var entries = formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'people_in'));
+      var exits = formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'people_out'));
+      var balance = formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'remaining_inside'));
+      var sensorsCount = String(floorSensors.length);
       var cards = floorSensors.map(function (sensor) {
         return buildOccupancySensorCard(sensor, sensorWindowNote);
       }).join('');
+      var floorName = floorLabelForOccupancy(floorCode);
+      var floorCodePill = floorCodeLabel(floorCode);
+      var isOpen = false;
+      if (container.__smacaFloorState && Object.prototype.hasOwnProperty.call(container.__smacaFloorState, floorCode)) {
+        isOpen = Boolean(container.__smacaFloorState[floorCode]);
+      } else {
+        isOpen = floorCode === 'F0';
+      }
 
       return (
-        '<section class="occupancy-sensor-floor is-open">' +
-        '<button type="button" class="occupancy-sensor-floor__trigger" aria-expanded="true">' +
-        '<span class="occupancy-sensor-floor__title">' + escapeHtml(floorLabelForOccupancy(floorCode)) + '</span>' +
-        '<span class="occupancy-sensor-floor__summary">' + escapeHtml(floorSummary) + '</span>' +
+        '<section class="occupancy-sensor-floor' + (isOpen ? ' is-open' : '') + '" data-floor-code="' + escapeHtml(floorCode) + '">' +
+        '<button type="button" class="occupancy-sensor-floor__trigger" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
+        '<span class="occupancy-sensor-floor__left">' +
+        '<span class="occupancy-sensor-floor__icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + floorIconSvg(floorCode) + '</svg></span>' +
+        '<span class="occupancy-sensor-floor__identity"><span class="occupancy-sensor-floor__code">' + escapeHtml(floorCodePill) + '</span><span class="occupancy-sensor-floor__title">' + escapeHtml(floorName) + '</span></span>' +
+        '</span>' +
+        '<span class="occupancy-sensor-floor__metrics">' +
+        '<span><small>' + escapeHtml(t('occupancy_metric_people_in', 'Entries')) + '</small><strong>' + escapeHtml(entries) + '</strong></span>' +
+        '<span><small>' + escapeHtml(t('occupancy_metric_people_out', 'Exits')) + '</small><strong>' + escapeHtml(exits) + '</strong></span>' +
+        '<span><small>' + escapeHtml(t('occupancy_sensor_balance_label', 'Calculated balance')) + '</small><strong>' + escapeHtml(balance) + '</strong></span>' +
+        '<span><small>' + escapeHtml(t('sensors', 'Sensors')) + '</small><strong>' + escapeHtml(sensorsCount) + '</strong></span>' +
+        '</span>' +
+        '<span class="occupancy-sensor-floor__right">' +
+        '<span class="occupancy-sensor-floor__count-badge">' + escapeHtml(sensorsCount) + '</span>' +
+        '<span class="occupancy-sensor-floor__chevron" aria-hidden="true">⌄</span>' +
+        '</span>' +
         '</button>' +
-        '<div class="occupancy-sensor-floor__body">' +
+        '<div class="occupancy-sensor-floor__body"' + (isOpen ? '' : ' hidden') + '>' +
         '<div class="occupancy-sensor-list">' + cards + '</div>' +
         '</div>' +
         '</section>'

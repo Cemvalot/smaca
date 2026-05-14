@@ -426,16 +426,20 @@
       return { y: nv, color: colorForBand(nv, bands) };
     });
     var showAxis = !!(params && params.showAxis);
+    var showYAxis = !!(params && params.showYAxis);
+    var xAxisTitle = (params && params.xAxisTitle) ? String(params.xAxisTitle) : '';
+    var yAxisTitle = (params && params.yAxisTitle) ? String(params.yAxisTitle) : '';
     var height = (params && params.height) || 56;
-    if (showAxis && height < 100) height = 100;
+    if ((showAxis || showYAxis) && height < 130) height = 130;
     var bottomMargin = showAxis ? 26 : 14;
+    var leftMargin = showYAxis ? 34 : 0;
     var stepOverride = (params && Number.isFinite(params.step) && params.step >= 1) ? Math.floor(params.step) : null;
     var autoStep = Math.max(1, Math.floor(data.length / 6));
     var options = {
       chart: {
         type: 'column',
         height: height,
-        margin: [4, 0, bottomMargin, 0],
+        margin: [4, 0, bottomMargin, leftMargin],
         backgroundColor: 'transparent',
         animation: false,
         spacing: [0, 0, 0, 0]
@@ -446,6 +450,11 @@
       xAxis: {
         categories: (params && params.categories) || null,
         visible: showAxis,
+        title: {
+          text: showAxis && xAxisTitle ? xAxisTitle : null,
+          style: { color: 'rgba(148,163,184,0.72)', fontSize: '9px', fontWeight: '500' },
+          margin: 6
+        },
         labels: {
           style: { color: 'rgba(148,163,184,0.6)', fontSize: '9px' },
           step: stepOverride || autoStep
@@ -453,7 +462,20 @@
         lineColor: 'transparent',
         tickWidth: 0
       },
-      yAxis: { visible: false, min: 0 },
+      yAxis: {
+        visible: showYAxis,
+        min: 0,
+        title: {
+          text: showYAxis && yAxisTitle ? yAxisTitle : null,
+          style: { color: 'rgba(148,163,184,0.72)', fontSize: '9px', fontWeight: '500' }
+        },
+        labels: {
+          style: { color: 'rgba(148,163,184,0.58)', fontSize: '9px' },
+          x: -2
+        },
+        gridLineColor: showYAxis ? 'rgba(148,163,184,0.08)' : 'transparent',
+        gridLineDashStyle: 'Dot'
+      },
       tooltip: {
         enabled: !!(params && params.tooltipFormatter),
         formatter: (params && params.tooltipFormatter) || null,

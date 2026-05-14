@@ -1564,7 +1564,14 @@
           if (heatHost) {
             var axisOptsOcc = axisOptsForBucket(inBucket);
             tile().renderHeatStripColumn(heatHost, Object.assign({
-              data: combined, bands: bands, height: 90
+              data: combined,
+              bands: bands,
+              height: 130,
+              showAxis: true,
+              showYAxis: true,
+              categories: inBucket.labels || [],
+              xAxisTitle: locText('Peak hours (X)', 'Ώρες αιχμής (Χ)'),
+              yAxisTitle: locText('People', 'Άτομα')
             }, axisOptsOcc));
           }
           var peakIdx = combined.indexOf(maxVal);

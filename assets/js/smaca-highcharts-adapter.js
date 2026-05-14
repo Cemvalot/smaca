@@ -770,15 +770,11 @@ function smacaUiT(key, fallback) {
       'Remaining inside = max(0, cumulative entries − cumulative exits) within the selected timeframe. Derived from entry/exit counters, not a live headcount.'
     );
 
-    let cumulativeIn = 0;
-    let cumulativeOut = 0;
     const remainingSeries = times.map(function (t, i) {
       const inV = Number(inValues[i]);
       const outV = Number(outValues[i]);
-      if (Number.isFinite(inV)) cumulativeIn += inV;
-      if (Number.isFinite(outV)) cumulativeOut += outV;
       if (!Number.isFinite(inV) && !Number.isFinite(outV)) return [Number(t), null];
-      return [Number(t), Math.max(0, cumulativeIn - cumulativeOut)];
+      return [Number(t), (Number.isFinite(inV) ? inV : 0) - (Number.isFinite(outV) ? outV : 0)];
     });
 
     const numericIn = inValues.map(function (v) { return Number(v); }).filter(function (v) { return Number.isFinite(v); });
@@ -825,9 +821,15 @@ function smacaUiT(key, fallback) {
           autoRotationLimit: 80,
           y: 12,
           formatter: function () {
-            if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
-            if (timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
-            return window.Highcharts.dateFormat('%d %b', this.value);
+            const dt = new Date(Number(this.value));
+            if (!Number.isFinite(dt.getTime())) return '';
+            if (timeframe === '24h') {
+              return String(dt.getHours()).padStart(2, '0') + ':00';
+            }
+            if (timeframe === '7d') {
+              return dt.toLocaleDateString(undefined, { weekday: 'short', day: '2-digit' });
+            }
+            return dt.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
           }
         }
       }, chartWindow),
@@ -854,9 +856,10 @@ function smacaUiT(key, fallback) {
         padding: 10,
         style: { color: '#e2e8f0', fontSize: '11px' },
         formatter: function () {
+          const pointDate = new Date(Number(this.x));
           const header = timeframe === '24h'
-            ? window.Highcharts.dateFormat('%H:%M', this.x)
-            : window.Highcharts.dateFormat('%d %b', this.x);
+            ? (String(pointDate.getHours()).padStart(2, '0') + ':00')
+            : pointDate.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
           const rows = (this.points || []).map(function (p) {
             const name = p.series && p.series.name ? p.series.name : 'Series';
             const value = Number(p.y);
