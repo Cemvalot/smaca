@@ -36,22 +36,31 @@
           @if($smacaIsAdmin)
           <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span></div>
           @endif
-          <section class="card" style="margin: var(--space-6) 0;" data-iaq-zone="comfort-intelligence" aria-label="{{ __('messages.dashboard_i18n.kpi_title_iaq') }}">
+          <section class="card smaca-iaq-zone smaca-iaq-zone--comfort" style="margin: var(--space-6) 0;" data-iaq-zone="comfort-intelligence" aria-labelledby="iaq-zone-comfort-title">
             <div class="card__header">
-              <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_iaq') }}</h3>
+              <h3 id="iaq-zone-comfort-title" class="card__title">{{ __('messages.dashboard_i18n.kpi_title_iaq') }}</h3>
             </div>
             <div class="card__body">
+              <p class="smaca-iaq-info-strip" role="note">{{ __('messages.dashboard_i18n.iaq_kpi_semantic_info_strip') }}</p>
               <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_iaq') }}</p>
-              <div id="iaq-kpi-summary-cards" class="grid grid--metrics grid--metrics-2">
+              <div id="iaq-kpi-summary-cards" data-kpi-module="iaq" class="grid grid--metrics grid--metrics-2 smaca-iaq-kpi-grid">
                 <article class="stat-card overview-kpi-card"><div class="stat-card__content"><div class="stat-card__label">KPI</div><div class="stat-card__value">--</div></div></article>
               </div>
             </div>
           </section>
 
-          <section class="card smaca-telemetry-card" data-iaq-zone="measurements-trends">
-            <div class="card__header">
-              <h3 class="card__title">{{ __('messages.nav.iaq') }} · {{ __('messages.dashboard.live') }}</h3>
-              <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
+          <div class="smaca-iaq-zone-block" data-iaq-zone-group="live-measurements">
+            <header class="smaca-iaq-zone-block__head">
+              <h2 class="smaca-iaq-zone-block__title">{{ __('messages.dashboard_i18n.iaq_live_zone_title') }}</h2>
+              <p class="smaca-iaq-zone-block__subtitle">{{ __('messages.dashboard_i18n.iaq_live_zone_subtitle') }}</p>
+            </header>
+          <section class="card smaca-telemetry-card smaca-iaq-zone smaca-iaq-zone--live" data-iaq-zone="measurements-trends">
+            <div class="card__header smaca-iaq-live-card__header">
+              <p class="smaca-iaq-snapshot-badge" role="status">{{ __('messages.dashboard_i18n.iaq_live_snapshot_badge') }}</p>
+              <div class="smaca-iaq-live-card__titles">
+                <h3 class="card__title">{{ __('messages.nav.iaq') }} · {{ __('messages.dashboard.live') }}</h3>
+                <p class="card__subtitle">{{ __('messages.dashboard_i18n.iaq_live_card_subtitle') }}</p>
+              </div>
             </div>
             <div class="card__body">
               <div class="smaca-tg smaca-tg--rich" data-smaca-telemetry="iaq">
@@ -65,6 +74,7 @@
               </div>
             </div>
           </section>
+          </div>
           
           @if($smacaIsAdmin)
           <!-- Sensor Health & Data Source (admin only) -->
@@ -80,8 +90,13 @@
                Multi-metric trend chart kept (CO₂ / temperature / humidity
                / PM2.5 / PM10 / TVOC toggle) since it's a unique multi-bucket
                timeseries view. --}}
+          <div class="smaca-iaq-zone-block" data-iaq-zone-group="trends-reliability">
+            <header class="smaca-iaq-zone-block__head">
+              <h2 class="smaca-iaq-zone-block__title">{{ __('messages.dashboard_i18n.iaq_trends_zone_title') }}</h2>
+              <p class="smaca-iaq-zone-block__subtitle">{{ __('messages.dashboard_i18n.iaq_trends_zone_subtitle') }}</p>
+            </header>
           <div class="grid" style="grid-template-columns: 1fr; gap: var(--space-6); margin-bottom: var(--space-6);" data-iaq-zone="trends-analytics">
-            <div class="card">
+            <div class="card smaca-iaq-zone smaca-iaq-zone--trends">
               <div class="card__header">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap;">
                   <div>
@@ -121,6 +136,7 @@
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
 <script>

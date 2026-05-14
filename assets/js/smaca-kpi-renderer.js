@@ -45,6 +45,7 @@
     const s = String(status || '').toLowerCase();
     if (s === 'insufficient_data') return 'badge--muted';
     if (s === 'good' || s === 'normal' || s === 'low') return 'badge--success';
+    if (s === 'notice') return 'badge--info';
     if (s === 'warning' || s === 'medium') return 'badge--warning';
     if (s === 'crowded' || s === 'high' || s === 'critical') return 'badge--danger';
     return 'badge--danger';
@@ -54,6 +55,7 @@
     const s = String(status || '').toLowerCase();
     if (s === 'insufficient_data') return 'muted';
     if (s === 'good' || s === 'normal' || s === 'low') return 'good';
+    if (s === 'notice') return 'notice';
     if (s === 'warning' || s === 'medium') return 'warning';
     return 'critical';
   }
@@ -99,6 +101,70 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  /** Strip trailing "(…ppm…)" from ventilation band labels so ppm stays in captions only. */
+  function stripTrailingPpmParenthetical(text) {
+    if (text === null || text === undefined) return '';
+    return String(text).trim().replace(/\s*[\(（][^)）]*ppm[^)）]*[\)）]\s*$/i, '').trim();
+  }
+
+  /**
+   * Normalized lighting 0–5 only: calmer chip colours (dim/detail → notice; office/residential → good).
+   * Raw lux mode keeps API status.
+   */
+  function resolveLightingDisplayStatus(kpi) {
+    if (!kpi || String(kpi.key) !== 'visual_lighting_condition') return null;
+    var mode = String(kpi.semantic_mode || '');
+    if (mode === 'raw_lux') return null;
+    var lvl = kpi.lighting_level;
+    if (lvl === undefined || lvl === null) {
+      var vn = kpi.value_numeric;
+      if (vn !== undefined && vn !== null && Number.isFinite(Number(vn))) {
+        lvl = Math.round(Number(vn));
+      }
+    }
+    if (lvl === undefined || lvl === null || !Number.isFinite(Number(lvl))) return null;
+    var n = Math.max(0, Math.min(5, Math.round(Number(lvl))));
+    if (n === 2 || n === 3) return 'good';
+    if (n === 1 || n === 4) return 'notice';
+    return 'warning';
+  }
+
+  function resolveEffectiveKpiStatus(kpi, boundModule) {
+    if (boundModule !== 'iaq' || !kpi) return String(kpi.status || '');
+    var ls = resolveLightingDisplayStatus(kpi);
+    if (ls) return ls;
+    return String(kpi.status || '');
+  }
+
+  function ventilationHeadlineParts(kpi) {
+    if (!kpi || String(kpi.key) !== 'ventilation_quality_index') return null;
+    var raw = String(kpi.value || '').trim();
+    var cleaned = stripTrailingPpmParenthetical(raw);
+    if (!cleaned) return null;
+    return { value: cleaned, unit: '' };
+  }
+
+  /** IAQ-only: semantic mode strip (uses server-translated labels from SMACA_IAQ_SEMANTICS). */
+  function buildIaqSemanticRowHtml(kpi, boundModule) {
+    if (boundModule !== 'iaq' || !kpi) return '';
+    var sem = global.SMACA_IAQ_SEMANTICS || {};
+    var key = String(kpi.key || '');
+    if (key === 'iaq_health_index' || key === 'environmental_safety_index') {
+      var tv = String(sem.tvoc_mode_label || '').trim();
+      if (!tv) return '';
+      return '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('iaq_semantic_row_tvoc', 'TVOC')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(tv) + '</span></p>';
+    }
+    if (key === 'visual_lighting_condition') {
+      var lm = String(sem.light_mode_label || '').trim();
+      if (!lm) return '';
+      return '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('iaq_semantic_row_light', 'Lighting')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(lm) + '</span></p>';
+    }
+    if (key === 'ventilation_quality_index' || key === 'iaq_thermal_comfort') {
+      return '<p class="overview-kpi-card__semantic-row overview-kpi-card__semantic-row--muted" role="note">' + escapeHtml(t('iaq_semantic_row_direct', 'Direct measurements')) + '</p>';
+    }
+    return '';
   }
 
   // Tiny category icon, rendered top-right of each KPI card. Picked from a
@@ -256,29 +322,37 @@
       const compactStyle = compact ? ' style="min-height: 124px;"' : '';
       const descriptionText = kpi.description || '';
       const helpBlock = compact ? '' : buildHelpBlock(kpi);
-      const vu = splitValueUnit(kpi);
+      var vu = splitValueUnit(kpi);
+      var ventHead = ventilationHeadlineParts(kpi);
+      if (ventHead && ventHead.value) {
+        vu = { value: ventHead.value, unit: ventHead.unit };
+      }
+      const displayStatus = resolveEffectiveKpiStatus(kpi, boundModule);
       const cardTitle = kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '';
       const valueCaption = (!compact && kpi.value_caption)
-        ? `<p class="overview-kpi-card__value-caption" style="font-size:12px;color:var(--muted);margin:var(--space-1) 0 0 0;line-height:1.35;">${escapeHtml(String(kpi.value_caption))}</p>`
+        ? `<p class="overview-kpi-card__value-caption${kpi.key === 'ventilation_quality_index' ? ' overview-kpi-card__value-caption--vent-co2' : ''}">${escapeHtml(String(kpi.value_caption))}</p>`
         : '';
+      const semanticRow = buildIaqSemanticRowHtml(kpi, boundModule);
+      const iaqCardClass = (boundModule === 'iaq' && !compact) ? ' overview-kpi-card--iaq' : '';
       const valueHtml = vu.unit
         ? `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span><span class="stat-card__value-unit">${escapeHtml(vu.unit)}</span>`
         : `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span>`;
       const iconKey = String(kpi.d51_category || '').toLowerCase();
       const iconHtml = `<span class="overview-kpi-card__icon" data-category="${escapeHtml(iconKey)}" aria-hidden="true">${categoryIconSvg(iconKey)}</span>`;
-      const dotClass = 'overview-kpi-card__dot overview-kpi-card__dot--' + statusDotClass(kpi.status);
+      const dotClass = 'overview-kpi-card__dot overview-kpi-card__dot--' + statusDotClass(displayStatus);
       return `
-        <article class="stat-card overview-kpi-card${compact ? ' overview-kpi-card--compact' : ''}"${compactStyle}${cardTitle ? ` title="${cardTitle}"` : ''}>
+        <article class="stat-card overview-kpi-card${iaqCardClass}${compact ? ' overview-kpi-card--compact' : ''}"${compactStyle}${cardTitle ? ` title="${cardTitle}"` : ''}>
           ${iconHtml}
           <div class="stat-card__content">
             <div class="stat-card__label">${resolveLabel(kpi)}</div>
             <div class="stat-card__value">${valueHtml}</div>
             ${valueCaption}
+            ${semanticRow}
             <div class="stat-card__meta">
-              <span class="badge ${statusClass(kpi.status)} badge--sm overview-kpi-card__badge"><span class="${dotClass}"></span>${formatStatus(kpi.status)}</span>
+              <span class="badge ${statusClass(displayStatus)} badge--sm overview-kpi-card__badge"><span class="${dotClass}"></span>${formatStatus(displayStatus)}</span>
               ${!compact && showConfidence && confidence ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
             </div>
-            ${compact ? '' : `<p class="overview-live-note overview-kpi-card__desc">${descriptionText}</p>`}
+            ${compact ? '' : `<p class="overview-live-note overview-kpi-card__desc">${escapeHtml(descriptionText)}</p>`}
             ${helpBlock}
           </div>
         </article>

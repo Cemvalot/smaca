@@ -1624,6 +1624,9 @@
   align-items: center;
   text-align: center;
   height: 100%;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .overview-kpi-card .stat-card__value {
@@ -1632,7 +1635,9 @@
 
 .overview-kpi-card .stat-card__meta {
   margin-top: var(--space-2);
-  display: inline-flex;
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
@@ -3066,6 +3071,15 @@
   gap: var(--space-4);
 }
 
+/* `dashboard.css` `.stat-card` is a row flex with `align-items: flex-start`.
+   KPI renderer cards use `article.stat-card.overview-kpi-card` — force a
+   column shell and full-width content so inner text-align:center works. */
+.stat-card.overview-kpi-card {
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+
 /* ---- KPI card shell — compact, premium, high-information ----------- */
 .overview-kpi-card {
   position: relative;
@@ -3113,6 +3127,9 @@
   gap: var(--space-1);
   height: auto;
   justify-content: flex-start;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Tiny category icon, anchored top-right of every KPI card. */
@@ -3182,7 +3199,9 @@
 /* ---- Status badge — tighter, dot prefix, sits below value ---------- */
 .overview-kpi-card .stat-card__meta {
   margin-top: var(--space-2);
-  display: inline-flex;
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
@@ -3212,6 +3231,22 @@
 .overview-kpi-card__dot--warning  { background: var(--warning); }
 .overview-kpi-card__dot--critical { background: var(--danger); }
 .overview-kpi-card__dot--muted    { background: var(--muted); }
+.overview-kpi-card__dot--notice   { background: var(--info); }
+
+/* ---- Value caption under headline (all KPI modules using renderer) ----- */
+.overview-kpi-card__value-caption {
+  font-size: 12.5px;
+  color: rgba(203, 213, 225, 0.92);
+  margin: var(--space-2) 0 0;
+  line-height: 1.45;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.overview-kpi-card__value-caption--vent-co2 {
+  font-weight: 500;
+  color: rgba(226, 232, 240, 0.95);
+}
 
 /* ---- Description (1-line explanation) ------------------------------ */
 .overview-kpi-card .overview-live-note,
@@ -3222,6 +3257,167 @@
   color: var(--muted);
   max-width: 36ch;
   margin: var(--space-2) auto 0;
+}
+
+/* ---- IAQ: semantic mode row under headline value -------------------- */
+.overview-kpi-card__semantic-row {
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(203, 213, 225, 0.92);
+  margin: var(--space-2) auto 0;
+  max-width: 38ch;
+  text-align: center;
+}
+
+.overview-kpi-card__semantic-row--muted {
+  color: rgba(148, 163, 184, 0.95);
+  font-size: 10.5px;
+}
+
+.overview-kpi-card__semantic-key {
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.95);
+}
+
+.overview-kpi-card__semantic-val {
+  font-weight: 500;
+}
+
+.overview-kpi-card--iaq .stat-card__meta {
+  margin-top: var(--space-2);
+}
+
+.smaca-iaq-info-strip {
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(203, 213, 225, 0.9);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-4);
+  border-radius: 10px;
+  background: rgba(34, 211, 238, 0.07);
+  border: 1px solid rgba(34, 211, 238, 0.16);
+}
+
+.smaca-iaq-zone-block__head {
+  margin: var(--space-6) 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.smaca-iaq-zone-block__title {
+  margin: 0 0 var(--space-1);
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: #f1f5f9;
+}
+
+.smaca-iaq-zone-block__subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(156, 163, 175, 0.95);
+  max-width: 70ch;
+}
+
+@media (min-width: 900px) {
+  .smaca-iaq-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+.smaca-iaq-kpi-grid {
+  gap: var(--space-4) !important;
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq {
+  min-height: 232px;
+  display: flex;
+  flex-direction: column;
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .stat-card__content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-height: 0;
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .stat-card__label {
+  text-align: center;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .stat-card__value {
+  margin-top: var(--space-1);
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__semantic-row {
+  margin-top: var(--space-2);
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__desc {
+  margin-top: auto;
+  align-self: center;
+  padding-top: var(--space-3);
+  font-size: 12.5px;
+  line-height: 1.55;
+  max-width: 44ch;
+  overflow-wrap: anywhere;
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+}
+
+.smaca-iaq-zone-block[data-iaq-zone-group="live-measurements"] {
+  margin-top: var(--space-8);
+  padding-top: var(--space-5);
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.smaca-iaq-live-card__header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.smaca-iaq-live-card__titles {
+  width: 100%;
+}
+
+.smaca-iaq-live-card__titles .card__title,
+.smaca-iaq-live-card__titles .card__subtitle {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.smaca-iaq-snapshot-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(186, 230, 253, 0.96);
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 999px;
+  padding: 5px 11px;
+}
+
+.smaca-iaq-zone--live.card {
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08), 0 12px 40px rgba(2, 6, 23, 0.35);
 }
 
 /* ---- Inline expandable help inside the KPI card -------------------- */
@@ -4267,18 +4463,10 @@
    screens, leaving small viewports alone.
    ====================================================================*/
 
-/* All module sections inherit a gentle vertical rhythm */
-@media (min-width: 1100px) {
-  #overview,
-  #iaq,
-  #occupancy,
-  #energy,
-  #environmental,
-  #connectivity {
-    /* No global change beyond what's already set; we just tighten the
-       gap *between* their own children when those use inline margins. */
-  }
+/* All module sections: no extra globals here — density tweaks follow
+   (inline margin-top overrides on cards/grids). */
 
+@media (min-width: 1100px) {
   /* Inline `margin-top: var(--space-6)` is widely used on cards/grids
      in the current Blades. Reduce that vertical step to space-4 so
      the page reads as a connected dashboard, not a stack of brochures. */

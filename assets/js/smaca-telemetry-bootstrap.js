@@ -473,6 +473,18 @@
     return locText(en, el);
   }
 
+  function iaqTimeframeLabel(tf) {
+    var map = global.SMACA_TRANSLATIONS || {};
+    var key = (tf === '7d') ? 'time_7d' : ((tf === '30d') ? 'time_30d' : 'time_24h');
+    if (Object.prototype.hasOwnProperty.call(map, key) && map[key]) return map[key];
+    return tf === '7d' ? '7d' : (tf === '30d' ? '30d' : '24h');
+  }
+
+  function iaqTfMetaLine() {
+    var line = iaqTrans('iaq_chart_meta_timeframe', 'Timeframe: :tf', 'Χρονικό διάστημα: :tf');
+    return line.replace(':tf', iaqTimeframeLabel(activeTimeframe()));
+  }
+
   function labelForLocation(code, fallback) {
     if (global.SMACASpatial && typeof global.SMACASpatial.labelFor === 'function') {
       var label = global.SMACASpatial.labelFor(code);
@@ -1067,6 +1079,12 @@
               'Σε αυτή την εγκατάσταση το TVOC χρησιμοποιεί την κλίμακα IAQ rating του αισθητήρα· η πλήρωση της μπάρας δεν είναι ακατέργαστο µg/m³.'
             ));
           }
+          pollutantSubParts.push(iaqTfMetaLine());
+          pollutantSubParts.push(iaqTrans(
+            'iaq_chart_snapshot_mode_mix',
+            'CO₂ and PM: direct measurements. TVOC follows the configured semantic scale unless raw µg/m³ mode is active.',
+            'CO₂ και PM: άμεσες μετρήσεις. Το TVOC ακολουθεί τη ρυθμισμένη σημασιολογική κλίμακα, εκτός αν είναι ενεργή λειτουργία ακατέργαστου µg/m³.'
+          ));
           var host = tile().renderChartTile(compareEl, {
             label: locText('Pollutant vs limit', 'Ρύποι vs όριο'),
             subtitle: pollutantSubParts.filter(Boolean).join(' '),
@@ -1098,12 +1116,21 @@
           var sorted = compareItems.slice().sort(function (a, b) {
             return (b.value / b.threshold) - (a.value / a.threshold);
           });
-          var hostThr = tile().renderChartTile(thrEl, {
-            label: locText('% of limit consumed', '% του ορίου'),
-            subtitle: locText(
+          var thrSubParts = [
+            locText(
               '100 % means the pollutant has reached its reference limit.',
               '100% σημαίνει ότι ο ρύπος έφτασε το όριο.'
             ),
+            iaqTfMetaLine(),
+            iaqTrans(
+              'iaq_chart_snapshot_mode_mix',
+              'CO₂ and PM: direct measurements. TVOC follows the configured semantic scale unless raw µg/m³ mode is active.',
+              'CO₂ και PM: άμεσες μετρήσεις. Το TVOC ακολουθεί τη ρυθμισμένη σημασιολογική κλίμακα, εκτός αν είναι ενεργή λειτουργία ακατέργαστου µg/m³.'
+            )
+          ];
+          var hostThr = tile().renderChartTile(thrEl, {
+            label: locText('% of limit consumed', '% του ορίου'),
+            subtitle: thrSubParts.filter(Boolean).join(' '),
             unit: '%',
             meta: locText('Ranked by proximity to limit', 'Ταξινόμηση κατά προσέγγιση στο όριο')
           });
@@ -1265,9 +1292,13 @@
             { from: 800, to: 1200, color: '#fbbf24' },
             { from: 1200, to: 1e6, color: '#f87171' }
           ];
-          var subtitleText = bucketed.bucket === 'hourly'
-            ? locText('Average CO₂ per hour over the last 24 hours.', 'Μέση τιμή CO₂ ανά ώρα τις τελευταίες 24 ώρες.')
-            : locText('Daily average CO₂ across the selected window.', 'Ημερήσιος μέσος CO₂ στο επιλεγμένο διάστημα.');
+          var subtitleText = [
+            iaqTfMetaLine(),
+            bucketed.bucket === 'hourly'
+              ? locText('Average CO₂ per hour over the last 24 hours.', 'Μέση τιμή CO₂ ανά ώρα τις τελευταίες 24 ώρες.')
+              : locText('Daily average CO₂ across the selected window.', 'Ημερήσιος μέσος CO₂ στο επιλεγμένο διάστημα.'),
+            iaqTrans('iaq_chart_co2_heat_sub', 'Hourly CO₂ pattern — direct ppm readings.', 'Ωριαίο μοτίβο CO₂ — άμεσες αναγνώσεις ppm.')
+          ].filter(Boolean).join(' ');
           var legendText = bucketed.bucket === 'hourly'
             ? '0–23 h'
             : (bucketed.labels[0] + ' → ' + bucketed.labels[bucketed.labels.length - 1]);
@@ -1276,7 +1307,7 @@
             subtitle: subtitleText,
             unit: 'ppm',
             legend: legendText,
-            meta: labelForLocation(freshest.sensor_location, freshest.name) + ' · ' + activeTimeframe()
+            meta: labelForLocation(freshest.sensor_location, freshest.name) + ' · ' + iaqTimeframeLabel(activeTimeframe())
           });
           if (host) {
             var axisOpts = axisOptsForBucket(bucketed);

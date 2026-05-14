@@ -38,6 +38,12 @@ function getIaqSemanticsForUi() {
   return (typeof window !== 'undefined' && window.SMACA_IAQ_SEMANTICS) ? window.SMACA_IAQ_SEMANTICS : {};
 }
 
+function resolveIaqChartTimeframeLabel(tf) {
+  const key = tf === '7d' ? 'time_7d' : (tf === '30d' ? 'time_30d' : 'time_24h');
+  const fallback = tf === '7d' ? '7d' : (tf === '30d' ? '30d' : '24h');
+  return smacaUiT(key, fallback);
+}
+
 function getIaqMetricConfig() {
   const sem = getIaqSemanticsForUi();
   const tvocMode = String(sem.tvoc_semantic_mode || 'iaq_rating_level');
@@ -564,16 +570,21 @@ function renderIaqMainTrendChart(computed) {
   if (titleEl) titleEl.textContent = `IAQ ${smacaUiT('trend','Trend')} - ${cfg.label}`;
   const subtitleEl = document.getElementById('iaq-main-chart-subtitle');
   if (subtitleEl) {
-    let sub = `Aggregated across ${computed.activeSensorCount} IAQ sensors`;
+    const tfRaw = computed.timeframe || '24h';
+    const tfLine = smacaUiT('iaq_chart_meta_timeframe', 'Timeframe: :tf').replace(':tf', resolveIaqChartTimeframeLabel(tfRaw));
+    const sem = getIaqSemanticsForUi();
+    const tvocMode = String(sem.tvoc_semantic_mode || 'iaq_rating_level');
+    let modeLine = smacaUiT('iaq_chart_mode_direct', 'Direct sensor measurement');
     if (metric === 'tvoc') {
-      const sem = getIaqSemanticsForUi();
-      const tvocMode = String(sem.tvoc_semantic_mode || 'iaq_rating_level');
-      const extra = tvocMode === 'raw_tvoc_ugm3'
-        ? smacaUiT('explain_metric_tvoc_raw', 'TVOC is interpreted as a raw concentration (µg/m³) from sensor readings.')
-        : smacaUiT('explain_metric_tvoc_iaq_rating', 'TVOC is currently interpreted from the IAQ rating level reported by the sensor, not from raw µg/m³ concentration.');
-      sub = sub + ' · ' + extra;
+      modeLine = tvocMode === 'raw_tvoc_ugm3'
+        ? smacaUiT('iaq_chart_mode_direct', 'Direct sensor measurement')
+        : smacaUiT('iaq_chart_mode_tvoc_semantic', 'TVOC: semantic level from sensor');
     }
-    subtitleEl.textContent = sub;
+    const n = Number(computed.activeSensorCount) || 0;
+    const aggBase = smacaUiT('aggregated_all_iaq_sensors', 'Aggregated across all IAQ sensors');
+    const aggLine = n ? (aggBase + ' (' + String(n) + ')') : aggBase;
+    subtitleEl.style.whiteSpace = 'pre-line';
+    subtitleEl.textContent = [tfLine, modeLine, aggLine].join('\n');
   }
 
   const width = chartEl.offsetWidth || 900;
