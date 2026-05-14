@@ -78,12 +78,26 @@ if (!function_exists('smacaDashboardViewData')) {
                 ->get();
         }
 
+        $iaqSemDefaults = config('smaca_sensor_semantics.defaults', []);
+        $smacaIaqTvocMode = $iaqSemDefaults['tvoc_semantic_mode'] ?? 'iaq_rating_level';
+        $smacaIaqLightMode = $iaqSemDefaults['light_semantic_mode'] ?? 'normalized_level_0_5';
+        $smacaIaqTvocModeLabel = $smacaIaqTvocMode === 'raw_tvoc_ugm3'
+            ? __('messages.iaq_semantic_mode.tvoc_raw_tvoc_ugm3')
+            : __('messages.iaq_semantic_mode.tvoc_iaq_rating_level');
+        $smacaIaqLightModeLabel = $smacaIaqLightMode === 'raw_lux'
+            ? __('messages.iaq_semantic_mode.light_raw_lux')
+            : __('messages.iaq_semantic_mode.light_normalized_level_0_5');
+
         return [
             'smacaPage' => $smacaPage,
             'sites' => $sites,
             'sensors' => $sensors,
             'sensor_latest' => $sensor_latest,
             'currentUser' => $currentUser,
+            'smacaIaqTvocMode' => $smacaIaqTvocMode,
+            'smacaIaqLightMode' => $smacaIaqLightMode,
+            'smacaIaqTvocModeLabel' => $smacaIaqTvocModeLabel,
+            'smacaIaqLightModeLabel' => $smacaIaqLightModeLabel,
         ];
     }
 }

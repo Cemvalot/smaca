@@ -4,6 +4,19 @@
 @php
   $smacaRole = session('role', 'user');
   $smacaIsAdmin = $smacaRole === 'admin';
+  // Ensure IAQ semantic globals exist for any inline script in this view (defence
+  // in depth if layout @php and route data are out of sync on deploy).
+  if (! isset($smacaIaqTvocMode)) {
+      $_smacaIaqDef = config('smaca_sensor_semantics.defaults', []);
+      $smacaIaqTvocMode = $_smacaIaqDef['tvoc_semantic_mode'] ?? 'iaq_rating_level';
+      $smacaIaqLightMode = $_smacaIaqDef['light_semantic_mode'] ?? 'normalized_level_0_5';
+      $smacaIaqTvocModeLabel = $smacaIaqTvocMode === 'raw_tvoc_ugm3'
+          ? __('messages.iaq_semantic_mode.tvoc_raw_tvoc_ugm3')
+          : __('messages.iaq_semantic_mode.tvoc_iaq_rating_level');
+      $smacaIaqLightModeLabel = $smacaIaqLightMode === 'raw_lux'
+          ? __('messages.iaq_semantic_mode.light_raw_lux')
+          : __('messages.iaq_semantic_mode.light_normalized_level_0_5');
+  }
 @endphp
 <div class="dashboard-section" id="iaq" data-section="iaq">
           <div class="section-hero section-hero--iaq">

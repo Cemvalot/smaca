@@ -332,6 +332,13 @@ return [
         'explain_metric_pm25' => 'This graph shows PM2.5 concentration over time. Spikes can indicate short-term particulate exposure events.',
         'explain_metric_pm10' => 'This graph shows PM10 concentration over time. Elevated periods may indicate dust or coarse particulate buildup.',
         'explain_metric_tvoc' => 'This graph shows TVOC levels over time. Rising values can indicate increased volatile compounds in indoor air.',
+        'explain_metric_tvoc_iaq_rating' => 'TVOC is currently interpreted from the IAQ rating level reported by the sensor, not from raw µg/m³ concentration.',
+        'explain_metric_tvoc_raw' => 'TVOC is interpreted as a raw concentration (µg/m³) from sensor readings.',
+        'explain_metric_light_normalized' => 'Lighting is based on the sensor’s normalized 0–5 level. Lux ranges are used only as documentation for each level.',
+        'explain_metric_light_lux' => 'Lighting is shown from direct lux readings (raw lux semantic mode).',
+        'how_to_tvoc_iaq_rating' => 'Treat upward movement as a worsening air-quality rating from the sensor’s IAQ index, not as a raw chemical concentration in µg/m³.',
+        'how_to_tvoc_raw' => 'Treat sustained highs as increased volatile-organic mass loading in µg/m³ and review ventilation and likely indoor sources.',
+        'iaq_pollutant_subtitle_tvoc_semantic' => 'TVOC uses the sensor’s IAQ rating scale in this deployment; bar fill is not raw µg/m³.',
         'explain_metric_uv' => 'This graph shows UV intensity over time. Higher values indicate stronger exposure risk and greater protection need.',
         'explain_metric_energy' => 'This graph shows energy consumption over time. Peaks reveal high-demand periods and baseline levels show typical load.',
         'top_locations_cumulative_entries' => 'Highest cumulative entries by location in the selected timeframe.',
@@ -499,10 +506,10 @@ return [
         'thermal_comfort_index' => 'Thermal Comfort Index',
         'visual_comfort_kpi' => 'Visual Comfort KPI',
         'iaq_health_index' => 'IAQ Health Index',
-        'environmental_safety_index' => 'Environmental Safety Index',
+        'environmental_safety_index' => 'Environmental Safety',
         'iaq_thermal_comfort' => 'Thermal Comfort',
         'ventilation_quality_index' => 'Ventilation Quality',
-        'visual_lighting_condition' => 'Visual Lighting Condition',
+        'visual_lighting_condition' => 'Lighting Condition',
         'crowd_density_level' => 'Crowd Density Level',
         'movement_activity_index' => 'Movement Activity',
         'uv_exposure_risk' => 'UV Exposure Risk',
@@ -542,9 +549,9 @@ return [
     ],
 
     'iaq_explainer' => [
-        'lighting_normalized' => 'This metric is based on the sensor lighting level classification and not on direct lux measurements.',
+        'lighting_normalized' => 'Lighting is based on the sensor’s normalized 0–5 level. Lux ranges are used only as documentation for each level.',
         'lighting_lux' => 'This metric uses direct lux readings when available in raw lux semantic mode.',
-        'tvoc_iaq_rating' => 'This metric uses the IAQ-derived TVOC rating reported by the sensor (not necessarily µg/m³).',
+        'tvoc_iaq_rating' => 'TVOC is currently interpreted from the IAQ rating level reported by the sensor, not from raw µg/m³ concentration.',
         'tvoc_raw' => 'This metric interprets TVOC as a raw concentration in µg/m³.',
         'co2' => 'CO₂ is measured directly in ppm and used as an indicator of ventilation quality.',
         'thermal_comfort' => 'Thermal comfort is evaluated using combined temperature and humidity thresholds.',
@@ -586,6 +593,20 @@ return [
             'action_good' => 'Lighting is in a typical task-comfort band.',
             'action_warning' => 'Consider tuning lighting for typical visual tasks.',
         ],
+        'value_caption' => [
+            'iaq_health' => 'TVOC semantics: :tvoc_mode',
+            'environmental' => 'TVOC semantics: :tvoc_mode',
+            'thermal' => 'Current: :temp °C · :rh % RH',
+            'ventilation' => 'Average CO₂: :ppm ppm',
+            'lighting' => ':mode · :detail',
+        ],
+    ],
+
+    'iaq_semantic_mode' => [
+        'tvoc_iaq_rating_level' => 'IAQ rating level',
+        'tvoc_raw_tvoc_ugm3' => 'Raw TVOC (µg/m³)',
+        'light_normalized_level_0_5' => 'Level 0–5',
+        'light_raw_lux' => 'Lux',
     ],
 
     'iaq_tvoc_rating' => [
@@ -615,7 +636,7 @@ return [
 
     'iaq_co2_band' => [
         'outdoor_normal' => 'Normal outdoor air (≤400 ppm)',
-        'good_ventilation' => 'Good indoor ventilation (400–1000 ppm)',
+        'good_ventilation' => 'Good ventilation',
         'poor_ventilation' => 'Poor air quality — ventilation required (1000–2000 ppm)',
         'high_discomfort' => 'High discomfort / possible symptoms (2000–5000 ppm)',
         'workplace_limit' => 'Workplace exposure limit band (5000–40000 ppm)',

@@ -461,6 +461,18 @@
     return locale.indexOf('el') === 0 ? (el || en) : en;
   }
 
+  function iaqSemantics() {
+    return global.SMACA_IAQ_SEMANTICS || {};
+  }
+
+  function iaqTrans(key, en, el) {
+    var map = global.SMACA_TRANSLATIONS || {};
+    if (Object.prototype.hasOwnProperty.call(map, key) && map[key]) {
+      return map[key];
+    }
+    return locText(en, el);
+  }
+
   function labelForLocation(code, fallback) {
     if (global.SMACASpatial && typeof global.SMACASpatial.labelFor === 'function') {
       var label = global.SMACASpatial.labelFor(code);
@@ -1010,6 +1022,13 @@
       var pm10Avg = avg(iaq.map(function (s) { return toNumber(s.latest && s.latest.pm10_ugm3); }));
       var tvocAvg = avg(iaq.map(function (s) { return toNumber(s.latest && s.latest.tvoc_index); }));
 
+      var sem = iaqSemantics();
+      var tvocMode = String(sem.tvoc_semantic_mode || 'iaq_rating_level');
+      var tvocUnitDisplay = tvocMode === 'raw_tvoc_ugm3'
+        ? 'µg/m³'
+        : String(sem.tvoc_mode_label || locText('IAQ rating level', 'Επίπεδο IAQ rating'));
+      var tvocDecimals = tvocMode === 'raw_tvoc_ugm3' ? 1 : 2;
+
       var compareItems = [];
       function pushCompare(label, value, max, threshold, decimals, unit) {
         if (!isFiniteNum(value)) return;
@@ -1023,7 +1042,7 @@
       pushCompare('CO₂',   co2Avg,  1500, 1000, 0, 'ppm');
       pushCompare('PM2.5', pmAvg,   50,   35,   1, 'µg');
       pushCompare('PM10',  pm10Avg, 100,  50,   1, 'µg');
-      pushCompare('TVOC',  tvocAvg, 400,  200,  0, 'idx');
+      pushCompare('TVOC',  tvocAvg, 400,  200,  tvocDecimals, tvocUnitDisplay);
       var seriesTasks = Promise.resolve();
 
       // --- Pollutant compare (vs limit) ---
@@ -1035,12 +1054,22 @@
             message: locText('No pollutant readings', 'Χωρίς δεδομένα ρύπων')
           });
         } else {
-          var host = tile().renderChartTile(compareEl, {
-            label: locText('Pollutant vs limit', 'Ρύποι vs όριο'),
-            subtitle: locText(
+          var pollutantSubParts = [
+            locText(
               'How close each pollutant is to its reference limit right now.',
               'Πόσο κοντά είναι κάθε ρύπος στο όριο αναφοράς.'
-            ),
+            )
+          ];
+          if (tvocMode !== 'raw_tvoc_ugm3') {
+            pollutantSubParts.push(iaqTrans(
+              'iaq_pollutant_subtitle_tvoc_semantic',
+              'TVOC uses the sensor’s IAQ rating scale in this deployment; bar fill is not raw µg/m³.',
+              'Σε αυτή την εγκατάσταση το TVOC χρησιμοποιεί την κλίμακα IAQ rating του αισθητήρα· η πλήρωση της μπάρας δεν είναι ακατέργαστο µg/m³.'
+            ));
+          }
+          var host = tile().renderChartTile(compareEl, {
+            label: locText('Pollutant vs limit', 'Ρύποι vs όριο'),
+            subtitle: pollutantSubParts.filter(Boolean).join(' '),
             legend: locText('| = WHO limit', '| = όριο WHO'),
             meta: locText('Latest readings · campus average', 'Τελ. ενδείξεις · μέσος όρος πανεπιστημιούπολης')
           });

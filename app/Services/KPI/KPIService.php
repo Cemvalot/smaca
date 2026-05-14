@@ -502,13 +502,16 @@ class KPIService
         $status = $this->normalizeStatus($evaluation['status']);
         $status = $this->applyCompositeOverrides('iaq_health_index_overrides', $status, $inputs);
         $confidence = count($subScores) < 4 ? 'partial' : 'high';
-        $tvocExpl = $composer->tvocMode() === 'iaq_rating_level'
+        $tvocExpl = $tvocMode === 'iaq_rating_level'
             ? __('messages.iaq_explainer.tvoc_iaq_rating')
             : __('messages.iaq_explainer.tvoc_raw');
+        $tvocModeLabel = $tvocMode === 'raw_tvoc_ugm3'
+            ? __('messages.iaq_semantic_mode.tvoc_raw_tvoc_ugm3')
+            : __('messages.iaq_semantic_mode.tvoc_iaq_rating_level');
 
         return [
             'key' => 'iaq_health_index',
-            'label' => 'IAQ Health Index',
+            'label' => __('messages.labels.iaq_health_index'),
             'value' => $value,
             'unit' => '%',
             'status' => $status,
@@ -517,6 +520,9 @@ class KPIService
             'recommended_action' => $evaluation['recommended_action'],
             'display_kind' => 'numeric',
             'semantic_explainer' => $tvocExpl,
+            'value_caption' => __('messages.iaq_kpi.value_caption.iaq_health', [
+                'tvoc_mode' => $tvocModeLabel,
+            ]),
         ];
     }
 

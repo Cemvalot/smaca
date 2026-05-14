@@ -70,16 +70,16 @@ class IaqSemanticKpiComposer
         }
 
         if (count($levels) === 0) {
-        return $this->wrapKpi('environmental_safety_index', [
-            'value' => null,
-            'unit' => '',
-            'status' => 'insufficient_data',
-            'confidence' => 'none',
-            'description' => __('messages.iaq_kpi.environmental_safety.insufficient'),
-            'recommended_action' => __('messages.thresholds.insufficient_data_action'),
-            'display_kind' => 'categorical',
-            'semantic_mode' => $tvocMode,
-        ], __('messages.iaq_explainer.environmental_safety'));
+            return $this->wrapKpi('environmental_safety_index', [
+                'value' => null,
+                'unit' => '',
+                'status' => 'insufficient_data',
+                'confidence' => 'none',
+                'description' => __('messages.iaq_kpi.environmental_safety.insufficient'),
+                'recommended_action' => __('messages.thresholds.insufficient_data_action'),
+                'display_kind' => 'categorical',
+                'semantic_mode' => $tvocMode,
+            ], __('messages.iaq_explainer.environmental_safety'));
         }
 
         $worst = $this->engine->mergeWorst($levels);
@@ -117,6 +117,9 @@ class IaqSemanticKpiComposer
             'display_kind' => 'categorical',
             'semantic_mode' => $tvocMode,
             'value_numeric' => $worst,
+            'value_caption' => __('messages.iaq_kpi.value_caption.environmental', [
+                'tvoc_mode' => $this->tvocModeDisplayLabel($tvocMode),
+            ]),
         ], __('messages.iaq_explainer.environmental_safety'));
     }
 
@@ -176,6 +179,10 @@ class IaqSemanticKpiComposer
             'recommended_action' => $cls['recommendation'] ?? '',
             'display_kind' => 'boolean',
             'value_boolean' => $comfortable,
+            'value_caption' => __('messages.iaq_kpi.value_caption.thermal', [
+                'temp' => round((float) $t, 1),
+                'rh' => round((float) $rh, 0),
+            ]),
         ], __('messages.iaq_explainer.thermal_comfort'));
     }
 
@@ -215,7 +222,7 @@ class IaqSemanticKpiComposer
             }
         }
 
-        $label = __($labelKey);
+        $label = $this->translateShortKey($labelKey);
         $mapStatus = static function (string $s): string {
             return match ($s) {
                 'warning' => 'warning',
@@ -235,6 +242,9 @@ class IaqSemanticKpiComposer
             'display_kind' => 'categorical',
             'value_numeric' => $v,
             'co2_ppm' => $v,
+            'value_caption' => __('messages.iaq_kpi.value_caption.ventilation', [
+                'ppm' => (int) round($v),
+            ]),
         ], __('messages.iaq_explainer.co2'));
     }
 
@@ -291,7 +301,7 @@ class IaqSemanticKpiComposer
                 break;
             }
         }
-        $label = __($labelKey);
+        $label = $this->translateShortKey($labelKey);
         $status = $lvl <= 1 ? 'warning' : ($lvl >= 4 ? 'warning' : 'good');
 
         return $this->wrapKpi('visual_lighting_condition', [
@@ -305,6 +315,10 @@ class IaqSemanticKpiComposer
             'semantic_mode' => $mode,
             'value_numeric' => $lvl,
             'lighting_level' => $lvl,
+            'value_caption' => __('messages.iaq_kpi.value_caption.lighting', [
+                'mode' => $this->lightModeDisplayLabel($mode),
+                'detail' => (string) $lvl,
+            ]),
         ], __('messages.iaq_explainer.lighting_normalized'));
     }
 
@@ -332,7 +346,7 @@ class IaqSemanticKpiComposer
         }
 
         return $this->wrapKpi('visual_lighting_condition', [
-            'value' => __($labelKey),
+            'value' => $this->translateShortKey($labelKey),
             'unit' => 'lux',
             'status' => $status,
             'confidence' => 'high',
@@ -341,6 +355,10 @@ class IaqSemanticKpiComposer
             'display_kind' => 'categorical',
             'semantic_mode' => $mode,
             'value_numeric' => round($lux, 1),
+            'value_caption' => __('messages.iaq_kpi.value_caption.lighting', [
+                'mode' => $this->lightModeDisplayLabel($mode),
+                'detail' => (string) (int) round($lux).' lux',
+            ]),
         ], __('messages.iaq_explainer.lighting_lux'));
     }
 
@@ -403,6 +421,28 @@ class IaqSemanticKpiComposer
         }
 
         return KpiClassificationEngine::SEVERITY_BAD;
+    }
+
+    /**
+     * Config stores dotted keys relative to `messages` (e.g. iaq_co2_band.good_ventilation).
+     */
+    private function translateShortKey(string $dottedKey): string
+    {
+        return __('messages.'.$dottedKey);
+    }
+
+    private function tvocModeDisplayLabel(string $tvocMode): string
+    {
+        return $tvocMode === 'raw_tvoc_ugm3'
+            ? __('messages.iaq_semantic_mode.tvoc_raw_tvoc_ugm3')
+            : __('messages.iaq_semantic_mode.tvoc_iaq_rating_level');
+    }
+
+    private function lightModeDisplayLabel(string $lightMode): string
+    {
+        return $lightMode === 'raw_lux'
+            ? __('messages.iaq_semantic_mode.light_raw_lux')
+            : __('messages.iaq_semantic_mode.light_normalized_level_0_5');
     }
 
     /**

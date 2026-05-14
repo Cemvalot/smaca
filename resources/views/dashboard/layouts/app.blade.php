@@ -189,6 +189,24 @@
           $smacaKpiMetadata = ['version' => '0.0.0', 'kpis' => new \stdClass()];
           $smacaChartMetadata = ['version' => '0.0.0', 'charts' => new \stdClass()];
       }
+      // IAQ semantics for window.SMACA_IAQ_SEMANTICS — prefer values passed from
+      // smacaDashboardViewData(); fall back to config so partial Blade deploys
+      // never reference undefined $smacaIaqTvocMode / $smacaIaqLightMode.
+      $smacaIaqSemDefaults = config('smaca_sensor_semantics.defaults', []);
+      $smacaIaqTvocMode = $smacaIaqTvocMode ?? ($smacaIaqSemDefaults['tvoc_semantic_mode'] ?? 'iaq_rating_level');
+      $smacaIaqLightMode = $smacaIaqLightMode ?? ($smacaIaqSemDefaults['light_semantic_mode'] ?? 'normalized_level_0_5');
+      $smacaIaqTvocModeLabel = $smacaIaqTvocModeLabel ?? ($smacaIaqTvocMode === 'raw_tvoc_ugm3'
+          ? __('messages.iaq_semantic_mode.tvoc_raw_tvoc_ugm3')
+          : __('messages.iaq_semantic_mode.tvoc_iaq_rating_level'));
+      $smacaIaqLightModeLabel = $smacaIaqLightModeLabel ?? ($smacaIaqLightMode === 'raw_lux'
+          ? __('messages.iaq_semantic_mode.light_raw_lux')
+          : __('messages.iaq_semantic_mode.light_normalized_level_0_5'));
+      $smacaIaqSemanticsForJs = [
+          'tvoc_semantic_mode' => $smacaIaqTvocMode,
+          'light_semantic_mode' => $smacaIaqLightMode,
+          'tvoc_mode_label' => $smacaIaqTvocModeLabel,
+          'light_mode_label' => $smacaIaqLightModeLabel,
+      ];
   @endphp
   <script>
     window.SMACA_BASE_URL = "{{ rtrim(url('/'), '/') }}";
@@ -329,6 +347,13 @@
       explain_metric_pm25: "{{ __('messages.dashboard_i18n.explain_metric_pm25') }}",
       explain_metric_pm10: "{{ __('messages.dashboard_i18n.explain_metric_pm10') }}",
       explain_metric_tvoc: "{{ __('messages.dashboard_i18n.explain_metric_tvoc') }}",
+      explain_metric_tvoc_iaq_rating: "{{ __('messages.dashboard_i18n.explain_metric_tvoc_iaq_rating') }}",
+      explain_metric_tvoc_raw: "{{ __('messages.dashboard_i18n.explain_metric_tvoc_raw') }}",
+      explain_metric_light_normalized: "{{ __('messages.dashboard_i18n.explain_metric_light_normalized') }}",
+      explain_metric_light_lux: "{{ __('messages.dashboard_i18n.explain_metric_light_lux') }}",
+      how_to_tvoc_iaq_rating: "{{ __('messages.dashboard_i18n.how_to_tvoc_iaq_rating') }}",
+      how_to_tvoc_raw: "{{ __('messages.dashboard_i18n.how_to_tvoc_raw') }}",
+      iaq_pollutant_subtitle_tvoc_semantic: "{{ __('messages.dashboard_i18n.iaq_pollutant_subtitle_tvoc_semantic') }}",
       explain_metric_uv: "{{ __('messages.dashboard_i18n.explain_metric_uv') }}",
       explain_metric_energy: "{{ __('messages.dashboard_i18n.explain_metric_energy') }}",
       top_locations_cumulative_entries: "{{ __('messages.dashboard_i18n.top_locations_cumulative_entries') }}",
@@ -497,6 +522,7 @@
       timeframe_help_30d: "{{ __('messages.timeframe_help.d30') }}",
       timeframe_help_export_only: "{{ __('messages.timeframe_help.export_only') }}"
     };
+    window.SMACA_IAQ_SEMANTICS = @json($smacaIaqSemanticsForJs);
   </script>
   <script defer src="{{ asset('assets/js/rbac.js') }}?v={{ $smacaAssetVersion('assets/js/rbac.js') }}"></script>
   <script defer src="{{ asset('assets/js/ui.js') }}?v={{ $smacaAssetVersion('assets/js/ui.js') }}"></script>

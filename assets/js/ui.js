@@ -26,6 +26,10 @@
   const KNOWN_CHART_IDS = Object.keys(CHART_CONTEXT_BY_ID);
   const t = (key, fallback = '') => global?.SMACA_TRANSLATIONS?.[key] || fallback;
 
+  function iaqSem() {
+    return global.SMACA_IAQ_SEMANTICS || {};
+  }
+
   /**
    * Show a small toast message
    * @param {string} message
@@ -134,7 +138,13 @@
       co2: t('explain_metric_co2', 'This graph shows CO₂ concentration over time. Higher values often indicate poor ventilation or high occupancy density.'),
       pm2_5: t('explain_metric_pm25', 'This graph shows PM2.5 concentration over time. Spikes can indicate short-term particulate exposure events.'),
       pm10: t('explain_metric_pm10', 'This graph shows PM10 concentration over time. Elevated periods may indicate dust or coarse particulate buildup.'),
-      tvoc: t('explain_metric_tvoc', 'This graph shows TVOC levels over time. Rising values can indicate increased volatile compounds in indoor air.'),
+      tvoc: (function () {
+        const mode = String(iaqSem().tvoc_semantic_mode || 'iaq_rating_level');
+        if (mode === 'raw_tvoc_ugm3') {
+          return t('explain_metric_tvoc_raw', 'TVOC is interpreted as a raw concentration (µg/m³) from sensor readings.');
+        }
+        return t('explain_metric_tvoc_iaq_rating', 'TVOC is currently interpreted from the IAQ rating level reported by the sensor, not from raw µg/m³ concentration.');
+      })(),
       uv_index: t('explain_metric_uv', 'This graph shows UV intensity over time. Higher values indicate stronger exposure risk and greater protection need.'),
       energy_kwh: t('explain_metric_energy', 'This graph shows energy consumption over time. Peaks reveal high-demand periods and baseline levels show typical load.')
     };
@@ -182,7 +192,13 @@
       humidity: 'Use out-of-range periods to identify dehumidification or fresh-air balancing needs.',
       pm2_5: 'Use spikes to investigate pollutant sources and evaluate filtration performance.',
       pm10: 'Use repeated peaks to detect dust-heavy periods and mitigation opportunities.',
-      tvoc: 'Use elevated intervals to investigate material/activity emissions and airflow effectiveness.',
+      tvoc: (function () {
+        const mode = String(iaqSem().tvoc_semantic_mode || 'iaq_rating_level');
+        if (mode === 'raw_tvoc_ugm3') {
+          return t('how_to_tvoc_raw', 'Treat sustained highs as increased volatile-organic mass loading in µg/m³ and review ventilation and likely indoor sources.');
+        }
+        return t('how_to_tvoc_iaq_rating', 'Treat upward movement as a worsening air-quality rating from the sensor’s IAQ index, not as a raw chemical concentration in µg/m³.');
+      })(),
       uv_index: 'Use peak windows to guide outdoor activity timing and exposure protection messaging.',
       energy_kwh: 'Use high-demand intervals to optimize equipment schedules and reduce unnecessary consumption.'
     };

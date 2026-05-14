@@ -232,13 +232,22 @@ function smacaUiT(key, fallback) {
     const shared = typeof window !== 'undefined' ? window.__SMACA_IaqMetricConfig : null;
     if (shared && shared[metric]) return shared[metric];
 
+    const sem = (typeof window !== 'undefined' && window.SMACA_IAQ_SEMANTICS) ? window.SMACA_IAQ_SEMANTICS : {};
+    const tvocMode = String(sem.tvoc_semantic_mode || 'iaq_rating_level');
+    const tvocUi = {
+      label: 'TVOC',
+      unit: tvocMode === 'raw_tvoc_ugm3' ? 'µg/m³' : String(sem.tvoc_mode_label || 'IAQ rating level'),
+      decimals: tvocMode === 'raw_tvoc_ugm3' ? 1 : 2,
+      color: '#ec4899'
+    };
+
     const map = {
       co2: { label: 'CO₂', unit: 'ppm', decimals: 0, color: '#3b82f6' },
       temperature: { label: chartT('temperature_label', 'Temperature'), unit: '°C', decimals: 1, color: '#06b6d4' },
       humidity: { label: chartT('humidity_label', 'Humidity'), unit: '%', decimals: 0, color: '#6366f1' },
       pm2_5: { label: 'PM2.5', unit: 'μg/m³', decimals: 1, color: '#f59e0b' },
       pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
-      tvoc: { label: 'TVOC', unit: '(raw)', decimals: 1, color: '#ec4899' }
+      tvoc: tvocUi
     };
     return map[metric] || map.co2;
   }

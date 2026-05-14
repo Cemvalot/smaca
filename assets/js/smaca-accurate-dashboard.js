@@ -34,6 +34,27 @@ function smacaAccurateT(key, fallback) {
   return fallback;
 }
 
+function getIaqSemanticsForUi() {
+  return (typeof window !== 'undefined' && window.SMACA_IAQ_SEMANTICS) ? window.SMACA_IAQ_SEMANTICS : {};
+}
+
+function getIaqMetricConfig() {
+  const sem = getIaqSemanticsForUi();
+  const tvocMode = String(sem.tvoc_semantic_mode || 'iaq_rating_level');
+  const tvocUnit = tvocMode === 'raw_tvoc_ugm3'
+    ? 'µg/m³'
+    : String(sem.tvoc_mode_label || 'IAQ rating level');
+  const tvocDecimals = tvocMode === 'raw_tvoc_ugm3' ? 1 : 2;
+  return {
+    co2: { label: 'CO₂', unit: 'ppm', decimals: 0, color: '#3b82f6' },
+    temperature: { label: smacaUiT('temperature_label', 'Temperature'), unit: '°C', decimals: 1, color: '#06b6d4' },
+    humidity: { label: smacaUiT('humidity_label', 'Humidity'), unit: '%', decimals: 0, color: '#6366f1' },
+    pm2_5: { label: 'PM2.5', unit: 'μg/m³', decimals: 1, color: '#f59e0b' },
+    pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
+    tvoc: { label: 'TVOC', unit: tvocUnit, decimals: tvocDecimals, color: '#ec4899' }
+  };
+}
+
 function finalizeIaqPageRenderCleanup() {
   if (typeof window === 'undefined') return;
   const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
@@ -146,17 +167,6 @@ function initAccurateIAQDashboard(forceRefresh) {
       window.iaqDashboardRendering = false;
     }
   }
-}
-
-function getIaqMetricConfig() {
-  return {
-    co2: { label: 'CO₂', unit: 'ppm', decimals: 0, color: '#3b82f6' },
-    temperature: { label: smacaUiT('temperature_label', 'Temperature'), unit: '°C', decimals: 1, color: '#06b6d4' },
-    humidity: { label: smacaUiT('humidity_label', 'Humidity'), unit: '%', decimals: 0, color: '#6366f1' },
-    pm2_5: { label: 'PM2.5', unit: 'μg/m³', decimals: 1, color: '#f59e0b' },
-    pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
-    tvoc: { label: 'TVOC', unit: '(raw)', decimals: 1, color: '#ec4899' }
-  };
 }
 
 function getBucketMsForTimeframe(timeframe) {
@@ -553,7 +563,18 @@ function renderIaqMainTrendChart(computed) {
   const titleEl = document.getElementById('iaq-main-chart-title');
   if (titleEl) titleEl.textContent = `IAQ ${smacaUiT('trend','Trend')} - ${cfg.label}`;
   const subtitleEl = document.getElementById('iaq-main-chart-subtitle');
-  if (subtitleEl) subtitleEl.textContent = `Aggregated across ${computed.activeSensorCount} IAQ sensors`;
+  if (subtitleEl) {
+    let sub = `Aggregated across ${computed.activeSensorCount} IAQ sensors`;
+    if (metric === 'tvoc') {
+      const sem = getIaqSemanticsForUi();
+      const tvocMode = String(sem.tvoc_semantic_mode || 'iaq_rating_level');
+      const extra = tvocMode === 'raw_tvoc_ugm3'
+        ? smacaUiT('explain_metric_tvoc_raw', 'TVOC is interpreted as a raw concentration (µg/m³) from sensor readings.')
+        : smacaUiT('explain_metric_tvoc_iaq_rating', 'TVOC is currently interpreted from the IAQ rating level reported by the sensor, not from raw µg/m³ concentration.');
+      sub = sub + ' · ' + extra;
+    }
+    subtitleEl.textContent = sub;
+  }
 
   const width = chartEl.offsetWidth || 900;
   const height = 370;
@@ -564,13 +585,17 @@ function renderIaqMainTrendChart(computed) {
   const dataMin = Math.min.apply(null, values);
   const dataMax = Math.max.apply(null, values);
   const dataSpread = dataMax - dataMin;
+  const semForTvoc = getIaqSemanticsForUi();
+  const tvocModeForScale = String(semForTvoc.tvoc_semantic_mode || 'iaq_rating_level');
   const scalingByMetric = {
     co2: { minVisualRange: 12, paddingRatio: 0.05, minPadding: 1 },
     temperature: { minVisualRange: 1.5, paddingRatio: 0.18, minPadding: 0.3 },
     humidity: { minVisualRange: 8, paddingRatio: 0.16, minPadding: 1.5 },
     pm2_5: { minVisualRange: 5, paddingRatio: 0.2, minPadding: 0.8 },
     pm10: { minVisualRange: 8, paddingRatio: 0.2, minPadding: 1 },
-    tvoc: { minVisualRange: 20, paddingRatio: 0.2, minPadding: 2 }
+    tvoc: tvocModeForScale === 'raw_tvoc_ugm3'
+      ? { minVisualRange: 20, paddingRatio: 0.2, minPadding: 2 }
+      : { minVisualRange: 1.2, paddingRatio: 0.12, minPadding: 0.15 }
   };
   const scaling = scalingByMetric[metric] || { minVisualRange: 5, paddingRatio: 0.18, minPadding: 1 };
   let min = dataMin;
@@ -591,9 +616,7 @@ function renderIaqMainTrendChart(computed) {
   // Export IAQ metric + threshold definitions for shared chart helpers (Highcharts adapter).
   // Keeps the Highcharts layer consistent with the accurate IAQ dashboard logic.
   if (typeof window !== 'undefined') {
-    if (!window.__SMACA_IaqMetricConfig) {
-      window.__SMACA_IaqMetricConfig = getIaqMetricConfig();
-    }
+    window.__SMACA_IaqMetricConfig = getIaqMetricConfig();
     if (!window.__SMACA_IaqThresholdBandsByMetric) {
       window.__SMACA_IaqThresholdBandsByMetric = {
         co2: getThresholdBandsForMetric('co2'),

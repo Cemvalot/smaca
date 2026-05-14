@@ -258,6 +258,9 @@
       const helpBlock = compact ? '' : buildHelpBlock(kpi);
       const vu = splitValueUnit(kpi);
       const cardTitle = kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '';
+      const valueCaption = (!compact && kpi.value_caption)
+        ? `<p class="overview-kpi-card__value-caption" style="font-size:12px;color:var(--muted);margin:var(--space-1) 0 0 0;line-height:1.35;">${escapeHtml(String(kpi.value_caption))}</p>`
+        : '';
       const valueHtml = vu.unit
         ? `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span><span class="stat-card__value-unit">${escapeHtml(vu.unit)}</span>`
         : `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span>`;
@@ -270,6 +273,7 @@
           <div class="stat-card__content">
             <div class="stat-card__label">${resolveLabel(kpi)}</div>
             <div class="stat-card__value">${valueHtml}</div>
+            ${valueCaption}
             <div class="stat-card__meta">
               <span class="badge ${statusClass(kpi.status)} badge--sm overview-kpi-card__badge"><span class="${dotClass}"></span>${formatStatus(kpi.status)}</span>
               ${!compact && showConfidence && confidence ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}

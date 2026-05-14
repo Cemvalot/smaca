@@ -2472,13 +2472,23 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
   const rawIAQ = Array.isArray(SMACAState.rawData?.iaq) ? SMACAState.rawData.iaq : [];
   const liveSeries = rawIAQ.length > 0 ? rawIAQ : filteredIAQ;
   const sortedSeries = [...liveSeries].sort((a, b) => new Date(a.time) - new Date(b.time));
+  const iaqSemPf = typeof window !== 'undefined' && window.SMACA_IAQ_SEMANTICS ? window.SMACA_IAQ_SEMANTICS : {};
+  const tvocModePf = String(iaqSemPf.tvoc_semantic_mode || 'iaq_rating_level');
+  const tvocUnitDisplayPf = tvocModePf === 'raw_tvoc_ugm3'
+    ? 'µg/m³'
+    : String(iaqSemPf.tvoc_mode_label || 'IAQ rating level');
+  const tvocPrecisionPf = tvocModePf === 'raw_tvoc_ugm3' ? 1 : 2;
+  const tvocCardTitleAttr = tvocModePf === 'raw_tvoc_ugm3'
+    ? smacaT('explain_metric_tvoc_raw', 'TVOC is interpreted as a raw concentration (µg/m³) from sensor readings.')
+    : smacaT('explain_metric_tvoc_iaq_rating', 'TVOC is currently interpreted from the IAQ rating level reported by the sensor, not from raw µg/m³ concentration.');
+  const tvocTitleSafe = String(tvocCardTitleAttr).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   const metricPrecision = {
     co2: 0,
     temperature: 1,
     humidity: 0,
     pm2_5: 1,
     pm10: 1,
-    tvoc: 1
+    tvoc: tvocPrecisionPf
   };
 
   function resolveMetricValues(metricKey) {
@@ -2593,14 +2603,14 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
         <div class="stat-card__unit">µg/m³</div>
       </div>
     </div>
-    <div class="stat-card" style="position: relative;" title="Total volatile organic compounds from sensor (raw value)">
+    <div class="stat-card" style="position: relative;" title="${tvocTitleSafe}">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
           <div class="stat-card__label">TVOC</div>
           <span class="trend-pill ${tvocTrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${tvocTrendFormatted.text}</span>
         </div>
-        <div class="stat-card__value">${formatMetricValue(tvoc, 1)}</div>
-        <div class="stat-card__unit">(raw)</div>
+        <div class="stat-card__value">${formatMetricValue(tvoc, tvocPrecisionPf)}</div>
+        <div class="stat-card__unit">${tvocUnitDisplayPf}</div>
       </div>
     </div>
   `;
