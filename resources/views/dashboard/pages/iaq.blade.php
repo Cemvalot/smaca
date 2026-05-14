@@ -23,7 +23,7 @@
           @if($smacaIsAdmin)
           <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span></div>
           @endif
-          <section class="card" style="margin: var(--space-6) 0;">
+          <section class="card" style="margin: var(--space-6) 0;" data-iaq-zone="comfort-intelligence" aria-label="{{ __('messages.dashboard_i18n.kpi_title_iaq') }}">
             <div class="card__header">
               <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_iaq') }}</h3>
             </div>
@@ -35,7 +35,7 @@
             </div>
           </section>
 
-          <section class="card smaca-telemetry-card">
+          <section class="card smaca-telemetry-card" data-iaq-zone="measurements-trends">
             <div class="card__header">
               <h3 class="card__title">{{ __('messages.nav.iaq') }} · {{ __('messages.dashboard.live') }}</h3>
               <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
@@ -67,7 +67,7 @@
                Multi-metric trend chart kept (CO₂ / temperature / humidity
                / PM2.5 / PM10 / TVOC toggle) since it's a unique multi-bucket
                timeseries view. --}}
-          <div class="grid" style="grid-template-columns: 1fr; gap: var(--space-6); margin-bottom: var(--space-6);">
+          <div class="grid" style="grid-template-columns: 1fr; gap: var(--space-6); margin-bottom: var(--space-6);" data-iaq-zone="trends-analytics">
             <div class="card">
               <div class="card__header">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap;">

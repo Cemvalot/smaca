@@ -62,6 +62,10 @@
     movement_activity_index: 'simple_movement_activity_index',
     uv_exposure_risk: 'simple_uv_exposure_risk',
     iaq_health_index: 'simple_iaq_health_index',
+    environmental_safety_index: 'simple_environmental_safety_index',
+    iaq_thermal_comfort: 'simple_iaq_thermal_comfort',
+    ventilation_quality_index: 'simple_ventilation_quality_index',
+    visual_lighting_condition: 'simple_visual_lighting_condition',
     thermal_comfort_index: 'simple_thermal_comfort_index',
     visual_comfort_kpi: 'simple_visual_comfort_kpi'
   };

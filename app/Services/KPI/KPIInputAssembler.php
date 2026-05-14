@@ -72,6 +72,12 @@ class KPIInputAssembler
                 if ($schema->hasColumn('sensor_latest', 'humidity_rh')) {
                     $latestSelects[] = 'AVG(humidity_rh) as avg_humidity_rh';
                 }
+                if ($schema->hasColumn('sensor_latest', 'light_level')) {
+                    $latestSelects[] = 'AVG(light_level) as avg_light_level';
+                }
+                if ($schema->hasColumn('sensor_latest', 'lux')) {
+                    $latestSelects[] = 'AVG(lux) as avg_lux';
+                }
                 if ($schema->hasColumn('sensor_latest', 'energy_kwh')) {
                     $latestSelects[] = 'AVG(energy_kwh) as avg_energy_kwh';
                 }
@@ -370,6 +376,10 @@ class KPIInputAssembler
             ?? $this->toFloat($latest->avg_temperature_c ?? null);
         $avgHumidity = $this->toFloat($currentReadings->avg_humidity_rh_window ?? null)
             ?? $this->toFloat($latest->avg_humidity_rh ?? null);
+        $avgLightLevel = $this->toFloat($currentReadings->avg_light_level ?? null)
+            ?? $this->toFloat($latest?->avg_light_level ?? null);
+        $avgLuxReading = $this->toFloat($currentReadings->avg_lux ?? null)
+            ?? $this->toFloat($latest?->avg_lux ?? null);
         $avgUv = $this->toFloat($currentReadings?->avg_uv_index ?? null)
             ?? $this->toFloat($currentReadings?->avg_modbus_chn_1 ?? null)
             ?? $this->toFloat($latest?->avg_uv_index ?? null);
@@ -413,8 +423,8 @@ class KPIInputAssembler
             'avg_current_a' => $this->toFloat($currentReadings->avg_current_a ?? null),
             'avg_power_factor' => $this->toFloat($currentReadings->avg_power_factor ?? null),
             'avg_max_demand_kw' => $this->toFloat($currentReadings->avg_max_demand_kw ?? null),
-            'avg_light_level' => $this->toFloat($currentReadings->avg_light_level ?? null),
-            'avg_lux' => $this->toFloat($currentReadings->avg_lux ?? null),
+            'avg_light_level' => $avgLightLevel,
+            'avg_lux' => $avgLuxReading,
             'avg_solar_radiation' => $avgSolar,
             'avg_uv_index' => $avgUv,
             'avg_people_present' => $entryProxy, // null when no movement data

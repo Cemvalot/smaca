@@ -64,6 +64,11 @@
     if (!kpi || kpi.value === null || kpi.value === undefined) {
       return { value: '--', unit: '' };
     }
+    var dk = String(kpi.display_kind || '').toLowerCase();
+    if (dk === 'categorical' || dk === 'boolean') {
+      var u = kpi.unit_label || kpi.unit || '';
+      return { value: String(kpi.value), unit: u ? String(u) : '' };
+    }
     if (kpi.unit === 'ratio') {
       return { value: Number(kpi.value || 0).toFixed(2), unit: '' };
     }
@@ -167,6 +172,9 @@
     if (plainDef) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;">' + plainDef + '</p>');
     }
+    if (kpi.semantic_explainer) {
+      parts.push('<p style="margin:0 0 var(--space-1) 0;color:var(--muted);font-size:11px;">' + escapeHtml(kpi.semantic_explainer) + '</p>');
+    }
     if (unitExp) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_unit', 'Unit')) + ':</strong> ' + unitExp + '</p>');
     }
@@ -249,6 +257,7 @@
       const descriptionText = kpi.description || '';
       const helpBlock = compact ? '' : buildHelpBlock(kpi);
       const vu = splitValueUnit(kpi);
+      const cardTitle = kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '';
       const valueHtml = vu.unit
         ? `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span><span class="stat-card__value-unit">${escapeHtml(vu.unit)}</span>`
         : `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span>`;
@@ -256,7 +265,7 @@
       const iconHtml = `<span class="overview-kpi-card__icon" data-category="${escapeHtml(iconKey)}" aria-hidden="true">${categoryIconSvg(iconKey)}</span>`;
       const dotClass = 'overview-kpi-card__dot overview-kpi-card__dot--' + statusDotClass(kpi.status);
       return `
-        <article class="stat-card overview-kpi-card${compact ? ' overview-kpi-card--compact' : ''}"${compactStyle}>
+        <article class="stat-card overview-kpi-card${compact ? ' overview-kpi-card--compact' : ''}"${compactStyle}${cardTitle ? ` title="${cardTitle}"` : ''}>
           ${iconHtml}
           <div class="stat-card__content">
             <div class="stat-card__label">${resolveLabel(kpi)}</div>

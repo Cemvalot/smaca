@@ -13,6 +13,7 @@ class KPIService
     private SpatialService $spatialService;
     private ?KPIMetadataService $metadataService;
     private ?OccupancyMetricsService $occupancyMetricsService = null;
+    private ?IaqSemanticKpiComposer $iaqSemanticComposer = null;
 
     public function __construct(
         private KPIInputAssembler $inputAssembler,
@@ -47,6 +48,15 @@ class KPIService
         }
 
         return $this->occupancyMetricsService;
+    }
+
+    private function iaqSemanticComposer(): IaqSemanticKpiComposer
+    {
+        if ($this->iaqSemanticComposer === null) {
+            $this->iaqSemanticComposer = new IaqSemanticKpiComposer(new SensorSemanticRegistry());
+        }
+
+        return $this->iaqSemanticComposer;
     }
 
     /**
@@ -121,6 +131,19 @@ class KPIService
             'timeframe' => $resolvedTimeframe,
             'kpis' => $kpis,
         ];
+
+        if ($moduleKey === 'iaq') {
+            try {
+                $reg = new SensorSemanticRegistry();
+                $response['semantic_context'] = [
+                    'registry_version' => (string) (config('smaca_sensor_semantics.version') ?? ''),
+                    'tvoc_semantic_mode' => $reg->tvocMode(),
+                    'light_semantic_mode' => $reg->lightMode(),
+                ];
+            } catch (\Throwable $e) {
+                $response['semantic_context'] = [];
+            }
+        }
 
         if ($moduleKey === 'occupancy') {
             try {
@@ -226,6 +249,10 @@ class KPIService
             ],
             'iaq' => [
                 $iaqHealth,
+                $this->iaqSemanticComposer()->buildEnvironmentalSafetyIndex($inputs),
+                $this->iaqSemanticComposer()->buildThermalComfortBoolean($inputs),
+                $this->iaqSemanticComposer()->buildVentilationQuality($inputs),
+                $this->iaqSemanticComposer()->buildVisualLightingCondition($inputs),
             ],
             'occupancy' => $occupancyKpis,
             'environmental' => [
@@ -409,14 +436,12 @@ class KPIService
                 [2000.0, 10.0],
             ]);
         }
+        $composer = $this->iaqSemanticComposer();
         if ($tvoc !== null) {
-            $subScores['tvoc'] = $this->scoreFromCurve($tvoc, [
-                [50.0, 100.0],
-                [150.0, 85.0],
-                [300.0, 70.0],
-                [600.0, 40.0],
-                [1000.0, 20.0],
-            ]);
+            $tvocSub = $composer->tvocHealthSubscore((float) $tvoc, $composer->tvocMode());
+            if ($tvocSub !== null) {
+                $subScores['tvoc'] = $tvocSub;
+            }
         }
         if ($pm25 !== null) {
             $subScores['pm25'] = $this->scoreFromCurve($pm25, [
@@ -454,12 +479,17 @@ class KPIService
             );
         }
 
+        $tvocMode = $composer->tvocMode();
+        $tvocNearOptimal = $tvocMode === 'iaq_rating_level'
+            ? ($tvoc !== null && $tvoc <= 2.99)
+            : ($tvoc !== null && $tvoc <= 80.0);
+
         $allNearOptimal = $co2 !== null
             && $tvoc !== null
             && $pm25 !== null
             && $pm10 !== null
             && $co2 <= 450.0
-            && $tvoc <= 80.0
+            && $tvocNearOptimal
             && $pm25 <= 5.0
             && $pm10 <= 10.0;
 
@@ -472,6 +502,9 @@ class KPIService
         $status = $this->normalizeStatus($evaluation['status']);
         $status = $this->applyCompositeOverrides('iaq_health_index_overrides', $status, $inputs);
         $confidence = count($subScores) < 4 ? 'partial' : 'high';
+        $tvocExpl = $composer->tvocMode() === 'iaq_rating_level'
+            ? __('messages.iaq_explainer.tvoc_iaq_rating')
+            : __('messages.iaq_explainer.tvoc_raw');
 
         return [
             'key' => 'iaq_health_index',
@@ -482,6 +515,8 @@ class KPIService
             'confidence' => $confidence,
             'description' => $evaluation['explanation'],
             'recommended_action' => $evaluation['recommended_action'],
+            'display_kind' => 'numeric',
+            'semantic_explainer' => $tvocExpl,
         ];
     }
 

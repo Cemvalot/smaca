@@ -105,8 +105,8 @@ return [
                 'el' => 'Συνδυαστική βαθμολογία ποιότητας εσωτερικού αέρα με βάση CO₂, αιωρούμενα σωματίδια και χημικούς ρύπους στη επιλεγμένη ζώνη.',
             ],
             'technical_definition' => [
-                'en' => 'Weighted index of CO₂ (ppm), TVOC index, PM2.5 (µg/m³) and PM10 (µg/m³) sub-scores. CO₂ above 1500 ppm forces a critical status; above 1000 ppm forces a warning.',
-                'el' => 'Σταθμισμένος δείκτης από επιμέρους βαθμολογίες CO₂ (ppm), δείκτη TVOC, PM2.5 (µg/m³) και PM10 (µg/m³). CO₂ άνω των 1500 ppm επιβάλλει κρίσιμη κατάσταση· άνω των 1000 ppm επιβάλλει προειδοποίηση.',
+                'en' => 'Weighted index of CO₂ (ppm), TVOC (semantic mode from config: IAQ rating 1–6 or raw µg/m³ curve), PM2.5 (µg/m³) and PM10 (µg/m³) sub-scores. CO₂ above 1500 ppm forces a critical status; above 1000 ppm forces a warning.',
+                'el' => 'Σταθμισμένος δείκτης από επιμέρους βαθμολογίες CO₂ (ppm), TVOC (σημασιολογική λειτουργία από ρύθμιση: βαθμολογία IAQ 1–6 ή καμπύλη raw µg/m³), PM2.5 (µg/m³) και PM10 (µg/m³). CO₂ άνω των 1500 ppm επιβάλλει κρίσιμη κατάσταση· άνω των 1000 ppm επιβάλλει προειδοποίηση.',
             ],
             'sensors_used' => [
                 'en' => ['CO₂', 'TVOC', 'PM2.5', 'PM10'],
@@ -141,6 +141,226 @@ return [
                 'insufficient_data' => [
                     'en' => 'Not enough air-quality readings to evaluate this zone.',
                     'el' => 'Δεν υπάρχουν αρκετές μετρήσεις ποιότητας αέρα για αξιολόγηση.',
+                ],
+            ],
+        ],
+
+        'environmental_safety_index' => [
+            'd51_category' => 'IAQ',
+            'd51_aligned' => true,
+            'role_visibility' => 'public',
+            'unit' => '',
+            'unit_label' => ['en' => '', 'el' => ''],
+            'unit_explanation' => [
+                'en' => 'Categorical index (Healthy / Medium / Unhealthy), not a concentration.',
+                'el' => 'Κατηγορικός δείκτης (Υγιής / Μέτριος / Μη υγιής), όχι συγκέντρωση.',
+            ],
+            'plain_definition' => [
+                'en' => 'Combines particulate matter with TVOC using the configured TVOC semantic mode (IAQ rating vs raw concentration).',
+                'el' => 'Συνδυάζει αιωρούμενα με TVOC με βάση τη ρυθμισμένη σημασιολογική λειτουργία TVOC (βαθμολογία IAQ έναντι πρωτογενούς συγκέντρωσης).',
+            ],
+            'technical_definition' => [
+                'en' => 'Raw TVOC mode: unhealthy if any of TVOC>1000 µg/m³, PM2.5>35.4, PM10>154; healthy only if TVOC≤250 AND PM2.5≤12 AND PM10≤54; else medium — worst wins. IAQ rating mode: TVOC mapped to severity bands; same PM gates.',
+                'el' => 'Λειτουργία raw TVOC: μη υγιές αν TVOC>1000 µg/m³ ή PM2.5>35.4 ή PM10>154· υγιές μόνο αν TVOC≤250 ΚΑΙ PM2.5≤12 ΚΑΙ PM10≤54· αλλιώς μέτριο — ισχύει το χειρότερο. Λειτουργία βαθμολογίας IAQ: TVOC σε κλίμακα σοβαρότητας· ίδια όρια PM.',
+            ],
+            'sensors_used' => [
+                'en' => ['TVOC (mode-dependent)', 'PM2.5', 'PM10'],
+                'el' => ['TVOC (ανά λειτουργία)', 'PM2.5', 'PM10'],
+            ],
+            'calculation_summary' => [
+                'en' => 'Per-dimension tri-level severity from config thresholds; overall = worst dimension.',
+                'el' => 'Τριεπίπεδη σοβαρότητα ανά διάσταση από ορία ρύθμισης· συνολικά = χειρότερη διάσταση.',
+            ],
+            'source_type' => 'measured',
+            'limitations' => [
+                'en' => 'Requires correct TVOC semantic mode in deployment config; misconfiguration misclassifies TVOC.',
+                'el' => 'Απαιτείται σωστή λειτουργία σημασιολογίας TVOC στη ρύθμιση· λανθασμένη ρύθμιση παραμορφώνει το TVOC.',
+            ],
+            'limitations_simple' => [
+                'en' => 'Depends on the TVOC interpretation mode set for your sensors.',
+                'el' => 'Εξαρτάται από τη λειτουργία ερμηνείας TVOC για τους αισθητήρες σας.',
+            ],
+            'status_meanings' => [
+                'good' => [
+                    'en' => 'Environmental safety is in the healthy band.',
+                    'el' => 'Η περιβαλλοντική ασφάλεια είναι στην υγιή ζώνη.',
+                ],
+                'warning' => [
+                    'en' => 'Some pollutants are in a medium band — monitor and ventilate.',
+                    'el' => 'Ορισμένοι ρύποι είναι σε μέτρια ζώνη — παρακολουθήστε και αερίστε.',
+                ],
+                'critical' => [
+                    'en' => 'One or more pollutants indicate unhealthy conditions.',
+                    'el' => 'Ένας ή περισσότεροι ρύποι υποδηλώνουν μη υγιείς συνθήκες.',
+                ],
+                'insufficient_data' => [
+                    'en' => 'Not enough TVOC/PM data to compute this index.',
+                    'el' => 'Ανεπαρκή δεδομένα TVOC/PM για τον δείκτη.',
+                ],
+            ],
+        ],
+
+        'iaq_thermal_comfort' => [
+            'd51_category' => 'Comfort',
+            'd51_aligned' => true,
+            'role_visibility' => 'public',
+            'unit' => '',
+            'unit_label' => ['en' => '', 'el' => ''],
+            'unit_explanation' => [
+                'en' => 'Boolean comfort from overlapping temperature and humidity bands.',
+                'el' => 'Δυαδική άνεση από κοινές ζώνες θερμοκρασίας και υγρασίας.',
+            ],
+            'plain_definition' => [
+                'en' => 'Comfortable when average temperature is 20–24 °C and humidity is 40–60 %.',
+                'el' => 'Άνετο όταν η μέση θερμοκρασία είναι 20–24 °C και η υγρασία 40–60 %.',
+            ],
+            'technical_definition' => [
+                'en' => 'Comfortable iff T∈[20,24] °C AND RH∈[40,60] % (configurable via smaca_sensor_semantics).',
+                'el' => 'Άνετο αν και μόνο αν T∈[20,24] °C ΚΑΙ RH∈[40,60] % (ρυθμιζόμενο μέσω smaca_sensor_semantics).',
+            ],
+            'sensors_used' => [
+                'en' => ['Temperature', 'Relative humidity'],
+                'el' => ['Θερμοκρασία', 'Σχετική υγρασία'],
+            ],
+            'calculation_summary' => [
+                'en' => 'AND of two range tests on timeframe-averaged inputs.',
+                'el' => 'Λογικό AND δύο ελέγχων εύρους σε μέσους όρους διαστήματος.',
+            ],
+            'source_type' => 'measured',
+            'limitations' => [
+                'en' => 'Does not model radiant asymmetry, air speed, or clothing/activity — simplified comfort proxy.',
+                'el' => 'Δεν μοντελοποιεί ακτινική ασυμμετρία, ταχύτητα αέρα ή ρουχισμό/δραστηριότητα — απλοποιημένο υποκατάστατο άνεσης.',
+            ],
+            'limitations_simple' => [
+                'en' => 'A simplified comfort rule, not a full PMV/PPD model.',
+                'el' => 'Απλοποιημένος κανόνας άνεσης, όχι πλήρες μοντέλο PMV/PPD.',
+            ],
+            'status_meanings' => [
+                'good' => [
+                    'en' => 'Comfortable — temperature and humidity are both in band.',
+                    'el' => 'Άνετο — θερμοκρασία και υγρασία εντός ζώνης.',
+                ],
+                'warning' => [
+                    'en' => 'N/A for boolean comfort.',
+                    'el' => 'Δεν εφαρμόζεται στη δυαδική άνεση.',
+                ],
+                'critical' => [
+                    'en' => 'Uncomfortable — at least one of temperature or humidity is out of band.',
+                    'el' => 'Άβολο — τουλάχιστον μία από θερμοκρασία ή υγρασία εκτός ζώνης.',
+                ],
+                'insufficient_data' => [
+                    'en' => 'Temperature or humidity readings are missing.',
+                    'el' => 'Λείπουν μετρήσεις θερμοκρασίας ή υγρασίας.',
+                ],
+            ],
+        ],
+
+        'ventilation_quality_index' => [
+            'd51_category' => 'IAQ',
+            'd51_aligned' => true,
+            'role_visibility' => 'public',
+            'unit' => 'ppm',
+            'unit_label' => ['en' => 'ppm', 'el' => 'ppm'],
+            'unit_explanation' => [
+                'en' => 'CO₂ is a direct ppm measurement used as a ventilation proxy.',
+                'el' => 'Το CO₂ είναι άμεση μέτρηση ppm ως δείκτης αερισμού.',
+            ],
+            'plain_definition' => [
+                'en' => 'Interprets average CO₂ in ppm against ventilation bands (outdoor reference through workplace limits).',
+                'el' => 'Ερμηνεύει το μέσο CO₂ σε ppm με ζώνες αερισμού (αναφορά εξωτερικού αέρα έως όρια χώρου εργασίας).',
+            ],
+            'technical_definition' => [
+                'en' => 'Bands from config/smaca_sensor_semantics.php co2_ventilation_bands; status is worst matched band.',
+                'el' => 'Ζώνες από config/smaca_sensor_semantics.php co2_ventilation_bands· η κατάσταση είναι η χειρότερη ταυτοποιημένη ζώνη.',
+            ],
+            'sensors_used' => [
+                'en' => ['CO₂'],
+                'el' => ['CO₂'],
+            ],
+            'calculation_summary' => [
+                'en' => 'Timeframe-averaged CO₂ compared to ordered ppm bands.',
+                'el' => 'Μέσος CO₂ διαστήματος σε σχέση με διατεταγμένες ζώνες ppm.',
+            ],
+            'source_type' => 'measured',
+            'limitations' => [
+                'en' => 'Single-point proxy; local pockets or sensor placement can bias readings.',
+                'el' => 'Μονοδιάστατο υποκατάστατο· τοπικές διακυμάνσεις ή θέση αισθητήρα μπορεί να μεροληπεί.',
+            ],
+            'limitations_simple' => [
+                'en' => 'Reflects averaged CO₂ at sensor locations.',
+                'el' => 'Αντικατοπτρίζει μέσο CO₂ στις θέσεις αισθητήρων.',
+            ],
+            'status_meanings' => [
+                'good' => [
+                    'en' => 'Ventilation appears adequate for the averaged CO₂ level.',
+                    'el' => 'Ο αερισμός φαίνεται επαρκής για το μέσο επίπεδο CO₂.',
+                ],
+                'warning' => [
+                    'en' => 'CO₂ suggests ventilation should be improved.',
+                    'el' => 'Το CO₂ υποδηλώνει βελτίωση αερισμού.',
+                ],
+                'critical' => [
+                    'en' => 'CO₂ is high — increase fresh air urgently.',
+                    'el' => 'Υψηλό CO₂ — αυξήστε τον φρέσκο αέρα επειγόντως.',
+                ],
+                'insufficient_data' => [
+                    'en' => 'No CO₂ readings in scope.',
+                    'el' => 'Δεν υπάρχουν μετρήσεις CO₂ στην εμβέλεια.',
+                ],
+            ],
+        ],
+
+        'visual_lighting_condition' => [
+            'd51_category' => 'Comfort',
+            'd51_aligned' => true,
+            'role_visibility' => 'public',
+            'unit' => '',
+            'unit_label' => ['en' => '', 'el' => ''],
+            'unit_explanation' => [
+                'en' => 'Normalized 0–5 sensor level maps to indicative lux ranges; not a calibrated lux meter.',
+                'el' => 'Το κανονικοποιημένο επίπεδο 0–5 αντιστοιχεί σε ενδεικτικά εύρη lux· όχι βαθμονομημένο μετρητή lux.',
+            ],
+            'plain_definition' => [
+                'en' => 'Describes visual lighting condition from the sensor lighting classification, not precise lux.',
+                'el' => 'Περιγράφει την οπτική συνθήκη φωτισμού από ταξινόμηση αισθητήρα, όχι ακριβή lux.',
+            ],
+            'technical_definition' => [
+                'en' => 'Mode from config: normalized_level_0_5 uses discrete level→label map; raw_lux uses lux bands.',
+                'el' => 'Λειτουργία από ρύθμιση: normalized_level_0_5 με διακριτό επίπεδο→ετικέτα· raw_lux με εύρη lux.',
+            ],
+            'sensors_used' => [
+                'en' => ['Light level / lux'],
+                'el' => ['Επίπεδο φωτός / lux'],
+            ],
+            'calculation_summary' => [
+                'en' => 'Average light_level or lux over the timeframe (preferring the active semantic mode).',
+                'el' => 'Μέσος όρος light_level ή lux στο διάστημα (κατά προτίμηση ενεργή σημασιολογική λειτουργία).',
+            ],
+            'source_type' => 'measured',
+            'limitations' => [
+                'en' => 'Vendor-normalized levels are indicative; do not use as compliance photometry.',
+                'el' => 'Οι κανονικοποιημένες κλίμακες είναι ενδεικτικές· όχι για συμμόρφωση φωτομετρίας.',
+            ],
+            'limitations_simple' => [
+                'en' => 'Not a substitute for professional lux measurement when required.',
+                'el' => 'Δεν υποκαθιστά επαγγελματική μέτρηση lux όταν απαιτείται.',
+            ],
+            'status_meanings' => [
+                'good' => [
+                    'en' => 'Lighting condition is in a typical comfortable band.',
+                    'el' => 'Η συνθήκη φωτισμού είναι σε τυπική άνετη ζώνη.',
+                ],
+                'warning' => [
+                    'en' => 'Lighting is low or very bright relative to typical tasks.',
+                    'el' => 'Ο φωτισμός είναι χαμηλός ή πολύ έντονος για τυπικές εργασίες.',
+                ],
+                'critical' => [
+                    'en' => 'N/A — boolean-style severity not used for lighting card.',
+                    'el' => 'Δεν εφαρμόζεται.',
+                ],
+                'insufficient_data' => [
+                    'en' => 'No light level or lux data.',
+                    'el' => 'Δεν υπάρχουν δεδομένα επιπέδου φωτός ή lux.',
                 ],
             ],
         ],
