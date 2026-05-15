@@ -641,7 +641,10 @@
     var bins = [];
     for (var h = 0; h < 24; h++) bins.push({ min: null, max: null });
     if (!Array.isArray(points) || !points.length) {
-      return new Array(24).fill(0);
+      return {
+        values: new Array(24).fill(0),
+        hasData: new Array(24).fill(false)
+      };
     }
     points.forEach(function (p) {
       var t = Date.parse(p.time || 0);
@@ -653,11 +656,90 @@
       if (b.min === null || v < b.min) b.min = v;
       if (b.max === null || v > b.max) b.max = v;
     });
-    return bins.map(function (b) {
-      if (b.min === null || b.max === null) return 0;
+    var values = [];
+    var hasData = [];
+    bins.forEach(function (b) {
+      var has = b.min !== null && b.max !== null;
+      hasData.push(has);
+      if (!has) {
+        values.push(0);
+        return;
+      }
       var d = b.max - b.min;
-      return d > 0 ? d : 0;
+      values.push(d > 0 ? d : 0);
     });
+    return { values: values, hasData: hasData };
+  }
+
+  function getOperationalCurrentHourIndex24h() {
+    var now = Date.now();
+    var dayStart = operationalDayStartMs();
+    var idx = Math.floor((now - dayStart) / 3600000);
+    return Math.max(0, Math.min(23, idx));
+  }
+
+  function getCurrentDailyBinIndex(binCount, dayMs) {
+    var endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    var startOfFirstBin = endOfToday.getTime() + 1 - (binCount * dayMs);
+    var idx = Math.floor((Date.now() - startOfFirstBin) / dayMs);
+    return Math.max(0, Math.min(binCount - 1, idx));
+  }
+
+  function buildEnergyLoadProfileChartData(loadBucket) {
+    var values = Array.isArray(loadBucket.values) ? loadBucket.values : [];
+    var hasData = Array.isArray(loadBucket.hasData)
+      ? loadBucket.hasData
+      : values.map(function () { return true; });
+    var labels = Array.isArray(loadBucket.labels) ? loadBucket.labels : [];
+    var isHourly = loadBucket.bucket === 'hourly';
+    var currentIdx = isHourly
+      ? getOperationalCurrentHourIndex24h()
+      : getCurrentDailyBinIndex(loadBucket.binCount || values.length, loadBucket.binSpanMs || 86400000);
+
+    var maxReal = 0;
+    values.forEach(function (v, i) {
+      if (i > currentIdx || !hasData[i]) return;
+      if (v > maxReal) maxReal = v;
+    });
+    var ghostY = maxReal > 0 ? Math.max(maxReal * 0.05, 0.05) : 0.08;
+
+    var chartData = values.map(function (v, i) {
+      var bucketLabel = labels[i] != null ? String(labels[i]) : '';
+      if (i > currentIdx) {
+        return {
+          y: ghostY,
+          color: 'rgba(148, 163, 184, 0.10)',
+          borderColor: 'rgba(148, 163, 184, 0.32)',
+          borderWidth: 1,
+          dashStyle: 'Dash',
+          future: true,
+          bucketLabel: bucketLabel
+        };
+      }
+      if (!hasData[i]) {
+        return {
+          y: 0,
+          color: 'rgba(148, 163, 184, 0.06)',
+          hasData: false,
+          future: false,
+          bucketLabel: bucketLabel
+        };
+      }
+      return {
+        y: v,
+        hasData: true,
+        future: false,
+        bucketLabel: bucketLabel
+      };
+    });
+
+    return {
+      chartData: chartData,
+      currentIdx: currentIdx,
+      maxReal: maxReal,
+      categories: labels
+    };
   }
 
   // -----------------------------------------------------------------------
@@ -720,7 +802,14 @@
     var tf = activeTimeframe();
     if (tf === '24h') {
       var hourly = bucketDeltasByHour(points);
-      return { values: hourly, labels: operationalHourLabels(), bucket: 'hourly', binCount: 24, binSpanMs: 3600000 };
+      return {
+        values: hourly.values,
+        hasData: hourly.hasData,
+        labels: operationalHourLabels(),
+        bucket: 'hourly',
+        binCount: 24,
+        binSpanMs: 3600000
+      };
     }
     var days = (tf === '7d') ? 7 : 30;
     var dayMs = 86400000;
@@ -744,15 +833,22 @@
         if (b.max === null || v > b.max) b.max = v;
       });
     }
-    var values = perBin.map(function (b) {
-      if (b.min === null || b.max === null) return 0;
-      return Math.max(0, b.max - b.min);
+    var values = [];
+    var hasData = [];
+    perBin.forEach(function (b) {
+      var has = b.min !== null && b.max !== null;
+      hasData.push(has);
+      if (!has) {
+        values.push(0);
+        return;
+      }
+      values.push(Math.max(0, b.max - b.min));
     });
     var labels = [];
     for (var d = 0; d < days; d++) {
       labels.push(formatDayLabel(new Date(startOfFirstBin + d * dayMs), days));
     }
-    return { values: values, labels: labels, bucket: 'daily', binCount: days, binSpanMs: dayMs };
+    return { values: values, hasData: hasData, labels: labels, bucket: 'daily', binCount: days, binSpanMs: dayMs };
   }
 
   function formatDayLabel(date, days) {
@@ -1904,9 +2000,22 @@
             return;
           }
           var loadBucket = bucketDeltasAdaptive(pts);
-          var deltas = loadBucket.values;
-          var maxVal = Math.max.apply(null, deltas) || 0;
-          var avgVal = deltas.length ? deltas.reduce(function (a, b) { return a + b; }, 0) / deltas.length : 0;
+          var loadSeries = buildEnergyLoadProfileChartData(loadBucket);
+          var chartData = loadSeries.chartData;
+          var maxVal = 0;
+          var peakIdx = -1;
+          var realKwh = [];
+          chartData.forEach(function (pt, idx) {
+            if (pt.future || pt.hasData === false) return;
+            realKwh.push(Number(pt.y) || 0);
+            if (pt.y > maxVal) {
+              maxVal = pt.y;
+              peakIdx = idx;
+            }
+          });
+          var avgVal = realKwh.length
+            ? (realKwh.reduce(function (a, b) { return a + b; }, 0) / realKwh.length)
+            : 0;
           var bands = [
             { from: 0,             to: avgVal * 0.8, color: '#34d399' },
             { from: avgVal * 0.8,  to: avgVal * 1.4, color: '#fbbf24' },
@@ -1929,12 +2038,70 @@
             meta: labelForLocation(freshest.sensor_location, freshest.name) + ' · ' + activeTimeframe() + ' · Δ kWh'
           });
           if (hostLoad) {
-            var axisOptsLoad = axisOptsForBucket(loadBucket);
-            tile().renderHeatStripColumn(hostLoad, Object.assign({
-              data: deltas, bands: bands, height: 90
-            }, axisOptsLoad));
+            var yMax = loadSeries.maxReal > 0 ? loadSeries.maxReal * 1.12 : 1;
+            var yMid = yMax / 2;
+            var loadTooltipHour = iaqTrans('energy_load_profile_hour', 'Hour', 'Ώρα');
+            var loadTooltipConsumption = iaqTrans('energy_load_profile_consumption', 'Consumption', 'Κατανάλωση');
+            var loadNoDataYet = iaqTrans('energy_no_data_yet', 'No data yet', 'Δεν υπάρχουν ακόμη δεδομένα');
+            var loadYAxisTitle = iaqTrans('energy_load_profile_kwh_axis', 'kWh', 'kWh');
+            tile().renderHeatStripColumn(hostLoad, {
+              data: chartData,
+              bands: bands,
+              height: loadBucket.bucket === 'hourly' ? 148 : 132,
+              showAxis: true,
+              showYAxis: true,
+              categories: loadSeries.categories,
+              yAxisMax: yMax,
+              yAxisTickPositions: [0, yMid, yMax],
+              yAxisTitle: loadYAxisTitle,
+              xAxisLabelStep: 1,
+              xAxisLabelFormatter: loadBucket.bucket === 'hourly'
+                ? function (idx) {
+                  var ticks = [0, 6, 12, 18, 23];
+                  return ticks.indexOf(idx) >= 0 ? String(idx).padStart(2, '0') : '';
+                }
+                : function (idx) {
+                  var step = loadBucket.binCount > 14
+                    ? Math.max(1, Math.floor(loadBucket.binCount / 7))
+                    : 1;
+                  if (idx % step !== 0 && idx !== (loadBucket.binCount - 1)) return '';
+                  return loadSeries.categories[idx] || '';
+                },
+              tooltipFormatter: function () {
+                var pt = this.point || {};
+                var label = pt.bucketLabel || pt.category || '';
+                if (pt.future) {
+                  return (
+                    '<div style="min-width:150px;">' +
+                    '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;">' + label + '</div>' +
+                    '<div style="color:#dbe7f5;font-size:11px;">' + loadNoDataYet + '</div>' +
+                    '</div>'
+                  );
+                }
+                if (pt.hasData === false) {
+                  return (
+                    '<div style="min-width:150px;">' +
+                    '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;">' +
+                    loadTooltipHour + ': ' + label +
+                    '</div>' +
+                    '<div style="color:#dbe7f5;font-size:11px;">' + loadNoDataYet + '</div>' +
+                    '</div>'
+                  );
+                }
+                var kwh = Number.isFinite(Number(this.y)) ? Number(this.y).toFixed(2) : '—';
+                return (
+                  '<div style="min-width:150px;">' +
+                  '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;">' +
+                  loadTooltipHour + ': ' + label +
+                  '</div>' +
+                  '<div style="color:#f8fbff;font-size:11px;font-weight:600;">' +
+                  loadTooltipConsumption + ': ' + kwh + ' kWh' +
+                  '</div>' +
+                  '</div>'
+                );
+              }
+            });
           }
-          var peakIdx = deltas.indexOf(maxVal);
           var peakLabel = (peakIdx >= 0 && maxVal > 0)
             ? loadBucket.labels[peakIdx]
             : null;
@@ -1950,7 +2117,7 @@
               : null
           });
           var loadTs = pts.map(function (p) { return Date.parse(p.time); }).filter(Number.isFinite);
-          var loadStats = seriesStats(deltas);
+          var loadStats = seriesStats(realKwh);
           logChart('energy:load-profile', {
             module: 'energy',
             endpoint: '/api/sensors/' + freshest.id + '/timeseries?metric=energy_kwh&timeframe=' + activeTimeframe(),

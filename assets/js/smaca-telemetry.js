@@ -418,12 +418,24 @@
       if (entry && typeof entry === 'object') {
         var y = toNumber(entry.y);
         if (y === null) y = 0;
-        var color = entry.color || colorForBand(y, bands);
-        return { y: y, color: color };
+        var isFuture = !!entry.future;
+        var useBandColor = !isFuture && entry.hasData !== false && !entry.color;
+        var color = entry.color || (useBandColor ? colorForBand(y, bands) : (isFuture ? 'rgba(148,163,184,0.10)' : colorForBand(y, bands)));
+        var point = {
+          y: y,
+          color: color,
+          future: isFuture,
+          hasData: entry.hasData !== false,
+          bucketLabel: entry.bucketLabel || ''
+        };
+        if (entry.borderColor) point.borderColor = entry.borderColor;
+        if (entry.borderWidth != null) point.borderWidth = entry.borderWidth;
+        if (entry.dashStyle) point.dashStyle = entry.dashStyle;
+        return point;
       }
       var n = toNumber(entry);
       var nv = n === null ? 0 : n;
-      return { y: nv, color: colorForBand(nv, bands) };
+      return { y: nv, color: colorForBand(nv, bands), hasData: true, future: false };
     });
     var showAxis = !!(params && params.showAxis);
     var showYAxis = !!(params && params.showYAxis);
@@ -431,7 +443,8 @@
     var yAxisTitle = (params && params.yAxisTitle) ? String(params.yAxisTitle) : '';
     var height = (params && params.height) || 56;
     if ((showAxis || showYAxis) && height < 130) height = 130;
-    var catCount = ((params && params.categories) || []).length;
+    var categories = (params && Array.isArray(params.categories)) ? params.categories : null;
+    var catCount = categories ? categories.length : data.length;
     var xLabelRot = (params && Number.isFinite(params.xAxisLabelRotation))
       ? Number(params.xAxisLabelRotation)
       : (showAxis && catCount >= 12 ? -40 : 0);
@@ -441,6 +454,22 @@
       ? Math.floor(params.xAxisLabelStep)
       : ((params && Number.isFinite(params.step) && params.step >= 1) ? Math.floor(params.step) : null);
     var autoStep = Math.max(1, Math.floor(data.length / 6));
+    var xLabelFormatter = (params && typeof params.xAxisLabelFormatter === 'function')
+      ? params.xAxisLabelFormatter
+      : null;
+    var yAxisMax = (params && Number.isFinite(Number(params.yAxisMax))) ? Number(params.yAxisMax) : null;
+    if (yAxisMax === null) {
+      var computedMax = 0;
+      data.forEach(function (pt) {
+        if (pt.future) return;
+        if (pt.hasData === false) return;
+        if (pt.y > computedMax) computedMax = pt.y;
+      });
+      yAxisMax = computedMax > 0 ? computedMax * 1.12 : 1;
+    }
+    var yTickPositions = (params && Array.isArray(params.yAxisTickPositions))
+      ? params.yAxisTickPositions
+      : null;
     var options = {
       chart: {
         type: 'column',
@@ -454,7 +483,7 @@
       credits: { enabled: false },
       legend: { enabled: false },
       xAxis: {
-        categories: (params && params.categories) || null,
+        categories: categories,
         visible: showAxis,
         title: {
           text: showAxis && xAxisTitle ? xAxisTitle : null,
@@ -463,21 +492,32 @@
         },
         labels: {
           style: { color: 'rgba(148,163,184,0.78)', fontSize: '10px' },
-          step: stepOverride !== null ? stepOverride : autoStep,
+          step: xLabelFormatter ? 1 : (stepOverride !== null ? stepOverride : autoStep),
           rotation: xLabelRot,
           align: xLabelRot ? 'right' : 'center',
-          reserveSpace: true
+          reserveSpace: true,
+          formatter: xLabelFormatter
+            ? function () {
+              var idx = typeof this.pos === 'number' ? this.pos : this.value;
+              if (typeof idx === 'string' && categories) {
+                idx = categories.indexOf(idx);
+              }
+              return xLabelFormatter(idx);
+            }
+            : undefined
         },
-        lineColor: 'transparent',
+        lineColor: showAxis ? 'rgba(148,163,184,0.14)' : 'transparent',
         tickWidth: 0
       },
       yAxis: {
         visible: showYAxis,
         min: 0,
-        allowDecimals: false,
+        max: showYAxis ? yAxisMax : null,
+        allowDecimals: true,
         endOnTick: false,
         maxPadding: 0.08,
-        tickAmount: 6,
+        tickAmount: yTickPositions ? null : 6,
+        tickPositions: yTickPositions || null,
         title: {
           text: showYAxis && yAxisTitle ? yAxisTitle : null,
           style: { color: 'rgba(148,163,184,0.72)', fontSize: '9px', fontWeight: '500' },
@@ -486,7 +526,15 @@
         labels: {
           style: { color: 'rgba(148,163,184,0.82)', fontSize: '10px' },
           x: -3,
-          distance: 6
+          distance: 6,
+          formatter: function () {
+            var v = Number(this.value);
+            if (!Number.isFinite(v)) return '';
+            if (v >= 100) return String(Math.round(v));
+            if (v >= 10) return v.toFixed(1);
+            if (v === 0) return '0';
+            return v.toFixed(2);
+          }
         },
         gridLineColor: showYAxis ? 'rgba(148,163,184,0.10)' : 'transparent',
         gridLineDashStyle: 'Dot'
