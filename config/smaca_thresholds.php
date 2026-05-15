@@ -79,9 +79,12 @@ return [
     ],
     'normalized_energy_intensity' => [
         'unit' => 'kWh/person',
-        'good_max' => 1.0,
-        'warning_max' => 2.0,
-        'critical_min' => 2.01,
+        'efficient_max' => 2.5,
+        'moderate_max' => 5.0,
+        'high_max' => 10.0,
+        'good_max' => 2.5,
+        'warning_max' => 5.0,
+        'critical_min' => 10.01,
     ],
     'base_load_index' => [
         'unit' => 'ratio',

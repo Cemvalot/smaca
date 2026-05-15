@@ -272,11 +272,15 @@ class KPIService
         $energyKwh = $inputs['total_energy_kwh_window']
             ?? $inputs['energy_consumption_kwh_window']
             ?? null;
-        $estimatedPresence = $inputs['estimated_presence']
+        $rawPresence = $inputs['raw_estimated_presence'] ?? null;
+        $cappedPresence = $inputs['capped_estimated_presence']
+            ?? $inputs['estimated_presence']
             ?? $inputs['avg_people_present']
             ?? null;
+        $denominatorCapped = (bool) ($inputs['denominator_capped'] ?? false);
+        $capValue = (float) ($inputs['denominator_cap_value'] ?? KPIInputAssembler::ESTIMATED_PRESENCE_CAP);
         $occConfidence = (string) ($inputs['occupancy_context_confidence'] ?? 'none');
-        $contextNote = 'Estimate based on available people-counter movement data, not exact live headcount.';
+        $contextNote = __('messages.dashboard_i18n.kpi_note_occupancy_estimate');
 
         if ($energyKwh === null) {
             return $this->insufficientKpi(
@@ -286,7 +290,7 @@ class KPIService
                 'Energy consumption data is missing for the selected timeframe.'
             );
         }
-        if ($estimatedPresence === null || $estimatedPresence <= 0 || $occConfidence === 'none') {
+        if ($cappedPresence === null || $cappedPresence <= 0 || $occConfidence === 'none') {
             return array_merge($this->insufficientKpi(
                 'normalized_energy_intensity',
                 $label,
@@ -294,37 +298,62 @@ class KPIService
                 'Limited occupancy context — movement-derived presence is unavailable. Use Base Load Index for off-hours behavior.'
             ), [
                 'energy_kwh' => round((float) $energyKwh, 2),
+                'raw_estimated_presence' => $rawPresence,
+                'capped_estimated_presence' => null,
                 'estimated_presence' => null,
                 'intensity_kwh_per_estimated_person' => null,
+                'denominator_capped' => false,
                 'occupancy_context_confidence' => $occConfidence,
                 'semantic_explainer' => $contextNote,
             ]);
         }
 
-        $denominator = max(1.0, (float) $estimatedPresence);
+        $denominator = max(1.0, (float) $cappedPresence);
         $value = round((float) $energyKwh / $denominator, 2);
-        $evaluation = $this->thresholdService->evaluate('normalized_energy_intensity', $value);
-        $status = $this->normalizeStatus($evaluation['status']);
-        $confidence = match ($occConfidence) {
+        $limitedProxy = $denominatorCapped || in_array($occConfidence, ['entries_only', 'exits_only'], true);
+        $interp = $this->interpretNei($value, $limitedProxy);
+        $confidence = $limitedProxy ? 'estimated_limited' : match ($occConfidence) {
             'balanced_movement' => 'estimated',
             'entries_only', 'exits_only' => 'partial',
             default => 'none',
         };
+
+        $captionParts = [
+            number_format($value, 2).' kWh / est. person',
+        ];
+        if ($denominatorCapped) {
+            $captionParts[] = __('messages.dashboard_i18n.nei_denominator_capped', [
+                'cap' => (int) $capValue,
+            ]);
+        }
+        if ($rawPresence !== null && $denominatorCapped) {
+            $captionParts[] = __('messages.dashboard_i18n.nei_raw_presence', [
+                'raw' => number_format((float) $rawPresence, 0),
+            ]);
+        }
 
         return [
             'key' => 'normalized_energy_intensity',
             'label' => $label,
             'value' => $value,
             'unit' => 'kWh/person',
-            'status' => $status,
+            'status' => $interp['status'],
+            'interpretation_status' => $interp['interpretation_status'],
+            'interpretation_label' => $interp['interpretation_label'],
             'confidence' => $confidence,
-            'description' => $evaluation['explanation'],
-            'recommended_action' => $evaluation['recommended_action'],
+            'description' => $interp['description'],
+            'recommended_action' => $interp['recommended_action'],
             'energy_kwh' => round((float) $energyKwh, 2),
-            'estimated_presence' => round((float) $estimatedPresence, 1),
+            'raw_estimated_presence' => $rawPresence !== null ? round((float) $rawPresence, 0) : null,
+            'capped_estimated_presence' => round((float) $cappedPresence, 0),
+            'estimated_presence' => round((float) $cappedPresence, 0),
+            'denominator_capped' => $denominatorCapped,
+            'denominator_cap_value' => $capValue,
             'intensity_kwh_per_estimated_person' => $value,
             'occupancy_context_confidence' => $occConfidence,
+            'value_caption' => implode(' · ', $captionParts),
             'semantic_explainer' => $contextNote,
+            'threshold_profile' => $this->neiThresholdProfile(),
         ];
     }
 
@@ -334,7 +363,8 @@ class KPIService
         $total7d = $inputs['total_energy_kwh_7d'] ?? $inputs['avg_base_load_energy'] ?? null;
         $baselineKwh = $inputs['baseline_kwh_7d'] ?? $inputs['avg_off_hours_energy'] ?? null;
         $activeKwh = $inputs['active_hours_kwh_7d'] ?? null;
-        $windows = $inputs['detected_baseline_windows'] ?? '00:00–06:59, weekends, near-zero movement';
+        $windows = $inputs['baseline_window_rule'] ?? $inputs['detected_baseline_windows'] ?? '00:00–06:59, weekends, near-zero movement';
+        $sharePercent = $inputs['baseline_energy_share_percent'] ?? null;
 
         if ($total7d === null || $baselineKwh === null || (float) $total7d <= 0) {
             return $this->insufficientKpi(
@@ -345,30 +375,145 @@ class KPIService
             );
         }
 
-        $value = round((float) $baselineKwh / (float) $total7d, 3);
+        $value = round((float) $baselineKwh / (float) $total7d, 2);
+        if ($sharePercent === null) {
+            $sharePercent = round(100.0 * $value, 1);
+        }
         $baselineState = $this->resolveBaselineState($value);
-        $evaluation = $this->thresholdService->evaluate('base_load_index', $value);
-        $status = $this->normalizeStatus($evaluation['status']);
+        $interp = $this->interpretBaseLoad($value, $baselineState);
 
         if ($activeKwh === null) {
             $activeKwh = max(0.0, (float) $total7d - (float) $baselineKwh);
         }
+
+        $baseExplainer = __('messages.dashboard_i18n.base_load_high_explainer');
 
         return [
             'key' => 'base_load_index',
             'label' => $label,
             'value' => $value,
             'unit' => 'ratio',
-            'status' => $status,
+            'status' => $interp['status'],
+            'interpretation_status' => $interp['interpretation_status'],
+            'interpretation_label' => $interp['interpretation_label'],
             'confidence' => 'estimated',
-            'description' => $evaluation['explanation'],
-            'recommended_action' => $evaluation['recommended_action'],
+            'description' => $interp['description'],
+            'recommended_action' => $interp['recommended_action'],
             'baseline_kwh' => round((float) $baselineKwh, 2),
             'active_hours_kwh' => round((float) $activeKwh, 2),
             'base_load_ratio' => $value,
+            'baseline_energy_share_percent' => $sharePercent,
+            'baseline_window_rule' => $windows,
+            'baseline_hours_count' => $inputs['baseline_hours_count'] ?? null,
+            'active_hours_count' => $inputs['active_hours_count'] ?? null,
             'detected_baseline_windows' => $windows,
             'baseline_state' => $baselineState,
-            'semantic_explainer' => 'Baseline energy during minimal/near-zero occupancy windows (rolling 7 days, fixed window).',
+            'value_caption' => number_format($value, 2).' · '.number_format((float) $sharePercent, 1).'% · '.$interp['interpretation_label'],
+            'semantic_explainer' => $value > 0.6 ? $baseExplainer : __('messages.dashboard_i18n.kpi_tooltip_base_load_index'),
+            'threshold_profile' => $this->baseLoadThresholdProfile(),
+        ];
+    }
+
+    /**
+     * @return array{interpretation_status: string, interpretation_label: string, status: string, description: string, recommended_action: string}
+     */
+    private function interpretNei(float $value, bool $limitedProxy): array
+    {
+        $profile = $this->neiThresholdProfile();
+        $efficientMax = (float) ($profile['efficient_max'] ?? 2.5);
+        $moderateMax = (float) ($profile['moderate_max'] ?? 5.0);
+        $highMax = (float) ($profile['high_max'] ?? 10.0);
+
+        if ($limitedProxy) {
+            if ($value <= $efficientMax) {
+                $interp = 'efficient';
+            } elseif ($value <= $moderateMax) {
+                $interp = 'moderate';
+            } elseif ($value <= $highMax) {
+                $interp = 'needs_calibration';
+            } else {
+                $interp = 'high';
+            }
+        } else {
+            if ($value <= $efficientMax) {
+                $interp = 'efficient';
+            } elseif ($value <= $moderateMax) {
+                $interp = 'moderate';
+            } elseif ($value <= $highMax) {
+                $interp = 'high';
+            } else {
+                $interp = 'needs_calibration';
+            }
+        }
+
+        $status = match ($interp) {
+            'efficient' => 'good',
+            'moderate' => 'warning',
+            'high' => $limitedProxy ? 'warning' : 'critical',
+            'needs_calibration' => 'warning',
+            default => 'warning',
+        };
+
+        $labelKey = 'messages.dashboard_i18n.nei_interp_'.$interp;
+
+        return [
+            'interpretation_status' => $interp,
+            'interpretation_label' => __($labelKey),
+            'status' => $status,
+            'description' => __($labelKey.'_desc'),
+            'recommended_action' => __($labelKey.'_action'),
+        ];
+    }
+
+    /**
+     * @return array{interpretation_status: string, interpretation_label: string, status: string, description: string, recommended_action: string}
+     */
+    private function interpretBaseLoad(float $ratio, string $baselineState): array
+    {
+        $evaluation = $this->thresholdService->evaluate('base_load_index', $ratio);
+        $status = $this->normalizeStatus($evaluation['status']);
+
+        $interp = match ($baselineState) {
+            'efficient_baseline' => 'efficient_baseline',
+            'elevated_standby_load' => 'elevated_standby_load',
+            default => 'excessive_overnight_load',
+        };
+
+        $labelKey = 'messages.dashboard_i18n.base_load_interp_'.$interp;
+
+        return [
+            'interpretation_status' => $interp,
+            'interpretation_label' => __($labelKey),
+            'status' => $status,
+            'description' => $ratio > 0.6
+                ? __('messages.dashboard_i18n.base_load_high_explainer')
+                : $evaluation['explanation'],
+            'recommended_action' => $evaluation['recommended_action'],
+        ];
+    }
+
+    /** @return array<string, float|int> */
+    private function neiThresholdProfile(): array
+    {
+        $t = (array) config('smaca_thresholds.normalized_energy_intensity', []);
+
+        return [
+            'efficient_max' => (float) ($t['efficient_max'] ?? 2.5),
+            'moderate_max' => (float) ($t['moderate_max'] ?? 5.0),
+            'high_max' => (float) ($t['high_max'] ?? 10.0),
+            'presence_cap' => KPIInputAssembler::ESTIMATED_PRESENCE_CAP,
+        ];
+    }
+
+    /** @return array<string, float> */
+    private function baseLoadThresholdProfile(): array
+    {
+        $t = (array) config('smaca_thresholds.base_load_index', []);
+
+        return [
+            'good_max' => (float) ($t['good_max'] ?? 0.6),
+            'warning_max' => (float) ($t['warning_max'] ?? 0.85),
+            'critical_min' => (float) ($t['critical_min'] ?? 0.86),
         ];
     }
 

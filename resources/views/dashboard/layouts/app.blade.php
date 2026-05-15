@@ -474,6 +474,7 @@
       uv_exposure_risk: "{{ __('messages.labels.uv_exposure_risk') }}",
       insufficient_data: "{{ __('messages.labels.insufficient_data') }}",
       estimated: "{{ __('messages.labels.estimated') }}",
+      estimated_limited: "{{ __('messages.labels.estimated_limited') }}",
       partial: "{{ __('messages.labels.partial') }}",
       recommended_action: "{{ __('messages.labels.recommended_action') }}",
       spatial_label: "{{ __('messages.spatial.label') }}",

@@ -12,6 +12,12 @@ class KPIInputAssembler
     /** Allowed UI timeframes. 6m is intentionally excluded — it is export-only. */
     public const ALLOWED_TIMEFRAMES = ['24h', '7d', '30d'];
 
+    /** Cap on movement-derived presence proxy (passage events ≠ unique people). */
+    public const ESTIMATED_PRESENCE_CAP = 2000.0;
+
+    /** Rolling window for base-load KPI (fixed by D5.1, independent of UI timeframe). */
+    public const BASELINE_WINDOW_DAYS = 7;
+
     /**
      * Assemble the inputs the KPI engine needs from sensor_latest + readings.
      *
@@ -402,26 +408,31 @@ class KPIInputAssembler
             $avgEnergy = round($totalEnergyKwhWindow / max(1, $timeframeHours), 4);
         }
 
-        // Movement-derived estimated presence: NOT raw cumulative
-        // people_total_in/out snapshots. Prefer balanced activity when both
-        // entry and exit deltas exist; otherwise capped entry throughput.
-        $estimatedPresence = null;
+        // Movement-derived estimated presence: passage-event proxy, not headcount.
+        $rawEstimatedPresence = null;
+        $cappedEstimatedPresence = null;
+        $denominatorCapped = false;
         $occupancyContextConfidence = 'none';
         if ($movementEntries !== null || $movementExits !== null) {
             $entries = max(0.0, (float) ($movementEntries ?? 0));
             $exits = max(0.0, (float) ($movementExits ?? 0));
             if ($entries > 0 && $exits > 0) {
                 $activityBalance = ($entries + $exits) / 2.0;
-                $estimatedPresence = min(2000.0, max($entries, $activityBalance));
+                $rawEstimatedPresence = max($entries, $activityBalance);
                 $occupancyContextConfidence = 'balanced_movement';
             } elseif ($entries > 0) {
-                $estimatedPresence = min(2000.0, $entries);
+                $rawEstimatedPresence = $entries;
                 $occupancyContextConfidence = 'entries_only';
             } elseif ($exits > 0) {
-                $estimatedPresence = min(2000.0, $exits);
+                $rawEstimatedPresence = $exits;
                 $occupancyContextConfidence = 'exits_only';
             }
+            if ($rawEstimatedPresence !== null) {
+                $denominatorCapped = $rawEstimatedPresence > self::ESTIMATED_PRESENCE_CAP;
+                $cappedEstimatedPresence = min(self::ESTIMATED_PRESENCE_CAP, $rawEstimatedPresence);
+            }
         }
+        $estimatedPresence = $cappedEstimatedPresence;
 
         // Base-load inputs: per-sensor MAX−MIN kWh deltas (7d rolling window).
         // `avg_*` keys kept for KPIService backward compatibility.
@@ -432,6 +443,35 @@ class KPIInputAssembler
             $activeHoursKwh7d = max(0.0, (float) $baseLoadTotalKwh7d - (float) $baseLoadOffHoursKwh7d);
         }
         $detectedBaselineWindows = '00:00–06:59 local, weekends (DAYOFWEEK 1,7), near-zero movement when counters exist';
+        $baselineWindowRule = $detectedBaselineWindows;
+        $baselineHoursCount = null;
+        $activeHoursCount = null;
+        if ($hasMeasuredAt && $readingsScopeColumn !== null) {
+            $baselineHoursCount = $this->countDistinctEnergyHourBuckets(
+                $schema,
+                $offHoursStart,
+                $readingsScopeColumn,
+                $sensorIdsScoped,
+                $sensorIds,
+                $sensorUidsScoped,
+                $sensorUids,
+                true
+            );
+            $activeHoursCount = $this->countDistinctEnergyHourBuckets(
+                $schema,
+                $offHoursStart,
+                $readingsScopeColumn,
+                $sensorIdsScoped,
+                $sensorIds,
+                $sensorUidsScoped,
+                $sensorUids,
+                false
+            );
+        }
+        $baselineEnergySharePercent = null;
+        if ($baseLoadTotalKwh7d !== null && $baseLoadTotalKwh7d > 0 && $baseLoadOffHoursKwh7d !== null) {
+            $baselineEnergySharePercent = round(100.0 * (float) $baseLoadOffHoursKwh7d / (float) $baseLoadTotalKwh7d, 1);
+        }
 
         return [
             'avg_co2_ppm' => $avgCo2,
@@ -450,10 +490,18 @@ class KPIInputAssembler
             'total_energy_kwh_window' => $totalEnergyKwhWindow,
             'energy_consumption_kwh_window' => $totalEnergyKwhWindow,
             'estimated_presence' => $estimatedPresence,
+            'raw_estimated_presence' => $rawEstimatedPresence,
+            'capped_estimated_presence' => $cappedEstimatedPresence,
+            'denominator_capped' => $denominatorCapped,
+            'denominator_cap_value' => self::ESTIMATED_PRESENCE_CAP,
             'occupancy_context_confidence' => $occupancyContextConfidence,
             'total_energy_kwh_7d' => $baseLoadTotalKwh7d,
             'baseline_kwh_7d' => $baseLoadOffHoursKwh7d,
             'active_hours_kwh_7d' => $activeHoursKwh7d,
+            'baseline_energy_share_percent' => $baselineEnergySharePercent,
+            'baseline_window_rule' => $baselineWindowRule,
+            'baseline_hours_count' => $baselineHoursCount,
+            'active_hours_count' => $activeHoursCount,
             'detected_baseline_windows' => $detectedBaselineWindows,
             'avg_current_a' => $this->toFloat($currentReadings->avg_current_a ?? null),
             'avg_power_factor' => $this->toFloat($currentReadings->avg_power_factor ?? null),
@@ -490,6 +538,59 @@ class KPIInputAssembler
      * or the query fails for any reason — callers must treat null as
      * "no usable data" and fall back accordingly.
      */
+    /**
+     * Count distinct hour-buckets with energy readings in the 7d baseline window.
+     *
+     * @param bool $baselineOnly when true, only buckets matching off-hours / weekend rule
+     */
+    private function countDistinctEnergyHourBuckets(
+        $schema,
+        Carbon $windowStart,
+        ?string $readingsScopeColumn,
+        bool $sensorIdsScoped,
+        ?array $sensorIds,
+        bool $sensorUidsScoped,
+        ?array $sensorUids,
+        bool $baselineOnly
+    ): ?int {
+        try {
+            if (!$schema->hasColumn('readings', 'measured_at')
+                || !$schema->hasColumn('readings', 'energy_kwh')
+                || $readingsScopeColumn === null
+            ) {
+                return null;
+            }
+            $occupancyNearZeroSql = '';
+            if ($schema->hasColumn('readings', 'people_total_in')
+                && $schema->hasColumn('readings', 'people_total_out')
+            ) {
+                $occupancyNearZeroSql = ' AND ABS(COALESCE(people_total_in,0) - COALESCE(people_total_out,0)) <= 1';
+            }
+            $baselineSql = '(HOUR(measured_at) BETWEEN 0 AND 6 OR DAYOFWEEK(measured_at) IN (1, 7))'.$occupancyNearZeroSql;
+
+            $q = DB::table('readings')
+                ->where('measured_at', '>=', $windowStart)
+                ->whereNotNull('energy_kwh');
+            if ($baselineOnly) {
+                $q->whereRaw($baselineSql);
+            } else {
+                $q->whereRaw('NOT '.$baselineSql);
+            }
+            $this->applyReadingsScope($q, $readingsScopeColumn, $sensorIdsScoped, $sensorIds, $sensorUidsScoped, $sensorUids);
+            $this->excludeBadLocation($q, $schema);
+
+            $row = $q->selectRaw(
+                "COUNT(DISTINCT CONCAT(DATE(measured_at), '-', LPAD(HOUR(measured_at), 2, '0'))) as bucket_count"
+            )->first();
+
+            return $row ? (int) ($row->bucket_count ?? 0) : null;
+        } catch (\Throwable $e) {
+            $this->safeLogWarning('KPIInputAssembler: hour bucket count failed', $e);
+
+            return null;
+        }
+    }
+
     private function sumPerSensorDeltaInWindow(
         $schema,
         string $metric,
@@ -659,10 +760,18 @@ class KPIInputAssembler
             'total_energy_kwh_window' => null,
             'energy_consumption_kwh_window' => null,
             'estimated_presence' => null,
+            'raw_estimated_presence' => null,
+            'capped_estimated_presence' => null,
+            'denominator_capped' => false,
+            'denominator_cap_value' => self::ESTIMATED_PRESENCE_CAP,
             'occupancy_context_confidence' => 'none',
             'total_energy_kwh_7d' => null,
             'baseline_kwh_7d' => null,
             'active_hours_kwh_7d' => null,
+            'baseline_energy_share_percent' => null,
+            'baseline_window_rule' => null,
+            'baseline_hours_count' => null,
+            'active_hours_count' => null,
             'detected_baseline_windows' => null,
             'avg_current_a' => null,
             'avg_power_factor' => null,

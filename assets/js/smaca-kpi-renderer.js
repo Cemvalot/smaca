@@ -82,9 +82,15 @@
     const value = String(confidence || '').toLowerCase();
     if (!value) return '';
     if (value === 'estimated') return t('estimated', 'estimated');
+    if (value === 'estimated_limited') return t('estimated_limited', 'estimated · limited');
     if (value === 'partial') return t('partial', 'partial');
     if (value === 'none') return t('insufficient_data', 'insufficient_data');
     return value;
+  }
+
+  function formatInterpretationLabel(kpi) {
+    if (!kpi || !kpi.interpretation_label) return '';
+    return String(kpi.interpretation_label);
   }
 
   function formatStatus(status) {
@@ -132,6 +138,18 @@
   }
 
   function resolveEffectiveKpiStatus(kpi, boundModule) {
+    if (kpi && kpi.interpretation_status) {
+      const m = {
+        efficient: 'good',
+        moderate: 'warning',
+        high: 'warning',
+        needs_calibration: 'warning',
+        efficient_baseline: 'good',
+        elevated_standby_load: 'warning',
+        excessive_overnight_load: 'critical'
+      };
+      if (m[kpi.interpretation_status]) return m[kpi.interpretation_status];
+    }
     if (boundModule !== 'iaq' || !kpi) return String(kpi.status || '');
     var ls = resolveLightingDisplayStatus(kpi);
     if (ls) return ls;
@@ -328,6 +346,8 @@
         vu = { value: ventHead.value, unit: ventHead.unit };
       }
       const displayStatus = resolveEffectiveKpiStatus(kpi, boundModule);
+      const interpLabel = formatInterpretationLabel(kpi);
+      const badgeText = interpLabel || formatStatus(displayStatus);
       const cardTitle = kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '';
       const valueCaption = (!compact && kpi.value_caption)
         ? `<p class="overview-kpi-card__value-caption${kpi.key === 'ventilation_quality_index' ? ' overview-kpi-card__value-caption--vent-co2' : ''}">${escapeHtml(String(kpi.value_caption))}</p>`
@@ -349,7 +369,7 @@
             ${valueCaption}
             ${semanticRow}
             <div class="stat-card__meta">
-              <span class="badge ${statusClass(displayStatus)} badge--sm overview-kpi-card__badge"><span class="${dotClass}"></span>${formatStatus(displayStatus)}</span>
+              <span class="badge ${statusClass(displayStatus)} badge--sm overview-kpi-card__badge"><span class="${dotClass}"></span>${escapeHtml(badgeText)}</span>
               ${!compact && showConfidence && confidence ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
             </div>
             ${compact ? '' : `<p class="overview-live-note overview-kpi-card__desc">${escapeHtml(descriptionText)}</p>`}
