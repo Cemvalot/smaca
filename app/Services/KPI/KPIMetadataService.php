@@ -147,8 +147,8 @@ class KPIMetadataService
 
         return [
             'key' => $key,
-            'd51_category' => (string) ($meta['d51_category'] ?? 'Uncategorised'),
-            'd51_aligned' => (bool) ($meta['d51_aligned'] ?? false),
+            'kpi_category' => (string) ($meta['kpi_category'] ?? 'Uncategorised'),
+            'metadata_complete' => (bool) ($meta['metadata_complete'] ?? false),
             'role_visibility' => (string) ($meta['role_visibility'] ?? 'public'),
             'unit' => (string) ($meta['unit'] ?? ''),
             'unit_label' => $this->localized($meta['unit_label'] ?? null, (string) ($meta['unit'] ?? '')),

@@ -173,7 +173,7 @@
       }
       $smacaLocaleCode = strtolower(substr((string) (function_exists('app') ? app()->getLocale() : 'en'), 0, 2));
 
-      // D5.1 clarity layer — bootstrap KPI + chart metadata so the renderer
+      // Clarity layer — bootstrap KPI + chart metadata so the renderer
       // and chart explainer can resolve "How to read this" without an extra
       // round-trip on first paint. Both are public-safe configs, but we wrap
       // resolution in try/catch so a misconfiguration never blocks the page.
@@ -577,7 +577,7 @@
       kpi_empty_occupancy: "{{ __('messages.kpi_empty.occupancy') }}",
       kpi_empty_environmental: "{{ __('messages.kpi_empty.environmental') }}",
       kpi_empty_overview: "{{ __('messages.kpi_empty.overview') }}",
-      // D5.1 clarity layer — KPI card "How to read this" labels
+      // Clarity layer — KPI card "How to read this" labels
       kpi_help_how_to_read: "{{ __('messages.kpi_help.how_to_read') }}",
       kpi_help_hint: "{{ __('messages.kpi_help.hint') }}",
       kpi_help_unit: "{{ __('messages.kpi_help.unit') }}",

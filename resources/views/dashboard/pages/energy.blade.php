@@ -28,7 +28,8 @@
       <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_energy') }}</h3>
     </div>
     <div class="card__body">
-      <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_energy') }}</p>
+      <p class="overview-live-note" style="margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.kpi_intro_energy') }}</p>
+      <p class="overview-live-note" style="margin-bottom: var(--space-3); font-size: 11px;">{{ __('messages.dashboard_i18n.kpi_note_occupancy_estimate') }}</p>
       <div id="energy-kpi-summary-cards" class="grid grid--metrics grid--metrics-2">
         <article class="stat-card overview-kpi-card"><div class="stat-card__content"><div class="stat-card__label">KPI</div><div class="stat-card__value">--</div></div></article>
       </div>
@@ -82,9 +83,9 @@
         </button>
         <div class="smaca-accordion__body" hidden>
           <div class="accordion-content">
-            <p><strong>Columns:</strong> energy usage aggregated into the selected bucket size.</p>
-            <p><strong>Spline:</strong> cumulative running total across the buckets.</p>
-            <p><strong>Dashed plotLine:</strong> average bucket usage for the selected timeframe.</p>
+            <p><strong>Columns:</strong> kWh consumed per bucket (cumulative meter MAX−MIN deltas, selected timeframe).</p>
+            <p><strong>Spline:</strong> running total of consumed kWh across buckets — not the latest meter reading.</p>
+            <p><strong>Dashed plotLine:</strong> average bucket consumption for the selected timeframe.</p>
           </div>
         </div>
       </div>

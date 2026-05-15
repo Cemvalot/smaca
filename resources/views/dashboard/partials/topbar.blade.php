@@ -6,7 +6,7 @@
         <div class="topbar__actions">
           <!-- Spatial scope selector (rendered by smaca-spatial.js) -->
           <div class="topbar__spatial" data-smaca-spatial-slot aria-label="{{ __('messages.spatial.label') }}"></div>
-          <!-- Time Range Selector with D5.1 timeframe explanation -->
+          <!-- Time Range Selector with timeframe explanation -->
           <div class="time-range-selector" style="position:relative;">
             <button class="time-range-btn active" data-timeframe="24h" title="{{ __('messages.topbar.filter_24h') }}">{{ __('messages.dashboard_i18n.time_24h') }}</button>
             <button class="time-range-btn" data-timeframe="7d" title="{{ __('messages.topbar.filter_7d') }}">{{ __('messages.dashboard_i18n.time_7d') }}</button>

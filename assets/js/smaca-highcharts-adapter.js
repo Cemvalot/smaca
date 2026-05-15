@@ -1893,7 +1893,7 @@ function smacaUiT(key, fallback) {
       series: [
         {
           type: 'column',
-          name: 'Energy usage',
+          name: 'kWh consumed (bucket)',
           color: 'rgba(168, 85, 247, 0.85)',
           data: energySeries,
           yAxis: 0,

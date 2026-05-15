@@ -1776,11 +1776,11 @@
             var host = tile().renderChartTile(rankEl, {
               label: locText('Energy by area', 'Ενέργεια ανά περιοχή'),
               subtitle: locText(
-                'Energy consumed in each area inside the selected timeframe.',
-                'Ενέργεια που καταναλώθηκε ανά περιοχή στο επιλεγμένο διάστημα.'
+                'kWh consumed per area in the selected timeframe (cumulative meter deltas, not latest reading).',
+                'kWh ανά περιοχή στο επιλεγμένο διάστημα (deltas αθροιστικών μετρητών, όχι τελευταία ένδειξη).'
               ),
               unit: 'kWh',
-              meta: locText('MAX − MIN of meter readings · top 6', 'MAX − MIN μετρητών · κορυφαίοι 6')
+              meta: locText('MAX−MIN per meter · top 6 areas', 'MAX−MIN ανά μετρητή · κορυφαίοι 6')
             });
             if (host) {
               tile().renderRankedBarChart(host, {
@@ -1817,10 +1817,10 @@
             var hostShare = tile().renderChartTile(shareEl, {
               label: locText('Energy share', 'Μερίδιο ενέργειας'),
               subtitle: locText(
-                'Each area\u2019s share of total energy used in the timeframe.',
-                'Μερίδιο κάθε περιοχής στη συνολική ενέργεια του διαστήματος.'
+                'Share of kWh consumed in the timeframe (meter deltas, not cumulative reading).',
+                'Μερίδιο kWh στο διάστημα (deltas μετρητών, όχι αθροιστική ένδειξη).'
               ),
-              meta: locText('% by area · centre = total kWh', '% ανά περιοχή · κέντρο = σύνολο kWh')
+              meta: locText('% by area · centre = total kWh consumed', '% ανά περιοχή · κέντρο = σύνολο kWh')
             });
             if (hostShare) {
               tile().renderDonut(hostShare, {
@@ -1894,8 +1894,8 @@
             { from: avgVal * 1.4,  to: maxVal + 1,   color: '#f97316' }
           ];
           var loadSubtitle = loadBucket.bucket === 'hourly'
-            ? locText('Energy used per hour over the last 24 hours.', 'Ενέργεια ανά ώρα τις τελευταίες 24 ώρες.')
-            : locText('Daily energy consumed across the selected window.', 'Ημερήσια καταναλωμένη ενέργεια στο επιλεγμένο διάστημα.');
+            ? locText('kWh consumed per hour (meter deltas, selected timeframe).', 'kWh ανά ώρα (deltas μετρητών, επιλεγμένο διάστημα).')
+            : locText('kWh consumed per day (meter deltas, selected timeframe).', 'kWh ανά ημέρα (deltas μετρητών, επιλεγμένο διάστημα).');
           var loadLegend = loadBucket.bucket === 'hourly'
             ? '0–23 h'
             : (loadBucket.labels[0] + ' → ' + loadBucket.labels[loadBucket.labels.length - 1]);
@@ -1970,11 +1970,15 @@
           });
         } else {
           tile().renderTile(baseEl, {
-            label: baseLoad.label,
+            label: baseLoad.label || locText('Base Load Index', 'Δείκτης Φορτίου Βάσης'),
             value: baseVal.toFixed(2),
-            unit: baseLoad.unit,
+            unit: baseLoad.unit || 'ratio',
             status: baseLoad.status,
             icon: ICONS.battery,
+            subtitle: locText(
+              'Baseline share from off-hours / low-movement windows (7d, meter deltas).',
+              'Μερίδιο baseline από εκτός ωρών / χαμηλή κίνηση (7ημέρο, deltas μετρητών).'
+            ),
             meta: baseLoad.status_meaning || null
           });
           var bulletNode = document.createElement('div');

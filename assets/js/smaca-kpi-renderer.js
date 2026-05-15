@@ -221,7 +221,7 @@
       : '';
     const sourceType = kpi.source_type ? escapeHtml(sourceTypeLabel(kpi.source_type)) : '';
     const confidence = showConf && kpi.confidence ? escapeHtml(formatConfidence(kpi.confidence)) : '';
-    const d51 = kpi.d51_category ? escapeHtml(kpi.d51_category) : '';
+    const kpiCategory = kpi.kpi_category ? escapeHtml(kpi.kpi_category) : '';
 
     if (!plainDef && !unitExp && !statusMeaning && !techDef && !limitations) {
       return '';
@@ -257,9 +257,9 @@
       if (sensors) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_sensors', 'Sensors used')) + ':</strong> ' + sensors + '</p>');
       }
-      if (sourceType || d51) {
+      if (sourceType || kpiCategory) {
         var meta = [];
-        if (d51) meta.push('<span style="' + pillStyle() + '">D5.1: ' + d51 + '</span>');
+        if (kpiCategory) meta.push('<span style="' + pillStyle() + '">' + kpiCategory + '</span>');
         if (sourceType) meta.push('<span style="' + pillStyle() + '">' + sourceType + '</span>');
         if (confidence) meta.push('<span style="' + pillStyle() + '">' + escapeHtml(t('kpi_help_confidence', 'confidence')) + ': ' + confidence + '</span>');
         parts.push('<p style="margin:0 0 var(--space-1) 0;">' + meta.join(' ') + '</p>');
@@ -337,7 +337,7 @@
       const valueHtml = vu.unit
         ? `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span><span class="stat-card__value-unit">${escapeHtml(vu.unit)}</span>`
         : `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span>`;
-      const iconKey = String(kpi.d51_category || '').toLowerCase();
+      const iconKey = String(kpi.kpi_category || '').toLowerCase();
       const iconHtml = `<span class="overview-kpi-card__icon" data-category="${escapeHtml(iconKey)}" aria-hidden="true">${categoryIconSvg(iconKey)}</span>`;
       const dotClass = 'overview-kpi-card__dot overview-kpi-card__dot--' + statusDotClass(displayStatus);
       return `

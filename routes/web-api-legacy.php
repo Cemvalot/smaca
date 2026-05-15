@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 require_once __DIR__ . '/smaca-api-helpers.php';
 require_once __DIR__ . '/smaca-ingest.php';
 require_once __DIR__ . '/smaca-telemetry-rebuild.php';
+require_once __DIR__ . '/smaca-energy-kpi-audit.php';
 
 if (!function_exists('smacaApiMetricWhitelist')) {
     function smacaApiMetricWhitelist(): array
@@ -416,7 +417,7 @@ Route::get('/api/config/thresholds', function () {
     ]);
 });
 
-// D5.1 clarity layer — public-safe KPI metadata dictionary. Returns ALL KPIs
+// Clarity layer — public-safe KPI metadata dictionary. Returns ALL KPIs
 // (locale-resolved). The frontend uses this to render "How to read this"
 // expandable details on every KPI card.
 Route::get('/api/config/kpis', function (Request $request) {
@@ -442,7 +443,7 @@ Route::get('/api/config/kpis', function (Request $request) {
     }
 });
 
-// D5.1 clarity layer — public-safe chart explanation dictionary. Used by the
+// Clarity layer — public-safe chart explanation dictionary. Used by the
 // `smaca-chart-explainer.js` module to inject expandable explanations under
 // every chart panel.
 Route::get('/api/config/charts', function (Request $request) {
@@ -824,6 +825,46 @@ Route::get('/api/admin/topology-audit', function (Request $request) {
             ]);
         } catch (\Throwable $ignored) {}
         return response()->json(['message' => 'Topology audit unavailable', 'degraded' => true], 200);
+    }
+});
+
+// -----------------------------------------------------------------------------
+// Admin-only Energy KPI alignment audit (read-only).
+// GET /api/admin/energy-kpi-audit?timeframe=24h|7d|30d&sample=10
+// -----------------------------------------------------------------------------
+Route::get('/api/admin/energy-kpi-audit', function (Request $request) {
+    if ((string) session('role', '') !== 'admin') {
+        return response()->json(['message' => 'Forbidden'], 403);
+    }
+
+    try {
+        smacaEnergyKpiAuditEnsureLoaded();
+        $reporter = smacaEnergyKpiAuditReporter();
+        $timeframe = \App\Services\KPI\KPIInputAssembler::resolveTimeframe($request->query('timeframe'));
+        $context = ['timeframe' => $timeframe];
+
+        return response()->json([
+            'generated_at' => \Carbon\Carbon::now('Europe/Athens')->toIso8601String(),
+            'timeframe' => $timeframe,
+            'deploy_diagnostics' => smacaEnergyKpiAuditDeployDiagnostics(),
+            'report' => $reporter->build($context),
+        ]);
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/admin/energy-kpi-audit failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {}
+
+        return response()->json([
+            'message' => 'Energy KPI audit unavailable',
+            'degraded' => true,
+            'deploy_diagnostics' => function_exists('smacaEnergyKpiAuditDeployDiagnostics')
+                ? smacaEnergyKpiAuditDeployDiagnostics()
+                : ['loader' => 'smaca-energy-kpi-audit.php not loaded'],
+            'error' => $e->getMessage(),
+        ], 200);
     }
 });
 

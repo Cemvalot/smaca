@@ -117,9 +117,9 @@ class KPIService
 
         $kpis = $kpisByModule[$moduleKey] ?? $kpisByModule['overview'];
 
-        // D5.1 clarity layer: enrich each KPI item with locale-resolved
+        // Clarity layer: enrich each KPI item with locale-resolved
         // metadata (plain_definition, unit_explanation, calculation_summary,
-        // limitations, source_type, d51_category, sensors_used and
+        // limitations, source_type, kpi_category, sensors_used and
         // status-meaning for the current status). This is purely additive —
         // existing keys (key, value, unit, status, description, recommended
         // action, confidence) are preserved.
@@ -202,8 +202,8 @@ class KPIService
 
             // Additive merge — never overwrite caller-provided fields.
             return array_merge($kpi, [
-                'd51_category' => $meta['d51_category'] ?? null,
-                'd51_aligned' => $meta['d51_aligned'] ?? false,
+                'kpi_category' => $meta['kpi_category'] ?? null,
+                'metadata_complete' => $meta['metadata_complete'] ?? false,
                 'source_type' => $meta['source_type'] ?? 'measured',
                 'plain_definition' => $meta['plain_definition'] ?? null,
                 'technical_definition' => $meta['technical_definition'] ?? null,
@@ -268,78 +268,120 @@ class KPIService
 
     private function calculateNormalizedEnergyIntensity(array $inputs): array
     {
-        $energy = $inputs['avg_energy_kwh'] ?? null;
-        $occupancy = $inputs['avg_people_present'] ?? null;
-        if ($energy === null || $occupancy === null) {
+        $label = 'Normalized Energy Intensity';
+        $energyKwh = $inputs['total_energy_kwh_window']
+            ?? $inputs['energy_consumption_kwh_window']
+            ?? null;
+        $estimatedPresence = $inputs['estimated_presence']
+            ?? $inputs['avg_people_present']
+            ?? null;
+        $occConfidence = (string) ($inputs['occupancy_context_confidence'] ?? 'none');
+        $contextNote = 'Estimate based on available people-counter movement data, not exact live headcount.';
+
+        if ($energyKwh === null) {
             return $this->insufficientKpi(
                 'normalized_energy_intensity',
-                'Normalized Energy Intensity',
+                $label,
                 'kWh/person',
-                'Energy consumption normalized by current occupancy.'
+                'Energy consumption data is missing for the selected timeframe.'
             );
         }
-        if ($occupancy <= 0) {
-            return [
-                'key' => 'normalized_energy_intensity',
-                'label' => 'Normalized Energy Intensity',
-                'value' => null,
-                'unit' => 'kWh/person',
-                'status' => 'insufficient_data',
-                'confidence' => 'none',
-                'description' => 'Occupancy is zero. Use Base Load Index to evaluate off-hours energy behavior.',
-                'recommended_action' => 'Use Base Load Index for periods with zero occupancy.',
-            ];
+        if ($estimatedPresence === null || $estimatedPresence <= 0 || $occConfidence === 'none') {
+            return array_merge($this->insufficientKpi(
+                'normalized_energy_intensity',
+                $label,
+                'kWh/person',
+                'Limited occupancy context — movement-derived presence is unavailable. Use Base Load Index for off-hours behavior.'
+            ), [
+                'energy_kwh' => round((float) $energyKwh, 2),
+                'estimated_presence' => null,
+                'intensity_kwh_per_estimated_person' => null,
+                'occupancy_context_confidence' => $occConfidence,
+                'semantic_explainer' => $contextNote,
+            ]);
         }
 
-        $value = round($energy / max(1.0, $occupancy), 2);
+        $denominator = max(1.0, (float) $estimatedPresence);
+        $value = round((float) $energyKwh / $denominator, 2);
         $evaluation = $this->thresholdService->evaluate('normalized_energy_intensity', $value);
         $status = $this->normalizeStatus($evaluation['status']);
+        $confidence = match ($occConfidence) {
+            'balanced_movement' => 'estimated',
+            'entries_only', 'exits_only' => 'partial',
+            default => 'none',
+        };
 
         return [
             'key' => 'normalized_energy_intensity',
-            'label' => 'Normalized Energy Intensity',
+            'label' => $label,
             'value' => $value,
             'unit' => 'kWh/person',
             'status' => $status,
-            'confidence' => ($inputs['capacity_confidence'] ?? 'estimated') === 'measured' ? 'high' : 'estimated',
+            'confidence' => $confidence,
             'description' => $evaluation['explanation'],
             'recommended_action' => $evaluation['recommended_action'],
+            'energy_kwh' => round((float) $energyKwh, 2),
+            'estimated_presence' => round((float) $estimatedPresence, 1),
+            'intensity_kwh_per_estimated_person' => $value,
+            'occupancy_context_confidence' => $occConfidence,
+            'semantic_explainer' => $contextNote,
         ];
     }
 
     private function calculateBaseLoadIndex(array $inputs): array
     {
-        $base = $inputs['avg_base_load_energy'] ?? null;
-        $offHours = $inputs['avg_off_hours_energy'] ?? null;
-        $energy = $inputs['avg_energy_kwh'] ?? null;
-        $occupancy = $inputs['avg_people_present'] ?? null;
+        $label = 'Base Load Index';
+        $total7d = $inputs['total_energy_kwh_7d'] ?? $inputs['avg_base_load_energy'] ?? null;
+        $baselineKwh = $inputs['baseline_kwh_7d'] ?? $inputs['avg_off_hours_energy'] ?? null;
+        $activeKwh = $inputs['active_hours_kwh_7d'] ?? null;
+        $windows = $inputs['detected_baseline_windows'] ?? '00:00–06:59, weekends, near-zero movement';
 
-        if ($base === null || $offHours === null || $base <= 0) {
+        if ($total7d === null || $baselineKwh === null || (float) $total7d <= 0) {
             return $this->insufficientKpi(
                 'base_load_index',
-                'Base Load Index',
+                $label,
                 'ratio',
-                'Energy usage baseline during off-hours and low occupancy.'
+                'No reliable low-occupancy baseline windows in the last 7 days.'
             );
         }
 
-        $value = round($offHours / $base, 3);
-        if ($occupancy !== null && $energy !== null && $occupancy <= 0) {
-            $value = round($energy / max($base, 0.0001), 3);
-        }
+        $value = round((float) $baselineKwh / (float) $total7d, 3);
+        $baselineState = $this->resolveBaselineState($value);
         $evaluation = $this->thresholdService->evaluate('base_load_index', $value);
         $status = $this->normalizeStatus($evaluation['status']);
 
+        if ($activeKwh === null) {
+            $activeKwh = max(0.0, (float) $total7d - (float) $baselineKwh);
+        }
+
         return [
             'key' => 'base_load_index',
-            'label' => 'Base Load Index',
+            'label' => $label,
             'value' => $value,
             'unit' => 'ratio',
             'status' => $status,
             'confidence' => 'estimated',
             'description' => $evaluation['explanation'],
             'recommended_action' => $evaluation['recommended_action'],
+            'baseline_kwh' => round((float) $baselineKwh, 2),
+            'active_hours_kwh' => round((float) $activeKwh, 2),
+            'base_load_ratio' => $value,
+            'detected_baseline_windows' => $windows,
+            'baseline_state' => $baselineState,
+            'semantic_explainer' => 'Baseline energy during minimal/near-zero occupancy windows (rolling 7 days, fixed window).',
         ];
+    }
+
+    private function resolveBaselineState(float $ratio): string
+    {
+        if ($ratio <= 0.6) {
+            return 'efficient_baseline';
+        }
+        if ($ratio <= 0.85) {
+            return 'elevated_standby_load';
+        }
+
+        return 'excessive_overnight_load';
     }
 
     private function calculateThermalComfortIndex(array $inputs): array

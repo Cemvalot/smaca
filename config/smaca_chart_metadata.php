@@ -22,7 +22,7 @@
 
 return [
 
-    'version' => '1.0.0-d51',
+    'version' => '1.0.0',
 
     'charts' => [
 
@@ -197,12 +197,12 @@ return [
                 'el' => 'Κατανάλωση ενέργειας',
             ],
             'what' => [
-                'en' => 'Energy used per bucket (columns) and cumulative energy (spline) for the selected timeframe and location scope.',
-                'el' => 'Καταναλωμένη ενέργεια ανά κάδο (στήλες) και αθροιστική ενέργεια (καμπύλη) για το επιλεγμένο διάστημα και ζώνη.',
+                'en' => 'kWh consumed per bucket (columns) and cumulative consumed kWh (spline) for the selected timeframe — from cumulative meter deltas (MAX−MIN), not the latest reading.',
+                'el' => 'kWh ανά κάδο (στήλες) και αθροιστική κατανάλωση kWh (καμπύλη) στο επιλεγμένο διάστημα — από deltas μετρητών (MAX−MIN), όχι την τελευταία ένδειξη.',
             ],
             'data_source' => [
-                'en' => 'Energy values are interpreted against the selected timeframe and available meter locations.',
-                'el' => 'Οι τιμές ενέργειας ερμηνεύονται έναντι του επιλεγμένου διαστήματος και των διαθέσιμων μετρητών.',
+                'en' => 'kWh per bucket from cumulative meter deltas (MAX−MIN energy_kwh per sensor), summed across meters — not the latest meter reading.',
+                'el' => 'kWh ανά κάδο από deltas αθροιστικών μετρητών (MAX−MIN energy_kwh ανά αισθητήρα), αθροισμένα — όχι η τελευταία ένδειξη μετρητή.',
             ],
             'how_to_read' => [
                 'en' => 'Tall columns = energy-heavy buckets. The spline shows cumulative usage — its slope is the average rate.',
@@ -229,8 +229,8 @@ return [
                 'el' => 'Τάση ζήτησης',
             ],
             'what' => [
-                'en' => 'Peak demand (kW) and / or current draw (A) over the selected timeframe.',
-                'el' => 'Αιχμή ζήτησης (kW) ή/και ρεύμα (A) στο επιλεγμένο διάστημα.',
+                'en' => 'Peak demand (kW) and/or current (A) when reported by meters, over the selected timeframe (not cumulative kWh reading).',
+                'el' => 'Αιχμή ζήτησης (kW) ή/και ρεύμα (A) όταν αναφέρεται από μετρητές, στο επιλεγμένο διάστημα (όχι αθροιστική ένδειξη kWh).',
             ],
             'data_source' => [
                 'en' => 'Energy meter `max_demand_kw` and `current_a` fields when reported by the meter.',

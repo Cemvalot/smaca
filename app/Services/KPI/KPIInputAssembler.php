@@ -402,19 +402,36 @@ class KPIInputAssembler
             $avgEnergy = round($totalEnergyKwhWindow / max(1, $timeframeHours), 4);
         }
 
-        // For energy intensity we still need an "occupancy" proxy. Use the
-        // movement entry rate (people who entered during the window) as a
-        // capped proxy. Confidence is downgraded to "estimated".
-        $entryProxy = ($movementEntries !== null && $movementEntries > 0)
-            ? min(2000.0, (float) $movementEntries)
-            : null;
+        // Movement-derived estimated presence: NOT raw cumulative
+        // people_total_in/out snapshots. Prefer balanced activity when both
+        // entry and exit deltas exist; otherwise capped entry throughput.
+        $estimatedPresence = null;
+        $occupancyContextConfidence = 'none';
+        if ($movementEntries !== null || $movementExits !== null) {
+            $entries = max(0.0, (float) ($movementEntries ?? 0));
+            $exits = max(0.0, (float) ($movementExits ?? 0));
+            if ($entries > 0 && $exits > 0) {
+                $activityBalance = ($entries + $exits) / 2.0;
+                $estimatedPresence = min(2000.0, max($entries, $activityBalance));
+                $occupancyContextConfidence = 'balanced_movement';
+            } elseif ($entries > 0) {
+                $estimatedPresence = min(2000.0, $entries);
+                $occupancyContextConfidence = 'entries_only';
+            } elseif ($exits > 0) {
+                $estimatedPresence = min(2000.0, $exits);
+                $occupancyContextConfidence = 'exits_only';
+            }
+        }
 
-        // Base-load inputs are now deltas, NOT averages of cumulative meter
-        // readings. Naming preserved for backward compatibility with KPIService
-        // (`avg_base_load_energy`, `avg_off_hours_energy`); the ratio
-        // off_hours / base remains valid because both halves are deltas now.
+        // Base-load inputs: per-sensor MAX−MIN kWh deltas (7d rolling window).
+        // `avg_*` keys kept for KPIService backward compatibility.
         $baseLoadAvg = ($baseLoadTotalKwh7d !== null) ? (float) $baseLoadTotalKwh7d : null;
         $offHoursAvg = ($baseLoadOffHoursKwh7d !== null) ? (float) $baseLoadOffHoursKwh7d : null;
+        $activeHoursKwh7d = null;
+        if ($baseLoadTotalKwh7d !== null && $baseLoadOffHoursKwh7d !== null) {
+            $activeHoursKwh7d = max(0.0, (float) $baseLoadTotalKwh7d - (float) $baseLoadOffHoursKwh7d);
+        }
+        $detectedBaselineWindows = '00:00–06:59 local, weekends (DAYOFWEEK 1,7), near-zero movement when counters exist';
 
         return [
             'avg_co2_ppm' => $avgCo2,
@@ -431,6 +448,13 @@ class KPIInputAssembler
             'lighting' => $avgLightLevel,
             'avg_energy_kwh' => $avgEnergy,
             'total_energy_kwh_window' => $totalEnergyKwhWindow,
+            'energy_consumption_kwh_window' => $totalEnergyKwhWindow,
+            'estimated_presence' => $estimatedPresence,
+            'occupancy_context_confidence' => $occupancyContextConfidence,
+            'total_energy_kwh_7d' => $baseLoadTotalKwh7d,
+            'baseline_kwh_7d' => $baseLoadOffHoursKwh7d,
+            'active_hours_kwh_7d' => $activeHoursKwh7d,
+            'detected_baseline_windows' => $detectedBaselineWindows,
             'avg_current_a' => $this->toFloat($currentReadings->avg_current_a ?? null),
             'avg_power_factor' => $this->toFloat($currentReadings->avg_power_factor ?? null),
             'avg_max_demand_kw' => $this->toFloat($currentReadings->avg_max_demand_kw ?? null),
@@ -438,7 +462,7 @@ class KPIInputAssembler
             'avg_lux' => $avgLuxReading,
             'avg_solar_radiation' => $avgSolar,
             'avg_uv_index' => $avgUv,
-            'avg_people_present' => $entryProxy, // null when no movement data
+            'avg_people_present' => $estimatedPresence,
             'movement_entries' => $movementEntries,
             'movement_exits' => $movementExits,
             'timeframe_hours' => $timeframeHours,
@@ -633,6 +657,13 @@ class KPIInputAssembler
             'lighting' => null,
             'avg_energy_kwh' => null,
             'total_energy_kwh_window' => null,
+            'energy_consumption_kwh_window' => null,
+            'estimated_presence' => null,
+            'occupancy_context_confidence' => 'none',
+            'total_energy_kwh_7d' => null,
+            'baseline_kwh_7d' => null,
+            'active_hours_kwh_7d' => null,
+            'detected_baseline_windows' => null,
             'avg_current_a' => null,
             'avg_power_factor' => null,
             'avg_max_demand_kw' => null,

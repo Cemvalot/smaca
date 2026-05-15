@@ -1,13 +1,13 @@
 <?php
 
 /**
- * SMACA KPI Metadata — D5.1 Clarity & Interpretation Layer
+ * SMACA KPI Metadata — Clarity & Interpretation Layer
  * =========================================================
  *
  * Single source of truth for every public KPI surfaced by the dashboard.
  *
  * For each KPI we describe:
- *   - d51_category           : where the KPI sits in the D5.1 framework
+ *   - kpi_category           : thematic grouping (IAQ, Comfort, Energy, etc.)
  *   - source_type            : measured | estimated | proxy
  *   - sensors_used           : human-readable list of sensor classes feeding it
  *   - calculation_summary    : short formula in plain English (admin / researcher detail)
@@ -27,7 +27,7 @@
  */
 
 return [
-    'version' => '1.0.0-d51',
+    'version' => '1.0.0',
 
     'source_types' => [
         'measured' => [
@@ -70,7 +70,7 @@ return [
             'limitations',
             'status_meaning',
             'source_type',
-            'd51_category',
+            'kpi_category',
         ],
         'admin' => [
             'plain_definition',
@@ -82,7 +82,7 @@ return [
             'limitations',
             'status_meaning',
             'source_type',
-            'd51_category',
+            'kpi_category',
             'confidence',
         ],
     ],
@@ -91,8 +91,8 @@ return [
 
         // --------------------------------------------------------------- IAQ
         'iaq_health_index' => [
-            'd51_category' => 'IAQ',
-            'd51_aligned' => true,
+            'kpi_category' => 'IAQ',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => '%',
             'unit_label' => ['en' => '%', 'el' => '%'],
@@ -146,8 +146,8 @@ return [
         ],
 
         'environmental_safety_index' => [
-            'd51_category' => 'IAQ',
-            'd51_aligned' => true,
+            'kpi_category' => 'IAQ',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => '',
             'unit_label' => ['en' => '', 'el' => ''],
@@ -201,8 +201,8 @@ return [
         ],
 
         'iaq_thermal_comfort' => [
-            'd51_category' => 'Comfort',
-            'd51_aligned' => true,
+            'kpi_category' => 'Comfort',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => '',
             'unit_label' => ['en' => '', 'el' => ''],
@@ -256,8 +256,8 @@ return [
         ],
 
         'ventilation_quality_index' => [
-            'd51_category' => 'IAQ',
-            'd51_aligned' => true,
+            'kpi_category' => 'IAQ',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => 'ppm',
             'unit_label' => ['en' => 'ppm', 'el' => 'ppm'],
@@ -311,8 +311,8 @@ return [
         ],
 
         'visual_lighting_condition' => [
-            'd51_category' => 'Comfort',
-            'd51_aligned' => true,
+            'kpi_category' => 'Comfort',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => '',
             'unit_label' => ['en' => '', 'el' => ''],
@@ -367,8 +367,8 @@ return [
 
         // ------------------------------------------------------- Crowd density
         'crowd_density_level' => [
-            'd51_category' => 'Occupancy',
-            'd51_aligned' => true,
+            'kpi_category' => 'Occupancy',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => 'events/h',
             'unit_label' => ['en' => 'events/h', 'el' => 'διελεύσεις/ώρα'],
@@ -423,8 +423,8 @@ return [
 
         // ----------------------------------------------- Movement (passage-only)
         'movement_activity_index' => [
-            'd51_category' => 'Occupancy',
-            'd51_aligned' => true,
+            'kpi_category' => 'Occupancy',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => 'events/h',
             'unit_label' => ['en' => 'events/h', 'el' => 'διελεύσεις/ώρα'],
@@ -479,8 +479,8 @@ return [
 
         // ----------------------------------------------------- Energy intensity
         'normalized_energy_intensity' => [
-            'd51_category' => 'Energy',
-            'd51_aligned' => true,
+            'kpi_category' => 'Energy',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => 'kWh/person',
             'unit_label' => ['en' => 'kWh/person', 'el' => 'kWh/άτομο'],
@@ -493,16 +493,16 @@ return [
                 'el' => 'Πόση ενέργεια καταναλώνεται σε σχέση με την εκτιμώμενη πληρότητα στο επιλεγμένο διάστημα.',
             ],
             'technical_definition' => [
-                'en' => 'Average energy_kwh ÷ estimated occupancy proxy (movement entries, capped). Falls back to Base Load when occupancy is zero.',
-                'el' => 'Μέση κατανάλωση energy_kwh ÷ εκτιμώμενος δείκτης πληρότητας (είσοδοι κίνησης, με ανώτατο όριο). Σε μηδενική πληρότητα χρησιμοποιείται το Base Load.',
+                'en' => 'Total kWh consumed in the selected timeframe (SUM of per-meter MAX−MIN energy_kwh deltas) ÷ estimated presence from movement counter deltas (entries/exits, capped). Not cumulative meter snapshots.',
+                'el' => 'Συνολικά kWh στο επιλεγμένο διάστημα (ΑΘΡΟΙΣΜΑ MAX−MIN energy_kwh ανά μετρητή) ÷ εκτιμώμενη παρουσία από deltas μετρητών κίνησης (είσοδοι/έξοδοι, με όριο). Όχι στιγμιότυπα αθροιστικών μετρητών.',
             ],
             'sensors_used' => [
                 'en' => ['Energy meters', 'People counters (occupancy proxy)'],
                 'el' => ['Μετρητές ενέργειας', 'Μετρητές ατόμων (υποκατάστατο πληρότητας)'],
             ],
             'calculation_summary' => [
-                'en' => 'AVG(energy_kwh) ÷ estimated occupancy over the selected timeframe.',
-                'el' => 'AVG(energy_kwh) ÷ εκτιμώμενη πληρότητα στο επιλεγμένο διάστημα.',
+                'en' => 'total_energy_kwh_window ÷ max(estimated_presence, 1). Presence = movement-derived estimate, not live headcount.',
+                'el' => 'total_energy_kwh_window ÷ max(estimated_presence, 1). Παρουσία = εκτίμηση από κίνηση, όχι live headcount.',
             ],
             'source_type' => 'estimated',
             'limitations' => [
@@ -535,8 +535,8 @@ return [
 
         // -------------------------------------------------------- Base load
         'base_load_index' => [
-            'd51_category' => 'Energy',
-            'd51_aligned' => true,
+            'kpi_category' => 'Energy',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => 'ratio',
             'unit_label' => ['en' => 'ratio', 'el' => 'λόγος'],
@@ -545,25 +545,25 @@ return [
                 'el' => 'Κατανάλωση εκτός ωρών λειτουργίας ÷ συνολικός μέσος. Μικρότερο είναι καλύτερο.',
             ],
             'plain_definition' => [
-                'en' => 'How much energy is used during low-occupancy / off-hours, compared to the overall average.',
-                'el' => 'Πόση ενέργεια καταναλώνεται σε ώρες χαμηλής πληρότητας / εκτός λειτουργίας, σε σύγκριση με τον συνολικό μέσο.',
+                'en' => 'Baseline energy demand during periods of minimal or near-zero occupancy (rolling 7 days).',
+                'el' => 'Βασική ενεργειακή κατανάλωση κατά τις περιόδους ελάχιστης ή μηδενικής παρουσίας (κυλιόμενο 7-ήμερο).',
             ],
             'technical_definition' => [
-                'en' => 'AVG(energy_kwh) during off-hours (00:00–06:00 + weekends with near-zero occupancy) over the last 7 days, divided by AVG(energy_kwh) over the same window.',
-                'el' => 'AVG(energy_kwh) σε εκτός ωρών (00:00–06:00 + σαββατοκύριακα με σχεδόν μηδενική πληρότητα) τις τελευταίες 7 ημέρες, διαιρεμένο με τον AVG(energy_kwh) του ίδιου διαστήματος.',
+                'en' => 'kWh in baseline windows (00:00–06:59, weekends, near-zero movement) ÷ total kWh over rolling 7 days. Both use per-meter MAX−MIN energy_kwh deltas.',
+                'el' => 'kWh σε παράθυρα baseline (00:00–06:59, σαββατοκύριακα, σχεδόν μηδενική κίνηση) ÷ συνολικά kWh σε κυλιόμενο 7-ήμερο. Και τα δύο με MAX−MIN energy_kwh ανά μετρητή.',
             ],
             'sensors_used' => [
                 'en' => ['Energy meters', 'People counters (off-hours filter)'],
                 'el' => ['Μετρητές ενέργειας', 'Μετρητές ατόμων (φίλτρο εκτός ωρών)'],
             ],
             'calculation_summary' => [
-                'en' => 'Off-hours / weekend AVG(energy_kwh) ÷ overall AVG(energy_kwh) (rolling 7 days, fixed by KPI definition).',
-                'el' => 'Εκτός ωρών / σαββατοκύριακο AVG(energy_kwh) ÷ συνολικός AVG(energy_kwh) (κυλιόμενο 7-ήμερο, σταθερό ανά ορισμό KPI).',
+                'en' => 'baseline_kwh_7d ÷ total_energy_kwh_7d (rolling 7 days, fixed window). Lower ratio = less standby load.',
+                'el' => 'baseline_kwh_7d ÷ total_energy_kwh_7d (κυλιόμενο 7-ήμερο, σταθερό παράθυρο). Μικρότερος λόγος = λιγότερο standby.',
             ],
             'source_type' => 'estimated',
             'limitations' => [
-                'en' => 'Uses a fixed 7-day window regardless of the dashboard timeframe selector — this is by D5.1 design.',
-                'el' => 'Χρησιμοποιεί σταθερό 7-ήμερο παράθυρο ανεξάρτητα από τον επιλογέα διαστήματος — βάσει σχεδιασμού D5.1.',
+                'en' => 'Uses a fixed 7-day window regardless of the dashboard timeframe selector — by design.',
+                'el' => 'Χρησιμοποιεί σταθερό 7-ήμερο παράθυρο ανεξάρτητα από τον επιλογέα διαστήματος — σκόπιμα.',
             ],
             'limitations_simple' => [
                 'en' => 'Always evaluated over a 7-day window, even if you selected a different timeframe.',
@@ -591,8 +591,8 @@ return [
 
         // -------------------------------------------------- Thermal comfort
         'thermal_comfort_index' => [
-            'd51_category' => 'Comfort',
-            'd51_aligned' => true,
+            'kpi_category' => 'Comfort',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => '%',
             'unit_label' => ['en' => '%', 'el' => '%'],
@@ -647,8 +647,8 @@ return [
 
         // ---------------------------------------------------- Visual comfort
         'visual_comfort_kpi' => [
-            'd51_category' => 'Comfort',
-            'd51_aligned' => true,
+            'kpi_category' => 'Comfort',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => '%',
             'unit_label' => ['en' => '%', 'el' => '%'],
@@ -703,8 +703,8 @@ return [
 
         // ----------------------------------------------------- UV exposure
         'uv_exposure_risk' => [
-            'd51_category' => 'Environmental',
-            'd51_aligned' => true,
+            'kpi_category' => 'Environmental',
+            'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => 'index',
             'unit_label' => ['en' => 'UV index', 'el' => 'δείκτης UV'],
