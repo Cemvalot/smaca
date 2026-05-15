@@ -5533,8 +5533,8 @@
 }
 
 .iaq-sensor-card__metrics--dense {
-  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
 }
 
 /* Collapsed row: mini operational metric */
@@ -5542,9 +5542,9 @@
   position: relative;
   display: flex;
   align-items: stretch;
-  gap: 6px;
-  min-height: 52px;
-  padding: 6px 8px 6px 6px;
+  gap: 8px;
+  min-height: 56px;
+  padding: 8px 10px 8px 8px;
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.55);
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -5570,9 +5570,9 @@
 }
 
 .iaq-mini-metric--collapsed .iaq-mini-metric__value {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.2;
   color: #f1f5f9;
   letter-spacing: -0.02em;
 }
@@ -5592,14 +5592,35 @@
 }
 
 .iaq-mini-metric--collapsed .iaq-mini-metric__label {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(148, 163, 184, 0.85);
+  letter-spacing: 0.05em;
+  color: rgba(148, 163, 184, 0.78);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@media (min-width: 769px) and (max-width: 1366px) {
+  .iaq-sensor-card__main {
+    grid-template-columns: minmax(140px, 0.34fr) minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-2);
+  }
+
+  .iaq-sensor-card__metrics--dense {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px 10px;
+  }
+
+  .iaq-mini-metric--collapsed {
+    min-height: 54px;
+    padding: 7px 9px;
+  }
+
+  .iaq-mini-metric--collapsed .iaq-mini-metric__value {
+    font-size: 15px;
+  }
 }
 
 /* Severity tints — collapsed + detail cards */

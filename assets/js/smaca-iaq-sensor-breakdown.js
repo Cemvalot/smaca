@@ -123,9 +123,11 @@
     return null;
   }
 
+  /** Explicit debug only — never shown in normal admin/user UI. */
   function isIaqDebugMode() {
     if (IAQ_DEBUG) return true;
     try {
+      if (global.SMACA_DEBUG !== true) return false;
       var u = global.SMACA_USER || {};
       return Boolean(u.isAdmin) || String(u.role || '').toLowerCase() === 'admin';
     } catch (e) {
@@ -234,18 +236,33 @@
     var temp = effectiveTemp(latest);
     var rh = effectiveRh(latest);
     if (temp !== null && temp < 20) {
-      out.push({ sev: 2, text: t('iaq_warn_temp_low', 'Temperature below comfort band (<20 °C)') });
+      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_temp_low', 'Temperature below comfort band (<20 °C)') });
     }
     if (temp !== null && temp > 24) {
-      out.push({ sev: 2, text: t('iaq_warn_temp_high', 'Temperature above comfort band (>24 °C)') });
+      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_temp_high', 'Temperature above comfort band (>24 °C)') });
     }
     if (rh !== null && rh < 40) {
-      out.push({ sev: 2, text: t('iaq_warn_rh_low', 'Humidity below comfort band (<40 % RH)') });
+      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_low', 'Humidity below comfort band (<40 % RH)') });
     }
     if (rh !== null && rh > 60) {
-      out.push({ sev: 2, text: t('iaq_warn_rh_high', 'Humidity above comfort band (>60 % RH)') });
+      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_high', 'Humidity above comfort band (>60 % RH)') });
     }
     return out;
+  }
+
+  var IAQ_CONCERN_RANK = {
+    tvoc_bad: 1,
+    tvoc_poor: 2,
+    co2_critical: 3,
+    co2_high: 4,
+    pm_unhealthy: 5,
+    thermal: 6,
+    lighting: 7
+  };
+
+  function warningConcernRank(warning) {
+    if (!warning) return 99;
+    return IAQ_CONCERN_RANK[warning.kind] || 99;
   }
 
   function telemetryHealthLabel(latest, availability) {
@@ -492,25 +509,32 @@
     var w = [];
     var co2 = effectiveCo2(latest || {});
     if (co2 !== null) {
-      if (co2 >= 2000) w.push({ sev: 4, text: t('iaq_sensor_breakdown_warn_co2_critical', 'CO₂ critical (≥2000 ppm)') });
-      if (co2 >= 1000) w.push({ sev: 3, text: t('iaq_sensor_breakdown_warn_co2_high', 'CO₂ elevated (≥1000 ppm)') });
+      if (co2 >= 2000) {
+        w.push({ sev: 4, kind: 'co2_critical', text: t('iaq_sensor_breakdown_warn_co2_critical', 'CO₂ critical (≥2000 ppm)') });
+      } else if (co2 >= 1000) {
+        w.push({ sev: 3, kind: 'co2_high', text: t('iaq_sensor_breakdown_warn_co2_high', 'CO₂ elevated (≥1000 ppm)') });
+      }
     }
     var pm25 = effectivePm25(latest || {});
     if (pm25 !== null && pm25 > 35.4) {
-      w.push({ sev: 3, text: t('iaq_sensor_breakdown_warn_pm25', 'PM2.5 unhealthy (>35.4 µg/m³)') });
+      w.push({ sev: 3, kind: 'pm_unhealthy', text: t('iaq_sensor_breakdown_warn_pm25', 'PM2.5 unhealthy (>35.4 µg/m³)') });
     }
     var pm10 = effectivePm10(latest || {});
     if (pm10 !== null && pm10 > 154) {
-      w.push({ sev: 3, text: t('iaq_sensor_breakdown_warn_pm10', 'PM10 unhealthy (>154 µg/m³)') });
+      w.push({ sev: 3, kind: 'pm_unhealthy', text: t('iaq_sensor_breakdown_warn_pm10', 'PM10 unhealthy (>154 µg/m³)') });
     }
     var tvoc = effectiveTvoc(latest || {});
     if (tvoc !== null) {
       if (String(tvocMode || '') === 'raw_tvoc_ugm3') {
-        if (tvoc >= 1000) w.push({ sev: 4, text: t('iaq_sensor_breakdown_warn_tvoc_critical', 'TVOC high') });
-        else if (tvoc >= 250) w.push({ sev: 2, text: t('iaq_sensor_breakdown_warn_tvoc', 'TVOC elevated') });
-      } else {
-        if (tvoc >= 4.99) w.push({ sev: 4, text: t('iaq_sensor_breakdown_warn_tvoc_critical', 'TVOC high') });
-        else if (tvoc >= 3.99) w.push({ sev: 2, text: t('iaq_sensor_breakdown_warn_tvoc', 'TVOC elevated') });
+        if (tvoc >= 1000) {
+          w.push({ sev: 4, kind: 'tvoc_bad', text: t('iaq_sensor_breakdown_warn_tvoc_critical', 'TVOC high') });
+        } else if (tvoc >= 250) {
+          w.push({ sev: 2, kind: 'tvoc_poor', text: t('iaq_sensor_breakdown_warn_tvoc', 'TVOC elevated') });
+        }
+      } else if (tvoc >= 4.99) {
+        w.push({ sev: 4, kind: 'tvoc_bad', text: t('iaq_sensor_breakdown_warn_tvoc_critical', 'TVOC high') });
+      } else if (tvoc >= 4) {
+        w.push({ sev: 2, kind: 'tvoc_poor', text: t('iaq_warn_tvoc_poor', 'Poor TVOC rating') });
       }
     }
     var tw = collectThermalWarningsDetailed(latest || {});
@@ -519,13 +543,21 @@
     if (le.primary !== null) {
       if (String(lightMode || '') === 'raw_lux' && le.source === 'lux') {
         var lx = le.primary;
-        if (lx < 80 || lx > 2500) {
-          w.push({ sev: 2, text: t('iaq_sensor_breakdown_warn_lighting', 'Lighting outside comfortable range') });
+        if (lx <= 0) {
+          w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_minimal', 'Minimal lighting detected') });
+        } else if (lx < 80) {
+          w.push({ sev: 2, kind: 'lighting', text: t('iaq_sensor_breakdown_warn_lighting', 'Lighting outside comfortable range') });
+        } else if (lx > 2500) {
+          w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_intense', 'Intense lighting detected') });
         }
       } else {
         var ll = le.primary;
-        if (ll <= 1 || ll >= 5) {
-          w.push({ sev: 2, text: t('iaq_sensor_breakdown_warn_lighting', 'Lighting outside comfortable range') });
+        if (ll === 0) {
+          w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_minimal', 'Minimal lighting detected') });
+        } else if (ll <= 1) {
+          w.push({ sev: 2, kind: 'lighting', text: t('iaq_sensor_breakdown_warn_lighting', 'Lighting outside comfortable range') });
+        } else if (ll >= 5) {
+          w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_intense', 'Intense lighting detected') });
         }
       }
     }
@@ -542,7 +574,12 @@
 
   function topConcernFromWarnings(warnings) {
     if (!warnings.length) return t('iaq_sensor_breakdown_ok', 'OK');
-    var sorted = warnings.slice().sort(function (a, b) { return b.sev - a.sev; });
+    var sorted = warnings.slice().sort(function (a, b) {
+      var ra = warningConcernRank(a);
+      var rb = warningConcernRank(b);
+      if (ra !== rb) return ra - rb;
+      return b.sev - a.sev;
+    });
     return sorted[0].text;
   }
 
@@ -949,7 +986,16 @@
       var floorTrigger = event.target.closest('.iaq-sensor-floor__trigger');
       if (floorTrigger) {
         var floor = floorTrigger.closest('.iaq-sensor-floor');
-        if (floor) setFloorState(floor, !floor.classList.contains('is-open'));
+        if (floor) {
+          var willOpen = !floor.classList.contains('is-open');
+          if (willOpen) {
+            var openFloors = container.querySelectorAll('.iaq-sensor-floor.is-open');
+            for (var fi = 0; fi < openFloors.length; fi++) {
+              if (openFloors[fi] !== floor) setFloorState(openFloors[fi], false);
+            }
+          }
+          setFloorState(floor, willOpen);
+        }
         return;
       }
       var cardTrigger = event.target.closest('.iaq-sensor-card__trigger');
@@ -1084,7 +1130,7 @@
         if (container.__smacaFloorState && Object.prototype.hasOwnProperty.call(container.__smacaFloorState, floorCode)) {
           isOpen = Boolean(container.__smacaFloorState[floorCode]);
         } else {
-          isOpen = floorIdx === 0;
+          isOpen = false;
         }
 
         var cards = vms.map(function (vm) {
