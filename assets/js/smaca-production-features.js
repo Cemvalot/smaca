@@ -181,22 +181,40 @@ function clearSmacaTimeseriesCache() {
 const SMACA_CHART_HOUR_MS = 60 * 60 * 1000;
 const SMACA_CHART_DAY_MS = 24 * SMACA_CHART_HOUR_MS;
 
+function getSmacaOperationalDayStartMs(atMs) {
+  const ref = Number.isFinite(atMs) ? new Date(atMs) : new Date();
+  return new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 0, 0, 0, 0).getTime();
+}
+
+function getSmacaOperationalCurrentHourIndex(bucketTimesMs, nowMs) {
+  if (!Array.isArray(bucketTimesMs) || !bucketTimesMs.length || !Number.isFinite(nowMs)) return -1;
+  let idx = -1;
+  for (let i = 0; i < bucketTimesMs.length; i++) {
+    const bucketStart = Number(bucketTimesMs[i]);
+    if (!Number.isFinite(bucketStart) || bucketStart > nowMs) break;
+    idx = i;
+  }
+  return idx;
+}
+
 function getSmacaLineChartWindow(timeframe) {
   const tf = timeframe || '24h';
   const now = Date.now();
   if (tf === '24h') {
-    const alignedEndBucketMs = Math.floor(now / SMACA_CHART_HOUR_MS) * SMACA_CHART_HOUR_MS;
+    const dayStartLocal = getSmacaOperationalDayStartMs(now);
+    const dayEndLocal = dayStartLocal + (24 * SMACA_CHART_HOUR_MS) - 1;
     const bucketCount = 24;
     const bucketTimesMs = Array.from({ length: bucketCount }, function (_, idx) {
-      return alignedEndBucketMs - (bucketCount - 1 - idx) * SMACA_CHART_HOUR_MS;
+      return dayStartLocal + (idx * SMACA_CHART_HOUR_MS);
     });
     return {
       timeframe: '24h',
       bucketMs: SMACA_CHART_HOUR_MS,
       bucketCount: bucketCount,
       bucketTimesMs: bucketTimesMs,
-      rangeStartMs: bucketTimesMs[0],
-      rangeEndMs: now
+      rangeStartMs: dayStartLocal,
+      rangeEndMs: Math.min(now, dayEndLocal),
+      operationalDay: true
     };
   }
 
@@ -318,7 +336,8 @@ function formatSmacaChartAxisLabel(timestampMs, timeframe) {
   const date = new Date(timestampMs);
   if (!Number.isFinite(date.getTime())) return '';
   if (timeframe === '24h') {
-    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+    const h = date.getHours();
+    return String(h).padStart(2, '0') + ':00';
   }
   if (timeframe === '7d') {
     return date.toLocaleDateString(undefined, { weekday: 'short', day: '2-digit' });
@@ -341,6 +360,7 @@ function getSmacaHighchartsAxisBounds(chartWindow) {
 if (typeof window !== 'undefined') {
   window.SMACAChartTime = {
     getLineChartWindow: getSmacaLineChartWindow,
+    getOperationalDayStartMs: getSmacaOperationalDayStartMs,
     resolveBucketKey: resolveSmacaChartBucketKey,
     formatAxisLabel: formatSmacaChartAxisLabel,
     getHighchartsAxisBounds: getSmacaHighchartsAxisBounds
@@ -3761,8 +3781,21 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   };
 
   const timeframeMeta = timeframe === '24h'
-    ? 'Last 24h'
-    : (timeframe === '7d' ? 'Last 7 days' : 'Last 30 days');
+    ? smacaT('energy_operational_day_meta', 'Operational day (00:00–23:59)')
+    : (timeframe === '7d' ? smacaT('time_7d', 'Last 7 days') : smacaT('time_30d', 'Last 30 days'));
+
+  const usageSubtitleEl = document.querySelector('[data-energy-chart-subtitle="usage"]');
+  if (usageSubtitleEl) {
+    usageSubtitleEl.textContent = timeframe === '24h'
+      ? smacaT('energy_usage_24h_subtitle', 'Hourly consumption for the operational day (00:00–23:59, local time).')
+      : smacaT('columns_spline_energy', 'kWh per bucket from cumulative meter deltas (MAX−MIN) in the selected timeframe — not the latest meter reading.');
+  }
+  const demandSubtitleEl = document.querySelector('[data-energy-chart-subtitle="demand"]');
+  if (demandSubtitleEl) {
+    demandSubtitleEl.textContent = timeframe === '24h'
+      ? smacaT('energy_demand_24h_subtitle', 'Hourly demand intensity for the operational day (00:00–23:59, local time).')
+      : smacaT('operational_demand_intensity', 'Operational demand intensity from meter deltas in the selected timeframe (when reported by devices).');
+  }
 
   if (!energyRows || energyRows.length === 0) {
     [mainChartId, demandChartId, patternChartId, distributionChartId, shareChartId].forEach(function (id) {
@@ -3909,6 +3942,7 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
 
   // Energy usage per bucket = summed positive deltas between consecutive buckets.
   const energyValues = [];
+  const bucketHasData = [];
   for (let i = 0; i < bucketTimesMs.length; i += 1) {
     const bucketKey = bucketTimesMs[i];
     const prevKey = i > 0 ? bucketTimesMs[i - 1] : null;
@@ -3929,20 +3963,63 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
       }
     });
 
+    bucketHasData.push(hasAny);
     energyValues.push(hasAny ? sumDelta : null);
+  }
+
+  const operationalNowMs = Number(chartWindow.rangeEndMs) || Date.now();
+  const currentHourIndex = timeframe === '24h'
+    ? getSmacaOperationalCurrentHourIndex(bucketTimesMs, operationalNowMs)
+    : bucketTimesMs.length - 1;
+  let lastRealBucketIndex = -1;
+  for (let i = 0; i < bucketHasData.length; i += 1) {
+    if (!bucketHasData[i]) continue;
+    if (timeframe === '24h' && i > currentHourIndex) continue;
+    lastRealBucketIndex = i;
+  }
+
+  if (timeframe === '24h') {
+    for (let i = 0; i < energyValues.length; i += 1) {
+      if (i > currentHourIndex || !bucketHasData[i]) {
+        energyValues[i] = null;
+      }
+    }
   }
 
   const hasAnyEnergy = energyValues.some(function (v) { return Number.isFinite(Number(v)); });
   const trendValues = [];
   let running = 0;
-  energyValues.forEach(function (v) {
+  for (let i = 0; i < energyValues.length; i += 1) {
+    if (timeframe === '24h') {
+      if (i > currentHourIndex || !bucketHasData[i]) {
+        trendValues.push(null);
+        continue;
+      }
+      running += Number(energyValues[i]);
+      trendValues.push(running);
+      continue;
+    }
+    const v = energyValues[i];
     if (Number.isFinite(Number(v))) {
       running += Number(v);
       trendValues.push(running);
     } else {
       trendValues.push(null);
     }
-  });
+  }
+
+  const chartAvgUsage = (function () {
+    const samples = energyValues
+      .map(function (v, idx) {
+        if (!Number.isFinite(Number(v))) return null;
+        if (timeframe === '24h' && (idx > currentHourIndex || !bucketHasData[idx])) return null;
+        return Number(v);
+      })
+      .filter(function (v) { return v !== null; });
+    return samples.length
+      ? (samples.reduce(function (s, v) { return s + v; }, 0) / samples.length)
+      : null;
+  })();
 
   // Aggregate per location using real per-sensor delta across the selected timeframe window.
   // (This powers both the distribution bar and the share donut.)
@@ -3998,10 +4075,14 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
 
   // Usage pattern by hour (hour-of-day colored columns).
   const hourBucketCount = timeframe === '24h' ? 24 : (timeframe === '7d' ? 7 * 24 : 30 * 24);
-  const hourlyBucketTimesMs = Array.from({ length: hourBucketCount }, function (_, idx) {
-    const alignedEndHourMs = Math.floor(rangeEndMs / HOUR_MS) * HOUR_MS;
-    return alignedEndHourMs - (hourBucketCount - 1 - idx) * HOUR_MS;
-  });
+  const hourlyBucketTimesMs = timeframe === '24h'
+    ? Array.from({ length: 24 }, function (_, idx) {
+      return getSmacaOperationalDayStartMs(rangeEndMs) + (idx * HOUR_MS);
+    })
+    : Array.from({ length: hourBucketCount }, function (_, idx) {
+      const alignedEndHourMs = Math.floor(rangeEndMs / HOUR_MS) * HOUR_MS;
+      return alignedEndHourMs - (hourBucketCount - 1 - idx) * HOUR_MS;
+    });
 
   const hourlyMin = hourlyBucketTimesMs.length ? hourlyBucketTimesMs[0] : null;
   const hourlyMax = hourlyBucketTimesMs.length ? hourlyBucketTimesMs[hourlyBucketTimesMs.length - 1] : null;
@@ -4047,19 +4128,23 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
     return String(h).padStart(2, '0');
   });
 
-  const usagePatternByHour = hourCategories.map(function (_, hourOfDay) {
-    let sum = 0;
-    let count = 0;
-    hourlyUsageValues.forEach(function (v, idx) {
-      if (!Number.isFinite(Number(v))) return;
-      const bucketHour = new Date(hourlyBucketTimesMs[idx]).getHours();
-      if (bucketHour === hourOfDay) {
-        sum += Number(v);
-        count += 1;
-      }
+  const usagePatternByHour = timeframe === '24h'
+    ? hourlyUsageValues.map(function (v) {
+      return Number.isFinite(Number(v)) ? Number(v) : 0;
+    })
+    : hourCategories.map(function (_, hourOfDay) {
+      let sum = 0;
+      let count = 0;
+      hourlyUsageValues.forEach(function (v, idx) {
+        if (!Number.isFinite(Number(v))) return;
+        const bucketHour = new Date(hourlyBucketTimesMs[idx]).getHours();
+        if (bucketHour === hourOfDay) {
+          sum += Number(v);
+          count += 1;
+        }
+      });
+      return count > 0 ? (sum / count) : null;
     });
-    return count > 0 ? (sum / count) : null;
-  });
 
   // KPI calculations (real derived values from the selected window).
   const numericEnergy = energyValues
@@ -4079,7 +4164,7 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
       const t = bucketTimesMs[peakIdx];
       const dt = new Date(t);
       peakLabel = timeframe === '24h'
-        ? window.Highcharts.dateFormat('%H:%M', t)
+        ? (String(new Date(t).getHours()).padStart(2, '0') + ':00')
         : window.Highcharts.dateFormat('%d %b', t);
     }
   }
@@ -4121,11 +4206,16 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   smacaDebug('[SMACA][ENERGY] chart render start', { timeframe: timeframe });
   smacaDebug('[SMACA][ENERGY] using recreate path = ' + String(timeframeChanged));
 
+  const energyNoDataYet = smacaT('energy_no_data_yet', 'No data yet');
   const mainRendered = adapter.createEnergyMainCombinedChart(mainChartId, {
     timeframe: timeframe,
     bucketTimesMs: bucketTimesMs,
     energyValues: energyValues,
-    trendValues: trendValues
+    trendValues: trendValues,
+    avgUsage: chartAvgUsage,
+    currentHourIndex: currentHourIndex,
+    lastRealBucketIndex: lastRealBucketIndex,
+    noDataYetLabel: energyNoDataYet
   });
   recreatedMainChart = recreatedMainChart || !!(mainRendered && mainRendered.recreated);
 
@@ -4133,9 +4223,13 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   // (e.g. 30d view but only the last 4 days have readings), surface a
   // banner so the empty left side is clearly explained rather than read
   // as "the chart is broken".
-  const energyPopulatedBuckets = energyValues.filter(function (v) {
-    return Number.isFinite(Number(v));
-  }).length;
+  const energyPopulatedBuckets = timeframe === '24h'
+    ? bucketHasData.filter(function (has, idx) {
+      return has && idx <= currentHourIndex;
+    }).length
+    : energyValues.filter(function (v) {
+      return Number.isFinite(Number(v));
+    }).length;
   renderSparseDataNote(mainChartId, energyPopulatedBuckets, energyValues.length, timeframe);
 
   // Enforce a safe lifecycle pass after timeframe transitions.
@@ -4151,7 +4245,10 @@ function updateEnergyCharts(filteredEnergy, timeframe) {
   const demandRendered = adapter.createEnergyDemandTrendChart(demandChartId, {
     timeframe: timeframe,
     bucketTimesMs: bucketTimesMs,
-    values: energyValues
+    values: energyValues,
+    currentHourIndex: currentHourIndex,
+    lastRealBucketIndex: lastRealBucketIndex,
+    noDataYetLabel: energyNoDataYet
   });
 
   const patternRendered = adapter.createEnergyUsagePatternHourChart(patternChartId, {

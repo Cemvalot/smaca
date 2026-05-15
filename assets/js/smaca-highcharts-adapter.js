@@ -161,6 +161,12 @@ function smacaUiT(key, fallback) {
     return {};
   }
 
+  function formatOperationalHourLabel(timestampMs) {
+    const d = new Date(timestampMs);
+    if (!Number.isFinite(d.getTime())) return '';
+    return String(d.getHours()).padStart(2, '0') + ':00';
+  }
+
   function buildChartWindowFromBucketTimes(timeframe, times) {
     const bucketTimesMs = Array.isArray(times) ? times : [];
     if (!bucketTimesMs.length) return null;
@@ -1764,6 +1770,21 @@ function smacaUiT(key, fallback) {
     });
   }
 
+  function findEnergyBucketIndex(bucketTimesMs, pointXMs) {
+    const x = Number(pointXMs);
+    if (!Array.isArray(bucketTimesMs) || !Number.isFinite(x)) return -1;
+    for (let i = 0; i < bucketTimesMs.length; i++) {
+      if (Number(bucketTimesMs[i]) === x) return i;
+    }
+    return -1;
+  }
+
+  function isEnergyFutureBucket(timeframe, bucketTimesMs, pointXMs, currentHourIndex) {
+    if (timeframe !== '24h' || currentHourIndex < 0) return false;
+    const idx = findEnergyBucketIndex(bucketTimesMs, pointXMs);
+    return idx > currentHourIndex;
+  }
+
   function createOrUpdateEnergyMainCombinedChart(containerId, params) {
     if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
     const timeframe = params?.timeframe || '24h';
@@ -1771,12 +1792,13 @@ function smacaUiT(key, fallback) {
     const energyValues = Array.isArray(params?.energyValues) ? params.energyValues : [];
     const trendValues = Array.isArray(params?.trendValues) ? params.trendValues : [];
     const chartWindow = buildChartWindowFromBucketTimes(timeframe, bucketTimesMs);
+    const currentHourIndex = Number.isFinite(Number(params?.currentHourIndex))
+      ? Number(params.currentHourIndex)
+      : -1;
+    const noDataYetLabel = String(params?.noDataYetLabel || 'No data yet');
 
-    const numericEnergy = energyValues
-      .map(function (v) { return Number(v); })
-      .filter(function (v) { return Number.isFinite(v); });
-    const avgUsage = numericEnergy.length
-      ? (numericEnergy.reduce(function (s, v) { return s + v; }, 0) / numericEnergy.length)
+    const avgUsage = Number.isFinite(Number(params?.avgUsage))
+      ? Number(params.avgUsage)
       : null;
 
     const energySeries = bucketTimesMs.map(function (t, i) {
@@ -1814,7 +1836,7 @@ function smacaUiT(key, fallback) {
           autoRotationLimit: 80,
           y: 12,
           formatter: function () {
-            if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (timeframe === '24h') return formatOperationalHourLabel(this.value);
             if (timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
@@ -1860,13 +1882,22 @@ function smacaUiT(key, fallback) {
         style: { color: '#e2e8f0', fontSize: '11px' },
         formatter: function () {
           const header = timeframe === '24h'
-            ? window.Highcharts.dateFormat('%H:%M', this.x)
+            ? formatOperationalHourLabel(this.x)
             : window.Highcharts.dateFormat('%d %b', this.x);
+          if (isEnergyFutureBucket(timeframe, bucketTimesMs, this.x, currentHourIndex)) {
+            return (
+              '<div style="min-width:190px;">' +
+              '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+              '<div style="color:#dbe7f5;font-size:11px;">' + noDataYetLabel + '</div>' +
+              '</div>'
+            );
+          }
           const rows = (this.points || []).map(function (p) {
             const name = p.series && p.series.name ? p.series.name : 'Series';
             const value = Number(p.y);
             const color = p.color || '#94a3b8';
-            const valueText = Number.isFinite(value) ? String(value.toFixed(1)) : 'N/A';
+            if (!Number.isFinite(value)) return '';
+            const valueText = String(value.toFixed(1));
             return (
               '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:6px;">' +
               '<span style="display:inline-flex;align-items:center;gap:7px;color:#dbe7f5;">' +
@@ -1886,9 +1917,9 @@ function smacaUiT(key, fallback) {
         }
       },
       plotOptions: {
-        series: { animation: false, states: { inactive: { opacity: 1 } } },
+        series: { animation: false, states: { inactive: { opacity: 1 } }, connectNulls: false },
         column: { groupPadding: 0.12, pointPadding: 0.06, borderRadius: 3, borderWidth: 0 },
-        spline: { marker: { enabled: false }, lineWidth: 2.2 }
+        spline: { marker: { enabled: false }, lineWidth: 2.2, connectNulls: false }
       },
       series: [
         {
@@ -1905,7 +1936,8 @@ function smacaUiT(key, fallback) {
           color: 'rgba(56, 189, 248, 0.98)',
           data: trendSeries,
           yAxis: 1,
-          zIndex: 3
+          zIndex: 3,
+          connectNulls: false
         }
       ]
     };
@@ -1924,6 +1956,10 @@ function smacaUiT(key, fallback) {
     const bucketTimesMs = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
     const values = Array.isArray(params?.values) ? params.values : [];
     const chartWindow = buildChartWindowFromBucketTimes(timeframe, bucketTimesMs);
+    const currentHourIndex = Number.isFinite(Number(params?.currentHourIndex))
+      ? Number(params.currentHourIndex)
+      : -1;
+    const noDataYetLabel = String(params?.noDataYetLabel || 'No data yet');
 
     if (!bucketTimesMs.length || bucketTimesMs.length !== values.length) {
       return { ok: false, reason: 'missing-data' };
@@ -1971,7 +2007,7 @@ function smacaUiT(key, fallback) {
           autoRotationLimit: 80,
           y: 12,
           formatter: function () {
-            if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (timeframe === '24h') return formatOperationalHourLabel(this.value);
             if (timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
@@ -1997,10 +2033,26 @@ function smacaUiT(key, fallback) {
         style: { color: '#e2e8f0', fontSize: '11px' },
         formatter: function () {
           const header = timeframe === '24h'
-            ? window.Highcharts.dateFormat('%H:%M', this.x)
+            ? formatOperationalHourLabel(this.x)
             : (timeframe === '7d' ? window.Highcharts.dateFormat('%a %d', this.x) : window.Highcharts.dateFormat('%d %b', this.x));
+          if (isEnergyFutureBucket(timeframe, bucketTimesMs, this.x, currentHourIndex)) {
+            return (
+              '<div style="min-width:170px;">' +
+              '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+              '<div style="color:#dbe7f5;font-size:11px;">' + noDataYetLabel + '</div>' +
+              '</div>'
+            );
+          }
           const value = Number(this.y);
-          const text = Number.isFinite(value) ? value.toFixed(1) : 'N/A';
+          if (!Number.isFinite(value)) {
+            return (
+              '<div style="min-width:170px;">' +
+              '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+              '<div style="color:#dbe7f5;font-size:11px;">' + noDataYetLabel + '</div>' +
+              '</div>'
+            );
+          }
+          const text = value.toFixed(1);
           return (
             '<div style="min-width:170px;">' +
             '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
@@ -2016,10 +2068,11 @@ function smacaUiT(key, fallback) {
         }
       },
       plotOptions: {
-        series: { animation: false, states: { inactive: { opacity: 1 } } },
+        series: { animation: false, states: { inactive: { opacity: 1 } }, connectNulls: false },
         areaspline: {
           lineWidth: 2.3,
           marker: { enabled: false },
+          connectNulls: false,
           fillColor: {
             linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
             stops: [[0, 'rgba(56, 189, 248, 0.18)'], [1, 'rgba(56, 189, 248, 0.00)']]
@@ -2031,7 +2084,8 @@ function smacaUiT(key, fallback) {
           type: 'areaspline',
           name: 'Energy',
           color: 'rgba(56, 189, 248, 0.98)',
-          data: series
+          data: series,
+          connectNulls: false
         },
         {
           type: 'scatter',
@@ -2054,7 +2108,8 @@ function smacaUiT(key, fallback) {
           type: 'areaspline',
           name: 'Energy',
           color: 'rgba(56, 189, 248, 0.98)',
-          data: series
+          data: series,
+          connectNulls: false
         }
       ])
     };

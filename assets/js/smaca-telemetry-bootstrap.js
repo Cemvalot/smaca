@@ -602,6 +602,23 @@
     );
   }
 
+  function operationalDayStartMs() {
+    var d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+  }
+
+  function operationalHourIndex(timestampMs) {
+    var dayStart = operationalDayStartMs();
+    if (!Number.isFinite(timestampMs) || timestampMs < dayStart || timestampMs >= dayStart + 86400000) return -1;
+    return Math.floor((timestampMs - dayStart) / 3600000);
+  }
+
+  function operationalHourLabels() {
+    var labels = [];
+    for (var h = 0; h < 24; h++) labels.push(String(h).padStart(2, '0') + ':00');
+    return labels;
+  }
+
   function bucketByHour(points, aggregator) {
     var result = new Array(24);
     var counts = new Array(24);
@@ -611,7 +628,8 @@
       var t = Date.parse(p.time || 0);
       var v = toNumber(p.value);
       if (!Number.isFinite(t) || v === null) return;
-      var hour = new Date(t).getHours();
+      var hour = operationalHourIndex(t);
+      if (hour < 0) return;
       result[hour] += v;
       counts[hour] += 1;
     });
@@ -620,21 +638,26 @@
   }
 
   function bucketDeltasByHour(points) {
-    var hourly = new Array(24);
-    for (var i = 0; i < 24; i++) hourly[i] = 0;
-    if (!Array.isArray(points) || points.length < 2) return hourly;
-    for (var j = 1; j < points.length; j++) {
-      var t = Date.parse(points[j].time || 0);
-      var prev = toNumber(points[j - 1].value);
-      var curr = toNumber(points[j].value);
-      if (!Number.isFinite(t) || prev === null || curr === null) continue;
-      var d = curr - prev;
-      if (d > 0) {
-        var hour = new Date(t).getHours();
-        hourly[hour] += d;
-      }
+    var bins = [];
+    for (var h = 0; h < 24; h++) bins.push({ min: null, max: null });
+    if (!Array.isArray(points) || !points.length) {
+      return new Array(24).fill(0);
     }
-    return hourly;
+    points.forEach(function (p) {
+      var t = Date.parse(p.time || 0);
+      var v = toNumber(p.value);
+      if (!Number.isFinite(t) || v === null) return;
+      var hour = operationalHourIndex(t);
+      if (hour < 0) return;
+      var b = bins[hour];
+      if (b.min === null || v < b.min) b.min = v;
+      if (b.max === null || v > b.max) b.max = v;
+    });
+    return bins.map(function (b) {
+      if (b.min === null || b.max === null) return 0;
+      var d = b.max - b.min;
+      return d > 0 ? d : 0;
+    });
   }
 
   // -----------------------------------------------------------------------
@@ -653,9 +676,7 @@
     var tf = activeTimeframe();
     if (tf === '24h') {
       var hourly = bucketByHour(points, aggregator);
-      var hourLabels = [];
-      for (var h = 0; h < 24; h++) hourLabels.push((h < 10 ? '0' : '') + h);
-      return { values: hourly, labels: hourLabels, bucket: 'hourly', binCount: 24, binSpanMs: 3600000 };
+      return { values: hourly, labels: operationalHourLabels(), bucket: 'hourly', binCount: 24, binSpanMs: 3600000 };
     }
     var days = (tf === '7d') ? 7 : 30;
     var binCount = days;
@@ -699,9 +720,7 @@
     var tf = activeTimeframe();
     if (tf === '24h') {
       var hourly = bucketDeltasByHour(points);
-      var labels = [];
-      for (var h = 0; h < 24; h++) labels.push((h < 10 ? '0' : '') + h);
-      return { values: hourly, labels: labels, bucket: 'hourly', binCount: 24, binSpanMs: 3600000 };
+      return { values: hourly, labels: operationalHourLabels(), bucket: 'hourly', binCount: 24, binSpanMs: 3600000 };
     }
     var days = (tf === '7d') ? 7 : 30;
     var dayMs = 86400000;
@@ -1894,10 +1913,13 @@
             { from: avgVal * 1.4,  to: maxVal + 1,   color: '#f97316' }
           ];
           var loadSubtitle = loadBucket.bucket === 'hourly'
-            ? locText('kWh consumed per hour (meter deltas, selected timeframe).', 'kWh ανά ώρα (deltas μετρητών, επιλεγμένο διάστημα).')
+            ? locText(
+              'kWh per hour for today\'s operational day (00:00–23:59 local, meter deltas).',
+              'kWh ανά ώρα για τη σημερινή λειτουργική ημέρα (00:00–23:59 τοπική ώρα, deltas μετρητών).'
+            )
             : locText('kWh consumed per day (meter deltas, selected timeframe).', 'kWh ανά ημέρα (deltas μετρητών, επιλεγμένο διάστημα).');
           var loadLegend = loadBucket.bucket === 'hourly'
-            ? '0–23 h'
+            ? '00:00 → 23:00'
             : (loadBucket.labels[0] + ' → ' + loadBucket.labels[loadBucket.labels.length - 1]);
           var hostLoad = tile().renderChartTile(loadEl, {
             label: locText('Load profile', 'Προφίλ φορτίου'),
@@ -1914,16 +1936,18 @@
           }
           var peakIdx = deltas.indexOf(maxVal);
           var peakLabel = (peakIdx >= 0 && maxVal > 0)
-            ? (loadBucket.bucket === 'hourly' ? loadBucket.labels[peakIdx] + ':00' : loadBucket.labels[peakIdx])
+            ? loadBucket.labels[peakIdx]
             : null;
           renderValueOrEmpty(grid, 'peak-hour', {
             label: loadBucket.bucket === 'hourly'
-              ? locText('Peak hour', 'Ώρα αιχμής')
+              ? locText('Peak hour (today)', 'Ώρα αιχμής (σήμερα)')
               : locText('Peak day', 'Ημέρα αιχμής'),
             value: peakLabel,
             status: 'warning',
             icon: ICONS.peak,
-            meta: maxVal > 0 ? maxVal.toFixed(2) + ' kWh · ' + activeTimeframe() : null
+            meta: maxVal > 0
+              ? (maxVal.toFixed(2) + ' kWh · ' + (loadBucket.bucket === 'hourly' ? 'operational day' : activeTimeframe()))
+              : null
           });
           var loadTs = pts.map(function (p) { return Date.parse(p.time); }).filter(Number.isFinite);
           var loadStats = seriesStats(deltas);

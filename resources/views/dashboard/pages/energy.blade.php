@@ -70,7 +70,7 @@
   <div class="card" style="margin-top: var(--space-6);">
     <div class="card__header">
       <h3 class="card__title">{{ __('messages.dashboard_i18n.energy_usage_kwh') }}</h3>
-      <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.columns_spline_energy') }}</p>
+      <p data-energy-chart-subtitle="usage" style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.columns_spline_energy') }}</p>
     </div>
     <div class="card__body">
       <div class="chart-placeholder" id="energy-main-combined-chart" style="min-height: 360px;"></div>
@@ -103,7 +103,7 @@
     <div class="card">
       <div class="card__header">
         <h3 class="card__title">{{ __('messages.dashboard_i18n.demand_trend') }}</h3>
-        <p style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.operational_demand_intensity') }}</p>
+        <p data-energy-chart-subtitle="demand" style="font-size: 11px; color: var(--muted); margin-top: var(--space-1);">{{ __('messages.dashboard_i18n.operational_demand_intensity') }}</p>
       </div>
       <div class="card__body">
         <div class="chart-placeholder" id="energy-demand-trend-chart" style="min-height: 300px;"></div>
