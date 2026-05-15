@@ -805,7 +805,7 @@ class KPIService
             if ($solar === null || $solar <= 0) {
                 return $this->insufficientKpi(
                     'uv_exposure_risk',
-                    'UV Exposure Risk',
+                    __('messages.labels.uv_exposure_risk'),
                     'index',
                     'No UV/environmental sensor data is available for this location.'
                 );
@@ -820,7 +820,7 @@ class KPIService
 
         return [
             'key' => 'uv_exposure_risk',
-            'label' => 'UV Exposure Risk',
+            'label' => __('messages.labels.uv_exposure_risk'),
             'value' => $value,
             'unit' => 'index',
             'status' => $status,

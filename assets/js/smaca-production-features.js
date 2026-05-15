@@ -2705,7 +2705,10 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   const tf = timeframe || '24h';
   smacaDebug('[SMACA][UV] timeframe change start', { timeframe: tf });
 
+  const UV_STALE_MS = 2 * 60 * 60 * 1000;
   const uvCounter = document.getElementById('environmental-uv-index');
+  const uvStaleEl = document.getElementById('environmental-uv-stale');
+  const uvStaleLabel = smacaT('uv_hero_stale', 'Reading may be stale');
   const currentUvEl = document.getElementById('env-kpi-current-uv');
   const currentUvMetaEl = document.getElementById('env-kpi-current-uv-meta');
   const exposureEl = document.getElementById('env-kpi-exposure');
@@ -2722,12 +2725,12 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   const meaningCopyEl = document.getElementById('env-meaning-copy');
 
   function getExposureLabel(uvValue) {
-    if (!Number.isFinite(uvValue)) return 'Unavailable';
-    if (uvValue >= 11) return smacaT('extreme', 'Extreme');
-    if (uvValue >= 8) return 'Very High';
-    if (uvValue >= 6) return 'High';
-    if (uvValue >= 3) return smacaT('moderate','Moderate');
-    return smacaT('low', 'Low');
+    if (!Number.isFinite(uvValue)) return smacaT('unavailable', 'Unavailable');
+    if (uvValue >= 11) return smacaT('uv_band_extreme', smacaT('extreme', 'Extreme'));
+    if (uvValue >= 8) return smacaT('uv_band_very_high', 'Very High');
+    if (uvValue >= 6) return smacaT('uv_band_high', smacaT('high', 'High'));
+    if (uvValue >= 3) return smacaT('uv_band_moderate', smacaT('moderate', 'Moderate'));
+    return smacaT('uv_band_low', smacaT('low', 'Low'));
   }
 
   function getExposureGuidance(uvValue) {
@@ -2745,14 +2748,14 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     }
     if (uvValue >= 8) {
       return {
-        summary: 'Very high UV: minimize direct sun during peak hours.',
-        interpretation: 'UV is very high. Reduce time in direct sunlight, reapply sunscreen often, and prioritize shade around midday.'
+        summary: smacaT('very_high_uv_summary', 'Very high UV: minimize direct sun during peak hours.'),
+        interpretation: smacaT('very_high_uv_interpretation', 'UV is very high. Reduce time in direct sunlight, reapply sunscreen often, and prioritize shade around midday.')
       };
     }
     if (uvValue >= 6) {
       return {
-        summary: 'High UV: protection is strongly recommended outdoors.',
-        interpretation: 'UV is high. Plan outdoor activity for lower UV windows and use sunscreen, hat, and sunglasses.'
+        summary: smacaT('high_uv_summary', 'High UV: protection is strongly recommended outdoors.'),
+        interpretation: smacaT('high_uv_interpretation', 'UV is high. Plan outdoor activity for lower UV windows and use sunscreen, hat, and sunglasses.')
       };
     }
     if (uvValue >= 3) {
@@ -2819,8 +2822,10 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     })
     .sort(function (a, b) { return a.timeMs - b.timeMs; });
 
-  const latestUv = filteredRows.length ? filteredRows[filteredRows.length - 1].uv : null;
-  if (latestUv === null) {
+  const latestRow = filteredRows.length ? filteredRows[filteredRows.length - 1] : null;
+  const latestMeasuredUv = latestRow ? latestRow.uv : null;
+  const latestMeasuredAtMs = latestRow ? latestRow.timeMs : NaN;
+  if (latestMeasuredUv === null) {
     if (uvCounter) uvCounter.textContent = 'No UV data available';
     if (currentUvEl) currentUvEl.textContent = '--';
     if (currentUvMetaEl) currentUvMetaEl.textContent = 'No current UV reading';
@@ -2836,6 +2841,7 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     if (summaryGuidanceEl) summaryGuidanceEl.textContent = 'No UV guidance available until data is received.';
     if (meaningLevelEl) meaningLevelEl.textContent = 'Current interpretation: UV data unavailable';
     if (meaningCopyEl) meaningCopyEl.textContent = 'Live UV data is currently unavailable. Check sensor connectivity and refresh this panel.';
+    if (uvStaleEl) uvStaleEl.style.display = 'none';
     renderEmptyState('uv-main-chart', 'No UV data available');
     renderEmptyState('uv-pattern-chart', 'No UV data available');
     renderEmptyState('uv-daily-comparison-chart', 'No UV data available');
@@ -2843,11 +2849,16 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   }
 
   const bucketMap = {};
+  const bucketHasDataMap = {};
   filteredRows.forEach(function (entry) {
     const bucketTime = resolveSmacaChartBucketKey(entry.timeMs, chartWindow);
     if (bucketTime === null) return;
     if (!bucketMap[bucketTime]) bucketMap[bucketTime] = [];
     bucketMap[bucketTime].push(entry.uv);
+    bucketHasDataMap[bucketTime] = true;
+  });
+  const bucketHasData = bucketTimesMs.map(function (bucketTime) {
+    return !!bucketHasDataMap[bucketTime];
   });
   const mainSeries = bucketTimesMs.map(function (bucketTime) {
     const points = bucketMap[bucketTime] || [];
@@ -2855,6 +2866,24 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
     const sum = points.reduce(function (acc, value) { return acc + value; }, 0);
     return sum / points.length;
   });
+
+  const operationalNowMs = Number(chartWindow.rangeEndMs) || Date.now();
+  const currentHourIndex = tf === '24h'
+    ? getSmacaOperationalCurrentHourIndex(bucketTimesMs, operationalNowMs)
+    : bucketTimesMs.length - 1;
+  if (tf === '24h') {
+    for (let i = 0; i < mainSeries.length; i += 1) {
+      if (i > currentHourIndex || !bucketHasData[i]) {
+        mainSeries[i] = null;
+      }
+    }
+  }
+  let lastRealBucketIndex = -1;
+  for (let i = 0; i < bucketHasData.length; i += 1) {
+    if (!bucketHasData[i]) continue;
+    if (tf === '24h' && i > currentHourIndex) continue;
+    lastRealBucketIndex = i;
+  }
 
   const patternSums = Array.from({ length: 24 }, function () { return 0; });
   const patternCounts = Array.from({ length: 24 }, function () { return 0; });
@@ -2896,7 +2925,7 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   });
 
   const validMainSeries = mainSeries.filter(function (v) { return Number.isFinite(Number(v)); }).map(Number);
-  const latestValue = validMainSeries.length ? validMainSeries[validMainSeries.length - 1] : latestUv;
+  const latestValue = Number.isFinite(latestMeasuredUv) ? latestMeasuredUv : (validMainSeries.length ? validMainSeries[validMainSeries.length - 1] : null);
   const previousValue = validMainSeries.length > 1 ? validMainSeries[validMainSeries.length - 2] : null;
   const peakValue = validMainSeries.length ? Math.max.apply(null, validMainSeries) : latestValue;
   const strongestEntry = filteredRows.reduce(function (maxEntry, entry) {
@@ -2909,6 +2938,11 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   const guidance = getExposureGuidance(latestValue);
 
   if (uvCounter) uvCounter.textContent = latestValue.toFixed(1);
+  if (uvStaleEl) {
+    const isStale = Number.isFinite(latestMeasuredAtMs) && (Date.now() - latestMeasuredAtMs > UV_STALE_MS);
+    uvStaleEl.textContent = uvStaleLabel;
+    uvStaleEl.style.display = isStale ? '' : 'none';
+  }
   if (currentUvEl) currentUvEl.textContent = latestValue.toFixed(1);
   if (currentUvMetaEl) currentUvMetaEl.textContent = `${tf} monitoring window`;
   if (exposureEl) exposureEl.textContent = exposureLabel;
@@ -2933,10 +2967,14 @@ function updateEnvironmentalDashboard(filteredEnvironmental, timeframe) {
   smacaDebug('[SMACA][UV] chart update start', { timeframe: tf });
   if (hasHighcharts) {
     smacaDebug('[SMACA][UV] renderer = highcharts');
+    const uvNoDataYet = smacaT('uv_no_data_yet', smacaT('energy_no_data_yet', 'No data yet'));
     adapter.createUvMainTrendChart('uv-main-chart', {
       timeframe: tf,
       bucketTimesMs: bucketTimesMs,
-      values: mainSeries
+      values: mainSeries,
+      currentHourIndex: currentHourIndex,
+      lastRealBucketIndex: lastRealBucketIndex,
+      noDataYetLabel: uvNoDataYet
     });
     adapter.createUvPatternChart('uv-pattern-chart', {
       timeframe: tf,
@@ -4380,14 +4418,16 @@ function updateHeaderCounters(timeframe, filteredData) {
     connectivityCounter.textContent = String(connected.length);
   }
   
-  // Update Environmental UV index
-  const uvCounter = document.getElementById('environmental-uv-index');
-  const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : (filteredData.environmental || []);
-  if (uvCounter && environmentalRows.length > 0) {
-    const uvValue = getAggregatedAverage(getLatestValidMetricPerSensor(environmentalRows, 'uv_index'));
-    uvCounter.textContent = Number.isFinite(Number(uvValue)) ? Number(uvValue).toFixed(1) : 'Unsupported by device';
-  } else if (uvCounter) {
-    uvCounter.textContent = 'No UV data available';
+  // Environmental hero UV is owned by updateEnvironmentalDashboard on that page.
+  if (getSmacaCurrentPage() !== 'environmental') {
+    const uvCounter = document.getElementById('environmental-uv-index');
+    const environmentalRows = Array.isArray(SMACAState.rawData?.environmental) ? SMACAState.rawData.environmental : (filteredData.environmental || []);
+    if (uvCounter && environmentalRows.length > 0) {
+      const uvValue = getAggregatedAverage(getLatestValidMetricPerSensor(environmentalRows, 'uv_index'));
+      uvCounter.textContent = Number.isFinite(Number(uvValue)) ? Number(uvValue).toFixed(1) : 'Unsupported by device';
+    } else if (uvCounter) {
+      uvCounter.textContent = 'No UV data available';
+    }
   }
   
   // Update Management total sensors

@@ -623,7 +623,9 @@
     var result = new Array(24);
     var counts = new Array(24);
     for (var i = 0; i < 24; i++) { result[i] = 0; counts[i] = 0; }
-    if (!Array.isArray(points) || !points.length) return result;
+    if (!Array.isArray(points) || !points.length) {
+      return { values: result, hasData: counts.map(function () { return false; }) };
+    }
     points.forEach(function (p) {
       var t = Date.parse(p.time || 0);
       var v = toNumber(p.value);
@@ -633,8 +635,41 @@
       result[hour] += v;
       counts[hour] += 1;
     });
-    if (aggregator === 'sum') return result;
-    return result.map(function (v, idx) { return counts[idx] ? v / counts[idx] : 0; });
+    var values = aggregator === 'sum'
+      ? result
+      : result.map(function (v, idx) { return counts[idx] ? v / counts[idx] : 0; });
+    var hasData = counts.map(function (c) { return c > 0; });
+    return { values: values, hasData: hasData };
+  }
+
+  function uvRiskBands() {
+    return [
+      { from: 0, to: 3, color: '#34d399' },
+      { from: 3, to: 6, color: '#fbbf24' },
+      { from: 6, to: 8, color: '#f97316' },
+      { from: 8, to: 11, color: '#f87171' },
+      { from: 11, to: 99, color: '#a855f7' }
+    ];
+  }
+
+  function uvBulletBands() {
+    return [
+      { from: 0, to: 3, color: 'rgba(52,211,153,0.30)' },
+      { from: 3, to: 6, color: 'rgba(251,191,36,0.30)' },
+      { from: 6, to: 8, color: 'rgba(249,115,22,0.40)' },
+      { from: 8, to: 11, color: 'rgba(248,113,113,0.45)' },
+      { from: 11, to: 11, color: 'rgba(168,85,247,0.50)' }
+    ];
+  }
+
+  function uvAdvisoryForValue(uv) {
+    var v = Number(uv);
+    if (!Number.isFinite(v)) return { label: locText('No outdoor data', 'Χωρίς εξωτ. δεδομένα'), status: 'muted' };
+    if (v >= 11) return { label: iaqTrans('uv_advisory_extreme', 'Avoid direct sun — full protection essential', 'Αποφύγετε την άμεση έκθεση στον ήλιο'), status: 'critical' };
+    if (v >= 8) return { label: iaqTrans('uv_advisory_very_high', 'Minimize midday sun exposure', 'Ελαχιστοποιήστε την έκθεση στο μεσημέρι'), status: 'critical' };
+    if (v >= 6) return { label: iaqTrans('uv_advisory_high', 'Protection strongly recommended outdoors', 'Συνιστάται ισχυρή προστασία σε εξωτερικό χώρο'), status: 'warning' };
+    if (v >= 3) return { label: iaqTrans('uv_advisory_moderate', 'Use sunscreen and shade for long exposure', 'Χρησιμοποιήστε αντηλιακό και σκιά για μεγάλη διάρκεια'), status: 'warning' };
+    return { label: iaqTrans('uv_advisory_low', 'Outdoor activities generally OK', 'Οι εξωτερικές δραστηριότητες είναι γενικά OK'), status: 'good' };
   }
 
   function bucketDeltasByHour(points) {
@@ -758,7 +793,14 @@
     var tf = activeTimeframe();
     if (tf === '24h') {
       var hourly = bucketByHour(points, aggregator);
-      return { values: hourly, labels: operationalHourLabels(), bucket: 'hourly', binCount: 24, binSpanMs: 3600000 };
+      return {
+        values: hourly.values,
+        hasData: hourly.hasData,
+        labels: operationalHourLabels(),
+        bucket: 'hourly',
+        binCount: 24,
+        binSpanMs: 3600000
+      };
     }
     var days = (tf === '7d') ? 7 : 30;
     var binCount = days;
@@ -783,16 +825,22 @@
         counts[idx] += 1;
       });
     }
-    var values = sums.map(function (s, i) {
-      if (!counts[i]) return 0;
-      return aggregator === 'sum' ? s : (s / counts[i]);
-    });
+    var values = [];
+    var hasData = [];
+    for (var i = 0; i < binCount; i++) {
+      hasData.push(counts[i] > 0);
+      if (!counts[i]) {
+        values.push(0);
+        continue;
+      }
+      values.push(aggregator === 'sum' ? sums[i] : (sums[i] / counts[i]));
+    }
     var labels = [];
     for (var d = 0; d < binCount; d++) {
       var dt = new Date(startOfFirstBin + d * dayMs);
       labels.push(formatDayLabel(dt, days));
     }
-    return { values: values, labels: labels, bucket: 'daily', binCount: binCount, binSpanMs: dayMs };
+    return { values: values, hasData: hasData, labels: labels, bucket: 'daily', binCount: binCount, binSpanMs: dayMs };
   }
 
   // Adaptive cumulative-delta bucketing for monotonically-increasing meters
@@ -2216,12 +2264,15 @@
       var env = rows.filter(function (s) { return s && s.latest && isFiniteNum(toNumber(s.latest.uv_index)); });
       var uvVals = env.map(function (s) { return toNumber(s.latest.uv_index); }).filter(isFiniteNum);
       var uvAvg = avg(uvVals);
+      var freshestEnv = freshestSensor(env);
+      var latestUvReading = freshestEnv && freshestEnv.latest ? toNumber(freshestEnv.latest.uv_index) : null;
+      var displayUv = isFiniteNum(latestUvReading) ? latestUvReading : uvAvg;
       var seriesTasks = Promise.resolve();
 
       // --- UV bands bullet ---
       var bulletEl = grid.querySelector('[data-tile="uv-bands"]');
       if (bulletEl && tile()) {
-        if (!isFiniteNum(uvAvg)) {
+        if (!isFiniteNum(displayUv)) {
           tile().renderEmptyTile(bulletEl, {
             label: locText('UV exposure bands', 'Ζώνες έκθεσης UV'),
             message: locText('No outdoor data', 'Χωρίς εξωτ. δεδομένα')
@@ -2241,20 +2292,15 @@
               'Σε ποια ζώνη κινδύνου βρίσκεται η τρέχουσα ένδειξη UV.'
             ),
             unit: 'UVI',
-            legend: locText('low · mod · high · very high', 'χαμ. · μέτρ. · υψ. · πολύ υψ.'),
-            meta: locText('Current ' + uvAvg.toFixed(1), 'Τρέχον ' + uvAvg.toFixed(1)),
-            accent: uvAvg < 3 ? 'good' : (uvAvg < 6 ? 'warning' : 'critical')
+            legend: locText('Low · Mod · High · V.High · Extreme', 'Χαμ. · Μέτρ. · Υψ. · Π.Υψ. · Ακραίο'),
+            meta: locText('Latest ' + displayUv.toFixed(1), 'Τελευταία ' + displayUv.toFixed(1)),
+            accent: displayUv < 3 ? 'good' : (displayUv < 6 ? 'warning' : (displayUv < 8 ? 'warning' : 'critical'))
           });
           if (hostBullet) {
             tile().renderBullet(hostBullet, {
-              value: uvAvg, max: 11,
-              status: uvAvg < 3 ? 'good' : (uvAvg < 6 ? 'warning' : 'critical'),
-              bands: [
-                { from: 0, to: 3,  color: 'rgba(52,211,153,0.30)' },
-                { from: 3, to: 6,  color: 'rgba(251,191,36,0.30)' },
-                { from: 6, to: 8,  color: 'rgba(249,115,22,0.40)' },
-                { from: 8, to: 11, color: 'rgba(248,113,113,0.45)' }
-              ]
+              value: displayUv, max: 11,
+              status: displayUv < 3 ? 'good' : (displayUv < 6 ? 'warning' : (displayUv < 8 ? 'warning' : 'critical')),
+              bands: uvBulletBands()
             });
           }
           logChart('environmental:uv-bands', {
@@ -2263,15 +2309,15 @@
             points: uvVals.length,
             bucket: 'snapshot',
             seriesLength: 1,
-            yMin: uvAvg,
-            yMax: uvAvg,
-            note: 'current campus UV average vs WHO bands'
+            yMin: displayUv,
+            yMax: displayUv,
+            note: 'latest outdoor UV reading vs WHO bands'
           });
         }
       }
 
       // --- Hourly UV strip + peak window + UV trend ---
-      var freshest = freshestSensor(env);
+      var freshest = freshestEnv;
       var stripEl = grid.querySelector('[data-tile="uv-strip"]');
       if (!freshest || !stripEl) {
         if (stripEl) {
@@ -2312,17 +2358,13 @@
             return;
           }
           var uvBucket = bucketAdaptive(pts, 'avg');
-          var bands = [
-            { from: 0, to: 3,  color: '#34d399' },
-            { from: 3, to: 6,  color: '#fbbf24' },
-            { from: 6, to: 8,  color: '#f97316' },
-            { from: 8, to: 99, color: '#f87171' }
-          ];
+          var uvStripSeries = buildEnergyLoadProfileChartData(uvBucket);
+          var bands = uvRiskBands();
           var uvSubtitle = uvBucket.bucket === 'hourly'
-            ? locText('Average UV per hour over the last 24 hours.', 'Μέσο UV ανά ώρα τις τελευταίες 24 ώρες.')
-            : locText('Daily average UV across the selected window.', 'Ημερήσιος μέσος UV στο επιλεγμένο διάστημα.');
+            ? locText('Measured UV per hour for today\'s operational day (00:00–23:59 local).', 'Μετρημένο UV ανά ώρα για τη σημερινή λειτουργική ημέρα (00:00–23:59 τοπική ώρα).')
+            : locText('Measured UV per day in the selected window.', 'Μετρημένο UV ανά ημέρα στο επιλεγμένο διάστημα.');
           var uvLegend = uvBucket.bucket === 'hourly'
-            ? '0–23 h'
+            ? '00:00 → 23:00'
             : (uvBucket.labels[0] + ' → ' + uvBucket.labels[uvBucket.labels.length - 1]);
           var hostStrip = tile().renderChartTile(stripEl, {
             label: locText('UV pattern', 'Μοτίβο UV'),
@@ -2332,10 +2374,51 @@
             meta: labelForLocation(freshest.sensor_location, freshest.name) + ' · ' + activeTimeframe()
           });
           if (hostStrip) {
-            var axisOptsUv = axisOptsForBucket(uvBucket);
-            tile().renderHeatStripColumn(hostStrip, Object.assign({
-              data: uvBucket.values, bands: bands, height: 90
-            }, axisOptsUv));
+            var yMaxUv = uvStripSeries.maxReal > 0 ? Math.max(3, uvStripSeries.maxReal * 1.12) : 3;
+            var stripHourLbl = iaqTrans('uv_strip_tooltip_hour', 'Hour', 'Ώρα');
+            var stripUvLbl = iaqTrans('uv_strip_tooltip_index', 'UV Index', 'Δείκτης UV');
+            var stripNoData = iaqTrans('energy_no_data_yet', 'No data yet', 'Δεν υπάρχουν ακόμη δεδομένα');
+            tile().renderHeatStripColumn(hostStrip, {
+              data: uvStripSeries.chartData,
+              bands: bands,
+              height: uvBucket.bucket === 'hourly' ? 148 : 132,
+              showAxis: true,
+              showYAxis: true,
+              categories: uvStripSeries.categories,
+              yAxisMax: yMaxUv,
+              yAxisTickPositions: [0, yMaxUv / 2, yMaxUv],
+              yAxisTitle: 'UVI',
+              xAxisLabelStep: 1,
+              xAxisLabelFormatter: uvBucket.bucket === 'hourly'
+                ? function (idx) {
+                  var ticks = [0, 6, 12, 18, 23];
+                  return ticks.indexOf(idx) >= 0 ? String(idx).padStart(2, '0') : '';
+                }
+                : function (idx) {
+                  var step = uvBucket.binCount > 14 ? Math.max(1, Math.floor(uvBucket.binCount / 7)) : 1;
+                  if (idx % step !== 0 && idx !== (uvBucket.binCount - 1)) return '';
+                  return uvStripSeries.categories[idx] || '';
+                },
+              tooltipFormatter: function () {
+                var pt = this.point || {};
+                var label = pt.bucketLabel || '';
+                if (pt.future || pt.hasData === false) {
+                  return (
+                    '<div style="min-width:150px;">' +
+                    '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;">' + label + '</div>' +
+                    '<div style="color:#dbe7f5;font-size:11px;">' + stripNoData + '</div>' +
+                    '</div>'
+                  );
+                }
+                var uvi = Number.isFinite(Number(this.y)) ? Number(this.y).toFixed(1) : '—';
+                return (
+                  '<div style="min-width:150px;">' +
+                  '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;">' + stripHourLbl + ': ' + label + '</div>' +
+                  '<div style="color:#f8fbff;font-size:11px;font-weight:600;">' + stripUvLbl + ': ' + uvi + '</div>' +
+                  '</div>'
+                );
+              }
+            });
           }
           var uvTs = pts.map(function (p) { return Date.parse(p.time); }).filter(Number.isFinite);
           var uvStats = seriesStats(uvBucket.values);
@@ -2357,7 +2440,10 @@
           // "11–14h"); for 7d / 30d we report the date span where UV
           // sustained ≥ 6 (e.g. "Apr 14 → Apr 18").
           var firstHigh = -1, lastHigh = -1;
+          var stripCurrentIdx = uvBucket.bucket === 'hourly' ? getOperationalCurrentHourIndex24h() : getCurrentDailyBinIndex(uvBucket.binCount, uvBucket.binSpanMs);
           for (var i = 0; i < uvBucket.values.length; i++) {
+            if (i > stripCurrentIdx) continue;
+            if (!uvBucket.hasData || !uvBucket.hasData[i]) continue;
             if (uvBucket.values[i] >= 6) {
               if (firstHigh === -1) firstHigh = i;
               lastHigh = i;
@@ -2482,7 +2568,7 @@
       // --- Advisory tile ---
       var advisoryEl = grid.querySelector('[data-tile="advisory"]');
       if (advisoryEl && tile()) {
-        if (!isFiniteNum(uvAvg)) {
+        if (!isFiniteNum(displayUv)) {
           tile().renderEmptyTile(advisoryEl, {
             label: locText('Advisory', 'Σύσταση'),
             icon: ICONS.alert,
@@ -2496,14 +2582,11 @@
             note: 'empty-state'
           });
         } else {
-          var label = uvAvg < 3 ? locText('Outdoor activities OK', 'Εξωτ. δραστηριότητες OK')
-            : (uvAvg < 6 ? locText('Use sunscreen', 'Χρήση αντηλιακού')
-              : (uvAvg < 8 ? locText('Limit midday sun', 'Αποφυγή ήλιου μεσημέρι')
-                : locText('Avoid direct sun', 'Αποφυγή απευθείας ηλίου')));
+          var adv = uvAdvisoryForValue(displayUv);
           tile().renderTile(advisoryEl, {
             label: locText('Advisory', 'Σύσταση'),
-            value: label,
-            status: uvAvg < 3 ? 'good' : (uvAvg < 6 ? 'warning' : 'critical'),
+            value: adv.label,
+            status: adv.status,
             icon: ICONS.alert,
             meta: locText(uvVals.length + ' outdoor sensors', uvVals.length + ' εξωτ. αισθ.')
           });
@@ -2513,9 +2596,9 @@
             points: uvVals.length,
             bucket: 'snapshot',
             seriesLength: 1,
-            yMin: uvAvg,
-            yMax: uvAvg,
-            note: 'text advisory from current UV average'
+            yMin: displayUv,
+            yMax: displayUv,
+            note: 'WHO advisory from latest outdoor UV reading'
           });
         }
       }

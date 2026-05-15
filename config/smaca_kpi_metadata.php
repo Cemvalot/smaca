@@ -709,12 +709,12 @@ return [
             'unit' => 'index',
             'unit_label' => ['en' => 'UV index', 'el' => 'δείκτης UV'],
             'unit_explanation' => [
-                'en' => 'WHO UV index value: 0–2 low, 3–5 moderate, 6+ high.',
-                'el' => 'Δείκτης UV (ΠΟΥ): 0–2 χαμηλός, 3–5 μέτριος, 6+ υψηλός.',
+                'en' => 'Average UV Index in the selected timeframe, classified into exposure-risk bands (0–2 Low, 3–5 Moderate, 6–7 High, 8–10 Very High, 11+ Extreme).',
+                'el' => 'Μέσος Δείκτης UV στο επιλεγμένο διάστημα, ταξινομημένος σε ζώνες κινδύνου έκθεσης (0–2 Χαμηλός, 3–5 Μέτριος, 6–7 Υψηλός, 8–10 Πολύ υψηλός, 11+ Ακραίος).',
             ],
             'plain_definition' => [
-                'en' => 'Outdoor UV exposure risk at the Gate House sensor.',
-                'el' => 'Κίνδυνος έκθεσης σε υπεριώδη ακτινοβολία στον εξωτερικό αισθητήρα του Φυλακίου Εισόδου.',
+                'en' => 'Outdoor UV exposure risk from measured sensors in scope — not indoor air quality.',
+                'el' => 'Κίνδυνος έκθεσης UV σε εξωτερικό χώρο από μετρημένους αισθητήρες στην εμβέλεια — όχι ποιότητα εσωτερικού αέρα.',
             ],
             'technical_definition' => [
                 'en' => 'Uses UV index measurements when available, or solar radiation × ~0.01 as a coarse fallback when the UV index is missing.',

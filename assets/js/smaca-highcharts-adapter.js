@@ -1440,11 +1440,11 @@ function smacaUiT(key, fallback) {
   function getUvCategory(uvValue) {
     const uv = Number(uvValue);
     if (!Number.isFinite(uv)) return chartT('not_available', 'Unavailable');
-    if (uv >= 11) return smacaUiT('extreme','Extreme');
-    if (uv >= 8) return 'Very High';
-    if (uv >= 6) return chartT('high', 'High');
-    if (uv >= 3) return chartT('moderate', smacaUiT('moderate','Moderate'));
-    return chartT('low', smacaUiT('low','Low'));
+    if (uv >= 11) return smacaUiT('uv_band_extreme', smacaUiT('extreme', 'Extreme'));
+    if (uv >= 8) return smacaUiT('uv_band_very_high', 'Very High');
+    if (uv >= 6) return smacaUiT('uv_band_high', chartT('high', 'High'));
+    if (uv >= 3) return smacaUiT('uv_band_moderate', chartT('moderate', smacaUiT('moderate', 'Moderate')));
+    return smacaUiT('uv_band_low', chartT('low', smacaUiT('low', 'Low')));
   }
 
   function getUvColor(uvValue) {
@@ -1463,6 +1463,10 @@ function smacaUiT(key, fallback) {
     const times = Array.isArray(params?.bucketTimesMs) ? params.bucketTimesMs : [];
     const values = Array.isArray(params?.values) ? params.values : [];
     const chartWindow = buildChartWindowFromBucketTimes(timeframe, times);
+    const currentHourIndex = Number.isFinite(Number(params?.currentHourIndex))
+      ? Number(params.currentHourIndex)
+      : -1;
+    const noDataYetLabel = String(params?.noDataYetLabel || 'No data yet');
     const series = times.map(function (t, i) {
       const v = Number(values[i]);
       return [Number(t), Number.isFinite(v) ? Number(v.toFixed(2)) : null];
@@ -1499,7 +1503,7 @@ function smacaUiT(key, fallback) {
           autoRotationLimit: 80,
           y: 12,
           formatter: function () {
-            if (timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (timeframe === '24h') return formatOperationalHourLabel(this.value);
             if (timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
@@ -1510,7 +1514,7 @@ function smacaUiT(key, fallback) {
         max: yMax,
         tickAmount: 6,
         title: {
-          text: 'UV Index',
+          text: chartT('uv_index', 'UV Index'),
           style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }
         },
         gridLineColor: 'rgba(148, 163, 184, 0.14)',
@@ -1534,21 +1538,37 @@ function smacaUiT(key, fallback) {
         style: { color: '#e2e8f0', fontSize: '11px' },
         formatter: function () {
           const header = timeframe === '24h'
-            ? window.Highcharts.dateFormat('%d %b %H:%M', this.x)
+            ? formatOperationalHourLabel(this.x)
             : window.Highcharts.dateFormat('%d %b', this.x);
+          if (isEnergyFutureBucket(timeframe, times, this.x, currentHourIndex)) {
+            return (
+              '<div style="min-width:180px;">' +
+              '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+              '<div style="color:#dbe7f5;font-size:11px;">' + noDataYetLabel + '</div>' +
+              '</div>'
+            );
+          }
           const uv = Number(this.y);
+          if (!Number.isFinite(uv)) {
+            return (
+              '<div style="min-width:180px;">' +
+              '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
+              '<div style="color:#dbe7f5;font-size:11px;">' + noDataYetLabel + '</div>' +
+              '</div>'
+            );
+          }
           const category = getUvCategory(uv);
-          const valueText = Number.isFinite(uv) ? uv.toFixed(1) : 'N/A';
+          const uvLabel = chartT('uv_index', 'UV Index');
           return (
             '<div style="min-width:180px;">' +
             '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' + header + '</div>' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">' +
-            '<span style="font-weight:500;color:#dbe7f5;">UV Index</span>' +
-            '<strong style="font-size:12px;color:#f8fbff;">' + valueText + '</strong>' +
+            '<span style="font-weight:500;color:#dbe7f5;">' + uvLabel + '</span>' +
+            '<strong style="font-size:12px;color:#f8fbff;">' + uv.toFixed(1) + '</strong>' +
             '</div>' +
             '<div style="margin-top:6px;display:flex;align-items:center;gap:6px;">' +
             '<span style="display:inline-block;width:7px;height:7px;border-radius:999px;background:' + getUvColor(uv) + ';"></span>' +
-            '<span style="color:' + getUvColor(uv) + ';font-weight:700;letter-spacing:0.02em;">Category: ' + category + '</span>' +
+            '<span style="color:' + getUvColor(uv) + ';font-weight:700;letter-spacing:0.02em;">' + category + '</span>' +
             '</div>' +
             '</div>'
           );
@@ -1557,6 +1577,7 @@ function smacaUiT(key, fallback) {
       plotOptions: {
         series: {
           animation: false,
+          connectNulls: false,
           marker: {
             enabled: false,
             states: {
@@ -1573,7 +1594,7 @@ function smacaUiT(key, fallback) {
       },
       series: [{
         type: 'areaspline',
-        name: 'UV Index',
+        name: chartT('uv_index', 'UV Index'),
         color: seriesColor,
         lineWidth: 3.6,
         states: {
@@ -1589,6 +1610,7 @@ function smacaUiT(key, fallback) {
           linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
           stops: [[0, toRgba(seriesColor, 0.24)], [1, toRgba(seriesColor, 0.015)]]
         },
+        connectNulls: false,
         data: series
       }]
     };
