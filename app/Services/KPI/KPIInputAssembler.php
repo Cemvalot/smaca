@@ -2,6 +2,7 @@
 
 namespace App\Services\KPI;
 
+use App\Support\TelemetryMetricColumns;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -60,11 +61,13 @@ class KPIInputAssembler
                 if ($schema->hasColumn('sensor_latest', 'tvoc_index')) {
                     $latestSelects[] = 'AVG(tvoc_index) as avg_tvoc_index';
                 }
-                if ($schema->hasColumn('sensor_latest', 'pm2_5_ugm3')) {
-                    $latestSelects[] = 'AVG(pm2_5_ugm3) as avg_pm25_ugm3';
+                $pm25Col = TelemetryMetricColumns::sensorLatestPm25PhysicalColumn();
+                if ($pm25Col !== null) {
+                    $latestSelects[] = 'AVG('.$pm25Col.') as avg_pm25_ugm3';
                 }
-                if ($schema->hasColumn('sensor_latest', 'pm10_ugm3')) {
-                    $latestSelects[] = 'AVG(pm10_ugm3) as avg_pm10_ugm3';
+                $pm10Col = TelemetryMetricColumns::sensorLatestPm10PhysicalColumn();
+                if ($pm10Col !== null) {
+                    $latestSelects[] = 'AVG('.$pm10Col.') as avg_pm10_ugm3';
                 }
                 if ($schema->hasColumn('sensor_latest', 'temperature_c')) {
                     $latestSelects[] = 'AVG(temperature_c) as avg_temperature_c';
@@ -134,11 +137,13 @@ class KPIInputAssembler
             if ($schema->hasColumn('readings', 'tvoc_index')) {
                 $readingsSelects[] = 'AVG(tvoc_index) as avg_tvoc_index_window';
             }
-            if ($schema->hasColumn('readings', 'pm2_5_ugm3')) {
-                $readingsSelects[] = 'AVG(pm2_5_ugm3) as avg_pm25_ugm3_window';
+            $rpm25 = TelemetryMetricColumns::readingsPm25PhysicalColumn();
+            if ($rpm25 !== null) {
+                $readingsSelects[] = 'AVG('.$rpm25.') as avg_pm25_ugm3_window';
             }
-            if ($schema->hasColumn('readings', 'pm10_ugm3')) {
-                $readingsSelects[] = 'AVG(pm10_ugm3) as avg_pm10_ugm3_window';
+            $rpm10 = TelemetryMetricColumns::readingsPm10PhysicalColumn();
+            if ($rpm10 !== null) {
+                $readingsSelects[] = 'AVG('.$rpm10.') as avg_pm10_ugm3_window';
             }
             if ($schema->hasColumn('readings', 'temperature_c')) {
                 $readingsSelects[] = 'AVG(temperature_c) as avg_temperature_c_window';
@@ -418,6 +423,12 @@ class KPIInputAssembler
             'avg_pm10_ugm3' => $avgPm10,
             'avg_temperature_c' => $avgTemp,
             'avg_humidity_rh' => $avgHumidity,
+            'tvoc' => $avgTvoc,
+            'pm25' => $avgPm25,
+            'pm10' => $avgPm10,
+            'temperature' => $avgTemp,
+            'humidity' => $avgHumidity,
+            'lighting' => $avgLightLevel,
             'avg_energy_kwh' => $avgEnergy,
             'total_energy_kwh_window' => $totalEnergyKwhWindow,
             'avg_current_a' => $this->toFloat($currentReadings->avg_current_a ?? null),
@@ -614,6 +625,12 @@ class KPIInputAssembler
             'avg_pm10_ugm3' => null,
             'avg_temperature_c' => null,
             'avg_humidity_rh' => null,
+            'tvoc' => null,
+            'pm25' => null,
+            'pm10' => null,
+            'temperature' => null,
+            'humidity' => null,
+            'lighting' => null,
             'avg_energy_kwh' => null,
             'total_energy_kwh_window' => null,
             'avg_current_a' => null,

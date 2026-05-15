@@ -1604,6 +1604,21 @@
           var outBucket = bucketAdaptive(outPts, 'sum');
           var combined = inBucket.values.map(function (v, idx) { return v + (outBucket.values[idx] || 0); });
           var maxVal = Math.max.apply(null, combined) || 1;
+          var peakIdxForTile = combined.indexOf(maxVal);
+          var chartCategories = (inBucket.labels || []).slice();
+          var chartData = combined.slice();
+          if (inBucket.bucket === 'hourly' && chartData.length === 24 && maxVal > 0 && peakIdxForTile >= 0) {
+            var half = 11;
+            var rotC = [];
+            var rotL = [];
+            for (var ri = 0; ri < 24; ri++) {
+              var si = (peakIdxForTile - half + ri + 240) % 24;
+              rotC.push(combined[si]);
+              rotL.push((inBucket.labels && inBucket.labels[si]) ? String(inBucket.labels[si]) : String(si));
+            }
+            chartData = rotC;
+            chartCategories = rotL;
+          }
           var bands = [
             { from: 0,             to: maxVal * 0.33, color: '#3b82f6' },
             { from: maxVal * 0.33, to: maxVal * 0.66, color: '#a78bfa' },
@@ -1623,18 +1638,23 @@
           });
           if (heatHost) {
             var axisOptsOcc = axisOptsForBucket(inBucket);
-            tile().renderHeatStripColumn(heatHost, Object.assign({
-              data: combined,
+            var hourlyXTitle = locText(
+              'Clock hour — bar in the middle is the busiest hour (peak).',
+              'Ώρα ρολογιού — η κεντρική στήλη είναι η πιο «φορτωμένη» ώρα (αιχμή).'
+            );
+            tile().renderHeatStripColumn(heatHost, Object.assign({}, axisOptsOcc, {
+              data: chartData,
               bands: bands,
-              height: 130,
+              height: 156,
               showAxis: true,
               showYAxis: true,
-              categories: inBucket.labels || [],
-              xAxisTitle: locText('Peak hours (X)', 'Ώρες αιχμής (Χ)'),
+              categories: chartCategories,
+              xAxisLabelStep: inBucket.bucket === 'hourly' ? 1 : undefined,
+              xAxisTitle: inBucket.bucket === 'hourly' ? hourlyXTitle : locText('Peak hours (X)', 'Ώρες αιχμής (Χ)'),
               yAxisTitle: locText('People', 'Άτομα')
-            }, axisOptsOcc));
+            }));
           }
-          var peakIdx = combined.indexOf(maxVal);
+          var peakIdx = peakIdxForTile;
           var peakLabel = (peakIdx >= 0 && maxVal > 0)
             ? (inBucket.bucket === 'hourly' ? inBucket.labels[peakIdx] + ':00' : inBucket.labels[peakIdx])
             : null;

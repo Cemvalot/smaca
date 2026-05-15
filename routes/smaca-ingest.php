@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\TelemetryMetricColumns;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -98,8 +99,14 @@ if (!function_exists('smacaHandleIngest_impl')) {
 
         $metricValues = [];
         foreach ($readingMetricFields as $field) {
-            if (smacaReadingsHasColumn_impl($field)) {
-                $metricValues[$field] = $request->input($field);
+            $physical = $field;
+            if ($field === 'pm2_5_ugm3') {
+                $physical = TelemetryMetricColumns::readingsPm25PhysicalColumn() ?? $field;
+            } elseif ($field === 'pm10_ugm3') {
+                $physical = TelemetryMetricColumns::readingsPm10PhysicalColumn() ?? $field;
+            }
+            if (smacaReadingsHasColumn_impl($physical)) {
+                $metricValues[$physical] = $request->input($field);
             }
         }
 
@@ -133,43 +140,48 @@ if (!function_exists('smacaHandleIngest_impl')) {
                 'updated_at' => $nowAthens,
             ]);
 
-        DB::table('sensor_latest')->upsert([
-            [
-                'sensor_id' => $sensor->id,
-                'reading_id' => $readingId,
-                'measured_at' => $measuredAt,
-                'battery_pct' => $metricValues['battery_pct'] ?? null,
-                'co2_ppm' => $metricValues['co2_ppm'] ?? null,
-                'temperature_c' => $metricValues['temperature_c'] ?? null,
-                'humidity_rh' => $metricValues['humidity_rh'] ?? null,
-                'pm2_5_ugm3' => $metricValues['pm2_5_ugm3'] ?? null,
-                'pm10_ugm3' => $metricValues['pm10_ugm3'] ?? null,
-                'energy_kwh' => $metricValues['energy_kwh'] ?? null,
-                'uv_index' => $metricValues['uv_index'] ?? null,
-                'people_in' => $metricValues['people_in'] ?? null,
-                'people_out' => $metricValues['people_out'] ?? null,
-                'people_total_in' => $metricValues['people_total_in'] ?? null,
-                'people_total_out' => $metricValues['people_total_out'] ?? null,
-                'created_at' => $nowAthens,
-                'updated_at' => $nowAthens,
-            ],
-        ], ['sensor_id'], [
-            'reading_id',
-            'measured_at',
-            'battery_pct',
-            'co2_ppm',
-            'temperature_c',
-            'humidity_rh',
-            'pm2_5_ugm3',
-            'pm10_ugm3',
-            'energy_kwh',
-            'uv_index',
-            'people_in',
-            'people_out',
-            'people_total_in',
-            'people_total_out',
-            'updated_at',
-        ]);
+        $latestSchema = DB::getSchemaBuilder();
+        $pm25LatestCol = TelemetryMetricColumns::sensorLatestPm25PhysicalColumn();
+        $pm10LatestCol = TelemetryMetricColumns::sensorLatestPm10PhysicalColumn();
+        $pm25ReadingCol = TelemetryMetricColumns::readingsPm25PhysicalColumn();
+        $pm10ReadingCol = TelemetryMetricColumns::readingsPm10PhysicalColumn();
+
+        $latestRow = [
+            'sensor_id' => $sensor->id,
+            'reading_id' => $readingId,
+            'measured_at' => $measuredAt,
+            'battery_pct' => $metricValues['battery_pct'] ?? null,
+            'co2_ppm' => $metricValues['co2_ppm'] ?? null,
+            'temperature_c' => $metricValues['temperature_c'] ?? null,
+            'humidity_rh' => $metricValues['humidity_rh'] ?? null,
+            'energy_kwh' => $metricValues['energy_kwh'] ?? null,
+            'uv_index' => $metricValues['uv_index'] ?? null,
+            'people_in' => $metricValues['people_in'] ?? null,
+            'people_out' => $metricValues['people_out'] ?? null,
+            'people_total_in' => $metricValues['people_total_in'] ?? null,
+            'people_total_out' => $metricValues['people_total_out'] ?? null,
+            'created_at' => $nowAthens,
+            'updated_at' => $nowAthens,
+        ];
+        if ($pm25LatestCol !== null) {
+            $latestRow[$pm25LatestCol] = $pm25ReadingCol !== null
+                ? ($metricValues[$pm25ReadingCol] ?? null)
+                : null;
+        }
+        if ($pm10LatestCol !== null) {
+            $latestRow[$pm10LatestCol] = $pm10ReadingCol !== null
+                ? ($metricValues[$pm10ReadingCol] ?? null)
+                : null;
+        }
+        foreach (['tvoc_index', 'light_level', 'lux'] as $iaqCol) {
+            if ($latestSchema->hasColumn('sensor_latest', $iaqCol)) {
+                $latestRow[$iaqCol] = $metricValues[$iaqCol] ?? null;
+            }
+        }
+
+        $latestUpdateCols = array_values(array_diff(array_keys($latestRow), ['sensor_id', 'created_at']));
+
+        DB::table('sensor_latest')->upsert([$latestRow], ['sensor_id'], $latestUpdateCols);
 
         return response()->json([
             'ok' => true,

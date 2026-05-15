@@ -100,6 +100,7 @@ class KPIService
             $inputs = [
                 'avg_co2_ppm' => null, 'avg_tvoc_index' => null, 'avg_pm25_ugm3' => null, 'avg_pm10_ugm3' => null,
                 'avg_temperature_c' => null, 'avg_humidity_rh' => null, 'avg_energy_kwh' => null,
+                'tvoc' => null, 'pm25' => null, 'pm10' => null, 'temperature' => null, 'humidity' => null, 'lighting' => null,
                 'avg_current_a' => null, 'avg_power_factor' => null, 'avg_max_demand_kw' => null,
                 'avg_light_level' => null, 'avg_lux' => null, 'avg_solar_radiation' => null,
                 'avg_people_present' => 0.0, 'max_capacity' => 50.0, 'capacity_confidence' => 'estimated',
@@ -374,7 +375,7 @@ class KPIService
 
     private function calculateVisualComfortKpi(array $inputs): array
     {
-        $light = $inputs['avg_lux'] ?? $inputs['avg_light_level'] ?? null;
+        $light = $inputs['avg_lux'] ?? $inputs['lighting'] ?? $inputs['avg_light_level'] ?? null;
         $solar = $inputs['avg_solar_radiation'] ?? null;
         if ($light === null) {
             return $this->insufficientKpi(
@@ -407,9 +408,9 @@ class KPIService
     private function calculateIaqHealthIndex(array $inputs): array
     {
         $co2 = $inputs['avg_co2_ppm'] ?? null;
-        $tvoc = $inputs['avg_tvoc_index'] ?? null;
-        $pm25 = $inputs['avg_pm25_ugm3'] ?? null;
-        $pm10 = $inputs['avg_pm10_ugm3'] ?? null;
+        $tvoc = $inputs['tvoc'] ?? $inputs['avg_tvoc_index'] ?? null;
+        $pm25 = $inputs['pm25'] ?? $inputs['avg_pm25_ugm3'] ?? null;
+        $pm10 = $inputs['pm10'] ?? $inputs['avg_pm10_ugm3'] ?? null;
         $available = array_filter([$co2, $tvoc, $pm25, $pm10], static fn($v) => $v !== null);
         if (count($available) === 0) {
             return $this->insufficientKpi(

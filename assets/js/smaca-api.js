@@ -123,6 +123,12 @@
 
   function normalizeSnapshotToIAQItem(snapshotRow) {
     if (!snapshotRow) return null;
+    var g = typeof window !== 'undefined' ? window : globalThis;
+    var n =
+      g.SMACA_TELEMETRY_METRIC_NORMALIZE &&
+      typeof g.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest === 'function'
+        ? g.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest(snapshotRow)
+        : snapshotRow;
     const sensorId = snapshotRow.sensor_id ?? null;
     const sensorUid = snapshotRow.sensor_uid ?? null;
     const deviceName = snapshotRow.sensor_name || `Sensor ${sensorId ?? ''}`.trim() || 'Unknown';
@@ -139,15 +145,15 @@
       },
       payload: {
         object: {
-          co2: toNumberOrNull(snapshotRow.co2_ppm),
-          temperature: toNumberOrNull(snapshotRow.temperature_c),
-          humidity: toNumberOrNull(snapshotRow.humidity_rh),
-          pm2_5: toNumberOrNull(snapshotRow.pm2_5_ugm3),
-          pm10: toNumberOrNull(snapshotRow.pm10_ugm3),
-          battery: toNumberOrNull(snapshotRow.battery_pct),
-          tvoc: toNumberOrNull(snapshotRow.tvoc_index),
+          co2: toNumberOrNull(n.co2_ppm),
+          temperature: toNumberOrNull(n.temperature ?? n.temperature_c),
+          humidity: toNumberOrNull(n.humidity ?? n.humidity_rh),
+          pm2_5: toNumberOrNull(n.pm25 ?? n.pm2_5_ugm3),
+          pm10: toNumberOrNull(n.pm10 ?? n.pm10_ugm3),
+          battery: toNumberOrNull(n.battery_pct),
+          tvoc: toNumberOrNull(n.tvoc ?? n.tvoc_index),
           pressure: null,
-          light_level: null,
+          light_level: toNumberOrNull(n.lighting ?? n.light_level),
           pir: null
         }
       }

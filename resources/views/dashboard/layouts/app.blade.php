@@ -404,6 +404,8 @@
       iaq_sensor_breakdown_unknown_location: "{{ __('messages.dashboard_i18n.iaq_sensor_breakdown_unknown_location') }}",
       iaq_sensor_breakdown_status_critical: "{{ __('messages.dashboard_i18n.iaq_sensor_breakdown_status_critical') }}",
       iaq_metric_na: "{{ __('messages.dashboard_i18n.iaq_metric_na') }}",
+      iaq_readings_fallback_badge: "{{ __('messages.dashboard_i18n.iaq_readings_fallback_badge') }}",
+      iaq_readings_fallback_badge_hint: "{{ __('messages.dashboard_i18n.iaq_readings_fallback_badge_hint') }}",
       iaq_light_fallback_level_instead_of_lux: "{{ __('messages.dashboard_i18n.iaq_light_fallback_level_instead_of_lux') }}",
       iaq_light_fallback_lux_instead_of_level: "{{ __('messages.dashboard_i18n.iaq_light_fallback_lux_instead_of_level') }}",
       iaq_warn_temp_low: "{{ __('messages.dashboard_i18n.iaq_warn_temp_low') }}",
@@ -613,6 +615,7 @@
   <script defer src="{{ asset('assets/js/smaca-alerts-engine.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-alerts-engine.js') }}"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script defer src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-csv-export.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-telemetry-metric-normalize.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-telemetry-metric-normalize.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-api.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-api.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-spatial.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-spatial.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-role.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-role.js') }}"></script>

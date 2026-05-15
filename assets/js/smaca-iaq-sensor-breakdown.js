@@ -50,6 +50,12 @@
     return global.SMACA_IAQ_SEMANTICS || {};
   }
 
+  function normalizeLatestLocal(latest) {
+    var fn = global.SMACA_TELEMETRY_METRIC_NORMALIZE && global.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest;
+    if (typeof fn === 'function') return fn(latest || {});
+    return latest || {};
+  }
+
   /** --------- IAQ-6: telemetry validation (client-side; reflects /api/sensors latest payload) --------- */
   var IAQ_STALE_MS = 90 * 60 * 1000;
   var IAQ_DEBUG = false;
@@ -75,6 +81,15 @@
     return 'present';
   }
 
+  var METRIC_FALLBACK_KEYS = {
+    pm25: ['pm25', 'pm2_5_ugm3', 'pm2_5ugm3'],
+    pm10: ['pm10', 'pm10_ugm3', 'pm10ugm3'],
+    tvoc: ['tvoc', 'tvoc_index'],
+    lighting: ['lighting', 'light_level'],
+    temperature: ['temperature', 'temperature_c'],
+    humidity: ['humidity', 'humidity_rh']
+  };
+
   /**
    * Effective numeric for dashboards: optional treatZeroAsAbsent (PM, CO₂, TVOC, etc.).
    * Returns null when value should not be shown as a real measurement.
@@ -86,6 +101,45 @@
     if (!Number.isFinite(n)) return null;
     if (treatZeroAsAbsent && n === 0) return null;
     return n;
+  }
+
+  /**
+   * Resolve a canonical metric from API-normalized keys first, then legacy DB fields.
+   * @param {boolean} treatZeroAsAbsent when true, numeric 0 is treated as absent (CO₂ only).
+   */
+  function effectiveNumericCanonical(latest, canonicalKey, treatZeroAsAbsent) {
+    if (!latest) return null;
+    var keys = METRIC_FALLBACK_KEYS[canonicalKey] || [canonicalKey];
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (!hasLatestKey(latest, k)) continue;
+      var v = latest[k];
+      if (v === null || v === undefined || v === '') continue;
+      var n = Number(v);
+      if (!Number.isFinite(n)) continue;
+      if (treatZeroAsAbsent && n === 0) continue;
+      return n;
+    }
+    return null;
+  }
+
+  function isIaqDebugMode() {
+    if (IAQ_DEBUG) return true;
+    try {
+      var u = global.SMACA_USER || {};
+      return Boolean(u.isAdmin) || String(u.role || '').toLowerCase() === 'admin';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function readingsFallbackBadgeHtml(latest) {
+    if (!latest || !latest.fallback_from_readings || !isIaqDebugMode()) return '';
+    return (
+      '<span class="iaq-sensor-card__fallback-badge" title="' +
+      escapeHtml(t('iaq_readings_fallback_badge_hint', 'TVOC/light from readings; not stored on sensor_latest')) +
+      '">' + escapeHtml(t('iaq_readings_fallback_badge', 'readings fallback')) + '</span>'
+    );
   }
 
   function measuredAgeMs(latest) {
@@ -106,40 +160,22 @@
   }
 
   function effectiveCo2(l) { return effectiveNumeric(l, 'co2_ppm', true); }
-  function effectivePm25(l) { return effectiveNumeric(l, 'pm2_5_ugm3', true); }
-  function effectivePm10(l) { return effectiveNumeric(l, 'pm10_ugm3', true); }
-  function effectiveTvoc(l) { return effectiveNumeric(l, 'tvoc_index', true); }
-  function effectiveTemp(l) { return effectiveNumeric(l, 'temperature_c', false); }
-  function effectiveRh(l) { return effectiveNumeric(l, 'humidity_rh', false); }
+  function effectivePm25(l) { return effectiveNumericCanonical(l, 'pm25', false); }
+  function effectivePm10(l) { return effectiveNumericCanonical(l, 'pm10', false); }
+  function effectiveTvoc(l) { return effectiveNumericCanonical(l, 'tvoc', false); }
+  function effectiveTemp(l) { return effectiveNumericCanonical(l, 'temperature', false); }
+  function effectiveRh(l) { return effectiveNumericCanonical(l, 'humidity', false); }
 
-  /** Light: mode-aware with cross-field fallback (lux vs level). */
+  /** Light: semantic-mode aware; normalized mode uses `lighting` only (no lux substitution). */
   function effectiveLightForDisplay(latest, semLight) {
     var mode = String(semLight || 'normalized_level_0_5');
     if (mode === 'raw_lux') {
       var lx = effectiveNumeric(latest, 'lux', false);
       if (lx !== null) return { primary: lx, unit: 'lx', hint: '', source: 'lux' };
-      var ll = effectiveNumeric(latest, 'light_level', false);
-      if (ll !== null) {
-        return {
-          primary: ll,
-          unit: '',
-          hint: t('iaq_light_fallback_level_instead_of_lux', 'Level used — lux missing'),
-          source: 'level_fallback'
-        };
-      }
       return { primary: null, unit: '', hint: '', source: 'none' };
     }
-    var ll2 = effectiveNumeric(latest, 'light_level', false);
+    var ll2 = effectiveNumericCanonical(latest, 'lighting', false);
     if (ll2 !== null) return { primary: ll2, unit: '', hint: '', source: 'level' };
-    var lx2 = effectiveNumeric(latest, 'lux', false);
-    if (lx2 !== null) {
-      return {
-        primary: lx2,
-        unit: 'lx',
-        hint: t('iaq_light_fallback_lux_instead_of_level', 'Lux used — level missing'),
-        source: 'lux_fallback'
-      };
-    }
     return { primary: null, unit: '', hint: '', source: 'none' };
   }
 
@@ -157,19 +193,38 @@
       else state = 'ok';
       return { presence: pr, effective: eff, state: state, stale: stale, lightKind: lightKind || null };
     }
+    function cellCanonical(canonicalKey, treatZero, lightKind) {
+      var keys = METRIC_FALLBACK_KEYS[canonicalKey] || [canonicalKey];
+      var pr = 'missing';
+      var ki;
+      for (ki = 0; ki < keys.length; ki++) {
+        var p = rawMetricPresence(latest, keys[ki]);
+        if (p === 'present') { pr = 'present'; break; }
+        if (p === 'null') pr = 'null';
+      }
+      var eff = effectiveNumericCanonical(latest, canonicalKey, treatZero);
+      var state = 'missing';
+      if (pr === 'missing') state = 'missing';
+      else if (eff === null) state = pr === 'null' ? 'null' : 'missing';
+      else if (stale) state = 'stale_value';
+      else state = 'ok';
+      return { presence: pr, effective: eff, state: state, stale: stale, lightKind: lightKind || null };
+    }
     var lightPrimary = effectiveLightForDisplay(latest, sem);
+    var lightPresenceKey = sem === 'raw_lux' ? 'lux' : 'lighting';
     return {
       co2_ppm: cell('co2_ppm', true, null),
-      temperature_c: cell('temperature_c', true, null),
-      humidity_rh: cell('humidity_rh', true, null),
-      pm2_5_ugm3: cell('pm2_5_ugm3', true, null),
-      pm10_ugm3: cell('pm10_ugm3', true, null),
-      tvoc_index: cell('tvoc_index', true, null),
+      temperature: cellCanonical('temperature', false, null),
+      humidity: cellCanonical('humidity', false, null),
+      pm25: cellCanonical('pm25', false, null),
+      pm10: cellCanonical('pm10', false, null),
+      tvoc: cellCanonical('tvoc', false, null),
       light: {
         mode: sem,
         source: lightPrimary.source,
         primary: lightPrimary.primary,
-        stale: stale
+        stale: stale,
+        presenceKey: lightPresenceKey
       }
     };
   }
@@ -203,11 +258,11 @@
       if (m.state === 'ok' && m.effective !== null) ok += 1;
     }
     score(availability.co2_ppm);
-    score(availability.temperature_c);
-    score(availability.humidity_rh);
-    score(availability.pm2_5_ugm3);
-    score(availability.pm10_ugm3);
-    score(availability.tvoc_index);
+    score(availability.temperature);
+    score(availability.humidity);
+    score(availability.pm25);
+    score(availability.pm10);
+    score(availability.tvoc);
     if (availability.light && availability.light.primary !== null) {
       slots += 1;
       if (!availability.light.stale) ok += 1;
@@ -221,11 +276,11 @@
 
   function semanticCoverageLabel(availability) {
     var hasCo2 = availability.co2_ppm && availability.co2_ppm.effective !== null;
-    var hasThermal = (availability.temperature_c && availability.temperature_c.effective !== null)
-      || (availability.humidity_rh && availability.humidity_rh.effective !== null);
-    var hasPm = (availability.pm2_5_ugm3 && availability.pm2_5_ugm3.effective !== null)
-      || (availability.pm10_ugm3 && availability.pm10_ugm3.effective !== null);
-    var hasTvoc = availability.tvoc_index && availability.tvoc_index.effective !== null;
+    var hasThermal = (availability.temperature && availability.temperature.effective !== null)
+      || (availability.humidity && availability.humidity.effective !== null);
+    var hasPm = (availability.pm25 && availability.pm25.effective !== null)
+      || (availability.pm10 && availability.pm10.effective !== null);
+    var hasTvoc = availability.tvoc && availability.tvoc.effective !== null;
     var hasLight = availability.light && availability.light.primary !== null;
     var score = 0;
     if (hasCo2) score += 1;
@@ -251,9 +306,9 @@
         measured_at: latest && latest.measured_at,
         age_ms: measuredAgeMs(latest),
         stale: isStaleLatest(latest),
-        tvoc_index_raw: latest && latest.tvoc_index,
+        tvoc_raw: latest && latest.tvoc,
         tvoc_effective: effectiveTvoc(latest || {}),
-        light_level_raw: latest && latest.light_level,
+        lighting_raw: latest && latest.lighting,
         lux_raw: latest && latest.lux,
         light_resolution: effectiveLightForDisplay(latest || {}, semLight),
         metric_availability: metricAvailabilityMap(latest || {}, semLight)
@@ -264,10 +319,10 @@
   function isIaqSensor(s) {
     if (!s) return false;
     if (s.device_type === 'iaq') return true;
-    var lat = s.latest || {};
+    var lat = normalizeLatestLocal(s.latest || {});
     return isFiniteNum(toNum(lat.co2_ppm))
-      || isFiniteNum(toNum(lat.pm2_5_ugm3))
-      || isFiniteNum(toNum(lat.tvoc_index));
+      || isFiniteNum(toNum(lat.pm25))
+      || isFiniteNum(toNum(lat.tvoc));
   }
 
   function floorSortWeight(code) {
@@ -620,13 +675,18 @@
     return escapeHtml(fmtFixed(v, 2)) + ' <span class="iaq-sensor-card__unit">(' + escapeHtml(tvocRatingLabel(v)) + ')</span>';
   }
 
+  function lightDisplayDecimals(lightMode) {
+    return String(lightMode || '') === 'raw_lux' ? 0 : 2;
+  }
+
   function formatLightDisplay(latest, lightMode) {
     var r = effectiveLightForDisplay(latest || {}, lightMode);
     if (r.primary === null) return escapeHtml(naLabel());
+    var dec = lightDisplayDecimals(lightMode);
     if (r.unit === 'lx' || (String(lightMode || '') === 'raw_lux' && r.source === 'lux')) {
-      return escapeHtml(fmtFixed(r.primary, 0)) + ' <span class="iaq-sensor-card__unit">lx</span>';
+      return escapeHtml(fmtFixed(r.primary, dec)) + ' <span class="iaq-sensor-card__unit">lx</span>';
     }
-    return escapeHtml(fmtFixed(r.primary, 0));
+    return escapeHtml(fmtFixed(r.primary, dec));
   }
 
   function pmBandHint(latest, kind) {
@@ -693,7 +753,9 @@
     }
 
     var lightRes = effectiveLightForDisplay(latest, semLight);
-    var lMain = lightRes.primary === null ? escapeHtml(naLabel()) : escapeHtml(fmtFixed(lightRes.primary, 0));
+    var lMain = lightRes.primary === null
+      ? escapeHtml(naLabel())
+      : escapeHtml(fmtFixed(lightRes.primary, lightDisplayDecimals(semLight)));
     var lUnit = (String(semLight) === 'raw_lux' && lightRes.source === 'lux') ? 'lx' : (lightRes.unit || '');
     var lHint = lightN;
     if (lightRes.hint) {
@@ -769,7 +831,7 @@
   }
 
   function buildIaqSensorViewModel(sensor, semTvoc, semLight) {
-    var latest = sensor.latest || {};
+    var latest = normalizeLatestLocal(sensor.latest);
     var warns = collectWarnings(latest, semTvoc, semLight);
     return {
       sensor: sensor,
@@ -795,6 +857,10 @@
     var warnBadges = warns.map(function (w) {
       return '<span class="iaq-sensor-card__warn-badge">' + escapeHtml(w.text) + '</span>';
     }).join('');
+    var fallbackBadge = readingsFallbackBadgeHtml(latest);
+    var badgeRow = warnBadges || fallbackBadge
+      ? '<span class="iaq-sensor-card__badges">' + warnBadges + fallbackBadge + '</span>'
+      : '';
 
     var co2Collapsed = collapsedMetricHtml(effectiveCo2(latest), 0, '<span class="iaq-mini-metric__suffix"> ppm</span>');
     var tCollapsed = collapsedMetricHtml(effectiveTemp(latest), 1, '<span class="iaq-mini-metric__suffix"> °C</span>');
@@ -812,7 +878,7 @@
       '<span class="iaq-sensor-card__name">' + escapeHtml(primary) + '</span>' +
       '<span class="iaq-sensor-card__secondary">' + escapeHtml(uid) + '</span>' +
       '<span class="iaq-sensor-card__secondary">' + escapeHtml(t('iaq_sensor_breakdown_last_update', 'Last update')) + ': ' + escapeHtml(freshness) + '</span>' +
-      (warnBadges ? '<span class="iaq-sensor-card__badges">' + warnBadges + '</span>' : '') +
+      badgeRow +
       '</span>' +
       '<span class="iaq-sensor-card__metrics iaq-sensor-card__metrics--dense">' +
       miniMetricCollapsed(t('labels_co2', 'CO₂'), co2Collapsed, ICON_CO2, co2SeverityMod(latest)) +

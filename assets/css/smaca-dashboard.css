@@ -5513,6 +5513,19 @@
   border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
+.iaq-sensor-card__fallback-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
 .iaq-sensor-card__metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));

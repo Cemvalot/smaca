@@ -196,6 +196,8 @@ return [
         'iaq_sensor_breakdown_unknown_location' => 'Μη αντιστοιχισμένη τοποθεσία',
         'iaq_sensor_breakdown_status_critical' => 'Κρίσιμο',
         'iaq_metric_na' => 'Δ/Υ',
+        'iaq_readings_fallback_badge' => 'ανάγνωση από readings',
+        'iaq_readings_fallback_badge_hint' => 'TVOC/φωτισμός από readings· δεν αποθηκεύονται στο sensor_latest',
         'iaq_light_fallback_level_instead_of_lux' => 'Χρησιμοποιείται επίπεδο — λείπουν lux',
         'iaq_light_fallback_lux_instead_of_level' => 'Χρησιμοποιούνται lux — λείπει επίπεδο',
         'iaq_warn_temp_low' => 'Θερμοκρασία κάτω από ζώνη άνεσης (<20 °C)',

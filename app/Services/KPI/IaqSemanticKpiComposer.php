@@ -38,9 +38,9 @@ class IaqSemanticKpiComposer
     public function buildEnvironmentalSafetyIndex(array $inputs): array
     {
         $tvocMode = $this->registry->tvocMode();
-        $pm25 = $inputs['avg_pm25_ugm3'] ?? null;
-        $pm10 = $inputs['avg_pm10_ugm3'] ?? null;
-        $tvoc = $inputs['avg_tvoc_index'] ?? null;
+        $pm25 = $inputs['pm25'] ?? $inputs['avg_pm25_ugm3'] ?? null;
+        $pm10 = $inputs['pm10'] ?? $inputs['avg_pm10_ugm3'] ?? null;
+        $tvoc = $inputs['tvoc'] ?? $inputs['avg_tvoc_index'] ?? null;
 
         $pmCfg = $this->registry->environmentalSafetyDefaults();
         $pm25H = (float) ($pmCfg['pm25']['healthy_max'] ?? 12.0);
@@ -255,22 +255,27 @@ class IaqSemanticKpiComposer
     {
         $mode = $this->registry->lightMode();
         $lux = $inputs['avg_lux'] ?? null;
-        $level = $inputs['avg_light_level'] ?? null;
+        $level = $inputs['lighting'] ?? $inputs['avg_light_level'] ?? null;
 
-        if ($mode === 'raw_lux' && $lux !== null) {
-            return $this->lightingFromLux((float) $lux);
-        }
+        if ($mode === 'raw_lux') {
+            if ($lux !== null) {
+                return $this->lightingFromLux((float) $lux);
+            }
 
-        if ($mode === 'raw_lux' && $lux === null && $level !== null) {
-            return $this->lightingFromNormalizedLevel((float) $level);
+            return $this->wrapKpi('visual_lighting_condition', [
+                'value' => null,
+                'unit' => '',
+                'status' => 'insufficient_data',
+                'confidence' => 'none',
+                'description' => __('messages.iaq_kpi.lighting.insufficient'),
+                'recommended_action' => __('messages.thresholds.insufficient_data_action'),
+                'display_kind' => 'categorical',
+                'semantic_mode' => $mode,
+            ], __('messages.iaq_explainer.lighting_normalized'));
         }
 
         if ($level !== null) {
             return $this->lightingFromNormalizedLevel((float) $level);
-        }
-
-        if ($lux !== null) {
-            return $this->lightingFromLux((float) $lux);
         }
 
         return $this->wrapKpi('visual_lighting_condition', [

@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\TelemetryMetricColumns;
 use Carbon\Carbon;
 use App\Services\KPI\KPIInputAssembler;
 use App\Services\KPI\KPIMetadataService;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 require_once __DIR__ . '/smaca-api-helpers.php';
 require_once __DIR__ . '/smaca-ingest.php';
+require_once __DIR__ . '/smaca-telemetry-rebuild.php';
 
 if (!function_exists('smacaApiMetricWhitelist')) {
     function smacaApiMetricWhitelist(): array
@@ -38,6 +40,13 @@ if (!function_exists('smacaApiSnapshotFromRow')) {
     function smacaApiSnapshotFromRow(object $row): array
     {
         return smacaApiSnapshotFromRow_impl($row);
+    }
+}
+
+if (!function_exists('smacaApiSnapshotFromRowWithIaqFallback')) {
+    function smacaApiSnapshotFromRowWithIaqFallback(object $row, ?object $readingFallback = null): array
+    {
+        return smacaApiSnapshotFromRowWithIaqFallback_impl($row, $readingFallback);
     }
 }
 
@@ -74,7 +83,7 @@ Route::get('/api/dashboard/overview', function () {
     $latestSnapshotRows = DB::table('sensor_latest as sl')
         ->leftJoin('sensors as s', 's.id', '=', 'sl.sensor_id')
         ->leftJoin('sites as si', 'si.id', '=', 's.site_id')
-        ->select([
+        ->select(array_merge([
             'sl.sensor_id',
             's.external_id as sensor_uid',
             's.name as sensor_name',
@@ -87,17 +96,19 @@ Route::get('/api/dashboard/overview', function () {
             'sl.co2_ppm',
             'sl.temperature_c',
             'sl.humidity_rh',
-            'sl.pm2_5_ugm3',
-            'sl.pm10_ugm3',
             'sl.energy_kwh',
             'sl.uv_index',
             'sl.people_in',
             'sl.people_out',
             'sl.people_total_in',
             'sl.people_total_out',
-        ])
+        ], TelemetryMetricColumns::sensorLatestPm25SelectFragments('sl'),
+            TelemetryMetricColumns::sensorLatestPm10SelectFragments('sl'),
+            smacaApiSensorLatestOptionalSelectColumns_impl()))
         ->orderByDesc('sl.measured_at')
         ->get();
+
+    $overviewIaqFallback = smacaReadingsLatestIaqMapForSensors_impl($latestSnapshotRows);
 
     return response()->json([
         'totals' => [
@@ -106,8 +117,11 @@ Route::get('/api/dashboard/overview', function () {
             'active_alerts' => $activeAlertsCount,
         ],
         'latest_update_at' => smacaApiIso($latestUpdateAt),
-        'latest_sensor_snapshot_rows' => $latestSnapshotRows->map(function ($row) {
-            return [
+        'latest_sensor_snapshot_rows' => $latestSnapshotRows->map(function ($row) use ($overviewIaqFallback) {
+            return smacaApiSnapshotFromRowWithIaqFallback(
+                $row,
+                $overviewIaqFallback[(int) ($row->sensor_id ?? 0)] ?? null
+            ) + [
                 'sensor_id' => $row->sensor_id,
                 'sensor_uid' => $row->sensor_uid,
                 'sensor_name' => $row->sensor_name,
@@ -115,19 +129,6 @@ Route::get('/api/dashboard/overview', function () {
                 'is_active' => $row->is_active,
                 'site_id' => $row->site_id,
                 'site_name' => $row->site_name,
-                'measured_at' => smacaApiIso($row->measured_at),
-                'battery_pct' => $row->battery_pct,
-                'co2_ppm' => $row->co2_ppm,
-                'temperature_c' => $row->temperature_c,
-                'humidity_rh' => $row->humidity_rh,
-                'pm2_5_ugm3' => $row->pm2_5_ugm3,
-                'pm10_ugm3' => $row->pm10_ugm3,
-                'energy_kwh' => $row->energy_kwh,
-                'uv_index' => $row->uv_index,
-                'people_in' => $row->people_in,
-                'people_out' => $row->people_out,
-                'people_total_in' => $row->people_total_in,
-                'people_total_out' => $row->people_total_out,
             ];
         })->values(),
     ]);
@@ -154,17 +155,20 @@ Route::get('/api/sensors', function () {
             'sl.co2_ppm',
             'sl.temperature_c',
             'sl.humidity_rh',
-            'sl.pm2_5_ugm3',
-            'sl.pm10_ugm3',
             'sl.energy_kwh',
             'sl.uv_index',
             'sl.people_in',
             'sl.people_out',
             'sl.people_total_in',
             'sl.people_total_out',
-        ], smacaApiSensorLatestOptionalSelectColumns_impl()))
+        ], TelemetryMetricColumns::sensorLatestPm25SelectFragments('sl'),
+            TelemetryMetricColumns::sensorLatestPm10SelectFragments('sl'),
+            smacaApiSensorLatestOptionalSelectColumns_impl()))
         ->orderBy('s.id')
         ->get();
+
+    $iaqReadingsBySensorId = smacaReadingsLatestIaqMapForSensors_impl($rows);
+    $iaqFallbackStatus = smacaReadingsIaqFallbackStatus_impl();
 
     // SpatialService is locale-aware; instantiating once here keeps the
     // per-row map() cheap and avoids re-resolving the active locale.
@@ -184,7 +188,8 @@ Route::get('/api/sensors', function () {
     };
 
     return response()->json([
-        'rows' => $rows->map(function ($row) use ($spatial, $sanitizeLocation) {
+        'iaq_readings_fallback' => $iaqFallbackStatus,
+        'rows' => $rows->map(function ($row) use ($spatial, $sanitizeLocation, $iaqReadingsBySensorId) {
             $location = $sanitizeLocation($row->latest_sensor_location);
             return [
                 'id' => $row->id,
@@ -205,7 +210,10 @@ Route::get('/api/sensors', function () {
                     'id' => $row->site_id,
                     'name' => $row->site_name,
                 ],
-                'latest' => smacaApiSnapshotFromRow($row),
+                'latest' => smacaApiSnapshotFromRowWithIaqFallback(
+                    $row,
+                    $iaqReadingsBySensorId[(int) $row->id] ?? null
+                ),
             ];
         })->values(),
     ]);
@@ -232,15 +240,15 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
             'sl.co2_ppm',
             'sl.temperature_c',
             'sl.humidity_rh',
-            'sl.pm2_5_ugm3',
-            'sl.pm10_ugm3',
             'sl.energy_kwh',
             'sl.uv_index',
             'sl.people_in',
             'sl.people_out',
             'sl.people_total_in',
             'sl.people_total_out',
-        ], smacaApiSensorLatestOptionalSelectColumns_impl()))
+        ], TelemetryMetricColumns::sensorLatestPm25SelectFragments('sl'),
+            TelemetryMetricColumns::sensorLatestPm10SelectFragments('sl'),
+            smacaApiSensorLatestOptionalSelectColumns_impl()))
         ->where('s.id', (int) $id)
         ->first();
 
@@ -258,7 +266,10 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
         ? null
         : $trimmedLoc;
 
+    $iaqFallbackMap = smacaReadingsLatestIaqMapForSensors_impl([$row]);
+
     return response()->json([
+        'iaq_readings_fallback' => smacaReadingsIaqFallbackStatus_impl(),
         'row' => [
             'id' => $row->id,
             'sensor_uid' => $row->sensor_uid,
@@ -275,7 +286,10 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
                 'id' => $row->site_id,
                 'name' => $row->site_name,
             ],
-            'latest' => smacaApiSnapshotFromRow($row),
+            'latest' => smacaApiSnapshotFromRowWithIaqFallback(
+                $row,
+                $iaqFallbackMap[(int) $row->id] ?? null
+            ),
         ],
     ]);
 });
@@ -309,8 +323,22 @@ Route::get('/api/sensors/{id}/timeseries', function (Request $request, $id) {
         ], 422);
     }
 
+    $dbMetric = $metric;
+    if ($metric === 'pm2_5_ugm3') {
+        $dbMetric = TelemetryMetricColumns::readingsPm25PhysicalColumn() ?? 'pm2_5_ugm3';
+    } elseif ($metric === 'pm10_ugm3') {
+        $dbMetric = TelemetryMetricColumns::readingsPm10PhysicalColumn() ?? 'pm10_ugm3';
+    }
+
+    if (!smacaReadingsHasColumn($dbMetric)) {
+        return response()->json([
+            'message' => 'Metric unavailable for readings schema',
+            'metric' => $metric,
+        ], 422);
+    }
+
     $query = DB::table('readings')
-        ->select(['measured_at', DB::raw($metric . ' as metric_value')])
+        ->select(['measured_at', DB::raw($dbMetric.' as metric_value')])
         ->where('measured_at', '>=', $from)
         ->orderBy('measured_at');
 
@@ -325,7 +353,7 @@ Route::get('/api/sensors/{id}/timeseries', function (Request $request, $id) {
     }
 
     if (!in_array($metric, ['people_total_in', 'people_total_out'], true)) {
-        $query->whereNotNull($metric);
+        $query->whereNotNull($dbMetric);
     }
 
     $points = $query->get();
@@ -796,5 +824,93 @@ Route::get('/api/admin/topology-audit', function (Request $request) {
             ]);
         } catch (\Throwable $ignored) {}
         return response()->json(['message' => 'Topology audit unavailable', 'degraded' => true], 200);
+    }
+});
+
+// -----------------------------------------------------------------------------
+// Admin-only IAQ telemetry reconcile audit (readings vs sensor_latest vs API keys).
+// -----------------------------------------------------------------------------
+Route::get('/api/admin/telemetry-reconcile', function (Request $request) {
+    if ((string) session('role', '') !== 'admin') {
+        return response()->json(['message' => 'Forbidden'], 403);
+    }
+
+    try {
+        smacaTelemetryRebuildEnsureLoaded();
+        $rebuilder = smacaTelemetryRebuilder();
+        $reporter = smacaTelemetryReconcileReporter();
+        $sample = max(1, min(50, (int) $request->query('sample', 10)));
+
+        $iaqFallback = smacaReadingsIaqFallbackStatus_impl();
+        $iaqFallback['deploy_diagnostics'] = smacaAdminIaqFallbackDiagnostics_impl();
+
+        return response()->json([
+            'generated_at' => \Carbon\Carbon::now('Europe/Athens')->toIso8601String(),
+            'iaq_readings_fallback' => $iaqFallback,
+            'schema' => $rebuilder->auditSchema(),
+            'report' => $reporter->build($sample),
+        ]);
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/admin/telemetry-reconcile failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {}
+
+        return response()->json(['message' => 'Telemetry reconcile audit unavailable', 'degraded' => true], 200);
+    }
+});
+
+// -----------------------------------------------------------------------------
+// Admin-only: rebuild sensor_latest from newest readings (no migrations / no cache ops).
+// POST body/query: dry_run=1, sensor_id=<optional>
+// -----------------------------------------------------------------------------
+Route::post('/api/admin/rebuild-sensor-latest', function (Request $request) {
+    if ((string) session('role', '') !== 'admin') {
+        return response()->json(['message' => 'Forbidden'], 403);
+    }
+
+    try {
+        smacaTelemetryRebuildEnsureLoaded();
+        $rebuilder = smacaTelemetryRebuilder();
+        $dryRun = filter_var($request->input('dry_run', false), FILTER_VALIDATE_BOOLEAN);
+        $sensorId = $request->input('sensor_id');
+        $sensorId = is_numeric($sensorId) ? (int) $sensorId : null;
+
+        $result = $rebuilder->rebuild([
+            'dry_run' => $dryRun,
+            'verbose' => filter_var($request->input('verbose', false), FILTER_VALIDATE_BOOLEAN),
+            'sensor_id' => $sensorId,
+        ]);
+
+        $status = ($result['ok'] ?? false) ? 200 : 422;
+        $result['deploy_diagnostics'] = smacaAdminIaqFallbackDiagnostics_impl();
+
+        return response()->json($result, $status);
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('POST /api/admin/rebuild-sensor-latest failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {}
+
+        $payload = [
+            'ok' => false,
+            'message' => 'Rebuild failed',
+            'error' => $e->getMessage(),
+        ];
+        if ($e instanceof \RuntimeException && str_contains($e->getMessage(), 'missing on server')) {
+            $payload['ftp_upload_required'] = [
+                'routes/smaca-telemetry-rebuild.php',
+                'app/Support/TelemetryMetricColumns.php',
+                'app/Support/TelemetryLatestNormalizer.php',
+                'app/Services/Telemetry/SensorLatestRebuilder.php',
+                'app/Services/Telemetry/TelemetryReconcileReporter.php',
+            ];
+        }
+
+        return response()->json($payload, 500);
     }
 });

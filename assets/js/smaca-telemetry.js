@@ -431,15 +431,21 @@
     var yAxisTitle = (params && params.yAxisTitle) ? String(params.yAxisTitle) : '';
     var height = (params && params.height) || 56;
     if ((showAxis || showYAxis) && height < 130) height = 130;
-    var bottomMargin = showAxis ? 26 : 14;
-    var leftMargin = showYAxis ? 34 : 0;
-    var stepOverride = (params && Number.isFinite(params.step) && params.step >= 1) ? Math.floor(params.step) : null;
+    var catCount = ((params && params.categories) || []).length;
+    var xLabelRot = (params && Number.isFinite(params.xAxisLabelRotation))
+      ? Number(params.xAxisLabelRotation)
+      : (showAxis && catCount >= 12 ? -40 : 0);
+    var bottomMargin = showAxis ? (xLabelRot ? 52 : 34) : 14;
+    var leftMargin = showYAxis ? 50 : 0;
+    var stepOverride = (params && Number.isFinite(params.xAxisLabelStep) && params.xAxisLabelStep >= 1)
+      ? Math.floor(params.xAxisLabelStep)
+      : ((params && Number.isFinite(params.step) && params.step >= 1) ? Math.floor(params.step) : null);
     var autoStep = Math.max(1, Math.floor(data.length / 6));
     var options = {
       chart: {
         type: 'column',
         height: height,
-        margin: [4, 0, bottomMargin, leftMargin],
+        margin: [4, 6, bottomMargin, leftMargin],
         backgroundColor: 'transparent',
         animation: false,
         spacing: [0, 0, 0, 0]
@@ -453,11 +459,14 @@
         title: {
           text: showAxis && xAxisTitle ? xAxisTitle : null,
           style: { color: 'rgba(148,163,184,0.72)', fontSize: '9px', fontWeight: '500' },
-          margin: 6
+          margin: 8
         },
         labels: {
-          style: { color: 'rgba(148,163,184,0.6)', fontSize: '9px' },
-          step: stepOverride || autoStep
+          style: { color: 'rgba(148,163,184,0.78)', fontSize: '10px' },
+          step: stepOverride !== null ? stepOverride : autoStep,
+          rotation: xLabelRot,
+          align: xLabelRot ? 'right' : 'center',
+          reserveSpace: true
         },
         lineColor: 'transparent',
         tickWidth: 0
@@ -465,15 +474,21 @@
       yAxis: {
         visible: showYAxis,
         min: 0,
+        allowDecimals: false,
+        endOnTick: false,
+        maxPadding: 0.08,
+        tickAmount: 6,
         title: {
           text: showYAxis && yAxisTitle ? yAxisTitle : null,
-          style: { color: 'rgba(148,163,184,0.72)', fontSize: '9px', fontWeight: '500' }
+          style: { color: 'rgba(148,163,184,0.72)', fontSize: '9px', fontWeight: '500' },
+          margin: 10
         },
         labels: {
-          style: { color: 'rgba(148,163,184,0.58)', fontSize: '9px' },
-          x: -2
+          style: { color: 'rgba(148,163,184,0.82)', fontSize: '10px' },
+          x: -3,
+          distance: 6
         },
-        gridLineColor: showYAxis ? 'rgba(148,163,184,0.08)' : 'transparent',
+        gridLineColor: showYAxis ? 'rgba(148,163,184,0.10)' : 'transparent',
         gridLineDashStyle: 'Dot'
       },
       tooltip: {
@@ -514,12 +529,15 @@
     var p = params || {};
     var series = Array.isArray(p.series) ? p.series : [];
     if (!series.length) return null;
+    var catLen = (p.categories || []).length;
     var height = p.height || 88;
+    if (catLen && height < 200) height = Math.max(height, 168 + Math.min(40, catLen * 6));
+    var bottomPad = Math.max(52, 28 + Math.min(48, catLen * 5));
     var options = {
       chart: {
         type: 'column',
         height: height,
-        margin: [6, 4, 22, 24],
+        margin: [8, 8, bottomPad, 46],
         backgroundColor: 'transparent',
         animation: false
       },
@@ -538,17 +556,27 @@
       xAxis: {
         categories: p.categories || [],
         labels: {
-          style: { color: 'rgba(148,163,184,0.55)', fontSize: '9px' },
-          step: Math.max(1, Math.floor((p.categories || []).length / 6))
+          style: { color: 'rgba(148,163,184,0.82)', fontSize: '10px' },
+          rotation: catLen <= 4 ? 0 : -32,
+          align: catLen <= 4 ? 'center' : 'right',
+          reserveSpace: true,
+          formatter: function () {
+            var t = this.value != null ? String(this.value) : '';
+            if (t.length <= 22) return t;
+            return t.slice(0, 20) + '…';
+          }
         },
         lineColor: 'rgba(148,163,184,0.10)',
         tickWidth: 0
       },
       yAxis: {
         visible: true,
+        min: 0,
+        allowDecimals: false,
+        tickAmount: 6,
         title: { text: null },
-        labels: { style: { color: 'rgba(148,163,184,0.5)', fontSize: '9px' }, x: -2 },
-        gridLineColor: 'rgba(148,163,184,0.08)',
+        labels: { style: { color: 'rgba(148,163,184,0.78)', fontSize: '10px' }, x: -4 },
+        gridLineColor: 'rgba(148,163,184,0.10)',
         gridLineDashStyle: 'Dot'
       },
       tooltip: {

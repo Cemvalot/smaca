@@ -196,6 +196,8 @@ return [
         'iaq_sensor_breakdown_unknown_location' => 'Unassigned location',
         'iaq_sensor_breakdown_status_critical' => 'Critical',
         'iaq_metric_na' => 'N/A',
+        'iaq_readings_fallback_badge' => 'readings fallback',
+        'iaq_readings_fallback_badge_hint' => 'TVOC/light from readings; not stored on sensor_latest',
         'iaq_light_fallback_level_instead_of_lux' => 'Level used — lux missing',
         'iaq_light_fallback_lux_instead_of_level' => 'Lux used — level missing',
         'iaq_warn_temp_low' => 'Temperature below comfort band (<20 °C)',
