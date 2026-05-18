@@ -1,31 +1,96 @@
 /**
- * SMACA Phase 2 performance — GPU containment, lighter glass, virtual lists.
+ * SMACA performance + scroll polish — GPU containment, calmer scroll paint.
  */
 
 :root {
   --smaca-glass-blur: blur(6px);
+  --smaca-shadow-scroll: 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Main scroll container (dashboard content column) */
+.content {
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fixed chrome — own layer, no jitter from repaints below */
+.sidebar {
+  contain: strict;
+  transform: translateZ(0);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.topbar {
+  contain: layout style paint;
+  transform: translateZ(0);
+}
+
+.time-range-selector {
+  contain: layout style;
+}
+
+/* Calmer atmosphere — avoid fixed parallax repaint on scroll */
+body {
+  background-attachment: scroll !important;
+}
+
+.overview-page::before {
+  opacity: 0.28;
 }
 
 /* Isolate repaint-heavy dashboard regions */
 .main,
-.content,
 .dashboard-section,
-[data-smaca-telemetry],
+[data-smaca-telemetry] {
+  contain: layout style;
+}
+
 .smaca-tile,
 .smaca-tile--chart,
 .iaq-sensor-floor,
 .occupancy-sensor-floor,
 .energy-meter-floor {
-  contain: layout style;
+  contain: layout style paint;
 }
 
+/* Stable chart well heights — avoid layout jump on pause/resume */
 .smaca-tile__chart,
+[data-smaca-chart="1"],
 .chart-placeholder,
 #iaq-co2-band-chart,
 #iaq-co2-hourly-heatmap {
-  contain: strict;
+  min-height: 168px;
   content-visibility: auto;
-  contain-intrinsic-size: auto 200px;
+  contain-intrinsic-size: auto 168px;
+}
+
+.smaca-tile--chart {
+  min-height: 168px;
+}
+
+.smaca-chart-host--paused,
+[data-smaca-chart-paused="1"] {
+  min-height: 168px;
+  background: var(--smaca-chart-well-bg, rgba(14, 26, 42, 0.55));
+  border-radius: 8px;
+}
+
+#iaq-co2-band-chart,
+#iaq-co2-hourly-heatmap {
+  contain: layout style paint;
 }
 
 /* Glass only on outer section shells — skip nested KPI cards */
@@ -33,15 +98,47 @@
 #iaq #iaq-kpi-cards .stat-card,
 #environmental #environmental-kpi-grid .stat-card,
 .occupancy-sensor-card,
-.iaq-sensor-card {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
+.iaq-sensor-card,
 .smaca-tile,
 .smaca-tile--chart {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+/* Section shells keep light depth without heavy blur */
+.dashboard-section > .card,
+#overview > .card,
+.overview-snapshot-section,
+.overview-live-panel {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--smaca-shadow-scroll);
+}
+
+.overview-kpi-card,
+.stat-card.overview-kpi-card {
+  box-shadow: var(--smaca-shadow-scroll);
+}
+
+/* While scrolling: strip hover motion and heavy shadows */
+html.smaca-is-scrolling .overview-kpi-card:hover,
+html.smaca-is-scrolling .stat-card:hover,
+html.smaca-is-scrolling .smaca-tile:hover,
+html.smaca-is-scrolling .iaq-sensor-floor__trigger:hover,
+html.smaca-is-scrolling .occupancy-sensor-floor__trigger:hover {
+  transform: none !important;
+  box-shadow: var(--smaca-shadow-scroll) !important;
+}
+
+html.smaca-is-scrolling .dashboard-section > .card,
+html.smaca-is-scrolling .overview-kpi-card,
+html.smaca-is-scrolling .smaca-tile {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.smaca-is-scrolling .overview-page::before {
+  opacity: 0.15;
 }
 
 /* Virtual sensor / passage lists */
@@ -70,9 +167,24 @@
   contain: layout style paint;
 }
 
+/* Sensor accordion — no height animation cost while scrolling */
 @media (prefers-reduced-motion: reduce) {
   .iaq-sensor-floor__body,
   .occupancy-sensor-floor__body {
     transition: none !important;
   }
+}
+
+html.smaca-is-scrolling .iaq-sensor-floor__body,
+html.smaca-is-scrolling .occupancy-sensor-floor__body {
+  transition: none !important;
+}
+
+/* Telemetry grid rhythm */
+[data-smaca-telemetry] {
+  gap: var(--space-4);
+}
+
+.smaca-tile--empty {
+  min-height: 96px;
 }

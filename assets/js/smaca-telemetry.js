@@ -95,6 +95,14 @@
     return { duration: 220 };
   }
 
+  function scrollDebugLog(message, detail) {
+    try {
+      if (String(global.localStorage && global.localStorage.getItem('smaca_debug_scroll')) !== '1') return;
+      if (detail !== undefined) console.log('[SMACA_SCROLL]', message, detail);
+      else console.log('[SMACA_SCROLL]', message);
+    } catch (e) { /* noop */ }
+  }
+
   function observeChartHost(host) {
     if (!host) return;
     if (global.SMACAChartVisibility && typeof global.SMACAChartVisibility.observe === 'function') {
@@ -110,16 +118,35 @@
     }
     CHART_INSTANCES.delete(host);
     host.setAttribute('data-smaca-chart-paused', '1');
+    host.classList.add('smaca-chart-host--paused');
   }
 
   function resumeChartHost(host) {
     if (!host || host.getAttribute('data-smaca-chart-paused') !== '1') return;
     var rebuild = CHART_REBUILD.get(host);
-    if (typeof rebuild !== 'function') return;
-    host.removeAttribute('data-smaca-chart-paused');
-    try {
-      rebuild();
-    } catch (e) { /* swallow */ }
+    if (typeof rebuild !== 'function') {
+      host.removeAttribute('data-smaca-chart-paused');
+      return;
+    }
+    var run = function () {
+      scrollDebugLog('chart-redraw', { paused: true });
+      try {
+        var chart = rebuild();
+        var hasVisual = host.querySelector('svg, canvas, .highcharts-container');
+        if (chart || hasVisual) {
+          host.removeAttribute('data-smaca-chart-paused');
+          host.classList.remove('smaca-chart-host--paused');
+          scrollDebugLog('chart-redraw-done', { ok: true, fallback: !chart && !!hasVisual });
+        } else {
+          scrollDebugLog('chart-redraw-done', { ok: false });
+        }
+      } catch (e) { /* swallow */ }
+    };
+    if (typeof global.requestAnimationFrame === 'function') {
+      global.requestAnimationFrame(run);
+    } else {
+      run();
+    }
   }
 
   function setChartRefreshMode(isRefresh) {

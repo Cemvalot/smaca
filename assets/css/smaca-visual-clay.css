@@ -8,7 +8,7 @@
  * ================================================================== */
 body {
   background: var(--smaca-bg-atmosphere);
-  background-attachment: fixed;
+  background-attachment: scroll;
 }
 
 .main {
@@ -51,8 +51,8 @@ body {
   border: 1px solid var(--smaca-border-clay);
   border-radius: var(--smaca-radius-clay);
   box-shadow: var(--smaca-shadow-section);
-  backdrop-filter: var(--smaca-glass-blur);
-  -webkit-backdrop-filter: var(--smaca-glass-blur);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .dashboard-section > .card::before,
@@ -84,9 +84,16 @@ body {
 .stat-card:not(.overview-kpi-card--skeleton):hover,
 #iaq #iaq-kpi-cards .stat-card:hover,
 #environmental #environmental-kpi-grid .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--smaca-shadow-clay-hover);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+html.smaca-is-scrolling .stat-card:not(.overview-kpi-card--skeleton):hover,
+html.smaca-is-scrolling #iaq #iaq-kpi-cards .stat-card:hover,
+html.smaca-is-scrolling #environmental #environmental-kpi-grid .stat-card:hover {
+  transform: none;
+  box-shadow: var(--smaca-shadow-clay);
 }
 
 /* Important KPI cards — corner ambient only */
