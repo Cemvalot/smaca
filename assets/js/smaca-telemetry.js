@@ -287,8 +287,12 @@
     var subtitle = safeOpts.subtitle
       ? '<p class="smaca-tile__subtitle">' + safe(safeOpts.subtitle) + '</p>'
       : '';
+    var chartPillarIcon = (safeOpts.pillar && global.SMACAIcons && global.SMACAIcons.chipHtml)
+      ? global.SMACAIcons.chipHtml(safeOpts.pillar, 'xs')
+      : '';
     el.innerHTML = ''
       + '<div class="smaca-tile__head">'
+      +   chartPillarIcon
       +   '<span class="smaca-tile__label">' + safe(safeOpts.label || '') + '</span>'
       +   unitChip
       +   legendHtml
@@ -733,9 +737,12 @@
       return ''
         + '<div class="smaca-rank-bars__row">'
         +   '<div class="smaca-rank-bars__label" title="' + safe(item.label) + '">'
-        +     (item.statusColor ? '<span class="smaca-rank-bars__status-dot" style="background:' + safe(item.statusColor) + ';" aria-hidden="true"></span>' : '')
-        +     '<span class="smaca-rank-bars__label-text">' + safe(item.label) + '</span>'
+        +     (item.pillar && global.SMACAIcons && global.SMACAIcons.chipHtml
+          ? global.SMACAIcons.chipHtml(item.pillar, 'xs')
+          : (item.statusColor ? '<span class="smaca-rank-bars__status-dot" style="background:' + safe(item.statusColor) + ';" aria-hidden="true"></span>' : ''))
+        +     '<div class="smaca-rank-bars__label-text-wrap"><span class="smaca-rank-bars__label-text">' + safe(item.label) + '</span>'
         +     (item.subLabel ? '<div class="smaca-rank-bars__sub">' + safe(item.subLabel) + '</div>' : '')
+        +     '</div>'
         +   '</div>'
         +   '<div class="smaca-rank-bars__bar">'
         +     '<div class="smaca-rank-bars__fill" style="width: ' + pct.toFixed(2) + '%; background: ' + color + ';"></div>'

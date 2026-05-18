@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-enterprise-ui.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-enterprise-ui.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-institutional-tone.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-institutional-tone.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-visual-clay.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-visual-clay.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-icon-chips.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-icon-chips.css') }}">
 </head>
 <body>
   <div class="app">
@@ -757,6 +758,7 @@
   <script defer src="{{ asset('assets/js/smaca-api.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-api.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-spatial.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-spatial.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-role.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-role.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-icons.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-icons.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-kpi-renderer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-kpi-renderer.js') }}"></script>
   @if(($smacaPage ?? 'overview') === 'overview')
   <script defer src="{{ asset('assets/js/smaca-overview-scope.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-overview-scope.js') }}"></script>

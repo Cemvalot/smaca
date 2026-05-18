@@ -1,0 +1,179 @@
+/**
+ * ICONS-1 — Pillar icon capsules
+ */
+
+.smaca-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 12px rgba(0, 0, 0, 0.18);
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.smaca-icon-chip__svg {
+  display: block;
+}
+
+.smaca-icon-chip--xs {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+}
+
+.smaca-icon-chip--xs .smaca-icon-chip__svg {
+  width: 14px;
+  height: 14px;
+}
+
+.smaca-icon-chip--sm {
+  width: 28px;
+  height: 28px;
+}
+
+.smaca-icon-chip--sm .smaca-icon-chip__svg {
+  width: 16px;
+  height: 16px;
+}
+
+.smaca-icon-chip--md {
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+}
+
+.smaca-icon-chip--md .smaca-icon-chip__svg {
+  width: 18px;
+  height: 18px;
+}
+
+.smaca-icon-chip--lg {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+}
+
+.smaca-icon-chip--lg .smaca-icon-chip__svg {
+  width: 20px;
+  height: 20px;
+}
+
+.smaca-icon-chip--hero {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+
+.smaca-icon-chip--hero .smaca-icon-chip__svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Pillar colors */
+.smaca-icon-chip--overview {
+  color: #8eb8ff;
+  background: rgba(75, 141, 248, 0.14);
+  border-color: rgba(75, 141, 248, 0.24);
+}
+
+.smaca-icon-chip--iaq {
+  color: #6ee7d6;
+  background: rgba(0, 180, 170, 0.14);
+  border-color: rgba(0, 180, 170, 0.24);
+}
+
+.smaca-icon-chip--occupancy {
+  color: #c4b5fd;
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.24);
+}
+
+.smaca-icon-chip--energy {
+  color: #f0d878;
+  background: rgba(232, 192, 74, 0.14);
+  border-color: rgba(232, 192, 74, 0.26);
+}
+
+.smaca-icon-chip--environmental {
+  color: #f0a878;
+  background: rgba(255, 120, 40, 0.14);
+  border-color: rgba(255, 120, 40, 0.24);
+}
+
+.smaca-icon-chip--connectivity {
+  color: #9ec8ef;
+  background: rgba(91, 159, 212, 0.14);
+  border-color: rgba(91, 159, 212, 0.24);
+}
+
+.smaca-icon-chip--management,
+.smaca-icon-chip--system {
+  color: #b8c5d8;
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.smaca-icon-chip--ai {
+  color: #c4b8f8;
+  background: rgba(155, 135, 245, 0.14);
+  border-color: rgba(155, 135, 245, 0.24);
+}
+
+/* Sidebar — icon chip inside nav */
+.nav-link--section .smaca-icon-chip {
+  margin-right: 0;
+}
+
+.nav-link--section.is-active .smaca-icon-chip {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+/* Overview KPI card icon (top-right) */
+.overview-kpi-card__icon.smaca-icon-chip {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+}
+
+/* Module quick-access cards */
+.overview-module-card__icon.smaca-icon-chip {
+  align-self: flex-start;
+}
+
+/* Section hero */
+.section-hero__title-row .smaca-icon-chip {
+  flex-shrink: 0;
+}
+
+/* Rank bars — module health */
+.smaca-rank-bars__label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.smaca-rank-bars__label-text-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.smaca-rank-bars__status-dot {
+  display: none;
+}
+
+/* Tile head icons */
+.smaca-tile__head .smaca-icon-chip {
+  margin-right: 2px;
+}
+
+.smaca-tile--chart .smaca-tile__head .smaca-icon-chip {
+  margin-right: 6px;
+}

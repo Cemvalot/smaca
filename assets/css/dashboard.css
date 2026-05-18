@@ -9,7 +9,7 @@
 
 .sidebar {
   width: var(--sidebar-width);
-  background: var(--surface);
+  background: var(--smaca-sidebar, var(--surface));
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;

@@ -6,9 +6,7 @@
     <div class="section-hero__inner">
       <div>
         <div class="section-hero__title-row">
-          <svg class="section-hero__icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
+          @include('dashboard.partials.pillar-icon-chip', ['pillar' => 'energy', 'size' => 'hero', 'class' => 'section-hero__icon'])
           <h2 class="section-hero__title">{{ __('messages.nav.energy') }}</h2>
         </div>
         <p class="section-hero__subtitle">{{ __('messages.dashboard_i18n.energy_hero_subtitle') }}</p>

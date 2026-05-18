@@ -1132,6 +1132,7 @@
           : (reportingTag + ': —');
         return {
           label: m.label,
+          pillar: m.key,
           value: pct,
           color: reportingBarColor(pct, matching.length),
           displayValue: matching.length ? (fresh + '/' + matching.length) : '—',
@@ -1142,6 +1143,7 @@
       if (matrixEl && tile()) {
         var hostMatrix = tile().renderChartTile(matrixEl, {
           label: locText('Module health', 'Υγεία μονάδων'),
+          pillar: 'system',
           subtitle: overviewTr(
             'overview_module_health_subtitle',
             'Green bar = sensors reporting in the last 30 min. Status line shows the worst KPI for that module.',
@@ -1178,6 +1180,7 @@
           var offlineLabel = overviewTr('overview_sensor_offline', 'Offline / no data', 'Εκτός σύνδεσης / χωρίς δεδομένα');
           var hostDonut = tile().renderChartTile(donutEl, {
             label: locText('Sensor status', 'Κατάσταση αισθητήρων'),
+            pillar: 'system',
             subtitle: overviewTr(
               'overview_sensor_donut_subtitle',
               'Freshness of sensor streams in the current scope.',

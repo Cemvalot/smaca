@@ -383,7 +383,10 @@
         ? `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span><span class="stat-card__value-unit">${escapeHtml(vu.unit)}</span>`
         : `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span>`;
       const iconKey = String(kpi.kpi_category || '').toLowerCase();
-      const iconHtml = `<span class="overview-kpi-card__icon" data-category="${escapeHtml(iconKey)}" aria-hidden="true">${categoryIconSvg(iconKey)}</span>`;
+      const pillarKey = (kpi.overview_module_key || boundModule || iconKey || '').toLowerCase();
+      const iconHtml = (typeof window !== 'undefined' && window.SMACAIcons && window.SMACAIcons.chipHtml)
+        ? window.SMACAIcons.chipHtml(pillarKey, 'md', { className: 'overview-kpi-card__icon' })
+        : `<span class="overview-kpi-card__icon" data-category="${escapeHtml(iconKey)}" aria-hidden="true">${categoryIconSvg(iconKey)}</span>`;
       const dotClass = 'overview-kpi-card__dot overview-kpi-card__dot--' + statusDotClass(displayStatus);
       return `
         <article class="stat-card overview-kpi-card${iaqCardClass}${compact ? ' overview-kpi-card--compact' : ''}${snapshotClass}"${moduleKeyAttr}${compactStyle}${cardTitle ? ` title="${cardTitle}"` : ''}>
@@ -622,9 +625,12 @@
   function buildOccupancyMetricCard(labelKey, tooltipKey, value) {
     var label = t(labelKey, labelKey);
     var tooltip = t(tooltipKey, '');
+    var occIcon = (typeof window !== 'undefined' && window.SMACAIcons && window.SMACAIcons.chipHtml)
+      ? window.SMACAIcons.chipHtml('occupancy', 'md', { className: 'overview-kpi-card__icon' })
+      : '<span class="overview-kpi-card__icon" data-category="occupancy" aria-hidden="true">' + categoryIconSvg('occupancy') + '</span>';
     return (
       '<article class="stat-card overview-kpi-card">' +
-      '<span class="overview-kpi-card__icon" data-category="occupancy" aria-hidden="true">' + categoryIconSvg('occupancy') + '</span>' +
+      occIcon +
       '<div class="stat-card__content">' +
       '<div class="stat-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
       '<div class="stat-card__value"><span class="stat-card__value-number">' + escapeHtml(formatOccupancyMetricValue(value)) + '</span></div>' +

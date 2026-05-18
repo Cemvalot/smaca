@@ -857,14 +857,7 @@
   letter-spacing: 0.5px;
 }
 
-.section-hero--overview { background: var(--surface-2); border-left: 3px solid rgba(96, 165, 250, 0.45); }
-.section-hero--iaq { background: var(--surface-2); border-left: 3px solid rgba(45, 122, 130, 0.55); }
-.section-hero--occupancy { background: var(--surface-2); border-left: 3px solid rgba(146, 118, 72, 0.55); }
-.section-hero--energy { background: var(--surface-2); border-left: 3px solid rgba(161, 132, 62, 0.55); }
-.section-hero--connectivity { background: var(--surface-2); border-left: 3px solid rgba(71, 118, 168, 0.55); }
-.section-hero--environmental { background: var(--surface-2); border-left: 3px solid rgba(158, 122, 68, 0.55); }
-.section-hero--ai-insights { background: var(--surface-2); border-left: 3px solid rgba(107, 114, 128, 0.5); }
-.section-hero--management { background: var(--surface-2); border-left: 3px solid rgba(107, 114, 128, 0.5); }
+/* Module hero tints — see smaca-visual-clay.css */
 
 /* Data status & Last updated pills */
 .data-status-pill {
@@ -2486,18 +2479,9 @@
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-4);
-  border-radius: var(--r-lg);
   text-decoration: none;
   color: inherit;
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.85));
-  border: 1px solid var(--border);
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.overview-module-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(59, 130, 246, 0.45);
-  box-shadow: var(--shadow-md);
+  transition: var(--smaca-clay-transition, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease);
 }
 
 .overview-module-card__icon {
@@ -3685,20 +3669,12 @@
   color: rgba(156, 163, 175, 0.85);
 }
 
-/* ---- Card consistency — softer borders, unified radius ------------- */
+/* Card shell defers to enterprise theme tokens */
 .card {
-  border-radius: var(--r-lg);
-  border-color: rgba(148, 163, 184, 0.12);
-  background:
-    linear-gradient(180deg, rgba(26, 31, 46, 1) 0%, rgba(20, 25, 39, 1) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.02),
-    0 4px 14px rgba(2, 6, 23, 0.18);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover {
-  border-color: rgba(148, 163, 184, 0.18);
+  border-radius: var(--smaca-radius-clay, var(--r-lg));
+  border-color: var(--border);
+  background: var(--smaca-glass-bg, var(--surface));
+  transition: var(--smaca-clay-transition, border-color 0.2s ease, box-shadow 0.2s ease);
 }
 
 .card__header {
@@ -4259,12 +4235,8 @@
   gap: 6px;
   padding: 12px 14px 10px;
   min-height: 96px;
-  border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.10);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.55) 100%);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
-  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
   overflow: hidden;
+  transition: var(--smaca-clay-transition, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease);
 }
 
 .smaca-tile::before {
@@ -4277,9 +4249,7 @@
 }
 
 .smaca-tile:hover {
-  border-color: rgba(96, 165, 250, 0.28);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px -10px rgba(96, 165, 250, 0.30), 0 0 0 1px rgba(96, 165, 250, 0.10) inset;
+  transform: translateY(-2px);
 }
 
 .smaca-tile[data-tone="good"]::before     { background: radial-gradient(circle at top right, rgba(52, 211, 153, 0.10), transparent 55%); }
@@ -5557,19 +5527,9 @@
 }
 
 .iaq-sensor-floor {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 14px;
-  background:
-    linear-gradient(145deg, rgba(30, 41, 59, 0.70), rgba(15, 23, 42, 0.64)),
-    radial-gradient(120% 100% at 100% 0%, rgba(34, 211, 238, 0.10), transparent 62%);
-  backdrop-filter: blur(10px);
+  border-radius: var(--smaca-radius-clay-sm, 14px);
   overflow: hidden;
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
-
-.iaq-sensor-floor:hover {
-  border-color: rgba(45, 212, 191, 0.32);
-  transform: translateY(-1px);
+  transition: var(--smaca-clay-transition, border-color 0.2s ease, transform 0.2s ease);
 }
 
 .iaq-sensor-floor + .iaq-sensor-floor {
@@ -7071,17 +7031,6 @@
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--r-lg);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: linear-gradient(
-    145deg,
-    rgba(30, 41, 59, 0.72) 0%,
-    rgba(15, 23, 42, 0.82) 100%
-  );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 8px 20px rgba(2, 6, 23, 0.22);
-  backdrop-filter: blur(8px);
 }
 
 .overview-scope-control__head {

@@ -1,14 +1,16 @@
-  /* Design Tokens */
+  /* Design Tokens — University operations / enterprise dark */
 :root {
-  /* Colors - Institutional dark theme */
-  --bg: #0b1220;
-  --surface: #101827;
-  --surface-2: #172033;
+  /* Layered navy/slate palette */
+  --bg: #07111f;
+  --surface: #0f1b2d;
+  --surface-2: #132238;
+  --smaca-sidebar: #0b1728;
   --border: rgba(255, 255, 255, 0.06);
-  --text: #e4e7eb;
-  --muted: #9ca3af;
-  --accent: #3b82f6;
-  --accent-2: #60a5fa;
+  --text: #eef4fc;
+  --text-secondary: #a8b9d4;
+  --muted: #7a8ea8;
+  --accent: #4b8df8;
+  --accent-2: #7eb3ff;
   
   /* Semantic Colors */
   --success: #10b981;
@@ -61,53 +63,97 @@
   /* Layout */
   --sidebar-width: 260px;
 
-  /* Institutional UI tokens */
-  --smaca-navy-950: #0b1220;
-  --smaca-navy-900: #101827;
-  --smaca-navy-850: #142033;
-  --smaca-navy-800: #172033;
+  /* Enterprise UI tokens */
+  --smaca-navy-950: #07111f;
+  --smaca-navy-900: #0b1728;
+  --smaca-navy-850: #0f1b2d;
+  --smaca-navy-800: #132238;
   --smaca-panel-border: rgba(255, 255, 255, 0.06);
-  --smaca-panel-bg: #101827;
+  --smaca-panel-bg: #0f1b2d;
   --smaca-glow-soft: none;
   --smaca-glow-iaq: none;
-  --smaca-transition-fast: 0.12s ease;
-  --smaca-transition-med: 0.12s ease;
+  --smaca-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --smaca-transition-fast: 0.16s var(--smaca-ease);
+  --smaca-transition-med: 0.2s var(--smaca-ease);
   --smaca-section-gap: var(--space-4);
   --smaca-card-pad: var(--space-3);
   --smaca-hero-pad: var(--space-3);
-  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.28);
 
-  /* VISUAL-CLAY-1 — restrained claymorphism */
-  --smaca-surface-clay: #111b2b;
-  --smaca-surface-clay-raised: #162235;
-  --smaca-surface-clay-soft: #1a2940;
-  --smaca-border-clay: rgba(148, 163, 184, 0.12);
+  /* Atmospheric backgrounds */
+  --smaca-bg-base: #07111f;
+  --smaca-bg-atmosphere:
+    radial-gradient(circle at top left, rgba(40, 90, 180, 0.1), transparent 30%),
+    radial-gradient(circle at 70% 30%, rgba(0, 180, 170, 0.05), transparent 28%),
+    radial-gradient(ellipse 85% 55% at 50% 100%, rgba(255, 140, 60, 0.035), transparent 42%),
+    #07111f;
+  --smaca-card-bg: linear-gradient(180deg, rgba(18, 31, 50, 0.96), rgba(12, 23, 39, 0.96));
+  --smaca-section-bg: linear-gradient(180deg, rgba(18, 32, 52, 0.92), rgba(12, 23, 39, 0.94));
+  --smaca-chart-well-bg: linear-gradient(180deg, rgba(14, 26, 42, 0.88), rgba(9, 18, 32, 0.92));
+
+  /* Clay + restrained glass */
+  --smaca-glass-bg: linear-gradient(180deg, rgba(18, 31, 50, 0.96), rgba(12, 23, 39, 0.96));
+  --smaca-glass-bg-elevated: linear-gradient(180deg, rgba(22, 38, 60, 0.96), rgba(14, 26, 42, 0.96));
+  --smaca-glass-blur: blur(10px);
+  --smaca-surface-clay: #0a1626;
+  --smaca-surface-clay-raised: #101d30;
+  --smaca-surface-clay-soft: #15263c;
+  --smaca-border-clay: rgba(255, 255, 255, 0.07);
   --smaca-shadow-clay:
-    8px 10px 24px rgba(0, 0, 0, 0.32),
-    -4px -4px 14px rgba(255, 255, 255, 0.025),
-    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    0 8px 24px rgba(0, 0, 0, 0.22),
+    0 10px 30px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --smaca-shadow-clay-hover:
-    10px 14px 30px rgba(0, 0, 0, 0.38),
-    -5px -5px 16px rgba(255, 255, 255, 0.03),
-    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    0 10px 28px rgba(0, 0, 0, 0.26),
+    0 14px 36px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --smaca-shadow-section: 0 10px 30px rgba(0, 0, 0, 0.2);
   --smaca-shadow-clay-inset:
-    inset 0 2px 5px rgba(0, 0, 0, 0.28),
+    inset 0 2px 6px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --smaca-radius-clay: 18px;
   --smaca-radius-clay-sm: 14px;
-  --smaca-clay-transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease, background 0.14s ease;
+  --smaca-clay-transition:
+    border-color var(--smaca-transition-fast),
+    box-shadow var(--smaca-transition-fast),
+    transform var(--smaca-transition-fast),
+    background var(--smaca-transition-fast);
 
-  /* Module accent tints (borders / capsules / corner wash only) */
-  --smaca-accent-iaq: rgba(45, 122, 130, 0.55);
-  --smaca-accent-iaq-soft: rgba(45, 122, 130, 0.12);
-  --smaca-accent-occupancy: rgba(146, 118, 72, 0.55);
-  --smaca-accent-occupancy-soft: rgba(146, 118, 72, 0.12);
-  --smaca-accent-energy: rgba(161, 132, 62, 0.55);
-  --smaca-accent-energy-soft: rgba(161, 132, 62, 0.12);
-  --smaca-accent-environmental: rgba(158, 122, 68, 0.55);
-  --smaca-accent-environmental-soft: rgba(158, 122, 68, 0.12);
-  --smaca-accent-connectivity: rgba(71, 118, 168, 0.55);
-  --smaca-accent-connectivity-soft: rgba(71, 118, 168, 0.12);
+  /* Module accents — meaningful highlights only */
+  --smaca-accent-iaq: #00b4aa;
+  --smaca-accent-iaq-soft: rgba(0, 180, 170, 0.14);
+  --smaca-accent-iaq-hero: linear-gradient(90deg, rgba(0, 180, 170, 0.2), rgba(0, 180, 170, 0.05) 42%, rgba(20, 30, 50, 0.02));
+  --smaca-accent-occupancy: #ffaa46;
+  --smaca-accent-occupancy-soft: rgba(255, 170, 70, 0.16);
+  --smaca-accent-occupancy-hero: linear-gradient(90deg, rgba(255, 170, 70, 0.18), rgba(255, 170, 70, 0.03) 40%, rgba(20, 30, 50, 0.02));
+  --smaca-accent-environmental: #ff7828;
+  --smaca-accent-environmental-soft: rgba(255, 120, 40, 0.16);
+  --smaca-accent-environmental-hero: linear-gradient(90deg, rgba(255, 120, 40, 0.18), rgba(255, 120, 40, 0.03) 40%, rgba(20, 30, 50, 0.02));
+  --smaca-accent-energy: #e8c04a;
+  --smaca-accent-energy-soft: rgba(232, 192, 74, 0.16);
+  --smaca-accent-energy-hero: linear-gradient(90deg, rgba(232, 192, 74, 0.18), rgba(232, 192, 74, 0.03) 40%, rgba(20, 30, 50, 0.02));
+  --smaca-accent-connectivity: #5b9fd4;
+  --smaca-accent-connectivity-soft: rgba(91, 159, 212, 0.16);
+  --smaca-accent-connectivity-hero: linear-gradient(90deg, rgba(91, 159, 212, 0.18), rgba(91, 159, 212, 0.03) 40%, rgba(20, 30, 50, 0.02));
+  --smaca-accent-ai: #9b87f5;
+  --smaca-accent-ai-soft: rgba(155, 135, 245, 0.16);
+  --smaca-accent-ai-hero: linear-gradient(90deg, rgba(155, 135, 245, 0.18), rgba(155, 135, 245, 0.03) 40%, rgba(20, 30, 50, 0.02));
+
+  /* Corner ambient tints (important KPI cards only) */
+  --smaca-ambient-iaq: radial-gradient(circle at top right, rgba(0, 220, 200, 0.09), transparent 32%);
+  --smaca-ambient-occupancy: radial-gradient(circle at top right, rgba(255, 170, 70, 0.09), transparent 32%);
+  --smaca-ambient-environmental: radial-gradient(circle at top right, rgba(255, 120, 40, 0.09), transparent 32%);
+  --smaca-ambient-energy: radial-gradient(circle at top right, rgba(232, 192, 74, 0.09), transparent 32%);
+  --smaca-ambient-connectivity: radial-gradient(circle at top right, rgba(91, 159, 212, 0.08), transparent 32%);
+
+  /* Status pill system */
+  --smaca-status-good-bg: rgba(20, 200, 140, 0.14);
+  --smaca-status-good-text: #72f0bc;
+  --smaca-status-warn-bg: rgba(255, 180, 70, 0.14);
+  --smaca-status-warn-text: #f0c878;
+  --smaca-status-danger-bg: rgba(255, 90, 90, 0.14);
+  --smaca-status-danger-text: #f0a0a0;
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -214,17 +260,20 @@ a:hover {
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--smaca-glass-bg);
   color: var(--text);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--smaca-clay-transition);
   text-decoration: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .btn:hover {
   background: var(--surface-2);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 .btn--primary {
@@ -277,12 +326,13 @@ a:hover {
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--r-sm);
-  font-size: var(--font-size-xs);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  backdrop-filter: blur(6px);
 }
 
 .badge--sm {
@@ -291,28 +341,33 @@ a:hover {
 }
 
 .badge--success {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--success);
+  background: var(--smaca-status-good-bg);
+  color: var(--smaca-status-good-text);
+  border-color: rgba(114, 240, 188, 0.2);
 }
 
 .badge--warning {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--warning);
+  background: var(--smaca-status-warn-bg);
+  color: var(--smaca-status-warn-text);
+  border-color: rgba(240, 200, 120, 0.2);
 }
 
 .badge--danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--danger);
+  background: var(--smaca-status-danger-bg);
+  color: var(--smaca-status-danger-text);
+  border-color: rgba(240, 160, 160, 0.2);
 }
 
 .badge--info {
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--info);
+  background: rgba(91, 159, 212, 0.14);
+  color: #9ec8ef;
+  border-color: rgba(158, 200, 239, 0.2);
 }
 
 .badge--muted {
-  background: rgba(156, 163, 175, 0.15);
-  color: var(--muted);
+  background: rgba(111, 129, 157, 0.12);
+  color: var(--text-secondary);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 /* Utilities */

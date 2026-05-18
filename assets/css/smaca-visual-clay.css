@@ -1,337 +1,314 @@
 /**
- * VISUAL-CLAY-1 — Controlled claymorphism layer
- * Soft 3D depth for enterprise / academic monitoring (University of Piraeus tone).
- * Visual-only; loads after institutional-tone.css.
+ * SMACA Premium Enterprise Theme
+ * Soft atmospheric lighting + layered clay/glass surfaces
  */
 
 /* ================================================================== *
- * Base clay surface utility
+ * Global atmosphere
  * ================================================================== */
-.smaca-clay {
-  background: var(--smaca-surface-clay-raised);
-  border: 1px solid var(--smaca-border-clay);
-  border-radius: var(--smaca-radius-clay);
-  box-shadow: var(--smaca-shadow-clay);
+body {
+  background: var(--smaca-bg-atmosphere);
+  background-attachment: fixed;
 }
 
-.smaca-clay--soft {
-  background: var(--smaca-surface-clay-soft);
+.main {
+  background: transparent;
 }
 
-.smaca-clay--flat {
-  box-shadow: none;
+.content {
+  position: relative;
 }
 
-/* Corner accent wash (module tint) — applied via modifier classes */
-.smaca-clay-accent::after {
+/* Ultra-soft page wash on overview */
+.overview-page::before {
+  display: block !important;
   content: "";
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 42%;
-  height: 42%;
+  inset: -8px 0 auto;
+  height: min(70vh, 780px);
   pointer-events: none;
-  border-radius: inherit;
-  opacity: 0.55;
+  z-index: 0;
+  opacity: 0.45;
+  background:
+    radial-gradient(ellipse 50% 40% at 12% 0%, rgba(40, 90, 180, 0.08), transparent 58%),
+    radial-gradient(ellipse 42% 36% at 88% 8%, rgba(0, 180, 170, 0.05), transparent 55%);
 }
 
-/* ================================================================== *
- * Cards & chart panels
- * ================================================================== */
-.card,
-.stat-card {
+.overview-page > * {
   position: relative;
-  background: var(--smaca-surface-clay-raised);
-  border: 1px solid var(--smaca-border-clay);
-  border-radius: var(--smaca-radius-clay-sm);
-  box-shadow: var(--smaca-shadow-clay);
-  transition: var(--smaca-clay-transition);
-}
-
-.card:hover,
-.stat-card:not(.overview-kpi-card--skeleton):hover {
-  border-color: rgba(148, 163, 184, 0.18);
-  box-shadow: var(--smaca-shadow-clay-hover);
-}
-
-.card .chart-placeholder {
-  background: transparent;
-  border-radius: calc(var(--smaca-radius-clay-sm) - 4px);
+  z-index: 1;
 }
 
 /* ================================================================== *
- * KPI cards — raised body, hover lift
+ * Section containers (elevated from background)
  * ================================================================== */
-.overview-kpi-card,
-.stat-card.overview-kpi-card,
-#iaq #iaq-kpi-cards .stat-card,
-#environmental #environmental-kpi-grid .stat-card,
-#occupancy .occupancy-kpi-grid .stat-card,
-.management-status-card.stat-card {
-  background: var(--smaca-surface-clay-raised);
+.dashboard-section > .card,
+#overview > .card,
+.overview-snapshot-section,
+.overview-live-panel,
+.overview-quick-access {
+  background: var(--smaca-section-bg);
   border: 1px solid var(--smaca-border-clay);
-  border-radius: var(--smaca-radius-clay-sm);
-  box-shadow: var(--smaca-shadow-clay);
+  border-radius: var(--smaca-radius-clay);
+  box-shadow: var(--smaca-shadow-section);
+  backdrop-filter: var(--smaca-glass-blur);
+  -webkit-backdrop-filter: var(--smaca-glass-blur);
 }
 
-.overview-kpi-card:not(.overview-kpi-card--skeleton):hover,
-.stat-card.overview-kpi-card:not(.overview-kpi-card--skeleton):hover,
-#iaq #iaq-kpi-cards .stat-card:hover,
-#environmental #environmental-kpi-grid .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--smaca-shadow-clay-hover);
-  border-color: rgba(148, 163, 184, 0.2);
-}
-
-.overview-kpi-card--skeleton,
-.overview-kpi-card--skeleton:hover {
-  transform: none;
-  box-shadow: none;
-  background: var(--smaca-surface-clay);
-}
-
-/* Module accent — 1px border tint + corner wash */
-.overview-kpi-card[data-overview-module="iaq"],
-.overview-kpi-card--iaq {
-  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 35%, var(--smaca-border-clay));
-}
-
-.overview-kpi-card[data-overview-module="occupancy"] {
-  border-color: color-mix(in srgb, var(--smaca-accent-occupancy) 35%, var(--smaca-border-clay));
-}
-
-.overview-kpi-card[data-overview-module="energy"] {
-  border-color: color-mix(in srgb, var(--smaca-accent-energy) 35%, var(--smaca-border-clay));
-}
-
-.overview-kpi-card[data-overview-module="environmental"] {
-  border-color: color-mix(in srgb, var(--smaca-accent-environmental) 35%, var(--smaca-border-clay));
-}
-
-.overview-kpi-card[data-overview-module="connectivity"] {
-  border-color: color-mix(in srgb, var(--smaca-accent-connectivity) 35%, var(--smaca-border-clay));
-}
-
-.overview-kpi-card[data-overview-module]::after {
+.dashboard-section > .card::before,
+#overview > .card::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  opacity: 0.45;
-}
-
-.overview-kpi-card[data-overview-module="iaq"]::after,
-.overview-kpi-card--iaq::after {
-  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-iaq-soft), transparent 62%);
-}
-
-.overview-kpi-card[data-overview-module="occupancy"]::after {
-  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-occupancy-soft), transparent 62%);
-}
-
-.overview-kpi-card[data-overview-module="energy"]::after {
-  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-energy-soft), transparent 62%);
-}
-
-.overview-kpi-card[data-overview-module="environmental"]::after {
-  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-environmental-soft), transparent 62%);
-}
-
-.overview-kpi-card[data-overview-module="connectivity"]::after {
-  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-connectivity-soft), transparent 62%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 28%);
 }
 
 /* ================================================================== *
- * Live telemetry tiles
+ * Cards & KPI surfaces
  * ================================================================== */
-.smaca-tile {
-  background: var(--smaca-surface-clay-raised);
+.smaca-clay,
+.card .stat-card,
+.stat-card:not(.overview-kpi-card) {
+  position: relative;
+  background: var(--smaca-card-bg);
   border: 1px solid var(--smaca-border-clay);
-  border-radius: var(--smaca-radius-clay-sm);
+  border-radius: var(--smaca-radius-clay);
   box-shadow: var(--smaca-shadow-clay);
-  backdrop-filter: none;
+  backdrop-filter: var(--smaca-glass-blur);
+  -webkit-backdrop-filter: var(--smaca-glass-blur);
+  transition: var(--smaca-clay-transition);
 }
 
-.smaca-tile::before {
-  opacity: 0.35;
-}
-
-.smaca-tile:hover {
+.stat-card:not(.overview-kpi-card--skeleton):hover,
+#iaq #iaq-kpi-cards .stat-card:hover,
+#environmental #environmental-kpi-grid .stat-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(148, 163, 184, 0.2);
   box-shadow: var(--smaca-shadow-clay-hover);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-#overview .overview-live-panel.card {
-  background: var(--smaca-surface-clay-soft);
+/* Important KPI cards — corner ambient only */
+.overview-kpi-card,
+.stat-card.overview-kpi-card {
+  position: relative;
+  background: var(--smaca-card-bg);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay);
   box-shadow: var(--smaca-shadow-clay);
+  backdrop-filter: var(--smaca-glass-blur);
+  -webkit-backdrop-filter: var(--smaca-glass-blur);
+  transition: var(--smaca-clay-transition);
+  overflow: hidden;
+}
+
+.overview-kpi-card::before {
+  display: block !important;
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 32%);
+  opacity: 1 !important;
+  z-index: 0;
+}
+
+.overview-kpi-card .stat-card__content {
+  position: relative;
+  z-index: 1;
+}
+
+.overview-kpi-card:not(.overview-kpi-card--skeleton):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--smaca-shadow-clay-hover);
+  border-color: rgba(255, 255, 255, 0.11);
+}
+
+.overview-kpi-card[data-overview-module="iaq"],
+.overview-kpi-card--iaq {
+  background: var(--smaca-ambient-iaq), var(--smaca-card-bg);
+}
+
+.overview-kpi-card[data-overview-module="occupancy"] {
+  background: var(--smaca-ambient-occupancy), var(--smaca-card-bg);
+}
+
+.overview-kpi-card[data-overview-module="energy"] {
+  background: var(--smaca-ambient-energy), var(--smaca-card-bg);
+}
+
+.overview-kpi-card[data-overview-module="environmental"] {
+  background: var(--smaca-ambient-environmental), var(--smaca-card-bg);
+}
+
+.overview-kpi-card[data-overview-module="connectivity"] {
+  background: var(--smaca-ambient-connectivity), var(--smaca-card-bg);
+}
+
+/* Chart wells */
+.card .chart-placeholder,
+.overview-chart-shell,
+.overview-chart-shell__plot {
+  background: var(--smaca-chart-well-bg);
+  border-radius: calc(var(--smaca-radius-clay-sm) - 4px);
+}
+
+.overview-trend-card .card__body,
+.environmental-chart-card .card__body,
+.occupancy-primary-card .card__body {
+  background: transparent;
+}
+
+.overview-trend-card .card__body::before,
+.overview-air-score-card .card__body::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-3);
+  border-radius: var(--smaca-radius-clay-sm);
+  pointer-events: none;
+  background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(91, 159, 212, 0.06), transparent 62%);
+  opacity: 0.9;
+}
+
+.overview-trend-card .card__body,
+.overview-air-score-card .card__body {
+  position: relative;
 }
 
 /* ================================================================== *
- * Overview module nav cards
+ * Section heroes — subtle horizontal module gradients
  * ================================================================== */
-#overview .overview-module-card {
+.section-hero {
   position: relative;
   overflow: hidden;
-  background: var(--smaca-surface-clay-raised);
-  border: 1px solid var(--smaca-border-clay);
   border-radius: var(--smaca-radius-clay-sm);
-  box-shadow: var(--smaca-shadow-clay);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--smaca-shadow-section);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  color: var(--text);
+  backdrop-filter: var(--smaca-glass-blur);
 }
 
-#overview .overview-module-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--smaca-shadow-clay-hover);
-  border-color: rgba(148, 163, 184, 0.2);
+.section-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 38%);
+  z-index: 0;
 }
 
-#overview .overview-module-card[data-section="iaq"] {
-  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 30%, var(--smaca-border-clay));
-}
-
-#overview .overview-module-card[data-section="occupancy"] {
-  border-color: color-mix(in srgb, var(--smaca-accent-occupancy) 30%, var(--smaca-border-clay));
-}
-
-#overview .overview-module-card[data-section="energy"] {
-  border-color: color-mix(in srgb, var(--smaca-accent-energy) 30%, var(--smaca-border-clay));
-}
-
-#overview .overview-module-card[data-section="environmental"] {
-  border-color: color-mix(in srgb, var(--smaca-accent-environmental) 30%, var(--smaca-border-clay));
-}
-
-#overview .overview-module-card[data-section="connectivity"] {
-  border-color: color-mix(in srgb, var(--smaca-accent-connectivity) 30%, var(--smaca-border-clay));
-}
-
-#overview .overview-module-card[data-section]::before {
+.section-hero::after {
   content: "";
   position: absolute;
   top: 0;
+  left: 0;
   right: 0;
-  width: 40%;
-  height: 40%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04) 55%, transparent);
   pointer-events: none;
-  display: block;
-  opacity: 0.4;
-}
-
-#overview .overview-module-card[data-section="iaq"]::before {
-  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-iaq-soft), transparent 65%);
-}
-
-#overview .overview-module-card[data-section="occupancy"]::before {
-  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-occupancy-soft), transparent 65%);
-}
-
-#overview .overview-module-card[data-section="energy"]::before {
-  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-energy-soft), transparent 65%);
-}
-
-#overview .overview-module-card[data-section="environmental"]::before {
-  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-environmental-soft), transparent 65%);
-}
-
-#overview .overview-module-card[data-section="connectivity"]::before {
-  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-connectivity-soft), transparent 65%);
-}
-
-#overview .overview-module-card__icon {
-  position: relative;
   z-index: 1;
-  border-radius: 10px;
-  border: 1px solid var(--smaca-border-clay);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-#overview .overview-module-card[data-section="iaq"] .overview-module-card__icon {
-  background: var(--smaca-accent-iaq-soft);
-  color: #8eb8bf;
-}
-
-#overview .overview-module-card[data-section="occupancy"] .overview-module-card__icon {
-  background: var(--smaca-accent-occupancy-soft);
-  color: #c4ad82;
-}
-
-#overview .overview-module-card[data-section="energy"] .overview-module-card__icon {
-  background: var(--smaca-accent-energy-soft);
-  color: #c9b070;
-}
-
-#overview .overview-module-card[data-section="environmental"] .overview-module-card__icon {
-  background: var(--smaca-accent-environmental-soft);
-  color: #c4a574;
-}
-
-#overview .overview-module-card[data-section="connectivity"] .overview-module-card__icon {
-  background: var(--smaca-accent-connectivity-soft);
-  color: #8aaed4;
-}
-
-/* ================================================================== *
- * Section heroes — dark clay slab (no saturated gradient)
- * ================================================================== */
-.section-hero {
-  background: var(--smaca-surface-clay-soft);
-  border: 1px solid var(--smaca-border-clay);
-  border-radius: var(--smaca-radius-clay-sm);
-  box-shadow: var(--smaca-shadow-clay);
-  padding: var(--space-3) var(--space-4);
+.section-hero__inner,
+.section-hero__title-row {
+  position: relative;
+  z-index: 2;
 }
 
 .section-hero:hover {
   transform: none;
-  box-shadow: var(--smaca-shadow-clay);
+}
+
+.section-hero__title {
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .section-hero__icon {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: var(--smaca-surface-clay-raised);
-  border: 1px solid var(--smaca-border-clay);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.section-hero--overview { border-left: 3px solid rgba(96, 165, 250, 0.45); background: var(--smaca-surface-clay-soft) !important; }
-.section-hero--iaq { border-left: 3px solid var(--smaca-accent-iaq); background: var(--smaca-surface-clay-soft) !important; }
-.section-hero--occupancy { border-left: 3px solid var(--smaca-accent-occupancy); background: var(--smaca-surface-clay-soft) !important; }
-.section-hero--energy { border-left: 3px solid var(--smaca-accent-energy); background: var(--smaca-surface-clay-soft) !important; }
-.section-hero--connectivity { border-left: 3px solid var(--smaca-accent-connectivity); background: var(--smaca-surface-clay-soft) !important; }
-.section-hero--environmental { border-left: 3px solid var(--smaca-accent-environmental); background: var(--smaca-surface-clay-soft) !important; }
-.section-hero--ai-insights,
+.section-hero--overview {
+  background: linear-gradient(90deg, rgba(91, 159, 212, 0.16), rgba(91, 159, 212, 0.03) 45%, rgba(20, 30, 50, 0.02)), var(--smaca-section-bg) !important;
+  border-left: 3px solid var(--smaca-accent-connectivity);
+}
+
+.section-hero--iaq {
+  background: var(--smaca-accent-iaq-hero), var(--smaca-section-bg) !important;
+  border-left: 3px solid var(--smaca-accent-iaq);
+}
+
+.section-hero--occupancy {
+  background: var(--smaca-accent-occupancy-hero), var(--smaca-section-bg) !important;
+  border-left: 3px solid var(--smaca-accent-occupancy);
+}
+
+.section-hero--environmental {
+  background: var(--smaca-accent-environmental-hero), var(--smaca-section-bg) !important;
+  border-left: 3px solid var(--smaca-accent-environmental);
+}
+
+.section-hero--energy {
+  background: var(--smaca-accent-energy-hero), var(--smaca-section-bg) !important;
+  border-left: 3px solid var(--smaca-accent-energy);
+}
+
+.section-hero--connectivity {
+  background: var(--smaca-accent-connectivity-hero), var(--smaca-section-bg) !important;
+  border-left: 3px solid var(--smaca-accent-connectivity);
+}
+
+.section-hero--ai-insights {
+  background: var(--smaca-accent-ai-hero), var(--smaca-section-bg) !important;
+  border-left: 3px solid var(--smaca-accent-ai);
+}
+
 .section-hero--management {
-  border-left: 3px solid rgba(107, 114, 128, 0.5);
-  background: var(--smaca-surface-clay-soft) !important;
+  background: linear-gradient(90deg, rgba(111, 129, 157, 0.16), rgba(111, 129, 157, 0.03) 45%, rgba(20, 30, 50, 0.02)), var(--smaca-section-bg) !important;
+  border-left: 3px solid rgba(111, 129, 157, 0.45);
 }
 
-.section-hero--iaq .section-hero__icon { color: #8eb8bf; background: var(--smaca-accent-iaq-soft); }
-.section-hero--occupancy .section-hero__icon { color: #c4ad82; background: var(--smaca-accent-occupancy-soft); }
-.section-hero--energy .section-hero__icon { color: #c9b070; background: var(--smaca-accent-energy-soft); }
-.section-hero--environmental .section-hero__icon { color: #c4a574; background: var(--smaca-accent-environmental-soft); }
-.section-hero--connectivity .section-hero__icon { color: #8aaed4; background: var(--smaca-accent-connectivity-soft); }
+.section-hero--iaq .section-hero__icon { color: #7fd4ce; background: var(--smaca-accent-iaq-soft); }
+.section-hero--occupancy .section-hero__icon { color: #e8c090; background: var(--smaca-accent-occupancy-soft); }
+.section-hero--environmental .section-hero__icon { color: #e8a878; background: var(--smaca-accent-environmental-soft); }
+.section-hero--energy .section-hero__icon { color: #e8d080; background: var(--smaca-accent-energy-soft); }
+.section-hero--connectivity .section-hero__icon { color: #9ec8ef; background: var(--smaca-accent-connectivity-soft); }
+.section-hero--ai-insights .section-hero__icon { color: #c4b8f8; background: var(--smaca-accent-ai-soft); }
 
 /* ================================================================== *
- * Sidebar — subtle clay depth
+ * Sidebar
  * ================================================================== */
 .sidebar {
-  background: var(--smaca-surface-clay);
-  border-right: 1px solid var(--smaca-border-clay);
-  box-shadow:
-    6px 0 18px rgba(0, 0, 0, 0.22),
-    inset -1px 0 0 rgba(255, 255, 255, 0.02);
+  background: linear-gradient(180deg, #0a1626, #08111d);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 6px 0 28px rgba(0, 0, 0, 0.22);
 }
 
-.nav-link--section.is-active {
-  background: var(--smaca-surface-clay-raised);
-  border: 1px solid var(--smaca-border-clay);
-  box-shadow: var(--smaca-shadow-clay);
+.nav-link--section {
+  border-radius: var(--r-md);
+  padding: 8px var(--space-3);
+  border: 1px solid transparent;
+  transition: var(--smaca-clay-transition);
+}
+
+.nav-link--section:hover {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .nav-link--section .nav-link__icon {
@@ -341,131 +318,338 @@
   padding: 5px;
   box-sizing: border-box;
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.35);
-  border: 1px solid rgba(148, 163, 184, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.nav-link--section.is-active {
+  background: linear-gradient(90deg, rgba(60, 120, 255, 0.18), rgba(60, 120, 255, 0.05));
+  border-color: rgba(75, 141, 248, 0.28);
+  color: var(--text);
+  box-shadow: inset 3px 0 0 var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .nav-link--section.is-active .nav-link__icon {
-  background: rgba(59, 130, 246, 0.14);
-  border-color: rgba(59, 130, 246, 0.22);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: #b8d4ff;
+  background: rgba(75, 141, 248, 0.2);
+  border-color: rgba(75, 141, 248, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.nav-link--section[data-section="iaq"].is-active {
+  background: linear-gradient(90deg, rgba(0, 180, 170, 0.2), rgba(0, 180, 170, 0.05));
+  border-color: rgba(0, 180, 170, 0.28);
+  box-shadow: inset 3px 0 0 var(--smaca-accent-iaq), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nav-link--section[data-section="iaq"].is-active .nav-link__icon {
+  color: #7fd4ce;
+  background: rgba(0, 180, 170, 0.18);
+  border-color: rgba(0, 180, 170, 0.3);
+}
+
+.nav-link--section[data-section="occupancy"].is-active {
+  background: linear-gradient(90deg, rgba(255, 170, 70, 0.2), rgba(255, 170, 70, 0.05));
+  border-color: rgba(255, 170, 70, 0.28);
+  box-shadow: inset 3px 0 0 var(--smaca-accent-occupancy), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nav-link--section[data-section="occupancy"].is-active .nav-link__icon {
+  color: #e8c090;
+  background: rgba(255, 170, 70, 0.18);
+}
+
+.nav-link--section[data-section="environmental"].is-active {
+  background: linear-gradient(90deg, rgba(255, 120, 40, 0.2), rgba(255, 120, 40, 0.05));
+  border-color: rgba(255, 120, 40, 0.28);
+  box-shadow: inset 3px 0 0 var(--smaca-accent-environmental), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nav-link--section[data-section="environmental"].is-active .nav-link__icon {
+  color: #e8a878;
+  background: rgba(255, 120, 40, 0.18);
+}
+
+.nav-link--section[data-section="energy"].is-active {
+  background: linear-gradient(90deg, rgba(232, 192, 74, 0.2), rgba(232, 192, 74, 0.05));
+  border-color: rgba(232, 192, 74, 0.28);
+  box-shadow: inset 3px 0 0 var(--smaca-accent-energy), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nav-link--section[data-section="energy"].is-active .nav-link__icon {
+  color: #e8d080;
+  background: rgba(232, 192, 74, 0.18);
+}
+
+.nav-link--section[data-section="connectivity"].is-active {
+  background: linear-gradient(90deg, rgba(91, 159, 212, 0.2), rgba(91, 159, 212, 0.05));
+  border-color: rgba(91, 159, 212, 0.28);
+  box-shadow: inset 3px 0 0 var(--smaca-accent-connectivity), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nav-link--section[data-section="connectivity"].is-active .nav-link__icon {
+  color: #9ec8ef;
+  background: rgba(91, 159, 212, 0.18);
+}
+
+.nav-link--section[data-section="ai-insights"].is-active,
+.nav-link--section[data-section="management"].is-active {
+  background: var(--smaca-accent-ai-soft);
+  border-color: rgba(155, 135, 245, 0.28);
+  box-shadow: inset 3px 0 0 var(--smaca-accent-ai);
 }
 
 /* ================================================================== *
- * Scope selector — raised clay container + pressed pills
+ * Live tiles & overview modules
  * ================================================================== */
-.overview-scope-control__glass {
-  background: var(--smaca-surface-clay-raised);
+.smaca-tile {
+  background: var(--smaca-card-bg);
   border: 1px solid var(--smaca-border-clay);
   border-radius: var(--smaca-radius-clay-sm);
   box-shadow: var(--smaca-shadow-clay);
-  backdrop-filter: none;
+  backdrop-filter: var(--smaca-glass-blur);
+}
+
+.smaca-tile::before {
+  opacity: 0.25;
+}
+
+.smaca-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--smaca-shadow-clay-hover);
+}
+
+.smaca-tile[data-tone="good"] {
+  box-shadow: var(--smaca-shadow-clay), inset 0 0 0 1px rgba(114, 240, 188, 0.08);
+}
+
+.smaca-tile[data-tone="warning"] {
+  box-shadow: var(--smaca-shadow-clay), inset 0 0 0 1px rgba(240, 200, 120, 0.08);
+}
+
+.smaca-tile[data-tone="critical"] {
+  box-shadow: var(--smaca-shadow-clay), inset 0 0 0 1px rgba(240, 160, 160, 0.1);
+}
+
+#overview .overview-live-panel.card {
+  background: var(--smaca-section-bg);
+}
+
+/* IAQ score — important card */
+.overview-air-score-card {
+  background: var(--smaca-ambient-iaq), var(--smaca-section-bg) !important;
+}
+
+.overview-air-score-card .overview-gauge__halo {
+  display: block !important;
+  opacity: 0.35;
+  filter: blur(6px);
+  background: radial-gradient(circle, rgba(0, 180, 170, 0.12) 0%, transparent 68%);
+}
+
+#overview .overview-module-card {
+  background: var(--smaca-card-bg);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay);
+  box-shadow: var(--smaca-shadow-clay);
+  backdrop-filter: var(--smaca-glass-blur);
+}
+
+#overview .overview-module-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--smaca-shadow-clay-hover);
+}
+
+#overview .overview-module-card__icon {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#overview .overview-module-card[data-section="iaq"] .overview-module-card__icon {
+  background: var(--smaca-accent-iaq-soft);
+  color: #7fd4ce;
+}
+
+#overview .overview-module-card[data-section="occupancy"] .overview-module-card__icon {
+  background: var(--smaca-accent-occupancy-soft);
+  color: #e8c090;
+}
+
+#overview .overview-module-card[data-section="environmental"] .overview-module-card__icon {
+  background: var(--smaca-accent-environmental-soft);
+  color: #e8a878;
+}
+
+#overview .overview-module-card[data-section="connectivity"] .overview-module-card__icon {
+  background: var(--smaca-accent-connectivity-soft);
+  color: #9ec8ef;
+}
+
+/* ================================================================== *
+ * Scope / filters / chips
+ * ================================================================== */
+.overview-scope-control__glass,
+.smaca-spatial-scope-pill,
+.smaca-spatial-section-pill {
+  background: var(--smaca-glass-bg);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay-sm);
+  box-shadow: var(--smaca-shadow-clay);
+  backdrop-filter: var(--smaca-glass-blur);
 }
 
 .overview-scope-control__segment,
 .overview-scope-control__pill {
-  background: var(--smaca-surface-clay);
+  background: rgba(7, 17, 31, 0.5);
   border: 1px solid var(--smaca-border-clay);
   border-radius: 999px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   transition: var(--smaca-clay-transition);
 }
 
-.overview-scope-control__segment:hover,
-.overview-scope-control__pill:hover {
-  transform: translateY(-1px);
-  border-color: rgba(148, 163, 184, 0.22);
-  box-shadow: var(--smaca-shadow-clay);
-}
-
 .overview-scope-control__segment[aria-selected="true"],
-.overview-scope-control__pill[aria-pressed="true"] {
-  background: var(--smaca-surface-clay-soft);
-  border-color: rgba(59, 130, 246, 0.35);
-  color: #e8edf5;
-  transform: translateY(1px);
+.overview-scope-control__pill[aria-pressed="true"],
+.smaca-spatial-scope-pill[aria-pressed="true"],
+.smaca-spatial-section-pill[aria-pressed="true"] {
+  background: rgba(75, 141, 248, 0.14);
+  border-color: rgba(75, 141, 248, 0.35);
+  color: var(--text);
   box-shadow: var(--smaca-shadow-clay-inset);
+  transform: translateY(1px);
 }
 
 /* ================================================================== *
- * IAQ sensor breakdown rows
+ * Sensor breakdown / tables
  * ================================================================== */
 .iaq-sensor-floor {
-  position: relative;
-  background: var(--smaca-surface-clay-raised);
+  background: rgba(16, 27, 44, 0.72);
   border: 1px solid var(--smaca-border-clay);
   border-radius: var(--smaca-radius-clay-sm);
   box-shadow: var(--smaca-shadow-clay);
   backdrop-filter: none;
-  transition: var(--smaca-clay-transition);
 }
 
-.iaq-sensor-floor::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 36%;
-  height: 36%;
-  pointer-events: none;
-  border-radius: inherit;
-  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-iaq-soft), transparent 68%);
-  opacity: 0.5;
+.iaq-sensor-floor:nth-child(even) {
+  background: rgba(18, 30, 48, 0.78);
 }
 
 .iaq-sensor-floor:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 28%, var(--smaca-border-clay));
+  background: rgba(24, 38, 60, 0.95);
   box-shadow: var(--smaca-shadow-clay-hover);
+  border-color: rgba(0, 180, 170, 0.22);
 }
 
 .iaq-sensor-floor.is-open {
-  background: var(--smaca-surface-clay-soft);
-  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 35%, var(--smaca-border-clay));
-  box-shadow: var(--smaca-shadow-clay-hover);
-  transform: translateY(-1px);
+  background: rgba(24, 38, 60, 0.98);
+  border-color: rgba(0, 180, 170, 0.28);
 }
 
 .iaq-sensor-floor__icon {
   background: var(--smaca-accent-iaq-soft);
-  border: 1px solid color-mix(in srgb, var(--smaca-accent-iaq) 40%, transparent);
-  color: #8eb8bf;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.iaq-sensor-floor__code {
-  color: #9eb8bf;
-  background: var(--smaca-accent-iaq-soft);
-  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 35%, transparent);
+  border-color: rgba(0, 180, 170, 0.28);
+  color: #7fd4ce;
 }
 
 .iaq-sensor-card {
-  background: var(--smaca-surface-clay);
+  background: rgba(16, 27, 44, 0.65);
   border: 1px solid var(--smaca-border-clay);
   border-radius: 12px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .iaq-sensor-card:hover {
-  background: var(--smaca-surface-clay-raised);
-  box-shadow: var(--smaca-shadow-clay);
+  background: rgba(24, 38, 60, 0.92);
   transform: translateY(-1px);
 }
 
-/* ================================================================== *
- * Charts — clay panel only; series stay analytical (no line bloom)
- * ================================================================== */
-.overview-trend-card,
-.overview-air-score-card,
-.environmental-chart-card,
-.occupancy-primary-card {
-  box-shadow: var(--smaca-shadow-clay);
+.management-table tbody tr,
+.ai-events-table tbody tr {
+  transition: background var(--smaca-transition-fast);
 }
 
-.highcharts-series-group .highcharts-graph,
-#uv-main-chart .highcharts-graph {
-  filter: none !important;
+.management-table tbody tr:hover,
+.ai-events-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.management-table tbody tr:nth-child(even),
+.ai-events-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* ================================================================== *
+ * Progress bars
+ * ================================================================== */
+.status-panel__progress,
+.smaca-progress,
+.progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.status-panel__progress-bar,
+.smaca-progress .progress-bar,
+.progress-bar {
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(0, 180, 170, 0.55), rgba(0, 180, 170, 0.32));
+  box-shadow: 0 0 6px rgba(0, 180, 170, 0.1);
+  transition: width var(--smaca-transition-med);
+}
+
+/* Important live tiles */
+[data-tile="worst-module"].smaca-tile[data-tone="warning"],
+[data-tile="alerts"].smaca-tile {
+  background:
+    radial-gradient(circle at top right, rgba(255, 170, 70, 0.08), transparent 34%),
+    var(--smaca-card-bg);
+}
+
+[data-tile="top-co2"].smaca-tile {
+  background:
+    radial-gradient(circle at top right, rgba(0, 220, 200, 0.08), transparent 34%),
+    var(--smaca-card-bg);
+}
+
+/* ================================================================== *
+ * Gauge & overview air score
+ * ================================================================== */
+.overview-gauge__center {
+  background: var(--smaca-glass-bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.overview-gauge__progress {
+  stroke: var(--smaca-accent-iaq);
+}
+
+.overview-air-score-interactive:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* ================================================================== *
+ * Trend / signal pills
+ * ================================================================== */
+.overview-kpi-signal--success {
+  color: var(--smaca-status-good-text);
+  background: var(--smaca-status-good-bg);
+}
+
+.overview-kpi-signal--warning {
+  color: var(--smaca-status-warn-text);
+  background: var(--smaca-status-warn-bg);
+}
+
+.trend-pill {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  backdrop-filter: blur(6px);
 }
 
 /* ================================================================== *
@@ -479,9 +663,10 @@
   .overview-module-card,
   .iaq-sensor-floor,
   .iaq-sensor-card,
+  .btn,
+  .nav-link--section,
   .overview-scope-control__segment,
-  .overview-scope-control__pill,
-  .nav-link--section {
+  .overview-scope-control__pill {
     transition: none !important;
   }
 
@@ -492,9 +677,7 @@
   #overview .overview-module-card:hover,
   .iaq-sensor-floor:hover,
   .iaq-sensor-card:hover,
-  .overview-scope-control__segment:hover,
-  .overview-scope-control__pill:hover,
-  .iaq-sensor-floor.is-open {
+  .btn:hover {
     transform: none !important;
   }
 }
