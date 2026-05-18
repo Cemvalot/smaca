@@ -732,7 +732,11 @@
           : '—');
       return ''
         + '<div class="smaca-rank-bars__row">'
-        +   '<div class="smaca-rank-bars__label" title="' + safe(item.label) + '">' + safe(item.label) + '</div>'
+        +   '<div class="smaca-rank-bars__label" title="' + safe(item.label) + '">'
+        +     (item.statusColor ? '<span class="smaca-rank-bars__status-dot" style="background:' + safe(item.statusColor) + ';" aria-hidden="true"></span>' : '')
+        +     '<span class="smaca-rank-bars__label-text">' + safe(item.label) + '</span>'
+        +     (item.subLabel ? '<div class="smaca-rank-bars__sub">' + safe(item.subLabel) + '</div>' : '')
+        +   '</div>'
         +   '<div class="smaca-rank-bars__bar">'
         +     '<div class="smaca-rank-bars__fill" style="width: ' + pct.toFixed(2) + '%; background: ' + color + ';"></div>'
         +   '</div>'

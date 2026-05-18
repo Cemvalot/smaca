@@ -20,6 +20,7 @@
   function withModuleSource(kpi, moduleKey, moduleLabel) {
     if (!kpi) return null;
     var copy = Object.assign({}, kpi);
+    copy.overview_module_key = moduleKey;
     copy.overview_module_source = moduleLabel || t('overview_module_' + moduleKey, moduleKey);
     return copy;
   }
@@ -40,6 +41,7 @@
         description: t('occupancy_tooltip_remaining_inside', 'People remaining inside for the current calendar day; resets at midnight.'),
         recommended_action: '',
         kpi_category: 'occupancy',
+        overview_module_key: 'occupancy',
         overview_module_source: t('overview_module_occupancy', 'Occupancy / Movement'),
         semantic_explainer: t('overview_movement_activity_tooltip', 'Entry/exit movement activity from passage counters. This is not live room occupancy.')
       };

@@ -511,6 +511,76 @@
       || lat.people_out !== null && lat.people_out !== undefined;
   }
 
+  function overviewTr(key, en, el) {
+    var map = global.SMACA_TRANSLATIONS || {};
+    if (Object.prototype.hasOwnProperty.call(map, key) && map[key]) return map[key];
+    return locText(en, el);
+  }
+
+  function reportingBarColor(pct, total) {
+    if (!total) return '#64748b';
+    if (pct >= 80) return '#34d399';
+    if (pct >= 50) return '#fbbf24';
+    return '#f87171';
+  }
+
+  function kpiStatusAccentColor(ord) {
+    if (ord >= 3) return '#f87171';
+    if (ord >= 2) return '#fbbf24';
+    if (ord >= 1) return '#34d399';
+    return '#64748b';
+  }
+
+  function overviewModuleSourceLabel(moduleKey) {
+    var map = {
+      iaq: overviewTr('overview_module_iaq', 'Indoor Air Quality', 'Ποιότητα Εσωτερικού Αέρα'),
+      energy: overviewTr('overview_module_energy', 'Energy', 'Ενέργεια'),
+      occupancy: overviewTr('overview_module_occupancy', 'Occupancy / Movement', 'Κίνηση / Πληρότητα'),
+      environmental: overviewTr('overview_module_environmental', 'Environmental / UV', 'Περιβάλλον / UV')
+    };
+    return map[moduleKey] || moduleKey;
+  }
+
+  function overviewWatchReason(moduleKey, kpi) {
+    if (!kpi) return '';
+    if (kpi.interpretation_label) return String(kpi.interpretation_label);
+    if (kpi.value_caption) return String(kpi.value_caption);
+    var key = String(kpi.key || '');
+    var reasons = {
+      iaq_thermal_comfort: overviewTr('overview_watch_thermal_comfort', 'Thermal comfort outside optimal range', 'Θερμική άνεση εκτός βέλτιστου εύρους'),
+      thermal_comfort_index: overviewTr('overview_watch_thermal_comfort', 'Thermal comfort outside optimal range', 'Θερμική άνεση εκτός βέλτιστου εύρους'),
+      iaq_health_index: overviewTr('overview_watch_iaq_health', 'Air quality needs attention', 'Η ποιότητα αέρα χρειάζεται προσοχή'),
+      ventilation_quality_index: overviewTr('overview_watch_ventilation', 'Ventilation pressure elevated', 'Αυξημένη πίεση αερισμού'),
+      normalized_energy_intensity: overviewTr('overview_watch_energy_intensity', 'Energy intensity elevated', 'Αυξημένη ένταση ενέργειας'),
+      base_load_index: overviewTr('overview_watch_base_load', 'Elevated standby load', 'Αυξημένο βασικό φορτίο'),
+      movement_activity_index: overviewTr('overview_watch_movement', 'High entry/exit activity', 'Υψηλή δραστηριότητα εισόδων/εξόδων'),
+      crowd_density_level: overviewTr('overview_watch_movement', 'High entry/exit activity', 'Υψηλή δραστηριότητα εισόδων/εξόδων'),
+      uv_exposure_risk: overviewTr('overview_watch_uv', 'High UV exposure', 'Υψηλή έκθεση UV'),
+      environmental_safety_index: overviewTr('overview_watch_environmental', 'Environmental risk elevated', 'Αυξημένος περιβαλλοντικός κίνδυνος')
+    };
+    if (reasons[key]) return reasons[key];
+    if (kpi.label) return String(kpi.label);
+    return overviewTr('overview_watch_generic', 'Review module KPIs', 'Ελέγξτε τους δείκτες της ενότητας');
+  }
+
+  function appendDonutCountLegend(hostEl, legendItems) {
+    if (!hostEl) return;
+    var existing = hostEl.querySelector('.smaca-donut-legend');
+    if (existing) existing.remove();
+    var rows = (legendItems || []).map(function (item) {
+      return ''
+        + '<div class="smaca-donut-legend__row">'
+        +   '<span class="smaca-donut-legend__swatch" style="background:' + item.color + ';"></span>'
+        +   '<span class="smaca-donut-legend__label">' + String(item.label || '').replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>'
+        +   '<span class="smaca-donut-legend__count">' + item.count + '</span>'
+        + '</div>';
+    }).join('');
+    var wrap = document.createElement('div');
+    wrap.className = 'smaca-donut-legend';
+    wrap.innerHTML = rows;
+    hostEl.appendChild(wrap);
+  }
+
   // -----------------------------------------------------------------------
   // Inline SVG icon paths
   // -----------------------------------------------------------------------
@@ -957,106 +1027,6 @@
 
       // --- 1) Module health matrix — horizontal bars (one per module)
       // showing % of fresh sensors, plus a worst-status indicator dot.
-      var moduleDefs = [
-        { key: 'iaq',           label: locText('Air quality', 'Αέρας'),       color: '#22d3ee', sensorTypes: ['iaq'] },
-        { key: 'occupancy',     label: locText('Movement', 'Κίνηση'),         color: '#a78bfa', sensorTypes: ['occupancy'] },
-        { key: 'energy',        label: locText('Energy', 'Ενέργεια'),         color: '#fbbf24', sensorTypes: ['energy'] },
-        { key: 'environmental', label: locText('Environmental', 'Περιβάλλον'), color: '#f97316', sensorTypes: ['environmental'] }
-      ];
-      var matrixItems = moduleDefs.map(function (m) {
-        var matching = sensors.filter(function (s) {
-          if (!s) return false;
-          if (m.sensorTypes.indexOf((s.device_type || '').toLowerCase()) !== -1) return true;
-          // Fallback: if device_type is missing, infer from latest fields
-          if (m.key === 'iaq' && s.latest && (s.latest.co2_ppm !== null && s.latest.co2_ppm !== undefined)) return true;
-          if (m.key === 'occupancy' && isPeopleCounterSensor(s)) return true;
-          if (m.key === 'energy' && s.latest && (s.latest.energy_kwh !== null && s.latest.energy_kwh !== undefined)) return true;
-          if (m.key === 'environmental' && s.latest && (s.latest.uv_index !== null && s.latest.uv_index !== undefined)) return true;
-          return false;
-        });
-        var fresh = matching.filter(function (s) {
-          var min = relativeMinutes(s.latest && s.latest.measured_at);
-          return isFiniteNum(min) && min < 30;
-        }).length;
-        var pct = matching.length ? (fresh / matching.length) * 100 : 0;
-        // worst status from KPI summary for this module
-        var worst = 0;
-        var bundle = kpiBundles[m.key];
-        if (bundle && Array.isArray(bundle.kpis)) {
-          bundle.kpis.forEach(function (k) {
-            var ord = statusOrder(k.status);
-            if (ord > worst) worst = ord;
-          });
-        }
-        var statusColor = worst === 3 ? '#f87171' : (worst === 2 ? '#fbbf24' : (worst === 1 ? '#34d399' : '#94a3b8'));
-        return {
-          label: m.label,
-          value: pct,
-          color: statusColor,
-          displayValue: matching.length ? fresh + '/' + matching.length : '—'
-        };
-      });
-      var matrixEl = grid.querySelector('[data-tile="module-health"]');
-      if (matrixEl && tile()) {
-        var hostMatrix = tile().renderChartTile(matrixEl, {
-          label: locText('Module health', 'Υγεία μονάδων'),
-          subtitle: locText(
-            'Reporting sensors in the last 30 min (count/total), coloured by worst KPI status.',
-            'Αισθητήρες που αναφέρουν (αριθμός/σύνολο) τα τελευταία 30 λεπτά. Χρώμα: χειρότερο KPI.'
-          ),
-          unit: '%',
-          meta: locText('Updated continuously · all modules', 'Ανανεώνεται συνεχώς · όλες οι μονάδες')
-        });
-        if (hostMatrix) {
-          tile().renderHorizontalBars(hostMatrix, { items: matrixItems, max: 100 });
-        }
-      }
-
-      // --- 2) Sensor status donut: Good / Warning / Stale / Offline
-      var counts = { good: 0, warning: 0, stale: 0, offline: 0 };
-      sensors.forEach(function (s) {
-        if (!s) return;
-        if (!s.is_active) { counts.offline += 1; return; }
-        var min = relativeMinutes(s.last_seen_at || (s.latest && s.latest.measured_at));
-        if (!isFiniteNum(min)) { counts.offline += 1; return; }
-        if (min < 5) counts.good += 1;
-        else if (min < 30) counts.warning += 1;
-        else counts.stale += 1;
-      });
-      var donutEl = grid.querySelector('[data-tile="status-donut"]');
-      if (donutEl && tile()) {
-        if (!sensors.length) {
-          tile().renderEmptyTile(donutEl, {
-            label: locText('Sensor status', 'Κατάσταση αισθητήρων'),
-            message: locText('No sensors registered', 'Χωρίς αισθητήρες')
-          });
-        } else {
-          var hostDonut = tile().renderChartTile(donutEl, {
-            label: locText('Sensor status', 'Κατάσταση αισθητήρων'),
-            subtitle: locText(
-              'How recently each sensor sent data (online · warning · stale · offline).',
-              'Πόσο πρόσφατα έστειλε δεδομένα κάθε αισθητήρας.'
-            ),
-            meta: locText(sensors.length + ' total', 'Σύνολο: ' + sensors.length)
-          });
-          if (hostDonut) {
-            tile().renderDonut(hostDonut, {
-              data: [
-                { name: locText('Online', 'Σε σύνδεση'),         y: counts.good,    color: '#34d399' },
-                { name: locText('Warning', 'Προειδοποίηση'),     y: counts.warning, color: '#fbbf24' },
-                { name: locText('Stale', 'Παλιά'),               y: counts.stale,   color: '#f97316' },
-                { name: locText('Offline', 'Εκτός σύνδεσης'),    y: counts.offline, color: '#94a3b8' }
-              ],
-              centerLabel: counts.good + counts.warning,
-              centerSubLabel: locText('reporting', 'ενημ.'),
-              showLegend: true,
-              height: 180
-            });
-          }
-        }
-      }
-
-      // --- 3) Top module to watch (worst active KPI among module watchlist) ---
       var overviewWatchKeys = {
         iaq: ['iaq_health_index', 'iaq_thermal_comfort', 'thermal_comfort_index', 'environmental_safety_index', 'ventilation_quality_index'],
         energy: ['normalized_energy_intensity', 'base_load_index'],
@@ -1079,6 +1049,111 @@
         });
         return best;
       }
+      var moduleDefs = [
+        { key: 'iaq',           label: locText('Air quality', 'Ποιότητα αέρα'),       color: '#22d3ee', sensorTypes: ['iaq'] },
+        { key: 'occupancy',     label: locText('Movement', 'Κίνηση'),                 color: '#a78bfa', sensorTypes: ['occupancy'] },
+        { key: 'energy',        label: locText('Energy', 'Ενέργεια'),                 color: '#fbbf24', sensorTypes: ['energy'] },
+        { key: 'environmental', label: locText('Environmental / UV', 'Περιβάλλον / UV'), color: '#f97316', sensorTypes: ['environmental'] }
+      ];
+      var matrixItems = moduleDefs.map(function (m) {
+        var matching = sensors.filter(function (s) {
+          if (!s) return false;
+          if (m.sensorTypes.indexOf((s.device_type || '').toLowerCase()) !== -1) return true;
+          if (m.key === 'iaq' && s.latest && (s.latest.co2_ppm !== null && s.latest.co2_ppm !== undefined)) return true;
+          if (m.key === 'occupancy' && isPeopleCounterSensor(s)) return true;
+          if (m.key === 'energy' && s.latest && (s.latest.energy_kwh !== null && s.latest.energy_kwh !== undefined)) return true;
+          if (m.key === 'environmental' && s.latest && (s.latest.uv_index !== null && s.latest.uv_index !== undefined)) return true;
+          return false;
+        });
+        var fresh = matching.filter(function (s) {
+          var min = relativeMinutes(s.latest && s.latest.measured_at);
+          return isFiniteNum(min) && min < 30;
+        }).length;
+        var pct = matching.length ? (fresh / matching.length) * 100 : 0;
+        var worstDriver = findWorstWatchKpi(kpiBundles[m.key], overviewWatchKeys[m.key]);
+        var worstOrd = worstDriver ? statusOrder(worstDriver.status) : 0;
+        var reportingLabel = overviewTr('overview_reporting_sensors', 'Reporting sensors', 'Αισθητήρες που αναφέρουν');
+        var worstLabel = worstDriver && worstOrd >= 2
+          ? (worstDriver.interpretation_label || worstDriver.label || overviewTr('overview_status_warning', 'Warning', 'Προειδοποίηση'))
+          : overviewTr('overview_status_normal', 'Normal', 'Κανονική');
+        return {
+          label: m.label,
+          value: pct,
+          color: reportingBarColor(pct, matching.length),
+          statusColor: kpiStatusAccentColor(worstOrd),
+          displayValue: matching.length ? (fresh + '/' + matching.length) : '—',
+          subLabel: reportingLabel + ' · ' + worstLabel + ' · ' + overviewModuleSourceLabel(m.key)
+        };
+      });
+      var matrixEl = grid.querySelector('[data-tile="module-health"]');
+      if (matrixEl && tile()) {
+        var hostMatrix = tile().renderChartTile(matrixEl, {
+          label: locText('Module health', 'Υγεία μονάδων'),
+          subtitle: overviewTr(
+            'overview_module_health_subtitle',
+            'Bar fill = share reporting (last 30 min). Dot colour = worst KPI status for that module.',
+            'Η μπάρα = ποσοστό αναφοράς (30 λεπτά). Η κουκκίδα = χειρότερο KPI της ενότητας.'
+          ),
+          unit: '%',
+          meta: overviewTr('overview_module_health_meta', 'Per module · live sensor streams', 'Ανά ενότητα · ζωντανές ροές')
+        });
+        if (hostMatrix) {
+          tile().renderHorizontalBars(hostMatrix, { items: matrixItems, max: 100 });
+        }
+      }
+
+      // --- 2) Sensor status donut with count legend
+      var counts = { online: 0, delayed: 0, offline: 0 };
+      sensors.forEach(function (s) {
+        if (!s) return;
+        if (!s.is_active) { counts.offline += 1; return; }
+        var min = relativeMinutes(s.last_seen_at || (s.latest && s.latest.measured_at));
+        if (!isFiniteNum(min)) { counts.offline += 1; return; }
+        if (min < 5) counts.online += 1;
+        else counts.delayed += 1;
+      });
+      var donutEl = grid.querySelector('[data-tile="status-donut"]');
+      if (donutEl && tile()) {
+        if (!sensors.length) {
+          tile().renderEmptyTile(donutEl, {
+            label: locText('Sensor status', 'Κατάσταση αισθητήρων'),
+            message: locText('No sensors registered', 'Χωρίς αισθητήρες')
+          });
+        } else {
+          var onlineLabel = overviewTr('overview_sensor_online', 'Online / reporting', 'Σε σύνδεση / αναφορά');
+          var delayedLabel = overviewTr('overview_sensor_warning_stale', 'Warning / stale', 'Προειδοποίηση / παλιά');
+          var offlineLabel = overviewTr('overview_sensor_offline', 'Offline / no data', 'Εκτός σύνδεσης / χωρίς δεδομένα');
+          var hostDonut = tile().renderChartTile(donutEl, {
+            label: locText('Sensor status', 'Κατάσταση αισθητήρων'),
+            subtitle: overviewTr(
+              'overview_sensor_donut_subtitle',
+              'Freshness of sensor streams in the current scope.',
+              'Φρεσκάδα ροών αισθητήρων στο τρέχον εύρος.'
+            ),
+            meta: locText(sensors.length + ' total', 'Σύνολο: ' + sensors.length)
+          });
+          if (hostDonut) {
+            tile().renderDonut(hostDonut, {
+              data: [
+                { name: onlineLabel,  y: counts.online,  color: '#34d399' },
+                { name: delayedLabel, y: counts.delayed, color: '#fbbf24' },
+                { name: offlineLabel, y: counts.offline, color: '#94a3b8' }
+              ],
+              centerLabel: counts.online + counts.delayed,
+              centerSubLabel: overviewTr('overview_reporting_short', 'reporting', 'αναφορά'),
+              showLegend: false,
+              height: 160
+            });
+            appendDonutCountLegend(hostDonut, [
+              { label: onlineLabel, count: counts.online, color: '#34d399' },
+              { label: delayedLabel, count: counts.delayed, color: '#fbbf24' },
+              { label: offlineLabel, count: counts.offline, color: '#94a3b8' }
+            ]);
+          }
+        }
+      }
+
+      // --- 3) Top module to watch (worst active KPI among module watchlist) ---
       var worstModule = null;
       var worstOrd = 0;
       var worstDriver = null;
@@ -1092,19 +1167,21 @@
           worstDriver = driver;
         }
       });
-      var topWatchLabel = locText('Top module to watch', 'Ενότητα προς παρακολούθηση');
+      var topWatchLabel = overviewTr('overview_top_module_to_watch', 'Top module to watch', 'Ενότητα προς παρακολούθηση');
       if (worstModule && worstOrd >= 2 && worstDriver) {
         renderValueOrEmpty(grid, 'worst-module', {
           label: topWatchLabel,
           value: worstModule.label,
+          subtitle: overviewWatchReason(worstModule.key, worstDriver),
           status: worstDriver.status || (worstOrd === 3 ? 'critical' : 'warning'),
           icon: ICONS.alert,
-          meta: worstDriver.label || null
+          meta: overviewModuleSourceLabel(worstModule.key)
         });
       } else {
         renderValueOrEmpty(grid, 'worst-module', {
           label: topWatchLabel,
-          value: locText('All operational', 'Όλα σε λειτουργία'),
+          value: overviewTr('overview_all_modules_stable', 'All modules stable', 'Όλες οι ενότητες σταθερές'),
+          subtitle: overviewTr('overview_all_modules_stable_hint', 'No elevated KPI warnings in the current scope.', 'Χωρίς αυξημένες προειδοποιήσεις KPI στο τρέχον εύρος.'),
           status: 'good',
           icon: ICONS.target
         });

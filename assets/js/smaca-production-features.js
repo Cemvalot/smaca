@@ -5114,6 +5114,18 @@ function resolveLatestOccupancyFromOverviewSnapshot(overview) {
   return fallbackValue;
 }
 
+function syncOverviewChartLegend(activeKeys) {
+  var legend = document.getElementById('overview-chart-legend');
+  if (!legend) return;
+  var keys = Array.isArray(activeKeys) ? activeKeys : [];
+  legend.querySelectorAll('[data-series]').forEach(function (el) {
+    var key = el.getAttribute('data-series');
+    var on = keys.indexOf(key) !== -1;
+    el.classList.toggle('is-hidden', !on);
+    el.setAttribute('aria-hidden', on ? 'false' : 'true');
+  });
+}
+
 function renderOverviewTrendChart(filteredData, timeframe) {
   const chartEl = document.getElementById('overview-campus-trend-chart');
   if (!chartEl) return;
@@ -5165,14 +5177,16 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   }
 
   const chartSeriesCandidates = [
-    { key: 'co2', label: 'CO₂', unit: 'ppm', color: '#3b82f6', values: co2Series },
+    { key: 'co2', label: smacaT('overview_chart_legend_co2', 'CO₂ · Air quality'), unit: 'ppm', color: '#3b82f6', values: co2Series },
     { key: 'occupancy', label: smacaT('overview_chart_movement_balance', 'Movement balance'), unit: '', color: '#22c55e', values: occupancySeries },
-    { key: 'connectivity', label: smacaT('connectivity', 'Connectivity'), unit: '%', color: '#06b6d4', values: connectivitySeries },
-    { key: 'uv', label: 'UV', unit: '', color: '#f59e0b', values: uvSeries }
+    { key: 'connectivity', label: smacaT('overview_chart_legend_connectivity', 'Connectivity · uptime'), unit: '%', color: '#06b6d4', values: connectivitySeries },
+    { key: 'uv', label: smacaT('overview_chart_legend_uv', 'UV · Environmental'), unit: '', color: '#f59e0b', values: uvSeries }
   ];
   const chartSeries = chartSeriesCandidates.filter(function (series) {
     return Array.isArray(series.values) && series.values.some(Number.isFinite);
   });
+
+  syncOverviewChartLegend(chartSeries.map(function (s) { return s.key; }));
 
   drawOverviewSvgLineChart(chartEl, {
     timeframe: timeframe,

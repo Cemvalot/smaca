@@ -71,18 +71,18 @@
           </svg>
           <h3 class="card__title">{{ __('messages.nav.dashboard') }}</h3>
         </div>
-        <p class="card__subtitle">{{ app()->getLocale() === 'el' ? 'Συνολική πορεία CO₂, κίνησης, σύνδεσης και UV στο επιλεγμένο διάστημα.' : 'Combined CO₂, movement, connectivity and UV across the selected timeframe.' }}</p>
+        <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_chart_subtitle') }}</p>
       </div>
       <div class="card__body">
         <div class="overview-chart-shell" aria-label="{{ __('messages.nav.dashboard') }} chart">
-          <div class="overview-chart-shell__legend">
-            <span><i class="overview-dot overview-dot--accent"></i> CO₂ (ppm)</span>
-            <span><i class="overview-dot overview-dot--success"></i> {{ __('messages.dashboard_i18n.overview_chart_movement_balance') }}</span>
-            <span><i class="overview-dot overview-dot--info"></i> {{ __('messages.nav.connectivity') }} (% uptime)</span>
-            <span><i class="overview-dot overview-dot--warning"></i> UV Index</span>
+          <div class="overview-chart-shell__legend" id="overview-chart-legend">
+            <span data-series="co2"><i class="overview-dot overview-dot--accent"></i> {{ __('messages.dashboard_i18n.overview_chart_legend_co2') }}</span>
+            <span data-series="occupancy"><i class="overview-dot overview-dot--success"></i> {{ __('messages.dashboard_i18n.overview_chart_movement_balance') }} · {{ __('messages.dashboard_i18n.overview_module_occupancy') }}</span>
+            <span data-series="connectivity"><i class="overview-dot overview-dot--info"></i> {{ __('messages.dashboard_i18n.overview_chart_legend_connectivity') }}</span>
+            <span data-series="uv"><i class="overview-dot overview-dot--warning"></i> {{ __('messages.dashboard_i18n.overview_chart_legend_uv') }}</span>
           </div>
-          <div id="overview-campus-trend-chart" class="overview-chart-shell__plot overview-live-chart" role="img" aria-label="Campus trend line chart showing CO₂, occupancy, and connectivity over time"></div>
-          <p class="overview-chart-shell__helper">{{ app()->getLocale() === 'el' ? 'Οι τάσεις υπολογίζονται ωριαίως από τη ζωντανή τηλεμετρία στο επιλεγμένο διάστημα.' : 'Trends are aggregated hourly from live campus telemetry in the selected time range.' }}</p>
+          <div id="overview-campus-trend-chart" class="overview-chart-shell__plot overview-live-chart" role="img" aria-label="Campus trend line chart"></div>
+          <p class="overview-chart-shell__helper">{{ __('messages.dashboard_i18n.overview_chart_subtitle') }}</p>
         </div>
       </div>
     </section>
@@ -112,7 +112,7 @@
 
   <section class="card overview-quick-access">
     <div class="card__header">
-      <h3 class="card__title">{{ __('messages.nav.dashboard') }}</h3>
+      <h3 class="card__title">{{ __('messages.dashboard_i18n.overview_nav_section_title') }}</h3>
     </div>
     <div class="card__body">
       <div class="overview-module-grid">
@@ -122,7 +122,8 @@
           </span>
           <span class="overview-module-card__title">{{ __('messages.nav.iaq') }}</span>
           <span class="overview-module-card__desc">{{ __('messages.dashboard_i18n.overview_nav_iaq_desc') }}</span>
-          <span class="overview-module-card__action">{{ __('messages.dashboard.view') }}</span>
+          <span class="overview-module-card__indicator" aria-live="polite"></span>
+          <span class="overview-module-card__action">{{ __('messages.dashboard_i18n.overview_view_module') }}</span>
         </a>
         <a href="{{ url('/dashboard/environmental') }}" class="overview-module-card" data-section="environmental">
           <span class="overview-module-card__icon">
@@ -130,7 +131,8 @@
           </span>
           <span class="overview-module-card__title">{{ __('messages.nav.environmental') }}</span>
           <span class="overview-module-card__desc">{{ __('messages.dashboard_i18n.overview_nav_environmental_desc') }}</span>
-          <span class="overview-module-card__action">{{ __('messages.dashboard.view') }}</span>
+          <span class="overview-module-card__indicator" aria-live="polite"></span>
+          <span class="overview-module-card__action">{{ __('messages.dashboard_i18n.overview_view_module') }}</span>
         </a>
         <a href="{{ url('/dashboard/occupancy') }}" class="overview-module-card" data-section="occupancy">
           <span class="overview-module-card__icon">
@@ -138,7 +140,8 @@
           </span>
           <span class="overview-module-card__title">{{ __('messages.nav.occupancy') }}</span>
           <span class="overview-module-card__desc">{{ __('messages.dashboard_i18n.overview_nav_occupancy_desc') }}</span>
-          <span class="overview-module-card__action">{{ __('messages.dashboard.view') }}</span>
+          <span class="overview-module-card__indicator" aria-live="polite"></span>
+          <span class="overview-module-card__action">{{ __('messages.dashboard_i18n.overview_view_module') }}</span>
         </a>
         @if($smacaIsAdmin)
         <a href="{{ url('/dashboard/connectivity') }}" class="overview-module-card" data-section="connectivity">
@@ -146,8 +149,9 @@
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
           </span>
           <span class="overview-module-card__title">{{ __('messages.nav.connectivity') }}</span>
-          <span class="overview-module-card__desc">{{ __('messages.common.connectivity') }}</span>
-          <span class="overview-module-card__action">{{ __('messages.dashboard.view') }}</span>
+          <span class="overview-module-card__desc">{{ __('messages.dashboard_i18n.overview_nav_connectivity_desc') }}</span>
+          <span class="overview-module-card__indicator" aria-live="polite"></span>
+          <span class="overview-module-card__action">{{ __('messages.dashboard_i18n.overview_view_module') }}</span>
         </a>
         @endif
         @if($smacaIsAdmin)
@@ -157,23 +161,26 @@
             </span>
             <span class="overview-module-card__title">{{ __('messages.nav.energy') }}</span>
             <span class="overview-module-card__desc">{{ __('messages.dashboard_i18n.overview_nav_energy_desc') }}</span>
-            <span class="overview-module-card__action">{{ __('messages.dashboard.view') }}</span>
+            <span class="overview-module-card__indicator" aria-live="polite"></span>
+          <span class="overview-module-card__action">{{ __('messages.dashboard_i18n.overview_view_module') }}</span>
           </a>
-          <a href="{{ url('/dashboard/management') }}" class="overview-module-card overview-module-card--admin" data-section="management">
+          <a href="{{ url('/dashboard/management') }}" class="overview-module-card overview-module-card--admin overview-module-card--muted" data-section="management">
             <span class="overview-module-card__icon">
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             </span>
             <span class="overview-module-card__title">{{ __('messages.nav.management') }}</span>
-            <span class="overview-module-card__desc">{{ __('messages.common.management') }}</span>
-            <span class="overview-module-card__action">{{ __('messages.dashboard.view') }}</span>
+            <span class="overview-module-card__desc">{{ __('messages.dashboard_i18n.overview_nav_management_desc') }}</span>
+            <span class="overview-module-card__indicator" aria-live="polite"></span>
+          <span class="overview-module-card__action">{{ __('messages.dashboard_i18n.overview_view_module') }}</span>
           </a>
-          <a href="{{ url('/dashboard/ai-insights') }}" class="overview-module-card overview-module-card--admin" data-section="ai-insights">
+          <a href="{{ url('/dashboard/ai-insights') }}" class="overview-module-card overview-module-card--admin overview-module-card--muted" data-section="ai-insights">
             <span class="overview-module-card__icon">
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
             </span>
             <span class="overview-module-card__title">{{ __('messages.nav.ai_insights') }}</span>
-            <span class="overview-module-card__desc">{{ __('messages.common.ai_insights') }}</span>
-            <span class="overview-module-card__action">{{ __('messages.dashboard.view') }}</span>
+            <span class="overview-module-card__desc">{{ __('messages.dashboard_i18n.overview_nav_ai_desc') }}</span>
+            <span class="overview-module-card__indicator" aria-live="polite"></span>
+          <span class="overview-module-card__action">{{ __('messages.dashboard_i18n.overview_view_module') }}</span>
           </a>
         @endif
       </div>
@@ -267,6 +274,52 @@
       loadOverviewKpis();
     });
     window.addEventListener('smaca:timeframe-changed', loadOverviewKpis);
+
+    function findOverviewKpi(bundles, moduleKey, keys) {
+      var bundle = bundles && bundles[moduleKey];
+      if (!bundle || !Array.isArray(bundle.kpis)) return null;
+      for (var i = 0; i < keys.length; i++) {
+        var hit = bundle.kpis.find(function (k) { return k && k.key === keys[i]; });
+        if (hit) return hit;
+      }
+      return null;
+    }
+
+    function indicatorLabelForKpi(kpi) {
+      if (!kpi) return '';
+      if (kpi.interpretation_label) return String(kpi.interpretation_label);
+      if (kpi.value !== null && kpi.value !== undefined && kpi.unit_label) {
+        return String(kpi.value) + ' ' + String(kpi.unit_label);
+      }
+      if (kpi.value !== null && kpi.value !== undefined) return String(kpi.value);
+      return tr('overview_status_normal', 'Normal');
+    }
+
+    function hydrateNavIndicators(bundles) {
+      var map = {
+        iaq: findOverviewKpi(bundles, 'iaq', ['iaq_health_index']),
+        energy: findOverviewKpi(bundles, 'energy', ['normalized_energy_intensity']),
+        occupancy: findOverviewKpi(bundles, 'occupancy', ['movement_activity_index', 'crowd_density_level']),
+        environmental: findOverviewKpi(bundles, 'environmental', ['uv_exposure_risk'])
+      };
+      document.querySelectorAll('.overview-module-card[data-section]').forEach(function (card) {
+        var section = card.getAttribute('data-section');
+        var ind = card.querySelector('.overview-module-card__indicator');
+        if (!ind) return;
+        if (section === 'management' || section === 'ai-insights' || section === 'connectivity') {
+          ind.textContent = tr('overview_coming_soon', 'Coming soon');
+          ind.setAttribute('data-status', 'muted');
+          return;
+        }
+        var kpi = map[section];
+        ind.textContent = indicatorLabelForKpi(kpi);
+        ind.setAttribute('data-status', kpi && kpi.status ? String(kpi.status) : 'muted');
+      });
+    }
+
+    window.addEventListener('smaca:overview-kpis-ready', function (ev) {
+      hydrateNavIndicators((ev && ev.detail) || window.__smacaOverviewKpiBundles || {});
+    });
   });
 </script>
 @endsection

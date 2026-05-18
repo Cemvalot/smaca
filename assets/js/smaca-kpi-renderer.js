@@ -354,10 +354,19 @@
         ? `<p class="overview-kpi-card__value-caption${kpi.key === 'ventilation_quality_index' ? ' overview-kpi-card__value-caption--vent-co2' : ''}">${escapeHtml(String(kpi.value_caption))}</p>`
         : '';
       const semanticRow = buildIaqSemanticRowHtml(kpi, boundModule);
-      const moduleSourceHtml = (compact && showModuleSource && kpi.overview_module_source)
+      const snapshotLayout = compact && showModuleSource;
+      const moduleKeyAttr = kpi.overview_module_key ? ` data-overview-module="${escapeHtml(kpi.overview_module_key)}"` : '';
+      const moduleSourceHtml = (snapshotLayout && kpi.overview_module_source)
         ? `<p class="overview-kpi-card__source">${escapeHtml(kpi.overview_module_source)}</p>`
         : '';
+      const hintText = (snapshotLayout && (kpi.semantic_explainer || kpi.description))
+        ? String(kpi.semantic_explainer || kpi.description).trim()
+        : '';
+      const hintHtml = hintText
+        ? `<p class="overview-kpi-card__hint" title="${escapeHtml(hintText)}">${escapeHtml(hintText.length > 88 ? hintText.slice(0, 85) + '…' : hintText)}</p>`
+        : '';
       const iaqCardClass = (boundModule === 'iaq' && !compact) ? ' overview-kpi-card--iaq' : '';
+      const snapshotClass = snapshotLayout ? ' overview-kpi-card--snapshot' : '';
       const valueHtml = vu.unit
         ? `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span><span class="stat-card__value-unit">${escapeHtml(vu.unit)}</span>`
         : `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span>`;
@@ -365,18 +374,19 @@
       const iconHtml = `<span class="overview-kpi-card__icon" data-category="${escapeHtml(iconKey)}" aria-hidden="true">${categoryIconSvg(iconKey)}</span>`;
       const dotClass = 'overview-kpi-card__dot overview-kpi-card__dot--' + statusDotClass(displayStatus);
       return `
-        <article class="stat-card overview-kpi-card${iaqCardClass}${compact ? ' overview-kpi-card--compact' : ''}"${compactStyle}${cardTitle ? ` title="${cardTitle}"` : ''}>
+        <article class="stat-card overview-kpi-card${iaqCardClass}${compact ? ' overview-kpi-card--compact' : ''}${snapshotClass}"${moduleKeyAttr}${compactStyle}${cardTitle ? ` title="${cardTitle}"` : ''}>
           ${iconHtml}
           <div class="stat-card__content">
             <div class="stat-card__label">${resolveLabel(kpi)}</div>
-            ${moduleSourceHtml}
             <div class="stat-card__value">${valueHtml}</div>
-            ${valueCaption}
-            ${semanticRow}
             <div class="stat-card__meta">
               <span class="badge ${statusClass(displayStatus)} badge--sm overview-kpi-card__badge"><span class="${dotClass}"></span>${escapeHtml(badgeText)}</span>
               ${!compact && showConfidence && confidence ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
             </div>
+            ${hintHtml}
+            ${moduleSourceHtml}
+            ${valueCaption}
+            ${semanticRow}
             ${compact ? '' : `<p class="overview-live-note overview-kpi-card__desc">${escapeHtml(descriptionText)}</p>`}
             ${helpBlock}
           </div>

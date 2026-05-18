@@ -2166,10 +2166,20 @@
 .overview-chart-shell__legend {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
-  font-size: var(--font-size-xs);
-  color: var(--muted);
-  margin-bottom: var(--space-4);
+  gap: var(--space-3) var(--space-4);
+  font-size: 11px;
+  color: rgba(203, 213, 225, 0.9);
+  margin-bottom: var(--space-3);
+}
+
+.overview-chart-shell__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.overview-chart-shell__legend span.is-hidden {
+  display: none;
 }
 
 .overview-chart-shell__plot {
@@ -2203,7 +2213,8 @@
 
 .overview-live-chart .chart-line {
   fill: none;
-  stroke-width: 2;
+  stroke-width: 1.75;
+  opacity: 0.88;
   vector-effect: non-scaling-stroke;
 }
 
@@ -2387,12 +2398,43 @@
   min-height: 42px;
 }
 
+.overview-module-card__indicator {
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(203, 213, 225, 0.92);
+  min-height: 1.25em;
+}
+
+.overview-module-card__indicator[data-status="warning"],
+.overview-module-card__indicator[data-status="needs_calibration"] {
+  color: #fbbf24;
+}
+
+.overview-module-card__indicator[data-status="critical"],
+.overview-module-card__indicator[data-status="crowded"],
+.overview-module-card__indicator[data-status="high"] {
+  color: #f87171;
+}
+
+.overview-module-card__indicator[data-status="good"],
+.overview-module-card__indicator[data-status="normal"],
+.overview-module-card__indicator[data-status="low"] {
+  color: #34d399;
+}
+
 .overview-module-card__action {
   font-size: var(--font-size-xs);
   color: var(--accent);
-  font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.overview-module-card--muted {
+  opacity: 0.72;
+}
+
+.overview-module-card--muted:hover {
+  opacity: 0.9;
 }
 
 .overview-module-card--admin .overview-module-card__icon {
@@ -3251,10 +3293,51 @@
 /* ---- Description (1-line explanation) ------------------------------ */
 .overview-kpi-card__source {
   margin: 0;
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.35;
   color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.overview-kpi-card--snapshot .stat-card__value {
+  font-size: 2.15rem;
+  line-height: 1.05;
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.overview-kpi-card--snapshot .stat-card__label {
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.overview-kpi-card--snapshot .overview-kpi-card__badge {
+  font-size: 10.5px;
+}
+
+.overview-kpi-card--snapshot .overview-kpi-card__hint {
+  margin: var(--space-2) 0 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: rgba(148, 163, 184, 0.95);
+  text-align: center;
+  max-width: 34ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.overview-kpi-card--snapshot[data-overview-module="iaq"] {
+  border-color: rgba(34, 211, 238, 0.22);
+}
+.overview-kpi-card--snapshot[data-overview-module="energy"] {
+  border-color: rgba(251, 191, 36, 0.22);
+}
+.overview-kpi-card--snapshot[data-overview-module="occupancy"] {
+  border-color: rgba(167, 139, 250, 0.22);
+}
+.overview-kpi-card--snapshot[data-overview-module="environmental"] {
+  border-color: rgba(249, 115, 22, 0.22);
 }
 
 .overview-kpi-card .overview-live-note,
@@ -4329,7 +4412,7 @@
 
 .smaca-rank-bars__row {
   display: grid;
-  grid-template-columns: 90px 1fr 60px;
+  grid-template-columns: minmax(108px, 1.1fr) 1fr minmax(52px, auto);
   align-items: center;
   gap: 8px;
   font-size: 11px;
@@ -4337,9 +4420,62 @@
 
 .smaca-rank-bars__label {
   color: rgba(226, 232, 240, 0.88);
+  min-width: 0;
+}
+
+.smaca-rank-bars__label-text {
+  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.smaca-rank-bars__status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.smaca-rank-bars__sub {
+  margin-top: 2px;
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: rgba(148, 163, 184, 0.92);
+  white-space: normal;
+}
+
+.smaca-donut-legend {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.smaca-donut-legend__row {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.smaca-donut-legend__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.smaca-donut-legend__count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.95);
 }
 
 .smaca-rank-bars__bar {
