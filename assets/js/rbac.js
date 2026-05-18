@@ -24,21 +24,20 @@
     return getRole() === ROLES.admin;
   }
 
-  const ADMIN_ONLY_SECTIONS = ['management'];
-
-
-  const ADMIN_FULL_SECTIONS = ['connectivity'];
-
+  const ADMIN_ONLY_SECTIONS = [
+    'management',
+    'ai-insights',
+    'energy',
+    'connectivity'
+  ];
 
   function canAccessSection(sectionId) {
     if (isAdmin()) return true;
-    return !ADMIN_ONLY_SECTIONS.includes(sectionId);
+    return !ADMIN_ONLY_SECTIONS.includes(String(sectionId || '').toLowerCase());
   }
 
-
   function hasFullAccess(sectionId) {
-    if (isAdmin()) return true;
-    return !ADMIN_FULL_SECTIONS.includes(sectionId) || sectionId !== 'connectivity';
+    return canAccessSection(sectionId);
   }
 
 

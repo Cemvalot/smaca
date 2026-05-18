@@ -708,6 +708,9 @@
       overview_status_normal: "{{ __('messages.dashboard_i18n.overview_status_normal') }}",
       overview_status_warning: "{{ __('messages.dashboard_i18n.overview_status_warning') }}",
       overview_view_module: "{{ __('messages.dashboard_i18n.overview_view_module') }}",
+      overview_scope_label: "{{ __('messages.dashboard_i18n.overview_scope_label') }}",
+      overview_scope_readonly: "{{ __('messages.dashboard_i18n.overview_scope_readonly') }}",
+      overview_scope_limited_access: "{{ __('messages.dashboard_i18n.overview_scope_limited_access') }}",
       overview_chart_subtitle: "{{ __('messages.dashboard_i18n.overview_chart_subtitle') }}",
       overview_reporting_label: "{{ __('messages.dashboard_i18n.overview_reporting_label') }}",
       overview_status_label: "{{ __('messages.dashboard_i18n.overview_status_label') }}",
@@ -753,6 +756,7 @@
   <script defer src="{{ asset('assets/js/smaca-role.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-role.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-kpi-renderer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-kpi-renderer.js') }}"></script>
   @if(($smacaPage ?? 'overview') === 'overview')
+  <script defer src="{{ asset('assets/js/smaca-overview-scope.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-overview-scope.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-overview-kpi.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-overview-kpi.js') }}"></script>
   @endif
   <script defer src="{{ asset('assets/js/smaca-iaq-sensor-breakdown.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-iaq-sensor-breakdown.js') }}"></script>

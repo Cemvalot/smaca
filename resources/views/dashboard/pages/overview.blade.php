@@ -12,7 +12,7 @@
     </div>
     <div class="card__body">
       <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_overview') }}</p>
-      <div id="overview-spatial-zones" class="overview-spatial-zones" data-smaca-spatial-zones aria-live="polite" style="margin-bottom: var(--space-3);"></div>
+      <div id="overview-spatial-zones" class="overview-scope-host" data-smaca-overview-scope aria-live="polite"></div>
       <div id="overview-scope-summary" class="overview-spatial-summary" style="margin-bottom: var(--space-3); font-size: 12px; color: var(--muted);"></div>
       <div id="overview-kpi-summary-cards" class="grid grid--metrics grid--metrics-2 overview-kpi-grid--loading" aria-busy="true">
         <article class="stat-card overview-kpi-card overview-kpi-card--skeleton" aria-hidden="true"><div class="stat-card__content"><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--label"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--value"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--meta"></div></div></article>
@@ -91,25 +91,31 @@
     </section>
 
     <aside class="card overview-air-score-card">
-      <div class="card__header">
+      <div class="card__header overview-air-score-card__header">
         <h3 class="card__title">{{ __('messages.nav.iaq') }} {{ __('messages.dashboard_i18n.score') }}</h3>
         <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_iaq_score_subtitle') }}</p>
       </div>
       <div class="card__body overview-air-score-body">
-        <div class="overview-gauge" id="overview-iaq-gauge" data-iaq-gauge-status="idle">
-          <div class="overview-gauge__halo" aria-hidden="true"></div>
-          <div class="overview-gauge__ring">
-            <svg class="overview-gauge__svg" viewBox="0 0 132 132" aria-hidden="true">
-              <circle class="overview-gauge__track" cx="66" cy="66" r="52"></circle>
-              <circle id="overview-air-score-progress" class="overview-gauge__progress" cx="66" cy="66" r="52"></circle>
-            </svg>
-            <div class="overview-gauge__center">
-              <div id="overview-air-score-value" class="overview-gauge__value">--</div>
-              <div class="overview-gauge__label">{{ __('messages.dashboard_i18n.iaq_index') }}</div>
+        <a href="{{ url('/dashboard/iaq') }}" class="overview-air-score-interactive" id="overview-iaq-score-link" aria-label="{{ __('messages.nav.iaq') }} — {{ __('messages.dashboard_i18n.overview_view_module') }}">
+          <div class="overview-air-score-stack">
+            <div class="overview-gauge" id="overview-iaq-gauge" data-iaq-gauge-status="idle" role="img" aria-labelledby="overview-air-score-value overview-air-score-meta">
+              <div class="overview-gauge__halo" aria-hidden="true"></div>
+              <div class="overview-gauge__ring">
+                <svg class="overview-gauge__svg" viewBox="0 0 132 132" aria-hidden="true">
+                  <circle class="overview-gauge__track" cx="66" cy="66" r="52"></circle>
+                  <circle id="overview-air-score-progress" class="overview-gauge__progress" cx="66" cy="66" r="52"></circle>
+                </svg>
+                <div class="overview-gauge__center">
+                  <div id="overview-air-score-value" class="overview-gauge__value">--</div>
+                  <div class="overview-gauge__label">{{ __('messages.dashboard_i18n.iaq_index') }}</div>
+                </div>
+              </div>
             </div>
+            <span id="overview-air-score-status" class="overview-air-score-status" hidden></span>
+            <p id="overview-air-score-meta" class="overview-air-score-meta">{{ __('messages.dashboard_i18n.awaiting_live_iaq_data') }}</p>
+            <span class="overview-air-score-cta">{{ __('messages.dashboard_i18n.overview_view_module') }}</span>
           </div>
-        </div>
-        <p id="overview-air-score-meta" class="overview-air-score-meta">{{ __('messages.dashboard_i18n.awaiting_live_iaq_data') }}</p>
+        </a>
       </div>
     </aside>
   </div>
@@ -209,72 +215,27 @@
       return (d[key] && String(d[key]).trim()) ? d[key] : (fb || key);
     }
 
-    function renderSpatialZones() {
+    function initOverviewScope() {
+      if (window.SMACAOverviewScope && typeof window.SMACAOverviewScope.init === 'function') {
+        window.SMACAOverviewScope.init();
+      }
+    }
+
+    function refreshOverviewScope() {
       var host = document.getElementById('overview-spatial-zones');
-      if (!host) return;
-      var data = (window.SMACA_SPATIAL && window.SMACA_SPATIAL.groups) || {};
-      var sections = [
-        { key: 'floors', label: tr('spatial_section_floors', 'Floors') },
-        { key: 'basements', label: tr('spatial_section_basements', 'Basements') },
-        { key: 'special_spaces', label: tr('spatial_section_special_spaces', 'Special spaces') }
-      ];
-      var html = '';
-      var current = (window.SMACA_LOCATION || '').toUpperCase();
-
-      html += '<div class="overview-spatial-zones__row">';
-      html += '<button type="button" class="smaca-spatial-section-pill" data-spatial-pick="" '
-        + 'aria-pressed="' + (!current ? 'true' : 'false') + '">'
-        + escapeText(tr('spatial_all_campus', 'All campus')) + '</button>';
-      html += '</div>';
-
-      var role = (window.SMACA_USER && String(window.SMACA_USER.role || '').toLowerCase()) || 'user';
-      var isAdminLikeRole = (role === 'admin' || role === 'researcher');
-
-      sections.forEach(function (section) {
-        var items = (data[section.key] && data[section.key].items) || [];
-        if (!items.length) return;
-        html += '<div class="overview-spatial-zones__row">';
-        html += '<span class="overview-spatial-zones__heading">' + escapeText(section.label) + '</span>';
-        items.forEach(function (item) {
-          if (!item || !item.code) return;
-          var pressed = (current === item.code) ? 'true' : 'false';
-          // Tooltip exposes the raw code only to admin/researcher — normal
-          // users see the human label only, no technical metadata on hover.
-          var titleAttr = isAdminLikeRole
-            ? ' title="' + escapeAttr(item.code) + '"'
-            : '';
-          html += '<button type="button" class="smaca-spatial-scope-pill" '
-            + 'data-spatial-pick="' + escapeAttr(item.code) + '" aria-pressed="' + pressed + '"'
-            + titleAttr + '>'
-            + escapeText(item.label || item.code) + '</button>';
-        });
-        html += '</div>';
-      });
-
-      host.innerHTML = html;
-      Array.prototype.forEach.call(host.querySelectorAll('[data-spatial-pick]'), function (btn) {
-        btn.addEventListener('click', function () {
-          var code = btn.getAttribute('data-spatial-pick') || '';
-          if (window.SMACASpatial && typeof window.SMACASpatial.setLocation === 'function') {
-            window.SMACASpatial.setLocation(code);
-          } else {
-            window.SMACA_LOCATION = code || null;
-            try {
-              window.dispatchEvent(new CustomEvent('smaca:scope-change', { detail: { location: code || null } }));
-            } catch (e) {}
-          }
-        });
-      });
+      if (host && window.SMACAOverviewScope && typeof window.SMACAOverviewScope.render === 'function') {
+        window.SMACAOverviewScope.render(host);
+      }
     }
 
     function loadOverviewKpis() {
       window.SMACAOverviewKpi.load();
     }
 
-    renderSpatialZones();
+    initOverviewScope();
     loadOverviewKpis();
     window.addEventListener('smaca:scope-change', function () {
-      renderSpatialZones();
+      refreshOverviewScope();
       loadOverviewKpis();
     });
     window.addEventListener('smaca:timeframe-changed', loadOverviewKpis);
@@ -310,11 +271,6 @@
         var section = card.getAttribute('data-section');
         var ind = card.querySelector('.overview-module-card__indicator');
         if (!ind) return;
-        if (section === 'management' || section === 'ai-insights' || section === 'connectivity') {
-          ind.textContent = tr('overview_coming_soon', 'Coming soon');
-          ind.setAttribute('data-status', 'muted');
-          return;
-        }
         var kpi = map[section];
         if (!kpi) {
           ind.textContent = '';
@@ -342,31 +298,9 @@
       grid.removeAttribute('aria-busy');
     }
 
-    function syncOverviewIaqGaugeVisual(bundles) {
-      var gauge = document.getElementById('overview-iaq-gauge');
-      if (!gauge) return;
-      var iaqBundle = bundles && bundles.iaq;
-      var kpi = iaqBundle && Array.isArray(iaqBundle.kpis)
-        ? iaqBundle.kpis.find(function (k) { return k && k.key === 'iaq_health_index'; })
-        : null;
-      var visual = 'idle';
-      if (kpi && kpi.value !== null && kpi.value !== undefined) {
-        var status = String(kpi.status || 'normal').toLowerCase();
-        if (status === 'critical' || status === 'poor' || status === 'high') {
-          visual = 'critical';
-        } else if (status === 'warning' || status === 'needs_calibration' || status === 'crowded') {
-          visual = 'warning';
-        } else {
-          visual = 'normal';
-        }
-      }
-      gauge.setAttribute('data-iaq-gauge-status', visual);
-    }
-
     window.addEventListener('smaca:overview-kpis-ready', function (ev) {
       var bundles = (ev && ev.detail) || window.__smacaOverviewKpiBundles || {};
       clearOverviewKpiLoading();
-      syncOverviewIaqGaugeVisual(bundles);
       hydrateNavIndicators(bundles);
     });
   });
