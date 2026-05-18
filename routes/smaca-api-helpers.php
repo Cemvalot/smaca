@@ -35,6 +35,10 @@ if (!function_exists('smacaApiMetricWhitelist_impl')) {
             'people_total_out',
             'tvoc_index',
             'light_level',
+            'signal_strength',
+            'snr',
+            'tx_ccq',
+            'tx_rate',
         ];
     }
 }
@@ -263,6 +267,10 @@ if (!function_exists('smacaApiSnapshotFromRow_impl')) {
             'tvoc_index' => $row->tvoc_index ?? null,
             'light_level' => $row->light_level ?? null,
             'lux' => $row->lux ?? null,
+            'signal_strength' => $row->signal_strength ?? null,
+            'snr' => $row->snr ?? null,
+            'tx_ccq' => $row->tx_ccq ?? null,
+            'tx_rate' => $row->tx_rate ?? null,
         ];
 
         return TelemetryLatestNormalizer::mergeNormalizedSemanticKeys($snap, $row);
@@ -388,7 +396,7 @@ if (!function_exists('smacaApiSensorLatestOptionalSelectColumns_impl')) {
         $cols = [];
         try {
             $schema = DB::getSchemaBuilder();
-            foreach (['tvoc_index', 'light_level', 'lux'] as $column) {
+            foreach (['tvoc_index', 'light_level', 'lux', 'signal_strength', 'snr', 'tx_ccq', 'tx_rate'] as $column) {
                 if ($schema->hasColumn('sensor_latest', $column)) {
                     $cols[] = 'sl.'.$column;
                 }

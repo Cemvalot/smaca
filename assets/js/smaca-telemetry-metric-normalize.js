@@ -52,6 +52,17 @@
       out.light_level = out.lighting;
     }
 
+    out.rssi = firstPresentScalar(lat, ['rssi', 'signal_strength', 'signalStrength']);
+    out.device = firstPresentScalar(lat, ['device', 'device_name']);
+    out.deviceLocation = firstPresentScalar(lat, ['deviceLocation', 'device_location', 'sensor_location']);
+    out.deviceID = firstPresentScalar(lat, ['deviceID', 'device_id', 'sensor_uid', 'sensor_id']);
+    if (out.rssi !== null && (lat.signal_strength === undefined || lat.signal_strength === null || lat.signal_strength === '')) {
+      out.signal_strength = out.rssi;
+    }
+    out.snr = firstPresentScalar(lat, ['snr', 'signal_to_noise']);
+    out.tx_ccq = firstPresentScalar(lat, ['tx_ccq']);
+    out.tx_rate = firstPresentScalar(lat, ['tx_rate']);
+
     return out;
   }
 

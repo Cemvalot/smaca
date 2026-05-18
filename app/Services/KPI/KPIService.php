@@ -14,6 +14,7 @@ class KPIService
     private ?KPIMetadataService $metadataService;
     private ?OccupancyMetricsService $occupancyMetricsService = null;
     private ?IaqSemanticKpiComposer $iaqSemanticComposer = null;
+    private ?ConnectivitySemanticKpiComposer $connectivitySemanticComposer = null;
 
     public function __construct(
         private KPIInputAssembler $inputAssembler,
@@ -57,6 +58,15 @@ class KPIService
         }
 
         return $this->iaqSemanticComposer;
+    }
+
+    private function connectivitySemanticComposer(): ConnectivitySemanticKpiComposer
+    {
+        if ($this->connectivitySemanticComposer === null) {
+            $this->connectivitySemanticComposer = new ConnectivitySemanticKpiComposer();
+        }
+
+        return $this->connectivitySemanticComposer;
     }
 
     /**
@@ -164,6 +174,21 @@ class KPIService
             }
         }
 
+        if ($moduleKey === 'connectivity') {
+            try {
+                $response['connectivity_quality_index'] = $this->connectivitySemanticComposer()
+                    ->buildConnectivityQualityIndex($inputs);
+            } catch (\Throwable $e) {
+                $response['connectivity_quality_index'] = [
+                    'overall_band' => null,
+                    'overall_severity' => 'insufficient_data',
+                    'reporting_devices' => 0,
+                    'total_devices' => (int) ($inputs['active_sensor_count'] ?? 0),
+                    'worst_device' => null,
+                ];
+            }
+        }
+
         return $response;
     }
 
@@ -263,6 +288,7 @@ class KPIService
                 // removed from the environmental module.
                 $uvExposure,
             ],
+            'connectivity' => $this->connectivitySemanticComposer()->buildModuleKpis($inputs),
         ];
     }
 
@@ -847,7 +873,7 @@ class KPIService
     private function normalizeModule(?string $module): string
     {
         $resolved = strtolower(trim((string) ($module ?? 'overview')));
-        $allowed = ['overview', 'energy', 'iaq', 'occupancy', 'environmental'];
+        $allowed = ['overview', 'energy', 'iaq', 'occupancy', 'environmental', 'connectivity'];
         return in_array($resolved, $allowed, true) ? $resolved : 'overview';
     }
 

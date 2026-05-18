@@ -93,6 +93,35 @@ final class TelemetryLatestNormalizer
             $out['humidity_rh'] = $humidity;
         }
 
+        $rssi = self::pickScalar([
+            $snapshot['rssi'] ?? null,
+            $snapshot['signal_strength'] ?? null,
+            self::rowProp($row, 'rssi'),
+            self::rowProp($row, 'signal_strength'),
+        ]);
+        $out['rssi'] = $rssi;
+        if (($out['signal_strength'] ?? null) === null && $rssi !== null) {
+            $out['signal_strength'] = $rssi;
+        }
+
+        $snr = self::pickScalar([
+            $snapshot['snr'] ?? null,
+            self::rowProp($row, 'snr'),
+        ]);
+        $out['snr'] = $snr;
+
+        $txCcq = self::pickScalar([
+            $snapshot['tx_ccq'] ?? null,
+            self::rowProp($row, 'tx_ccq'),
+        ]);
+        $out['tx_ccq'] = $txCcq;
+
+        $txRate = self::pickScalar([
+            $snapshot['tx_rate'] ?? null,
+            self::rowProp($row, 'tx_rate'),
+        ]);
+        $out['tx_rate'] = $txRate;
+
         return $out;
     }
 

@@ -497,6 +497,33 @@
       iaq_health_partial: "{{ __('messages.dashboard_i18n.iaq_health_partial') }}",
       iaq_health_missing_metrics: "{{ __('messages.dashboard_i18n.iaq_health_missing_metrics') }}",
       iaq_health_limited_telemetry: "{{ __('messages.dashboard_i18n.iaq_health_limited_telemetry') }}",
+      connectivity_quality_title: "{{ __('messages.connectivity_quality.title') }}",
+      connectivity_band_excellent: "{{ __('messages.connectivity_quality.excellent') }}",
+      connectivity_band_very_good: "{{ __('messages.connectivity_quality.very_good') }}",
+      connectivity_band_good_usable: "{{ __('messages.connectivity_quality.good_usable') }}",
+      connectivity_band_weak_unstable: "{{ __('messages.connectivity_quality.weak_unstable') }}",
+      connectivity_band_bad: "{{ __('messages.connectivity_quality.bad') }}",
+      connectivity_signal_strength: "{{ __('messages.connectivity_quality.signal_strength') }}",
+      connectivity_signal_to_noise: "{{ __('messages.connectivity_quality.signal_to_noise') }}",
+      connectivity_client_connection_quality: "{{ __('messages.connectivity_quality.client_connection_quality') }}",
+      connectivity_transmission_rate: "{{ __('messages.connectivity_quality.transmission_rate') }}",
+      connectivity_limiting_metric: "{{ __('messages.connectivity_quality.limiting_metric') }}",
+      connectivity_last_update: "{{ __('messages.connectivity_quality.last_update') }}",
+      connectivity_no_data: "{{ __('messages.connectivity_quality.no_data') }}",
+      connectivity_breakdown_overall: "{{ __('messages.connectivity_kpi.breakdown.overall') }}",
+      connectivity_breakdown_no_devices: "{{ __('messages.connectivity_kpi.breakdown.no_devices') }}",
+      connectivity_breakdown_device_count: "{{ __('messages.connectivity_kpi.breakdown.device_count') }}",
+      connectivity_no_timeseries: "{{ __('messages.dashboard_i18n.connectivity_no_timeseries') }}",
+      connectivity_online_devices: "{{ __('messages.dashboard_i18n.connectivity_online_devices') }}",
+      connectivity_kpi_overall: "{{ __('messages.dashboard_i18n.connectivity_kpi_overall') }}",
+      connectivity_limiting_caption: "{{ __('messages.dashboard_i18n.connectivity_limiting_caption') }}",
+      connectivity_col_device: "{{ __('messages.dashboard_i18n.connectivity_col_device') }}",
+      connectivity_col_location: "{{ __('messages.dashboard_i18n.connectivity_col_location') }}",
+      connectivity_col_quality: "{{ __('messages.dashboard_i18n.connectivity_col_quality') }}",
+      connectivity_col_status: "{{ __('messages.dashboard_i18n.connectivity_col_status') }}",
+      connectivity_status_stale: "{{ __('messages.dashboard_i18n.connectivity_status_stale') }}",
+      connectivity_attention_none: "{{ __('messages.dashboard_i18n.connectivity_attention_none') }}",
+      connectivity_unknown_device: "{{ __('messages.dashboard_i18n.connectivity_unknown_device') }}",
       iaq_semantic_coverage_full: "{{ __('messages.dashboard_i18n.iaq_semantic_coverage_full') }}",
       iaq_semantic_coverage_partial: "{{ __('messages.dashboard_i18n.iaq_semantic_coverage_partial') }}",
       iaq_semantic_coverage_limited: "{{ __('messages.dashboard_i18n.iaq_semantic_coverage_limited') }}",
@@ -768,6 +795,10 @@
   <script defer src="{{ asset('assets/js/smaca-iaq-sensor-breakdown.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-iaq-sensor-breakdown.js') }}"></script>
   @if(($smacaPage ?? 'overview') === 'energy')
   <script defer src="{{ asset('assets/js/smaca-energy-meter-breakdown.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-energy-meter-breakdown.js') }}"></script>
+  @endif
+  <script defer src="{{ asset('assets/js/smaca-connectivity-quality.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-connectivity-quality.js') }}"></script>
+  @if(($smacaPage ?? 'overview') === 'connectivity')
+  <script defer src="{{ asset('assets/js/smaca-connectivity-dashboard.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-connectivity-dashboard.js') }}"></script>
   @endif
   <script defer src="{{ asset('assets/js/smaca-chart-explainer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-chart-explainer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-card-help.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-card-help.js') }}"></script>

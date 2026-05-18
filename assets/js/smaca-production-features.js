@@ -1043,8 +1043,8 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     if (shouldHydrateLatestRows) {
       await hydrateSensorLatestRowsForUi(sensors, forceRefresh);
     }
-    if (currentPage === 'connectivity' && document.getElementById('sensor-health-table')) {
-      renderConnectivityFromLiveSensors();
+    if (currentPage === 'connectivity' && global.SMACAConnectivityDashboard && typeof global.SMACAConnectivityDashboard.refresh === 'function') {
+      global.SMACAConnectivityDashboard.refresh();
     }
     if (currentPage === 'management' && document.getElementById('sensors-management-table-body')) {
       renderManagementSensorsFromLiveData();
@@ -1176,13 +1176,33 @@ function setupSensorSelectionListeners() {
 function toConnectivitySensorRow(sensor, latestRow) {
   const isActive = sensor?.is_active === true || sensor?.is_active === 1 || sensor?.is_active === '1';
   const latest = latestRow?.latest || sensor?.latest_snapshot || {};
+  const norm = (typeof window !== 'undefined' && window.SMACA_TELEMETRY_METRIC_NORMALIZE?.normalizeLatest)
+    ? window.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest(latest)
+    : latest;
+  const rssiVal = norm?.rssi ?? norm?.signal_strength ?? null;
+  const snrVal = norm?.snr ?? null;
+  const txCcqVal = norm?.tx_ccq ?? null;
+  const txRateVal = norm?.tx_rate ?? null;
+  let overallLabel = null;
+  if (typeof window !== 'undefined' && window.SMACA_CONNECTIVITY_QUALITY?.classifyOverall) {
+    const overall = window.SMACA_CONNECTIVITY_QUALITY.classifyOverall({
+      rssi: rssiVal,
+      snr: snrVal,
+      tx_ccq: txCcqVal,
+      tx_rate: txRateVal
+    });
+    overallLabel = overall?.overall_label ?? null;
+  }
   return {
     id: Number(sensor?.id),
     location: sensor?.site?.name || sensor?.location || 'Not reported by sensor',
     status: isActive ? 'active' : 'inactive',
     battery: latest?.battery_pct ?? null,
-    rssi: latest?.rssi ?? 'Not reported by sensor',
-    snr: latest?.snr ?? 'Not reported by sensor',
+    rssi: rssiVal ?? 'Not reported by sensor',
+    snr: snrVal ?? 'Not reported by sensor',
+    tx_ccq: txCcqVal ?? 'Not reported by sensor',
+    tx_rate: txRateVal ?? 'Not reported by sensor',
+    overallQuality: overallLabel,
     gatewayId: latest?.gateway_id ?? 'Not reported by sensor',
     lastSeenAt: latestRow?.last_seen_at || latest?.measured_at || sensor?.last_seen_at || null,
     deviceName: sensor?.name || latestRow?.name || `Sensor ${sensor?.id}`,
@@ -2447,8 +2467,8 @@ function renderCurrentPageOnly(timeframe, filteredData) {
     if (!document.getElementById('environmental')) return;
     updateEnvironmentalDashboard(filteredData.environmental, timeframe);
   }
-  if (currentPage === 'connectivity' && document.getElementById('sensor-health-table')) {
-    renderConnectivityFromLiveSensors();
+  if (currentPage === 'connectivity' && global.SMACAConnectivityDashboard && typeof global.SMACAConnectivityDashboard.refresh === 'function') {
+    global.SMACAConnectivityDashboard.refresh();
   }
   if (currentPage === 'management' && document.getElementById('sensors-management-table-body')) {
     renderManagementSensorsFromLiveData();

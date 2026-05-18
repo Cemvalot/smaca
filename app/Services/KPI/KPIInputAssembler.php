@@ -99,6 +99,16 @@ class KPIInputAssembler
                 if ($schema->hasColumn('sensor_latest', 'people_total_in') && $schema->hasColumn('sensor_latest', 'people_total_out')) {
                     $latestSelects[] = 'AVG(COALESCE(people_total_in, 0) - COALESCE(people_total_out, 0)) as avg_people_present';
                 }
+                foreach ([
+                    'signal_strength' => 'avg_rssi_dbm',
+                    'snr' => 'avg_snr_db',
+                    'tx_ccq' => 'avg_tx_ccq_pct',
+                    'tx_rate' => 'avg_tx_rate_mbps',
+                ] as $col => $alias) {
+                    if ($schema->hasColumn('sensor_latest', $col)) {
+                        $latestSelects[] = 'AVG('.$col.') as '.$alias;
+                    }
+                }
 
                 if (!empty($latestSelects)) {
                     $q = DB::table('sensor_latest')->selectRaw(implode(', ', $latestSelects));
@@ -521,7 +531,63 @@ class KPIInputAssembler
             'active_sensor_count' => $activeSensors,
             'has_scope' => $sensorIdsScoped || $sensorUidsScoped,
             'timeframe' => $timeframe,
+            'avg_rssi_dbm' => $this->toFloat($latest->avg_rssi_dbm ?? null),
+            'avg_snr_db' => $this->toFloat($latest->avg_snr_db ?? null),
+            'avg_tx_ccq_pct' => $this->toFloat($latest->avg_tx_ccq_pct ?? null),
+            'avg_tx_rate_mbps' => $this->toFloat($latest->avg_tx_rate_mbps ?? null),
+            'connectivity_reporting_devices' => $this->countConnectivityReportingDevices(
+                $schema,
+                $sensorIdsScoped,
+                $sensorIds,
+                $sensorUidsScoped,
+                $sensorUids
+            ),
+            'connectivity_total_devices' => $activeSensors,
         ];
+    }
+
+    /**
+     * Sensors with at least one wireless quality metric on sensor_latest.
+     */
+    private function countConnectivityReportingDevices(
+        \Illuminate\Database\Schema\Builder $schema,
+        bool $sensorIdsScoped,
+        ?array $sensorIds,
+        bool $sensorUidsScoped,
+        ?array $sensorUids
+    ): int {
+        if (!$schema->hasTable('sensor_latest')) {
+            return 0;
+        }
+        $cols = [];
+        foreach (['signal_strength', 'snr', 'tx_ccq', 'tx_rate'] as $col) {
+            if ($schema->hasColumn('sensor_latest', $col)) {
+                $cols[] = $col;
+            }
+        }
+        if ($cols === []) {
+            return 0;
+        }
+        try {
+            $q = DB::table('sensor_latest');
+            $q->where(function ($sub) use ($cols) {
+                foreach ($cols as $i => $col) {
+                    if ($i === 0) {
+                        $sub->whereNotNull($col);
+                    } else {
+                        $sub->orWhereNotNull($col);
+                    }
+                }
+            });
+            if ($sensorIdsScoped && !empty($sensorIds)) {
+                $q->whereIn('sensor_id', $sensorIds);
+            }
+            return (int) $q->count();
+        } catch (\Throwable $e) {
+            $this->safeLogWarning('KPIInputAssembler: connectivity reporting count failed', $e);
+
+            return 0;
+        }
     }
 
     /**
@@ -791,6 +857,12 @@ class KPIInputAssembler
             'active_sensor_count' => $activeSensors,
             'has_scope' => true,
             'timeframe' => $timeframe,
+            'avg_rssi_dbm' => null,
+            'avg_snr_db' => null,
+            'avg_tx_ccq_pct' => null,
+            'avg_tx_rate_mbps' => null,
+            'connectivity_reporting_devices' => 0,
+            'connectivity_total_devices' => $activeSensors,
         ];
     }
 

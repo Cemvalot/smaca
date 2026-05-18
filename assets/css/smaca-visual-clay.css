@@ -274,7 +274,7 @@ html.smaca-is-scrolling #environmental #environmental-kpi-grid .stat-card:hover 
 }
 
 .section-hero--connectivity {
-  background: var(--smaca-accent-connectivity-hero), var(--smaca-section-bg) !important;
+  background: linear-gradient(120deg, rgba(34, 211, 238, 0.12) 0%, rgba(59, 130, 246, 0.06) 40%, transparent 70%), var(--smaca-accent-connectivity-hero), var(--smaca-section-bg) !important;
   border-left: 3px solid var(--smaca-accent-connectivity);
 }
 
