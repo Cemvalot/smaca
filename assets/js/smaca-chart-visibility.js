@@ -1,6 +1,6 @@
 /**
- * Pause Highcharts / heavy chart hosts outside the viewport.
- * Defers resume while scrolling; flushes on scroll settle via rAF.
+ * Chart viewport visibility — pause updates on scroll-out, keep DOM mounted.
+ * Rebuild only when dirty (timeframe / scope / data), not on scroll re-entry.
  */
 (function (global) {
   'use strict';
@@ -13,36 +13,13 @@
   var scrollRootEl = null;
   var scrollEndTimer = null;
   var flushRaf = 0;
+  var observerRaf = 0;
+  var pendingEntries = [];
   var isScrolling = false;
   var SCROLL_SETTLE_MS = 140;
   var RESUME_DEBOUNCE_MS = 80;
 
-  var HEAVY_CHART_IDS = {
-    'iaq-co2-band-chart': {
-      pause: function () {
-        if (global.SMACAHighchartsAdapter && typeof global.SMACAHighchartsAdapter.destroyIaqTrendHighchart === 'function') {
-          global.SMACAHighchartsAdapter.destroyIaqTrendHighchart();
-        }
-      },
-      resume: function () {
-        if (typeof global.renderIAQSection === 'function') {
-          global.renderIAQSection('chart-visible', false);
-        }
-      }
-    },
-    'iaq-co2-hourly-heatmap': {
-      pause: function () {
-        if (global.SMACAHighchartsAdapter && typeof global.SMACAHighchartsAdapter.destroyIaqHeatstripHighchart === 'function') {
-          global.SMACAHighchartsAdapter.destroyIaqHeatstripHighchart();
-        }
-      },
-      resume: function () {
-        if (typeof global.renderIAQSection === 'function') {
-          global.renderIAQSection('chart-visible', false);
-        }
-      }
-    }
-  };
+  var HEAVY_CHART_IDS = ['iaq-co2-band-chart', 'iaq-co2-hourly-heatmap'];
 
   function scrollDebugEnabled() {
     try {
@@ -55,12 +32,14 @@
   function scrollLog(message, detail) {
     if (!scrollDebugEnabled()) return;
     try {
-      if (detail !== undefined) {
-        console.log('[SMACA_SCROLL]', message, detail);
-      } else {
-        console.log('[SMACA_SCROLL]', message);
-      }
+      if (detail !== undefined) console.log('[SMACA_SCROLL]', message, detail);
+      else console.log('[SMACA_SCROLL]', message);
     } catch (e) { /* noop */ }
+  }
+
+  function hostHasVisual(el) {
+    if (!el) return false;
+    return !!el.querySelector('svg, canvas, .highcharts-container');
   }
 
   function getScrollRoot() {
@@ -95,20 +74,26 @@
     }, { passive: true });
   }
 
+  function isInViewport(el) {
+    if (!el) return false;
+    var rect = el.getBoundingClientRect();
+    var vh = global.innerHeight || document.documentElement.clientHeight;
+    return rect.bottom > 0 && rect.top < vh;
+  }
+
   function scheduleResumeHost(host) {
     if (!host) return;
+    if (host.getAttribute('data-smaca-chart-paused') !== '1') return;
     pendingResumeHosts.add(host);
-    if (!isScrolling) {
-      scheduleFlushResumes();
-    }
+    if (!isScrolling) scheduleFlushResumes();
   }
 
   function scheduleResumeId(id) {
     if (!id) return;
+    var el = document.getElementById(id);
+    if (el && el.getAttribute('data-smaca-chart-paused') !== '1') return;
     pendingResumeIds.add(id);
-    if (!isScrolling) {
-      scheduleFlushResumes();
-    }
+    if (!isScrolling) scheduleFlushResumes();
   }
 
   function scheduleFlushResumes() {
@@ -119,6 +104,24 @@
     });
   }
 
+  function resumeHeavyChart(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var initialized = el.getAttribute('data-smaca-chart-initialized') === '1';
+    var dirty = el.getAttribute('data-smaca-chart-dirty') === '1';
+    el.removeAttribute('data-smaca-chart-paused');
+
+    if (initialized && !dirty && hostHasVisual(el)) {
+      scrollLog('chart-resume-keep-mounted', { id: id });
+      return;
+    }
+
+    scrollLog('chart-rebuild', { id: id, reason: dirty ? 'dirty' : 'init' });
+    if (typeof global.renderIAQSection === 'function') {
+      global.renderIAQSection('chart-visible', false);
+    }
+  }
+
   function flushPendingResumes() {
     var hosts = Array.from(pendingResumeHosts);
     var ids = Array.from(pendingResumeIds);
@@ -126,11 +129,9 @@
     pendingResumeIds.clear();
 
     hosts.forEach(function (host) {
-      if (!host || !host.isConnected) return;
-      var rect = host.getBoundingClientRect();
-      var inView = rect.bottom > 0 && rect.top < (global.innerHeight || document.documentElement.clientHeight);
-      if (!inView) return;
-      scrollLog('chart-resume', { kind: 'host', paused: host.getAttribute('data-smaca-chart-paused') });
+      if (!host || !host.isConnected || !isInViewport(host)) return;
+      if (host.getAttribute('data-smaca-chart-paused') !== '1') return;
+      scrollLog('chart-resume', { kind: 'host' });
       var tel = global.SMACATelemetry;
       if (tel && typeof tel.resumeChartHost === 'function') {
         tel.resumeChartHost(host);
@@ -138,63 +139,81 @@
     });
 
     ids.forEach(function (id) {
-      var handlers = customHosts[id] || HEAVY_CHART_IDS[id];
-      if (!handlers || typeof handlers.resume !== 'function') return;
+      if (!isInViewport(document.getElementById(id))) return;
       var el = document.getElementById(id);
-      if (!el) return;
-      var rect = el.getBoundingClientRect();
-      var inView = rect.bottom > 0 && rect.top < (global.innerHeight || document.documentElement.clientHeight);
-      if (!inView) return;
+      if (!el || el.getAttribute('data-smaca-chart-paused') !== '1') return;
       scrollLog('chart-resume', { kind: 'heavy', id: id });
-      handlers.resume();
+      if (customHosts[id] && typeof customHosts[id].resume === 'function') {
+        customHosts[id].resume();
+        return;
+      }
+      resumeHeavyChart(id);
     });
   }
 
-  function pauseHost(host) {
+  function pauseTelemetryHost(host) {
     if (!host) return;
     pendingResumeHosts.delete(host);
     var tel = global.SMACATelemetry;
     if (tel && typeof tel.pauseChartHost === 'function') {
       tel.pauseChartHost(host);
+    } else if (host.getAttribute('data-smaca-chart-initialized') === '1' || hostHasVisual(host)) {
+      host.setAttribute('data-smaca-chart-paused', '1');
     }
     scrollLog('chart-pause', { kind: 'host' });
   }
 
-  function pauseId(id) {
+  function pauseHeavyChart(id) {
     if (!id) return;
     pendingResumeIds.delete(id);
-    var handlers = customHosts[id] || HEAVY_CHART_IDS[id];
-    if (handlers && typeof handlers.pause === 'function') {
-      handlers.pause();
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (customHosts[id] && typeof customHosts[id].pause === 'function') {
+      customHosts[id].pause();
+      return;
+    }
+    if (el.getAttribute('data-smaca-chart-initialized') === '1' || hostHasVisual(el)) {
+      el.setAttribute('data-smaca-chart-paused', '1');
     }
     scrollLog('chart-pause', { kind: 'heavy', id: id });
   }
 
+  function processIntersectionBatch() {
+    var batch = pendingEntries.splice(0);
+    batch.forEach(function (entry) {
+      var el = entry.target;
+      if (!el) return;
+      var visible = entry.isIntersecting && entry.intersectionRatio > 0.06;
+      var id = el.id || '';
+      var isChartHost = el.getAttribute && el.getAttribute('data-smaca-chart') === '1';
+      var isHeavy = HEAVY_CHART_IDS.indexOf(id) !== -1;
+
+      if (visible) {
+        if (isChartHost) scheduleResumeHost(el);
+        else if (isHeavy || (id && customHosts[id])) scheduleResumeId(id);
+      } else {
+        if (isChartHost) pauseTelemetryHost(el);
+        else if (isHeavy || (id && customHosts[id])) pauseHeavyChart(id);
+      }
+    });
+  }
+
+  function queueIntersectionEntries(entries) {
+    pendingEntries.push.apply(pendingEntries, entries);
+    if (observerRaf) return;
+    observerRaf = global.requestAnimationFrame(function () {
+      observerRaf = 0;
+      processIntersectionBatch();
+    });
+  }
+
   function ensureObserver() {
     if (observer || typeof IntersectionObserver === 'undefined') return observer;
-    observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        var el = entry.target;
-        if (!el) return;
-        var visible = entry.isIntersecting && entry.intersectionRatio > 0.06;
-        var id = el.id || '';
-        var isChartHost = el.getAttribute && el.getAttribute('data-smaca-chart') === '1';
-
-        if (visible) {
-          if (isChartHost) {
-            scheduleResumeHost(el);
-          } else if (id && (customHosts[id] || HEAVY_CHART_IDS[id])) {
-            scheduleResumeId(id);
-          }
-        } else {
-          if (isChartHost) {
-            pauseHost(el);
-          } else if (id) {
-            pauseId(id);
-          }
-        }
-      });
-    }, { root: null, rootMargin: '120px 0px', threshold: [0, 0.06, 0.15] });
+    observer = new IntersectionObserver(queueIntersectionEntries, {
+      root: null,
+      rootMargin: '120px 0px',
+      threshold: [0, 0.06, 0.15]
+    });
     return observer;
   }
 
@@ -219,7 +238,7 @@
   }
 
   function bootHeavyHosts() {
-    Object.keys(HEAVY_CHART_IDS).forEach(observeById);
+    HEAVY_CHART_IDS.forEach(observeById);
   }
 
   function watchHeightStability() {

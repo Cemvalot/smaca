@@ -688,6 +688,13 @@ function renderIaqMainTrendChart(computed) {
       seriesData: highchartsSeries
     });
     if (rendered && rendered.ok) {
+      chartEl.setAttribute('data-smaca-chart-initialized', '1');
+      chartEl.removeAttribute('data-smaca-chart-dirty');
+      chartEl.removeAttribute('data-smaca-chart-paused');
+      chartEl.setAttribute('data-smaca-chart-fingerprint', String(computed.timeframe || '') + '|' + String(metric || ''));
+      if (window.SMACATelemetry && typeof window.SMACATelemetry.markChartHostRendered === 'function') {
+        window.SMACATelemetry.markChartHostRendered(chartEl, (computed.timeframe || '') + '|' + metric);
+      }
       renderer = 'highcharts';
       setIaqRendererState('highcharts');
       console.debug('[SMACA][IAQ] renderer = highcharts');
@@ -1042,6 +1049,14 @@ function renderIaqMainTrendChart(computed) {
     });
   });
   chartEl.addEventListener('mouseleave', hideHover);
+
+  chartEl.setAttribute('data-smaca-chart-initialized', '1');
+  chartEl.removeAttribute('data-smaca-chart-dirty');
+  chartEl.removeAttribute('data-smaca-chart-paused');
+  chartEl.setAttribute('data-smaca-chart-fingerprint', String(computed.timeframe || '') + '|' + String(metric || ''));
+  if (window.SMACATelemetry && typeof window.SMACATelemetry.markChartHostRendered === 'function') {
+    window.SMACATelemetry.markChartHostRendered(chartEl, String(computed.timeframe || '') + '|' + String(metric || ''));
+  }
 }
 
 function renderIaqHourlyHeatStrip(computed) {
@@ -1177,6 +1192,16 @@ function renderIaqHourlyHeatStrip(computed) {
       sourceRangeEnd: sourceRangeEnd
     });
     if (rendered && rendered.ok) {
+      var heatHost = document.getElementById('iaq-co2-hourly-heatmap');
+      if (heatHost) {
+        heatHost.setAttribute('data-smaca-chart-initialized', '1');
+        heatHost.removeAttribute('data-smaca-chart-dirty');
+        heatHost.removeAttribute('data-smaca-chart-paused');
+        heatHost.setAttribute('data-smaca-chart-fingerprint', String(timeframe || '') + '|heatstrip');
+        if (window.SMACATelemetry && typeof window.SMACATelemetry.markChartHostRendered === 'function') {
+          window.SMACATelemetry.markChartHostRendered(heatHost, String(timeframe || '') + '|heatstrip');
+        }
+      }
       console.debug('[SMACA][IAQ] pattern update success', { timeframe: timeframe, recreated: !!rendered.recreated });
     }
   } else {
@@ -1197,6 +1222,13 @@ function renderIaqHourlyHeatStrip(computed) {
         return `<div title="${title}" style="height:16px;border-radius:4px;background:${color};"></div>`;
       }).join('');
       target.innerHTML = `<div style="display:grid;grid-template-columns:repeat(${categories.length}, minmax(8px,1fr));gap:4px;">${cells}</div>`;
+      target.setAttribute('data-smaca-chart-initialized', '1');
+      target.removeAttribute('data-smaca-chart-dirty');
+      target.removeAttribute('data-smaca-chart-paused');
+      target.setAttribute('data-smaca-chart-fingerprint', String(timeframe || '') + '|heatstrip-fallback');
+      if (window.SMACATelemetry && typeof window.SMACATelemetry.markChartHostRendered === 'function') {
+        window.SMACATelemetry.markChartHostRendered(target, String(timeframe || '') + '|heatstrip-fallback');
+      }
     }
   }
 

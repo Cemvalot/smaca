@@ -81,8 +81,8 @@ body {
   min-height: 168px;
 }
 
-.smaca-chart-host--paused,
-[data-smaca-chart-paused="1"] {
+/* Placeholder only before first render — mounted charts stay visible when paused */
+[data-smaca-chart-paused="1"]:not([data-smaca-chart-initialized="1"]) {
   min-height: 168px;
   background: var(--smaca-chart-well-bg, rgba(14, 26, 42, 0.55));
   border-radius: 8px;

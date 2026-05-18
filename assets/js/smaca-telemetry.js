@@ -89,10 +89,38 @@
   // same tile (e.g. on timeframe changes) would orphan chart instances.
   var CHART_INSTANCES = new WeakMap();
   var CHART_REBUILD = new WeakMap();
+  var CHART_FINGERPRINT = new WeakMap();
+
+  var CHART_HOST_SELECTOR = '[data-smaca-chart="1"], #iaq-co2-band-chart, #iaq-co2-hourly-heatmap';
 
   function chartAnim() {
     if (global.SMACA_CHART_REFRESH) return false;
     return { duration: 220 };
+  }
+
+  function hostHasChartVisual(host) {
+    if (!host) return false;
+    if (CHART_INSTANCES.get(host)) return true;
+    return !!host.querySelector('svg, canvas, .highcharts-container');
+  }
+
+  function markChartHostsDirty(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll(CHART_HOST_SELECTOR).forEach(function (host) {
+      host.setAttribute('data-smaca-chart-dirty', '1');
+    });
+  }
+
+  function markChartHostRendered(host, fingerprint) {
+    if (!host) return;
+    host.setAttribute('data-smaca-chart-initialized', '1');
+    host.removeAttribute('data-smaca-chart-dirty');
+    host.removeAttribute('data-smaca-chart-paused');
+    host.classList.remove('smaca-chart-host--paused');
+    if (fingerprint != null) {
+      host.setAttribute('data-smaca-chart-fingerprint', String(fingerprint));
+      CHART_FINGERPRINT.set(host, String(fingerprint));
+    }
   }
 
   function scrollDebugLog(message, detail) {
@@ -112,33 +140,47 @@
 
   function pauseChartHost(host) {
     if (!host) return;
-    var chart = CHART_INSTANCES.get(host);
-    if (chart && typeof chart.destroy === 'function') {
-      try { chart.destroy(); } catch (e) { /* swallow */ }
-    }
-    CHART_INSTANCES.delete(host);
+    if (host.getAttribute('data-smaca-chart-paused') === '1') return;
+    if (!hostHasChartVisual(host) && host.getAttribute('data-smaca-chart-initialized') !== '1') return;
     host.setAttribute('data-smaca-chart-paused', '1');
-    host.classList.add('smaca-chart-host--paused');
+    scrollDebugLog('chart-pause-keep-mounted');
+    var chart = CHART_INSTANCES.get(host);
+    if (chart && typeof chart.update === 'function') {
+      try {
+        chart.update({ chart: { animation: false } }, false);
+      } catch (e) { /* swallow */ }
+    }
   }
 
   function resumeChartHost(host) {
     if (!host || host.getAttribute('data-smaca-chart-paused') !== '1') return;
-    var rebuild = CHART_REBUILD.get(host);
-    if (typeof rebuild !== 'function') {
-      host.removeAttribute('data-smaca-chart-paused');
+    var initialized = host.getAttribute('data-smaca-chart-initialized') === '1';
+    var dirty = host.getAttribute('data-smaca-chart-dirty') === '1';
+    var hasVisual = hostHasChartVisual(host);
+
+    host.removeAttribute('data-smaca-chart-paused');
+
+    if (initialized && !dirty && hasVisual) {
+      var chart = CHART_INSTANCES.get(host);
+      if (chart && typeof chart.reflow === 'function') {
+        try { chart.reflow(); } catch (e) { /* swallow */ }
+      }
+      scrollDebugLog('chart-resume-keep-mounted', { reflow: !!chart });
       return;
     }
+
+    var rebuild = CHART_REBUILD.get(host);
+    if (typeof rebuild !== 'function') return;
+
     var run = function () {
-      scrollDebugLog('chart-redraw', { paused: true });
+      scrollDebugLog('chart-rebuild', { reason: dirty ? 'dirty' : 'init' });
       try {
-        var chart = rebuild();
-        var hasVisual = host.querySelector('svg, canvas, .highcharts-container');
-        if (chart || hasVisual) {
-          host.removeAttribute('data-smaca-chart-paused');
-          host.classList.remove('smaca-chart-host--paused');
-          scrollDebugLog('chart-redraw-done', { ok: true, fallback: !chart && !!hasVisual });
+        var built = rebuild();
+        if (built || hostHasChartVisual(host)) {
+          markChartHostRendered(host, CHART_FINGERPRINT.get(host));
+          scrollDebugLog('chart-rebuild-done', { ok: true });
         } else {
-          scrollDebugLog('chart-redraw-done', { ok: false });
+          scrollDebugLog('chart-rebuild-done', { ok: false });
         }
       } catch (e) { /* swallow */ }
     };
@@ -151,6 +193,7 @@
 
   function setChartRefreshMode(isRefresh) {
     global.SMACA_CHART_REFRESH = !!isRefresh;
+    if (isRefresh) markChartHostsDirty(document);
   }
 
   function attachChart(container, chart, rebuildFn) {
@@ -161,7 +204,7 @@
     }
     if (chart) {
       CHART_INSTANCES.set(container, chart);
-      container.removeAttribute('data-smaca-chart-paused');
+      markChartHostRendered(container, CHART_FINGERPRINT.get(container));
     } else {
       CHART_INSTANCES.delete(container);
     }
@@ -186,6 +229,9 @@
         try { prev.destroy(); } catch (e) { /* swallow */ }
       }
       CHART_INSTANCES.delete(host);
+      CHART_FINGERPRINT.delete(host);
+      host.removeAttribute('data-smaca-chart-initialized');
+      host.setAttribute('data-smaca-chart-dirty', '1');
     });
   }
 
@@ -1261,6 +1307,8 @@
     toneToColor: toneToColor,
     pauseChartHost: pauseChartHost,
     resumeChartHost: resumeChartHost,
-    setChartRefreshMode: setChartRefreshMode
+    setChartRefreshMode: setChartRefreshMode,
+    markChartHostsDirty: markChartHostsDirty,
+    markChartHostRendered: markChartHostRendered
   };
 })(typeof window !== 'undefined' ? window : this);
