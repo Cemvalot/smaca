@@ -4449,6 +4449,18 @@
   white-space: normal;
 }
 
+.smaca-tile .smaca-tile__subtitle {
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(203, 213, 225, 0.92);
+  margin: 2px 0 0;
+}
+
+.smaca-tile .smaca-tile__meta {
+  font-size: 10.5px;
+  color: rgba(148, 163, 184, 0.95);
+}
+
 .smaca-donut-legend {
   display: grid;
   gap: 6px;

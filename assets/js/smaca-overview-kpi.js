@@ -17,6 +17,27 @@
     return null;
   }
 
+  function overviewUvExposureLabel(kpi) {
+    var s = String((kpi && kpi.status) || '').toLowerCase();
+    if (s === 'critical' || s === 'extreme' || s === 'high' || s === 'poor' || s === 'warning' || s === 'crowded') {
+      return t('overview_uv_high_exposure', 'High exposure');
+    }
+    if (s === 'medium' || s === 'moderate' || s === 'notice' || s === 'caution') {
+      return t('overview_uv_moderate_exposure', 'Moderate exposure');
+    }
+    if (s === 'good' || s === 'normal' || s === 'low') {
+      return t('overview_uv_low_exposure', 'Low exposure');
+    }
+    return t('overview_uv_high_exposure', 'High exposure');
+  }
+
+  function decorateOverviewUvKpi(uv) {
+    if (!uv) return uv;
+    var copy = Object.assign({}, uv);
+    copy.interpretation_label = overviewUvExposureLabel(uv);
+    return copy;
+  }
+
   function withModuleSource(kpi, moduleKey, moduleLabel) {
     if (!kpi) return null;
     var copy = Object.assign({}, kpi);
@@ -34,16 +55,17 @@
         key: 'remaining_inside_daily',
         label: t('overview_daily_calculated_balance', 'Daily calculated balance'),
         value: Math.round(val * 10) / 10,
-        unit: 'people',
-        unit_label: '',
+        unit: '',
+        unit_label: t('overview_estimated_balance_unit', 'estimated balance'),
         status: val > 0 ? 'normal' : 'good',
         confidence: 'estimated',
-        description: t('occupancy_tooltip_remaining_inside', 'People remaining inside for the current calendar day; resets at midnight.'),
+        description: t('overview_balance_not_headcount', 'Calculated from entry/exit counters, not live headcount.'),
+        value_caption: t('overview_balance_not_headcount', 'Calculated from entry/exit counters, not live headcount.'),
         recommended_action: '',
         kpi_category: 'occupancy',
         overview_module_key: 'occupancy',
         overview_module_source: t('overview_module_occupancy', 'Occupancy / Movement'),
-        semantic_explainer: t('overview_movement_activity_tooltip', 'Entry/exit movement activity from passage counters. This is not live room occupancy.')
+        semantic_explainer: t('overview_balance_not_headcount', 'Calculated from entry/exit counters, not live headcount.')
       };
     }
 
@@ -67,12 +89,12 @@
       && String(thermal.status || '').toLowerCase() !== 'insufficient_data';
 
     if (uvOk) {
-      return withModuleSource(uv, 'environmental', t('overview_module_environmental', 'Environmental / UV'));
+      return withModuleSource(decorateOverviewUvKpi(uv), 'environmental', t('overview_module_environmental', 'Environmental / UV'));
     }
     if (thermalOk) {
       return withModuleSource(thermal, 'iaq', t('overview_module_iaq', 'Indoor Air Quality'));
     }
-    if (uv) return withModuleSource(uv, 'environmental', t('overview_module_environmental', 'Environmental / UV'));
+    if (uv) return withModuleSource(decorateOverviewUvKpi(uv), 'environmental', t('overview_module_environmental', 'Environmental / UV'));
     if (thermal) return withModuleSource(thermal, 'iaq', t('overview_module_iaq', 'Indoor Air Quality'));
     return null;
   }

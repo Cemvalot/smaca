@@ -347,19 +347,31 @@
         vu = { value: ventHead.value, unit: ventHead.unit };
       }
       const displayStatus = resolveEffectiveKpiStatus(kpi, boundModule);
+      const snapshotLayout = compact && showModuleSource;
       const interpLabel = formatInterpretationLabel(kpi);
-      const badgeText = interpLabel || formatStatus(displayStatus);
+      let badgeText = interpLabel || formatStatus(displayStatus);
+      if (snapshotLayout && kpi.key === 'uv_exposure_risk') {
+        badgeText = t('overview_uv_high_exposure', 'High exposure');
+        var uvStatus = String(displayStatus || '').toLowerCase();
+        if (uvStatus === 'good' || uvStatus === 'normal' || uvStatus === 'low') {
+          badgeText = t('overview_uv_low_exposure', 'Low exposure');
+        } else if (uvStatus === 'notice' || uvStatus === 'medium' || uvStatus === 'moderate') {
+          badgeText = t('overview_uv_moderate_exposure', 'Moderate exposure');
+        }
+      }
+      if (snapshotLayout && kpi.key === 'remaining_inside_daily') {
+        badgeText = t('estimated', 'estimated');
+      }
       const cardTitle = kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '';
-      const valueCaption = (!compact && kpi.value_caption)
+      const valueCaption = ((snapshotLayout || !compact) && kpi.value_caption)
         ? `<p class="overview-kpi-card__value-caption${kpi.key === 'ventilation_quality_index' ? ' overview-kpi-card__value-caption--vent-co2' : ''}">${escapeHtml(String(kpi.value_caption))}</p>`
         : '';
       const semanticRow = buildIaqSemanticRowHtml(kpi, boundModule);
-      const snapshotLayout = compact && showModuleSource;
       const moduleKeyAttr = kpi.overview_module_key ? ` data-overview-module="${escapeHtml(kpi.overview_module_key)}"` : '';
       const moduleSourceHtml = (snapshotLayout && kpi.overview_module_source)
         ? `<p class="overview-kpi-card__source">${escapeHtml(kpi.overview_module_source)}</p>`
         : '';
-      const hintText = (snapshotLayout && (kpi.semantic_explainer || kpi.description))
+      const hintText = (snapshotLayout && !kpi.value_caption && (kpi.semantic_explainer || kpi.description))
         ? String(kpi.semantic_explainer || kpi.description).trim()
         : '';
       const hintHtml = hintText

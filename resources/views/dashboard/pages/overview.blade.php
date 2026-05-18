@@ -312,8 +312,22 @@
           return;
         }
         var kpi = map[section];
-        ind.textContent = indicatorLabelForKpi(kpi);
-        ind.setAttribute('data-status', kpi && kpi.status ? String(kpi.status) : 'muted');
+        if (!kpi) {
+          ind.textContent = '';
+          ind.setAttribute('data-status', 'muted');
+          return;
+        }
+        var status = String(kpi.status || '').toLowerCase();
+        if (kpi.key === 'uv_exposure_risk') {
+          ind.textContent = tr('overview_uv_high_exposure', 'High exposure');
+        } else if (kpi.interpretation_label && status !== 'poor' && status !== 'good') {
+          ind.textContent = String(kpi.interpretation_label);
+        } else if (kpi.value !== null && kpi.value !== undefined) {
+          ind.textContent = indicatorLabelForKpi(kpi);
+        } else {
+          ind.textContent = tr('overview_status_normal', 'Normal');
+        }
+        ind.setAttribute('data-status', kpi.status ? String(kpi.status) : 'muted');
       });
     }
 

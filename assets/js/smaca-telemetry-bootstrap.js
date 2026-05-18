@@ -541,11 +541,30 @@
     return map[moduleKey] || moduleKey;
   }
 
-  function overviewWatchReason(moduleKey, kpi) {
+  function overviewKpiStatusLabel(kpi) {
+    if (!kpi) return overviewTr('overview_status_normal', 'Normal', 'Κανονική');
+    var ord = statusOrder(kpi.status);
+    var il = kpi.interpretation_label ? String(kpi.interpretation_label).trim() : '';
+    var ilLower = il.toLowerCase();
+    if (ord >= 2 && il && ilLower !== 'poor' && ilLower !== 'good' && ilLower !== 'normal' && ilLower !== 'low') {
+      return il;
+    }
+    if (ord >= 3) return overviewTr('overview_status_critical', 'Critical', 'Κρίσιμο');
+    if (ord >= 2) return overviewTr('overview_status_warning', 'Warning', 'Προειδοποίηση');
+    return overviewTr('overview_status_normal', 'Normal', 'Κανονική');
+  }
+
+  function overviewWatchReasonPlain(kpi) {
     if (!kpi) return '';
-    if (kpi.interpretation_label) return String(kpi.interpretation_label);
-    if (kpi.value_caption) return String(kpi.value_caption);
     var key = String(kpi.key || '');
+    var il = kpi.interpretation_label ? String(kpi.interpretation_label).trim() : '';
+    var ilLower = il.toLowerCase();
+    if (key === 'uv_exposure_risk' || ilLower === 'poor') {
+      return overviewTr('overview_watch_uv', 'High UV exposure', 'Υψηλή έκθεση UV');
+    }
+    if (il && ilLower !== 'poor' && ilLower !== 'good' && ilLower !== 'normal') {
+      return il;
+    }
     var reasons = {
       iaq_thermal_comfort: overviewTr('overview_watch_thermal_comfort', 'Thermal comfort outside optimal range', 'Θερμική άνεση εκτός βέλτιστου εύρους'),
       thermal_comfort_index: overviewTr('overview_watch_thermal_comfort', 'Thermal comfort outside optimal range', 'Θερμική άνεση εκτός βέλτιστου εύρους'),
@@ -561,6 +580,24 @@
     if (reasons[key]) return reasons[key];
     if (kpi.label) return String(kpi.label);
     return overviewTr('overview_watch_generic', 'Review module KPIs', 'Ελέγξτε τους δείκτες της ενότητας');
+  }
+
+  function overviewWatchTileCopy(kpi) {
+    var reasonPrefix = overviewTr('overview_reason_label', 'Reason', 'Λόγος');
+    var reason = overviewWatchReasonPlain(kpi);
+    var valueLine = '';
+    if (kpi && kpi.value_caption) {
+      valueLine = String(kpi.value_caption);
+    } else if (kpi && kpi.value !== null && kpi.value !== undefined) {
+      var unit = kpi.unit_label || kpi.unit || '';
+      if (unit && unit !== 'ratio' && String(unit).toLowerCase() !== 'people') {
+        valueLine = String(kpi.value) + (unit ? ' ' + unit : '');
+      }
+    }
+    return {
+      subtitle: reason ? (reasonPrefix + ': ' + reason) : '',
+      meta: valueLine
+    };
   }
 
   function appendDonutCountLegend(hostEl, legendItems) {
@@ -1072,17 +1109,18 @@
         var pct = matching.length ? (fresh / matching.length) * 100 : 0;
         var worstDriver = findWorstWatchKpi(kpiBundles[m.key], overviewWatchKeys[m.key]);
         var worstOrd = worstDriver ? statusOrder(worstDriver.status) : 0;
-        var reportingLabel = overviewTr('overview_reporting_sensors', 'Reporting sensors', 'Αισθητήρες που αναφέρουν');
-        var worstLabel = worstDriver && worstOrd >= 2
-          ? (worstDriver.interpretation_label || worstDriver.label || overviewTr('overview_status_warning', 'Warning', 'Προειδοποίηση'))
-          : overviewTr('overview_status_normal', 'Normal', 'Κανονική');
+        var reportingTag = overviewTr('overview_reporting_label', 'Reporting', 'Αναφορά');
+        var statusTag = overviewTr('overview_status_label', 'Status', 'Κατάσταση');
+        var statusLabel = overviewKpiStatusLabel(worstDriver);
+        var reportingLine = matching.length
+          ? (reportingTag + ': ' + fresh + '/' + matching.length)
+          : (reportingTag + ': —');
         return {
           label: m.label,
           value: pct,
           color: reportingBarColor(pct, matching.length),
-          statusColor: kpiStatusAccentColor(worstOrd),
           displayValue: matching.length ? (fresh + '/' + matching.length) : '—',
-          subLabel: reportingLabel + ' · ' + worstLabel + ' · ' + overviewModuleSourceLabel(m.key)
+          subLabel: reportingLine + ' · ' + statusTag + ': ' + statusLabel
         };
       });
       var matrixEl = grid.querySelector('[data-tile="module-health"]');
@@ -1091,8 +1129,8 @@
           label: locText('Module health', 'Υγεία μονάδων'),
           subtitle: overviewTr(
             'overview_module_health_subtitle',
-            'Bar fill = share reporting (last 30 min). Dot colour = worst KPI status for that module.',
-            'Η μπάρα = ποσοστό αναφοράς (30 λεπτά). Η κουκκίδα = χειρότερο KPI της ενότητας.'
+            'Green bar = sensors reporting in the last 30 min. Status line shows the worst KPI for that module.',
+            'Πράσινη μπάρα = αισθητήρες που αναφέρουν (30 λεπτά). Η γραμμή κατάστασης δείχνει το χειρότερο KPI.'
           ),
           unit: '%',
           meta: overviewTr('overview_module_health_meta', 'Per module · live sensor streams', 'Ανά ενότητα · ζωντανές ροές')
@@ -1169,13 +1207,14 @@
       });
       var topWatchLabel = overviewTr('overview_top_module_to_watch', 'Top module to watch', 'Ενότητα προς παρακολούθηση');
       if (worstModule && worstOrd >= 2 && worstDriver) {
+        var watchCopy = overviewWatchTileCopy(worstDriver);
         renderValueOrEmpty(grid, 'worst-module', {
           label: topWatchLabel,
           value: worstModule.label,
-          subtitle: overviewWatchReason(worstModule.key, worstDriver),
+          subtitle: watchCopy.subtitle,
           status: worstDriver.status || (worstOrd === 3 ? 'critical' : 'warning'),
           icon: ICONS.alert,
-          meta: overviewModuleSourceLabel(worstModule.key)
+          meta: watchCopy.meta || overviewModuleSourceLabel(worstModule.key)
         });
       } else {
         renderValueOrEmpty(grid, 'worst-module', {
