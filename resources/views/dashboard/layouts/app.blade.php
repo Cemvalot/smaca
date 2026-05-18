@@ -679,7 +679,23 @@
       timeframe_help_24h: "{{ __('messages.timeframe_help.h24') }}",
       timeframe_help_7d: "{{ __('messages.timeframe_help.d7') }}",
       timeframe_help_30d: "{{ __('messages.timeframe_help.d30') }}",
-      timeframe_help_export_only: "{{ __('messages.timeframe_help.export_only') }}"
+      timeframe_help_export_only: "{{ __('messages.timeframe_help.export_only') }}",
+      overview_movement_activity_tooltip: "{{ __('messages.dashboard_i18n.overview_movement_activity_tooltip') }}",
+      overview_daily_calculated_balance: "{{ __('messages.dashboard_i18n.overview_daily_calculated_balance') }}",
+      overview_module_iaq: "{{ __('messages.dashboard_i18n.overview_module_iaq') }}",
+      overview_module_energy: "{{ __('messages.dashboard_i18n.overview_module_energy') }}",
+      overview_module_occupancy: "{{ __('messages.dashboard_i18n.overview_module_occupancy') }}",
+      overview_module_environmental: "{{ __('messages.dashboard_i18n.overview_module_environmental') }}",
+      overview_top_module_to_watch: "{{ __('messages.dashboard_i18n.overview_top_module_to_watch') }}",
+      overview_chart_movement_balance: "{{ __('messages.dashboard_i18n.overview_chart_movement_balance') }}",
+      overview_iaq_score_subtitle: "{{ __('messages.dashboard_i18n.overview_iaq_score_subtitle') }}",
+      overview_nav_iaq_desc: "{{ __('messages.dashboard_i18n.overview_nav_iaq_desc') }}",
+      overview_nav_energy_desc: "{{ __('messages.dashboard_i18n.overview_nav_energy_desc') }}",
+      overview_nav_occupancy_desc: "{{ __('messages.dashboard_i18n.overview_nav_occupancy_desc') }}",
+      overview_nav_environmental_desc: "{{ __('messages.dashboard_i18n.overview_nav_environmental_desc') }}",
+      overview_reporting_sensors: "{{ __('messages.dashboard_i18n.overview_reporting_sensors') }}",
+      awaiting_live_iaq_data: "{{ __('messages.dashboard_i18n.awaiting_live_iaq_data') }}",
+      iaq_index: "{{ __('messages.dashboard_i18n.iaq_index') }}"
     };
     window.SMACA_IAQ_SEMANTICS = @json($smacaIaqSemanticsForJs);
   </script>
@@ -696,6 +712,9 @@
   <script defer src="{{ asset('assets/js/smaca-spatial.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-spatial.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-role.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-role.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-kpi-renderer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-kpi-renderer.js') }}"></script>
+  @if(($smacaPage ?? 'overview') === 'overview')
+  <script defer src="{{ asset('assets/js/smaca-overview-kpi.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-overview-kpi.js') }}"></script>
+  @endif
   <script defer src="{{ asset('assets/js/smaca-iaq-sensor-breakdown.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-iaq-sensor-breakdown.js') }}"></script>
   @if(($smacaPage ?? 'overview') === 'energy')
   <script defer src="{{ asset('assets/js/smaca-energy-meter-breakdown.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-energy-meter-breakdown.js') }}"></script>

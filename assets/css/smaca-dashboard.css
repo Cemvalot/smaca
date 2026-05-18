@@ -3249,6 +3249,14 @@
 }
 
 /* ---- Description (1-line explanation) ------------------------------ */
+.overview-kpi-card__source {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
 .overview-kpi-card .overview-live-note,
 .overview-kpi-card__desc {
   text-align: center;

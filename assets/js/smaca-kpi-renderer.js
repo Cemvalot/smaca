@@ -334,6 +334,7 @@
     }
 
     const showConfidence = shouldShowConfidenceFlag();
+    const showModuleSource = Boolean(renderOptions.showModuleSource);
 
     var cards = list.map(function (kpi) {
       const confidence = formatConfidence(kpi.confidence);
@@ -353,6 +354,9 @@
         ? `<p class="overview-kpi-card__value-caption${kpi.key === 'ventilation_quality_index' ? ' overview-kpi-card__value-caption--vent-co2' : ''}">${escapeHtml(String(kpi.value_caption))}</p>`
         : '';
       const semanticRow = buildIaqSemanticRowHtml(kpi, boundModule);
+      const moduleSourceHtml = (compact && showModuleSource && kpi.overview_module_source)
+        ? `<p class="overview-kpi-card__source">${escapeHtml(kpi.overview_module_source)}</p>`
+        : '';
       const iaqCardClass = (boundModule === 'iaq' && !compact) ? ' overview-kpi-card--iaq' : '';
       const valueHtml = vu.unit
         ? `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span><span class="stat-card__value-unit">${escapeHtml(vu.unit)}</span>`
@@ -365,6 +369,7 @@
           ${iconHtml}
           <div class="stat-card__content">
             <div class="stat-card__label">${resolveLabel(kpi)}</div>
+            ${moduleSourceHtml}
             <div class="stat-card__value">${valueHtml}</div>
             ${valueCaption}
             ${semanticRow}

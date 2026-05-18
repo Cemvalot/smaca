@@ -496,9 +496,19 @@
   function statusOrder(status) {
     var s = String(status || '').toLowerCase();
     if (s === 'critical' || s === 'crowded' || s === 'extreme' || s === 'poor') return 3;
-    if (s === 'warning' || s === 'caution') return 2;
+    if (s === 'warning' || s === 'caution' || s === 'needs_calibration') return 2;
     if (s === 'good' || s === 'normal' || s === 'low' || s === 'healthy' || s === 'ok') return 1;
     return 0;
+  }
+
+  function isPeopleCounterSensor(s) {
+    if (!s) return false;
+    var dt = String(s.device_type || '').toLowerCase();
+    if (dt === 'occupancy' || dt === 'people_counter' || dt === 'peoplecounter') return true;
+    var lat = s.latest || {};
+    return lat.people_total_in !== null && lat.people_total_in !== undefined
+      || lat.people_in !== null && lat.people_in !== undefined
+      || lat.people_out !== null && lat.people_out !== undefined;
   }
 
   // -----------------------------------------------------------------------
@@ -959,7 +969,7 @@
           if (m.sensorTypes.indexOf((s.device_type || '').toLowerCase()) !== -1) return true;
           // Fallback: if device_type is missing, infer from latest fields
           if (m.key === 'iaq' && s.latest && (s.latest.co2_ppm !== null && s.latest.co2_ppm !== undefined)) return true;
-          if (m.key === 'occupancy' && s.latest && (s.latest.people_total_in !== null && s.latest.people_total_in !== undefined)) return true;
+          if (m.key === 'occupancy' && isPeopleCounterSensor(s)) return true;
           if (m.key === 'energy' && s.latest && (s.latest.energy_kwh !== null && s.latest.energy_kwh !== undefined)) return true;
           if (m.key === 'environmental' && s.latest && (s.latest.uv_index !== null && s.latest.uv_index !== undefined)) return true;
           return false;
@@ -991,8 +1001,8 @@
         var hostMatrix = tile().renderChartTile(matrixEl, {
           label: locText('Module health', 'Υγεία μονάδων'),
           subtitle: locText(
-            'Share of sensors reporting in the last 30 min, coloured by worst KPI status.',
-            'Ποσοστό αισθητήρων που αναφέρθηκαν τα τελευταία 30 λεπτά. Χρώμα: χειρότερο KPI.'
+            'Reporting sensors in the last 30 min (count/total), coloured by worst KPI status.',
+            'Αισθητήρες που αναφέρουν (αριθμός/σύνολο) τα τελευταία 30 λεπτά. Χρώμα: χειρότερο KPI.'
           ),
           unit: '%',
           meta: locText('Updated continuously · all modules', 'Ανανεώνεται συνεχώς · όλες οι μονάδες')
@@ -1046,28 +1056,54 @@
         }
       }
 
-      // --- 3) Worst module right now ---
-      var worstModule = null, worstOrd = 0, worstDriver = null;
-      moduleDefs.forEach(function (m) {
-        var bundle = kpiBundles[m.key];
-        if (bundle && Array.isArray(bundle.kpis)) {
+      // --- 3) Top module to watch (worst active KPI among module watchlist) ---
+      var overviewWatchKeys = {
+        iaq: ['iaq_health_index', 'iaq_thermal_comfort', 'thermal_comfort_index', 'environmental_safety_index', 'ventilation_quality_index'],
+        energy: ['normalized_energy_intensity', 'base_load_index'],
+        occupancy: ['movement_activity_index', 'crowd_density_level'],
+        environmental: ['uv_exposure_risk', 'environmental_safety_index']
+      };
+      function findWorstWatchKpi(bundle, keys) {
+        if (!bundle || !Array.isArray(bundle.kpis) || !keys || !keys.length) return null;
+        var best = null;
+        var bestOrd = 0;
+        keys.forEach(function (key) {
           bundle.kpis.forEach(function (k) {
+            if (!k || k.key !== key) return;
             var ord = statusOrder(k.status);
-            if (ord > worstOrd) { worstOrd = ord; worstModule = m; worstDriver = k; }
+            if (ord > bestOrd) {
+              bestOrd = ord;
+              best = k;
+            }
           });
+        });
+        return best;
+      }
+      var worstModule = null;
+      var worstOrd = 0;
+      var worstDriver = null;
+      moduleDefs.forEach(function (m) {
+        var driver = findWorstWatchKpi(kpiBundles[m.key], overviewWatchKeys[m.key]);
+        if (!driver) return;
+        var ord = statusOrder(driver.status);
+        if (ord > worstOrd) {
+          worstOrd = ord;
+          worstModule = m;
+          worstDriver = driver;
         }
       });
-      if (worstModule) {
+      var topWatchLabel = locText('Top module to watch', 'Ενότητα προς παρακολούθηση');
+      if (worstModule && worstOrd >= 2 && worstDriver) {
         renderValueOrEmpty(grid, 'worst-module', {
-          label: locText('Top module to watch', 'Μονάδα προς παρακολούθηση'),
+          label: topWatchLabel,
           value: worstModule.label,
-          status: worstDriver ? worstDriver.status : (worstOrd === 3 ? 'critical' : 'warning'),
+          status: worstDriver.status || (worstOrd === 3 ? 'critical' : 'warning'),
           icon: ICONS.alert,
-          meta: worstDriver ? worstDriver.label : null
+          meta: worstDriver.label || null
         });
       } else {
         renderValueOrEmpty(grid, 'worst-module', {
-          label: locText('Top module to watch', 'Μονάδα προς παρακολούθηση'),
+          label: topWatchLabel,
           value: locText('All operational', 'Όλα σε λειτουργία'),
           status: 'good',
           icon: ICONS.target

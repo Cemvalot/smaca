@@ -5154,25 +5154,30 @@ function renderOverviewTrendChart(filteredData, timeframe) {
     return Number.isFinite(value) ? value : null;
   });
 
-  const co2Series = carryForwardSeries(co2SeriesRaw);
-  const occupancySeries = carryForwardSeries(occupancySeriesRaw);
-  const connectivitySeries = carryForwardSeries(connectivitySeriesRaw);
-  const uvSeries = carryForwardSeries(uvSeriesRaw);
+  const co2Series = truncateSeriesAtLastReal(co2SeriesRaw);
+  const occupancySeries = truncateSeriesAtLastReal(occupancySeriesRaw);
+  const connectivitySeries = truncateSeriesAtLastReal(connectivitySeriesRaw);
+  const uvSeries = truncateSeriesAtLastReal(uvSeriesRaw);
 
   if (!co2Series.some(Number.isFinite) && !occupancySeries.some(Number.isFinite) && !connectivitySeries.some(Number.isFinite) && !uvSeries.some(Number.isFinite)) {
     renderEmptyState('overview-campus-trend-chart', 'No trend data available for the selected range');
     return;
   }
 
+  const chartSeriesCandidates = [
+    { key: 'co2', label: 'CO₂', unit: 'ppm', color: '#3b82f6', values: co2Series },
+    { key: 'occupancy', label: smacaT('overview_chart_movement_balance', 'Movement balance'), unit: '', color: '#22c55e', values: occupancySeries },
+    { key: 'connectivity', label: smacaT('connectivity', 'Connectivity'), unit: '%', color: '#06b6d4', values: connectivitySeries },
+    { key: 'uv', label: 'UV', unit: '', color: '#f59e0b', values: uvSeries }
+  ];
+  const chartSeries = chartSeriesCandidates.filter(function (series) {
+    return Array.isArray(series.values) && series.values.some(Number.isFinite);
+  });
+
   drawOverviewSvgLineChart(chartEl, {
     timeframe: timeframe,
     buckets: buckets,
-    series: [
-      { key: 'co2', label: 'CO₂', unit: 'ppm', color: '#3b82f6', values: co2Series },
-      { key: 'occupancy', label: 'Occupancy', unit: ' people', color: '#22c55e', values: occupancySeries },
-      { key: 'connectivity', label: smacaT('connectivity','Connectivity'), unit: '%', color: '#06b6d4', values: connectivitySeries },
-      { key: 'uv', label: 'UV', unit: '', color: '#f59e0b', values: uvSeries }
-    ]
+    series: chartSeries
   });
 
   // Surface a sparse-data note if most buckets are empty across all four
@@ -5291,6 +5296,19 @@ function carryForwardSeries(values) {
     }
   });
   return result;
+}
+
+/** Stop line at last bucket with real data; do not fill future buckets. */
+function truncateSeriesAtLastReal(values) {
+  const safe = Array.isArray(values) ? values.slice() : [];
+  let lastIdx = -1;
+  safe.forEach(function (value, idx) {
+    if (Number.isFinite(value)) lastIdx = idx;
+  });
+  if (lastIdx < 0) return safe.map(function () { return null; });
+  return safe.map(function (value, idx) {
+    return idx <= lastIdx ? value : null;
+  });
 }
 
 function normalizeSeriesForOverviewChart(values, strategy) {
