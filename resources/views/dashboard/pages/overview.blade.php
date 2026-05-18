@@ -5,8 +5,8 @@
   $smacaRole = session('role', 'user');
   $smacaIsAdmin = $smacaRole === 'admin';
 @endphp
-<div class="dashboard-section" id="overview" data-section="overview">
-  <section class="card" style="margin-bottom: var(--space-5);">
+<div class="dashboard-section overview-page" id="overview" data-section="overview">
+  <section class="card overview-snapshot-section" style="margin-bottom: var(--space-5);">
     <div class="card__header">
       <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_overview') }}</h3>
     </div>
@@ -14,8 +14,11 @@
       <p class="overview-live-note" style="margin-bottom: var(--space-3);">{{ __('messages.dashboard_i18n.kpi_intro_overview') }}</p>
       <div id="overview-spatial-zones" class="overview-spatial-zones" data-smaca-spatial-zones aria-live="polite" style="margin-bottom: var(--space-3);"></div>
       <div id="overview-scope-summary" class="overview-spatial-summary" style="margin-bottom: var(--space-3); font-size: 12px; color: var(--muted);"></div>
-      <div id="overview-kpi-summary-cards" class="grid grid--metrics grid--metrics-2">
-        <article class="stat-card overview-kpi-card"><div class="stat-card__content"><div class="stat-card__label">KPI</div><div class="stat-card__value">--</div></div></article>
+      <div id="overview-kpi-summary-cards" class="grid grid--metrics grid--metrics-2 overview-kpi-grid--loading" aria-busy="true">
+        <article class="stat-card overview-kpi-card overview-kpi-card--skeleton" aria-hidden="true"><div class="stat-card__content"><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--label"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--value"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--meta"></div></div></article>
+        <article class="stat-card overview-kpi-card overview-kpi-card--skeleton" aria-hidden="true"><div class="stat-card__content"><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--label"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--value"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--meta"></div></div></article>
+        <article class="stat-card overview-kpi-card overview-kpi-card--skeleton" aria-hidden="true"><div class="stat-card__content"><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--label"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--value"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--meta"></div></div></article>
+        <article class="stat-card overview-kpi-card overview-kpi-card--skeleton" aria-hidden="true"><div class="stat-card__content"><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--label"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--value"></div><div class="overview-kpi-skeleton-line overview-kpi-skeleton-line--meta"></div></div></article>
       </div>
     </div>
   </section>
@@ -38,7 +41,7 @@
     <span id="overview-connectivity-trend"></span>
   </div>
 
-  <section class="card smaca-telemetry-card">
+  <section class="card smaca-telemetry-card overview-live-panel">
     <div class="card__header">
       <h3 class="card__title">{{ __('messages.dashboard_i18n.campus_live_status') }}</h3>
       <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_realtime_snapshot') }}</p>
@@ -93,7 +96,8 @@
         <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_iaq_score_subtitle') }}</p>
       </div>
       <div class="card__body overview-air-score-body">
-        <div class="overview-gauge">
+        <div class="overview-gauge" id="overview-iaq-gauge" data-iaq-gauge-status="idle">
+          <div class="overview-gauge__halo" aria-hidden="true"></div>
           <div class="overview-gauge__ring">
             <svg class="overview-gauge__svg" viewBox="0 0 132 132" aria-hidden="true">
               <circle class="overview-gauge__track" cx="66" cy="66" r="52"></circle>
@@ -331,8 +335,39 @@
       });
     }
 
+    function clearOverviewKpiLoading() {
+      var grid = document.getElementById('overview-kpi-summary-cards');
+      if (!grid) return;
+      grid.classList.remove('overview-kpi-grid--loading');
+      grid.removeAttribute('aria-busy');
+    }
+
+    function syncOverviewIaqGaugeVisual(bundles) {
+      var gauge = document.getElementById('overview-iaq-gauge');
+      if (!gauge) return;
+      var iaqBundle = bundles && bundles.iaq;
+      var kpi = iaqBundle && Array.isArray(iaqBundle.kpis)
+        ? iaqBundle.kpis.find(function (k) { return k && k.key === 'iaq_health_index'; })
+        : null;
+      var visual = 'idle';
+      if (kpi && kpi.value !== null && kpi.value !== undefined) {
+        var status = String(kpi.status || 'normal').toLowerCase();
+        if (status === 'critical' || status === 'poor' || status === 'high') {
+          visual = 'critical';
+        } else if (status === 'warning' || status === 'needs_calibration' || status === 'crowded') {
+          visual = 'warning';
+        } else {
+          visual = 'normal';
+        }
+      }
+      gauge.setAttribute('data-iaq-gauge-status', visual);
+    }
+
     window.addEventListener('smaca:overview-kpis-ready', function (ev) {
-      hydrateNavIndicators((ev && ev.detail) || window.__smacaOverviewKpiBundles || {});
+      var bundles = (ev && ev.detail) || window.__smacaOverviewKpiBundles || {};
+      clearOverviewKpiLoading();
+      syncOverviewIaqGaugeVisual(bundles);
+      hydrateNavIndicators(bundles);
     });
   });
 </script>
