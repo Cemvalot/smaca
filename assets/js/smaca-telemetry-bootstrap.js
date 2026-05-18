@@ -100,6 +100,9 @@
   var DEBUG_REFRESH_IDLE_MS = 1200;
   var DEBUG_LAST_REFRESH = null;
   var REFRESH_IN_FLIGHT = null;
+  var REFRESH_ACTIVE_DEBOUNCE_MS = 220;
+  var refreshActiveDebounceTimer = null;
+  var refreshActiveDebounceTick = 0;
   var AUDIT_ALL_STORAGE_KEY = 'SMACA_TF_AUDIT_ALL';
   var PILLAR_SECTIONS = ['overview', 'iaq', 'occupancy', 'energy', 'environmental', 'connectivity'];
 
@@ -3117,7 +3120,7 @@
   // -----------------------------------------------------------------------
   // Routing
   // -----------------------------------------------------------------------
-  function refreshActive() {
+  function refreshActiveImmediate() {
     if (REFRESH_IN_FLIGHT) return REFRESH_IN_FLIGHT;
     var section = activeSection();
     var seq = ++DEBUG_REFRESH_SEQ;
@@ -3163,6 +3166,24 @@
     return REFRESH_IN_FLIGHT;
   }
 
+  function refreshActive() {
+    refreshActiveDebounceTick += 1;
+    var tick = refreshActiveDebounceTick;
+    return new Promise(function (resolve) {
+      if (refreshActiveDebounceTimer) clearTimeout(refreshActiveDebounceTimer);
+      refreshActiveDebounceTimer = setTimeout(function () {
+        refreshActiveDebounceTimer = null;
+        if (tick !== refreshActiveDebounceTick) {
+          resolve({ skipped: 'superseded' });
+          return;
+        }
+        refreshActiveImmediate().then(resolve, function () {
+          resolve({ skipped: 'error' });
+        });
+      }, REFRESH_ACTIVE_DEBOUNCE_MS);
+    });
+  }
+
   function boot() {
     if (!api() || !tile()) return;
     if (debugTfEnabled()) {
@@ -3175,10 +3196,9 @@
     } else {
       refreshActive();
     }
+    /* Spatial dispatches both scope events; listen once to avoid duplicate chart rebuilds. */
     document.addEventListener('smaca:scope-changed', refreshActive);
-    document.addEventListener('smaca:scope-change', refreshActive);
     document.addEventListener('smaca:timeframe-changed', refreshActive);
-    document.addEventListener('smaca:state-updated', refreshActive);
   }
 
   if (document.readyState === 'loading') {

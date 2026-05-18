@@ -967,6 +967,34 @@
     );
   }
 
+  function iaqBreakdownFingerprint(iaqList, semTvoc, semLight) {
+    var scope = activeLocation() || '';
+    var parts = [scope, semTvoc, semLight];
+    for (var i = 0; i < iaqList.length; i++) {
+      var s = iaqList[i];
+      var latest = s && s.latest ? s.latest : {};
+      var ts = latest.measured_at || latest.snapshot_at || latest.updated_at || '';
+      parts.push(String(s.id) + ':' + String(ts));
+    }
+    return parts.join('|');
+  }
+
+  function renderIaqFloorCards(floorEl, container) {
+    if (!floorEl || !container || floorEl.getAttribute('data-floor-cards-ready') === '1') return;
+    var floorCode = floorEl.getAttribute('data-floor-code');
+    var groups = container.__smacaIaqGroups;
+    if (!groups || !groups[floorCode]) return;
+    var list = groups[floorCode];
+    var cards = [];
+    for (var i = 0; i < list.length; i++) {
+      var vm = container.__smacaIaqVmById && container.__smacaIaqVmById[String(list[i].id)];
+      if (vm) cards.push(buildSensorCardSummary(vm));
+    }
+    var listEl = floorEl.querySelector('.iaq-sensor-list');
+    if (listEl) listEl.innerHTML = cards.join('');
+    floorEl.setAttribute('data-floor-cards-ready', '1');
+  }
+
   function bindGroupInteractions(container) {
     if (!container || container.__smacaIaqGroupsBound) return;
     container.__smacaIaqGroupsBound = true;
@@ -977,6 +1005,7 @@
       var body = floor.querySelector('.iaq-sensor-floor__body');
       if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (body) body.hidden = !open;
+      if (open) renderIaqFloorCards(floor, container);
       var floorCode = floor.getAttribute('data-floor-code');
       if (!floorCode) return;
       if (!container.__smacaFloorState) container.__smacaFloorState = {};
@@ -1081,6 +1110,15 @@
       container.classList.remove('iaq-sensor-groups--skeleton');
       container.removeAttribute('aria-busy');
 
+      var nextFingerprint = iaqBreakdownFingerprint(iaqList, semTvoc, semLight);
+      if (
+        container.__smacaIaqFingerprint === nextFingerprint &&
+        container.querySelector('.iaq-sensor-floor')
+      ) {
+        return;
+      }
+      container.__smacaIaqFingerprint = nextFingerprint;
+
       if (!iaqList.length) {
         container.innerHTML = '<p class="overview-live-note">' + escapeHtml(t('iaq_sensor_breakdown_no_sensors', 'No IAQ sensors in this scope')) + '</p>';
         container.__smacaIaqVmById = {};
@@ -1102,6 +1140,7 @@
         if (!groups[code]) groups[code] = [];
         groups[code].push(s);
       }
+      container.__smacaIaqGroups = groups;
 
       var floorCodes = Object.keys(groups).sort(function (a, b) {
         var w = floorSortWeight(a) - floorSortWeight(b);
@@ -1133,12 +1172,15 @@
           isOpen = false;
         }
 
-        var cards = vms.map(function (vm) {
-          return buildSensorCardSummary(vm);
-        }).join('');
+        var cards = isOpen
+          ? vms.map(function (vm) {
+            return buildSensorCardSummary(vm);
+          }).join('')
+          : '';
 
         return (
-          '<section class="iaq-sensor-floor' + (isOpen ? ' is-open' : '') + '" data-floor-code="' + escapeHtml(floorCode) + '">' +
+          '<section class="iaq-sensor-floor' + (isOpen ? ' is-open' : '') + '" data-floor-code="' + escapeHtml(floorCode) + '"' +
+          (isOpen ? ' data-floor-cards-ready="1"' : '') + '>' +
           '<button type="button" class="iaq-sensor-floor__trigger" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
           '<span class="iaq-sensor-floor__left">' +
           '<span class="iaq-sensor-floor__icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + floorIconSvg(floorCode) + '</svg></span>' +
@@ -1164,6 +1206,16 @@
 
       container.innerHTML = sections.join('');
       bindGroupInteractions(container);
+      floorCodes.forEach(function (floorCode) {
+        if (!container.__smacaFloorState || !container.__smacaFloorState[floorCode]) return;
+        var floors = container.querySelectorAll('.iaq-sensor-floor');
+        for (var fi = 0; fi < floors.length; fi++) {
+          if (floors[fi].getAttribute('data-floor-code') === floorCode) {
+            renderIaqFloorCards(floors[fi], container);
+            break;
+          }
+        }
+      });
     }).catch(function () {
       if (fetchId !== iaqSensorsFetchId) return;
       container.classList.remove('iaq-sensor-groups--skeleton');

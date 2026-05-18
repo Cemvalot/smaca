@@ -821,7 +821,6 @@
 
       container.innerHTML = sections.join('');
       bindInteractions(container);
-      prefetchAllFloorTimeseries(container);
 
       floorCodes.forEach(function (floorCode) {
         if (!container.__smacaFloorState || !container.__smacaFloorState[floorCode]) return;

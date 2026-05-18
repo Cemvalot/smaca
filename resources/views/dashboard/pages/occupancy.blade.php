@@ -159,7 +159,8 @@
     }
 
     loadOccupancyKpis();
-    window.addEventListener('smaca:scope-change', loadOccupancyKpis);
+    /* Scope: spatial dispatches both events; listen once — breakdown render is fingerprint-guarded in JS. */
+    window.addEventListener('smaca:scope-changed', loadOccupancyKpis);
     window.addEventListener('smaca:timeframe-changed', loadOccupancyKpis);
   });
 </script>

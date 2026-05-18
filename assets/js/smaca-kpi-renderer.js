@@ -580,6 +580,38 @@
     );
   }
 
+  function occupancyBreakdownFingerprint(sensors, windowNote) {
+    var scope = '';
+    try {
+      scope = (global.SMACA_LOCATION || '').toString().trim();
+    } catch (e) { /* noop */ }
+    var parts = [scope, windowNote || ''];
+    sensors.forEach(function (sensor) {
+      if (!sensor) return;
+      parts.push(
+        String(sensor.id || sensor.sensor_id || '') + ':' +
+        String(sensor.people_in ?? '') + ':' +
+        String(sensor.people_out ?? '') + ':' +
+        String(sensor.remaining_inside ?? '')
+      );
+    });
+    return parts.join('|');
+  }
+
+  function renderOccupancyFloorCards(floorEl, container) {
+    if (!floorEl || !container || floorEl.getAttribute('data-floor-cards-ready') === '1') return;
+    var floorCode = floorEl.getAttribute('data-floor-code');
+    var groups = container.__smacaOccupancyGroups;
+    if (!groups || !groups[floorCode]) return;
+    var windowNote = container.__smacaOccupancyWindowNote || '';
+    var cards = groups[floorCode].map(function (sensor) {
+      return buildOccupancySensorCard(sensor, windowNote);
+    }).join('');
+    var listEl = floorEl.querySelector('.occupancy-sensor-list');
+    if (listEl) listEl.innerHTML = cards;
+    floorEl.setAttribute('data-floor-cards-ready', '1');
+  }
+
   function bindOccupancySensorGroupInteractions(container) {
     if (!container || container.__smacaOccupancyGroupsBound) return;
     container.__smacaOccupancyGroupsBound = true;
@@ -590,6 +622,7 @@
       var body = floor.querySelector('.occupancy-sensor-floor__body');
       if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (body) body.hidden = !open;
+      if (open) renderOccupancyFloorCards(floor, container);
       var floorCode = floor.getAttribute('data-floor-code');
       if (!floorCode) return;
       if (!container.__smacaFloorState) container.__smacaFloorState = {};
@@ -686,6 +719,22 @@
     }
 
     container.hidden = false;
+
+    var sensorWindowNote = '';
+    if (metrics.calculation_window_start && metrics.calculation_window_end) {
+      sensorWindowNote = metrics.calculation_window_start + ' – ' + metrics.calculation_window_end;
+    }
+
+    var nextFingerprint = occupancyBreakdownFingerprint(sensors, sensorWindowNote);
+    if (
+      container.__smacaOccupancyFingerprint === nextFingerprint &&
+      container.querySelector('.occupancy-sensor-floor')
+    ) {
+      return;
+    }
+    container.__smacaOccupancyFingerprint = nextFingerprint;
+    container.__smacaOccupancyWindowNote = sensorWindowNote;
+
     var groups = {};
     sensors.forEach(function (sensor) {
       if (!sensor) return;
@@ -693,6 +742,7 @@
       if (!groups[floor]) groups[floor] = [];
       groups[floor].push(sensor);
     });
+    container.__smacaOccupancyGroups = groups;
 
     var floorCodes = Object.keys(groups).sort(function (a, b) {
       var weightDiff = floorSortWeight(a) - floorSortWeight(b);
@@ -700,20 +750,12 @@
       return String(a).localeCompare(String(b));
     });
 
-    var sensorWindowNote = '';
-    if (metrics.calculation_window_start && metrics.calculation_window_end) {
-      sensorWindowNote = metrics.calculation_window_start + ' – ' + metrics.calculation_window_end;
-    }
-
     var sections = floorCodes.map(function (floorCode) {
       var floorSensors = groups[floorCode];
       var entries = formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'people_in'));
       var exits = formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'people_out'));
       var balance = formatOccupancyMetricValue(sumOccupancySensors(floorSensors, 'remaining_inside'));
       var sensorsCount = String(floorSensors.length);
-      var cards = floorSensors.map(function (sensor) {
-        return buildOccupancySensorCard(sensor, sensorWindowNote);
-      }).join('');
       var floorName = floorLabelForOccupancy(floorCode);
       var floorCodePill = floorCodeLabel(floorCode);
       var isOpen = false;
@@ -722,9 +764,15 @@
       } else {
         isOpen = floorCode === 'F0';
       }
+      var cards = isOpen
+        ? floorSensors.map(function (sensor) {
+          return buildOccupancySensorCard(sensor, sensorWindowNote);
+        }).join('')
+        : '';
 
       return (
-        '<section class="occupancy-sensor-floor' + (isOpen ? ' is-open' : '') + '" data-floor-code="' + escapeHtml(floorCode) + '">' +
+        '<section class="occupancy-sensor-floor' + (isOpen ? ' is-open' : '') + '" data-floor-code="' + escapeHtml(floorCode) + '"' +
+        (isOpen ? ' data-floor-cards-ready="1"' : '') + '>' +
         '<button type="button" class="occupancy-sensor-floor__trigger" aria-expanded="' + (isOpen ? 'true' : 'false') + '">' +
         '<span class="occupancy-sensor-floor__left">' +
         '<span class="occupancy-sensor-floor__icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + floorIconSvg(floorCode) + '</svg></span>' +
@@ -750,6 +798,16 @@
 
     container.innerHTML = '<h4 class="occupancy-sensor-groups__title">' + escapeHtml(t('occupancy_sensor_breakdown_title', 'Sensor breakdown by floor')) + '</h4>' + sections.join('');
     bindOccupancySensorGroupInteractions(container);
+    floorCodes.forEach(function (floorCode) {
+      if (!container.__smacaFloorState || !container.__smacaFloorState[floorCode]) return;
+      var floors = container.querySelectorAll('.occupancy-sensor-floor');
+      for (var fi = 0; fi < floors.length; fi++) {
+        if (floors[fi].getAttribute('data-floor-code') === floorCode) {
+          renderOccupancyFloorCards(floors[fi], container);
+          break;
+        }
+      }
+    });
   }
 
   function buildStatusCompanionCard(kpi) {
