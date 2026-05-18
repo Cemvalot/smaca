@@ -712,6 +712,8 @@
       overview_reporting_label: "{{ __('messages.dashboard_i18n.overview_reporting_label') }}",
       overview_status_label: "{{ __('messages.dashboard_i18n.overview_status_label') }}",
       overview_status_critical: "{{ __('messages.dashboard_i18n.overview_status_critical') }}",
+      overview_kpi_status_label: "{{ __('messages.dashboard_i18n.overview_kpi_status_label') }}",
+      overview_status_attention_needed: "{{ __('messages.dashboard_i18n.overview_status_attention_needed') }}",
       overview_reason_label: "{{ __('messages.dashboard_i18n.overview_reason_label') }}",
       overview_estimated_balance_unit: "{{ __('messages.dashboard_i18n.overview_estimated_balance_unit') }}",
       overview_balance_not_headcount: "{{ __('messages.dashboard_i18n.overview_balance_not_headcount') }}",

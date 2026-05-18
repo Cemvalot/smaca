@@ -170,6 +170,8 @@ return [
         'overview_reporting_label' => 'Reporting',
         'overview_status_label' => 'Status',
         'overview_status_critical' => 'Critical',
+        'overview_kpi_status_label' => 'KPI status',
+        'overview_status_attention_needed' => 'Attention needed',
         'overview_reason_label' => 'Reason',
         'overview_estimated_balance_unit' => 'estimated balance',
         'overview_balance_not_headcount' => 'Calculated from entry/exit counters, not live headcount.',

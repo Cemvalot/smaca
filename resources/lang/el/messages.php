@@ -170,6 +170,8 @@ return [
         'overview_reporting_label' => 'Αναφορά',
         'overview_status_label' => 'Κατάσταση',
         'overview_status_critical' => 'Κρίσιμο',
+        'overview_kpi_status_label' => 'KPI',
+        'overview_status_attention_needed' => 'Χρειάζεται προσοχή',
         'overview_reason_label' => 'Λόγος',
         'overview_estimated_balance_unit' => 'εκτιμώμενο υπόλοιπο',
         'overview_balance_not_headcount' => 'Υπολογίζεται από μετρητές εισόδου/εξόδου, όχι ζωντανή καταμέτρηση.',

@@ -554,6 +554,22 @@
     return overviewTr('overview_status_normal', 'Normal', 'Κανονική');
   }
 
+  /** Softer module-health KPI line when sensors report well but a KPI is elevated. */
+  function overviewModuleHealthStatusLine(kpi, reportingPct) {
+    var ord = kpi ? statusOrder(kpi.status) : 0;
+    var pct = Number(reportingPct);
+    if (ord >= 3 && pct >= 80) {
+      return {
+        statusTag: overviewTr('overview_kpi_status_label', 'KPI status', 'KPI'),
+        statusLabel: overviewTr('overview_status_attention_needed', 'Attention needed', 'Χρειάζεται προσοχή')
+      };
+    }
+    return {
+      statusTag: overviewTr('overview_status_label', 'Status', 'Κατάσταση'),
+      statusLabel: overviewKpiStatusLabel(kpi)
+    };
+  }
+
   function overviewWatchReasonPlain(kpi) {
     if (!kpi) return '';
     var key = String(kpi.key || '');
@@ -1110,8 +1126,7 @@
         var worstDriver = findWorstWatchKpi(kpiBundles[m.key], overviewWatchKeys[m.key]);
         var worstOrd = worstDriver ? statusOrder(worstDriver.status) : 0;
         var reportingTag = overviewTr('overview_reporting_label', 'Reporting', 'Αναφορά');
-        var statusTag = overviewTr('overview_status_label', 'Status', 'Κατάσταση');
-        var statusLabel = overviewKpiStatusLabel(worstDriver);
+        var kpiStatus = overviewModuleHealthStatusLine(worstDriver, pct);
         var reportingLine = matching.length
           ? (reportingTag + ': ' + fresh + '/' + matching.length)
           : (reportingTag + ': —');
@@ -1120,7 +1135,7 @@
           value: pct,
           color: reportingBarColor(pct, matching.length),
           displayValue: matching.length ? (fresh + '/' + matching.length) : '—',
-          subLabel: reportingLine + ' · ' + statusTag + ': ' + statusLabel
+          subLabel: reportingLine + ' · ' + kpiStatus.statusTag + ': ' + kpiStatus.statusLabel
         };
       });
       var matrixEl = grid.querySelector('[data-tile="module-health"]');
@@ -1212,7 +1227,8 @@
           label: topWatchLabel,
           value: worstModule.label,
           subtitle: watchCopy.subtitle,
-          status: worstDriver.status || (worstOrd === 3 ? 'critical' : 'warning'),
+          status: worstDriver.status || 'warning',
+          accent: 'warning',
           icon: ICONS.alert,
           meta: watchCopy.meta || overviewModuleSourceLabel(worstModule.key)
         });
