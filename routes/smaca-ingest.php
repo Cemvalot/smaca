@@ -94,6 +94,13 @@ if (!function_exists('smacaHandleIngest_impl')) {
             'power_factor',
             'frequency_hz',
             'max_demand_kw',
+
+            // NETWORK QUALITY
+            'signal_strength',
+            'tx_ccq',
+            'snr',
+            'tx_rate',
+
             'meter_serial',
         ];
 
@@ -130,6 +137,16 @@ if (!function_exists('smacaHandleIngest_impl')) {
         }
 
         $readingInsert = array_merge($readingBase, $metricValues);
+        foreach ([
+            'signal_strength' => $request->input('signal_strength'),
+            'tx_ccq' => $request->input('tx_ccq'),
+            'snr' => $request->input('snr'),
+            'tx_rate' => $request->input('tx_rate'),
+        ] as $col => $val) {
+            if (smacaReadingsHasColumn_impl($col)) {
+                $readingInsert[$col] = $val;
+            }
+        }
 
         $readingId = DB::table('readings')->insertGetId($readingInsert);
 
@@ -176,6 +193,16 @@ if (!function_exists('smacaHandleIngest_impl')) {
         foreach (['tvoc_index', 'light_level', 'lux'] as $iaqCol) {
             if ($latestSchema->hasColumn('sensor_latest', $iaqCol)) {
                 $latestRow[$iaqCol] = $metricValues[$iaqCol] ?? null;
+            }
+        }
+        foreach ([
+            'signal_strength' => $request->input('signal_strength'),
+            'tx_ccq' => $request->input('tx_ccq'),
+            'snr' => $request->input('snr'),
+            'tx_rate' => $request->input('tx_rate'),
+        ] as $col => $val) {
+            if ($latestSchema->hasColumn('sensor_latest', $col)) {
+                $latestRow[$col] = $val;
             }
         }
 
