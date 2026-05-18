@@ -28,10 +28,10 @@ body {
   height: min(70vh, 780px);
   pointer-events: none;
   z-index: 0;
-  opacity: 0.45;
+  opacity: 0.32;
   background:
-    radial-gradient(ellipse 50% 40% at 12% 0%, rgba(40, 90, 180, 0.08), transparent 58%),
-    radial-gradient(ellipse 42% 36% at 88% 8%, rgba(0, 180, 170, 0.05), transparent 55%);
+    radial-gradient(ellipse 50% 40% at 12% 0%, rgba(40, 90, 180, 0.06), transparent 58%),
+    radial-gradient(ellipse 42% 36% at 88% 8%, rgba(0, 180, 170, 0.04), transparent 55%);
 }
 
 .overview-page > * {

@@ -598,17 +598,35 @@
     return parts.join('|');
   }
 
+  function renderVirtualSensorList(listEl, items, buildHtml, options) {
+    if (!listEl) return;
+    if (typeof listEl.__smacaVirtualDestroy === 'function') {
+      listEl.__smacaVirtualDestroy();
+      listEl.__smacaVirtualDestroy = null;
+    }
+    if (global.SMACAListVirtual && typeof global.SMACAListVirtual.renderVisible === 'function') {
+      var handle = global.SMACAListVirtual.renderVisible(listEl, items, buildHtml, options || {});
+      listEl.__smacaVirtualDestroy = handle && typeof handle.destroy === 'function' ? handle.destroy : null;
+      return;
+    }
+    listEl.innerHTML = items.map(function (item, idx) {
+      return buildHtml(item, idx);
+    }).join('');
+  }
+
   function renderOccupancyFloorCards(floorEl, container) {
     if (!floorEl || !container || floorEl.getAttribute('data-floor-cards-ready') === '1') return;
     var floorCode = floorEl.getAttribute('data-floor-code');
     var groups = container.__smacaOccupancyGroups;
     if (!groups || !groups[floorCode]) return;
     var windowNote = container.__smacaOccupancyWindowNote || '';
-    var cards = groups[floorCode].map(function (sensor) {
-      return buildOccupancySensorCard(sensor, windowNote);
-    }).join('');
+    var sensors = groups[floorCode];
     var listEl = floorEl.querySelector('.occupancy-sensor-list');
-    if (listEl) listEl.innerHTML = cards;
+    if (listEl) {
+      renderVirtualSensorList(listEl, sensors, function (sensor) {
+        return buildOccupancySensorCard(sensor, windowNote);
+      }, { threshold: 12, rowHeight: 112 });
+    }
     floorEl.setAttribute('data-floor-cards-ready', '1');
   }
 

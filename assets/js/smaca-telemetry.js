@@ -88,8 +88,45 @@
   // safely before re-rendering. Without this, repeatedly populating the
   // same tile (e.g. on timeframe changes) would orphan chart instances.
   var CHART_INSTANCES = new WeakMap();
+  var CHART_REBUILD = new WeakMap();
 
-  function attachChart(container, chart) {
+  function chartAnim() {
+    if (global.SMACA_CHART_REFRESH) return false;
+    return { duration: 220 };
+  }
+
+  function observeChartHost(host) {
+    if (!host) return;
+    if (global.SMACAChartVisibility && typeof global.SMACAChartVisibility.observe === 'function') {
+      global.SMACAChartVisibility.observe(host);
+    }
+  }
+
+  function pauseChartHost(host) {
+    if (!host) return;
+    var chart = CHART_INSTANCES.get(host);
+    if (chart && typeof chart.destroy === 'function') {
+      try { chart.destroy(); } catch (e) { /* swallow */ }
+    }
+    CHART_INSTANCES.delete(host);
+    host.setAttribute('data-smaca-chart-paused', '1');
+  }
+
+  function resumeChartHost(host) {
+    if (!host || host.getAttribute('data-smaca-chart-paused') !== '1') return;
+    var rebuild = CHART_REBUILD.get(host);
+    if (typeof rebuild !== 'function') return;
+    host.removeAttribute('data-smaca-chart-paused');
+    try {
+      rebuild();
+    } catch (e) { /* swallow */ }
+  }
+
+  function setChartRefreshMode(isRefresh) {
+    global.SMACA_CHART_REFRESH = !!isRefresh;
+  }
+
+  function attachChart(container, chart, rebuildFn) {
     if (!container) return chart;
     var prev = CHART_INSTANCES.get(container);
     if (prev && typeof prev.destroy === 'function' && prev !== chart) {
@@ -97,8 +134,13 @@
     }
     if (chart) {
       CHART_INSTANCES.set(container, chart);
+      container.removeAttribute('data-smaca-chart-paused');
     } else {
       CHART_INSTANCES.delete(container);
+    }
+    if (typeof rebuildFn === 'function') {
+      CHART_REBUILD.set(container, rebuildFn);
+      observeChartHost(container);
     }
     return chart;
   }
@@ -356,7 +398,9 @@
       }]
     };
     try {
-      return attachChart(el, global.Highcharts.chart(el, options));
+      return attachChart(el, global.Highcharts.chart(el, options), function () {
+        return renderSparkline(el, params);
+      });
     } catch (e) {
       return null;
     }
@@ -401,7 +445,9 @@
       series: [{ type: 'column', data: data }]
     };
     try {
-      return attachChart(el, global.Highcharts.chart(el, options));
+      return attachChart(el, global.Highcharts.chart(el, options), function () {
+        return renderMiniBar(el, params);
+      });
     } catch (e) {
       return null;
     }
@@ -565,7 +611,9 @@
       series: [{ type: 'column', data: data }]
     };
     try {
-      return attachChart(el, global.Highcharts.chart(el, options));
+      return attachChart(el, global.Highcharts.chart(el, options), function () {
+        return renderHeatStripColumn(el, params);
+      });
     } catch (e) {
       return null;
     }
@@ -658,7 +706,9 @@
       })
     };
     try {
-      return attachChart(el, global.Highcharts.chart(el, options));
+      return attachChart(el, global.Highcharts.chart(el, options), function () {
+        return renderStackedColumn(el, params);
+      });
     } catch (e) {
       return null;
     }
@@ -780,7 +830,7 @@
         backgroundColor: 'transparent',
         margin: [6, 4, 6, 4],
         spacing: [0, 0, 0, 0],
-        animation: { duration: 240 },
+        animation: chartAnim(),
         events: {
           load: function () {
             var chart = this;
@@ -838,13 +888,16 @@
           borderWidth: 1,
           borderColor: 'rgba(15, 23, 42, 0.85)',
           dataLabels: { enabled: false },
+          animation: chartAnim(),
           states: { hover: { brightness: 0.08, halo: { size: 4 } } }
         }
       },
       series: [{ type: 'pie', name: p.seriesName || '', data: data }]
     };
     try {
-      return attachChart(el, global.Highcharts.chart(el, options));
+      return attachChart(el, global.Highcharts.chart(el, options), function () {
+        return renderDonut(el, params);
+      });
     } catch (e) {
       return null;
     }
@@ -869,7 +922,7 @@
         height: p.height || (28 + categories.length * 22),
         backgroundColor: 'transparent',
         margin: [6, 14, 18, 4],
-        animation: { duration: 240 }
+        animation: chartAnim()
       },
       title: { text: null },
       credits: { enabled: false },
@@ -897,6 +950,7 @@
       },
       plotOptions: {
         bar: {
+          animation: chartAnim(),
           borderWidth: 0,
           borderRadius: 2,
           color: color,
@@ -918,7 +972,9 @@
       series: [{ type: 'bar', data: values }]
     };
     try {
-      return attachChart(el, global.Highcharts.chart(el, options));
+      return attachChart(el, global.Highcharts.chart(el, options), function () {
+        return renderRankedBarChart(el, params);
+      });
     } catch (e) {
       return null;
     }
@@ -939,7 +995,7 @@
         height: p.height || 100,
         margin: [6, 4, 22, 24],
         backgroundColor: 'transparent',
-        animation: { duration: 240 }
+        animation: chartAnim()
       },
       title: { text: null },
       credits: { enabled: false },
@@ -977,6 +1033,7 @@
       },
       plotOptions: {
         column: {
+          animation: chartAnim(),
           borderWidth: 0,
           borderRadius: 2,
           pointPadding: 0.06,
@@ -988,7 +1045,9 @@
       })
     };
     try {
-      return attachChart(el, global.Highcharts.chart(el, options));
+      return attachChart(el, global.Highcharts.chart(el, options), function () {
+        return renderGroupedColumn(el, params);
+      });
     } catch (e) {
       return null;
     }
@@ -1172,6 +1231,9 @@
     renderGauge: renderGauge,
     formatDelta: formatDelta,
     statusToTone: statusToTone,
-    toneToColor: toneToColor
+    toneToColor: toneToColor,
+    pauseChartHost: pauseChartHost,
+    resumeChartHost: resumeChartHost,
+    setChartRefreshMode: setChartRefreshMode
   };
 })(typeof window !== 'undefined' ? window : this);

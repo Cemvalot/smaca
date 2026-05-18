@@ -979,19 +979,39 @@
     return parts.join('|');
   }
 
+  function renderVirtualSensorList(listEl, items, buildHtml, options) {
+    if (!listEl) return;
+    if (typeof listEl.__smacaVirtualDestroy === 'function') {
+      listEl.__smacaVirtualDestroy();
+      listEl.__smacaVirtualDestroy = null;
+    }
+    if (global.SMACAListVirtual && typeof global.SMACAListVirtual.renderVisible === 'function') {
+      var handle = global.SMACAListVirtual.renderVisible(listEl, items, buildHtml, options || {});
+      listEl.__smacaVirtualDestroy = handle && typeof handle.destroy === 'function' ? handle.destroy : null;
+      return;
+    }
+    listEl.innerHTML = items.map(function (item, idx) {
+      return buildHtml(item, idx);
+    }).join('');
+  }
+
   function renderIaqFloorCards(floorEl, container) {
     if (!floorEl || !container || floorEl.getAttribute('data-floor-cards-ready') === '1') return;
     var floorCode = floorEl.getAttribute('data-floor-code');
     var groups = container.__smacaIaqGroups;
     if (!groups || !groups[floorCode]) return;
     var list = groups[floorCode];
-    var cards = [];
+    var vms = [];
     for (var i = 0; i < list.length; i++) {
       var vm = container.__smacaIaqVmById && container.__smacaIaqVmById[String(list[i].id)];
-      if (vm) cards.push(buildSensorCardSummary(vm));
+      if (vm) vms.push(vm);
     }
     var listEl = floorEl.querySelector('.iaq-sensor-list');
-    if (listEl) listEl.innerHTML = cards.join('');
+    if (listEl) {
+      renderVirtualSensorList(listEl, vms, function (vm) {
+        return buildSensorCardSummary(vm);
+      }, { threshold: 12, rowHeight: 128 });
+    }
     floorEl.setAttribute('data-floor-cards-ready', '1');
   }
 

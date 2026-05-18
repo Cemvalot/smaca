@@ -1713,7 +1713,16 @@
         return bw - aw;
       });
 
-      var deltaPromises = passageSensors.map(function (s) {
+      var PASSAGE_DELTA_CAP = 14;
+      var PASSAGE_FETCH_CONCURRENCY = 4;
+      var passageFetchList = passageSensors.slice(0, PASSAGE_DELTA_CAP);
+      var mapPoolFn = scheduler() && typeof scheduler().mapPool === 'function'
+        ? scheduler().mapPool
+        : function (items, worker) {
+          return Promise.all(items.map(worker));
+        };
+
+      mapPoolFn(passageFetchList, function (s) {
         return Promise.all([
           fetchSensorDelta(s, 'people_total_in'),
           fetchSensorDelta(s, 'people_total_out')
@@ -1731,25 +1740,32 @@
             points: (pair[0] && pair[0].points) || (pair[1] && pair[1].points) || 0
           };
         });
-      });
-
-      Promise.all(deltaPromises).then(function (perPassage) {
+      }, PASSAGE_FETCH_CONCURRENCY).then(function (perPassage) {
         var usable = perPassage.filter(function (p) { return p.usable && (p.inV + p.outV) > 0; });
         usable.sort(function (a, b) { return (b.inV + b.outV) - (a.inV + a.outV); });
         var stackedPassages = usable.slice(0, 5);
         var totalIn  = usable.reduce(function (a, p) { return a + p.inV; }, 0);
         var totalOut = usable.reduce(function (a, p) { return a + p.outV; }, 0);
 
-        // --- 1) Timeframe-aware stacked column (top 5 passages in scope) ---
-        var stackedEl = grid.querySelector('[data-tile="in-out-stacked"]');
-        if (stackedEl && tile()) {
-          if (!stackedPassages.length) {
-            tile().renderEmptyTile(stackedEl, {
-              label: occupancyLabel('occupancy_chart_in_out_top_title', 'In vs Out · Top Passages', 'Είσοδοι vs Έξοδοι · Κορυφαία περάσματα'),
-              message: noTfDataMsg()
-            });
-            logChart('occupancy:in-out-stacked', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries (no usable data)', points: 0, note: 'empty-state' });
-          } else {
+        var topRanked = usable
+          .map(function (p) {
+            return { label: p.label, value: p.inV + p.outV };
+          })
+          .sort(function (a, b) { return b.value - a.value; })
+          .slice(0, 6);
+
+        staggerPaint([
+          function () {
+            var stackedEl = grid.querySelector('[data-tile="in-out-stacked"]');
+            if (!stackedEl || !tile()) return;
+            if (!stackedPassages.length) {
+              tile().renderEmptyTile(stackedEl, {
+                label: occupancyLabel('occupancy_chart_in_out_top_title', 'In vs Out · Top Passages', 'Είσοδοι vs Έξοδοι · Κορυφαία περάσματα'),
+                message: noTfDataMsg()
+              });
+              logChart('occupancy:in-out-stacked', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries (no usable data)', points: 0, note: 'empty-state' });
+              return;
+            }
             var hostStacked = tile().renderChartTile(stackedEl, {
               label: occupancyLabel('occupancy_chart_in_out_top_title', 'In vs Out · Top Passages', 'Είσοδοι vs Έξοδοι · Κορυφαία περάσματα'),
               subtitle: occupancyLabel('occupancy_chart_in_out_top_subtitle', 'Entries and exits per passage in the selected timeframe.', 'Είσοδοι και έξοδοι ανά πέρασμα στο επιλεγμένο διάστημα.'),
@@ -1775,24 +1791,17 @@
               maxTs: Math.max.apply(null, usable.map(function (p) { return p.maxTs; }).filter(Number.isFinite)) || null,
               note: 'MAX-MIN delta per passage'
             });
-          }
-        }
-
-        // --- 2) Busiest passage ranking — timeframe movement events ---
-        var topRanked = usable
-          .map(function (p) {
-            return { label: p.label, value: p.inV + p.outV };
-          })
-          .sort(function (a, b) { return b.value - a.value; })
-          .slice(0, 6);
-        var rankEl = grid.querySelector('[data-tile="busiest-rank"]');
-        if (rankEl && tile()) {
-          if (!topRanked.length) {
-            tile().renderEmptyTile(rankEl, {
-              label: occupancyLabel('occupancy_chart_busiest_title', 'Busiest Passages', 'Πιο κινητικά περάσματα'),
-              message: noTfDataMsg()
-            });
-          } else {
+          },
+          function () {
+            var rankEl = grid.querySelector('[data-tile="busiest-rank"]');
+            if (!rankEl || !tile()) return;
+            if (!topRanked.length) {
+              tile().renderEmptyTile(rankEl, {
+                label: occupancyLabel('occupancy_chart_busiest_title', 'Busiest Passages', 'Πιο κινητικά περάσματα'),
+                message: noTfDataMsg()
+              });
+              return;
+            }
             var hostRank = tile().renderChartTile(rankEl, {
               label: occupancyLabel('occupancy_chart_busiest_title', 'Busiest Passages', 'Πιο κινητικά περάσματα'),
               subtitle: occupancyLabel('occupancy_chart_busiest_subtitle', 'Top passages by movement events in the selected timeframe.', 'Κορυφαία περάσματα βάσει γεγονότων κίνησης στο επιλεγμένο διάστημα.'),
@@ -1809,19 +1818,18 @@
               });
             }
             logChart('occupancy:busiest-rank', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries?metric=people_total_in|out', points: topRanked.length, note: 'timeframe movement events per passage' });
-          }
-        }
-
-        // --- 3) Flow donut: timeframe-aware in vs out share ---
-        var donutEl = grid.querySelector('[data-tile="flow-donut"]');
-        if (donutEl && tile()) {
-          if ((totalIn + totalOut) <= 0) {
-            tile().renderEmptyTile(donutEl, {
-              label: occupancyLabel('occupancy_chart_share_title', 'Entry/Exit Share', 'Μερίδιο εισόδων/εξόδων'),
-              message: noTfDataMsg()
-            });
-            logChart('occupancy:flow-donut', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries (no usable data)', points: 0, note: 'empty-state' });
-          } else {
+          },
+          function () {
+            var donutEl = grid.querySelector('[data-tile="flow-donut"]');
+            if (!donutEl || !tile()) return;
+            if ((totalIn + totalOut) <= 0) {
+              tile().renderEmptyTile(donutEl, {
+                label: occupancyLabel('occupancy_chart_share_title', 'Entry/Exit Share', 'Μερίδιο εισόδων/εξόδων'),
+                message: noTfDataMsg()
+              });
+              logChart('occupancy:flow-donut', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries (no usable data)', points: 0, note: 'empty-state' });
+              return;
+            }
             var balancePct = ((totalIn / (totalIn + totalOut)) * 100).toFixed(0);
             var hostDonut = tile().renderChartTile(donutEl, {
               label: occupancyLabel('occupancy_chart_share_title', 'Entry/Exit Share', 'Μερίδιο εισόδων/εξόδων'),
@@ -1842,7 +1850,7 @@
             }
             logChart('occupancy:flow-donut', { module: 'occupancy', endpoint: '/api/sensors/{id}/timeseries?metric=people_total_in|out', points: usable.length, note: 'aggregated MAX-MIN deltas' });
           }
-        }
+        ], 56);
 
         // --- 4) Daily remaining inside (occupancy_metrics) ---
         var netEl = grid.querySelector('[data-tile="net-balance"]');
@@ -1910,12 +1918,12 @@
           label: occupancyLabel('occupancy_tile_peak_hour_title', 'Peak Hour', 'Ώρα αιχμής'), icon: ICONS.peak
         }, { message: locText('No data', 'Χωρίς δεδομένα') });
       } else if (tile()) {
-        Promise.all(occ.map(function (s) {
+        mapPoolFn(occ.slice(0, PASSAGE_DELTA_CAP), function (s) {
           return Promise.all([
             loadTimeseries(s.id, 'people_in'),
             loadTimeseries(s.id, 'people_out')
           ]);
-        })).then(function (perSensorSeries) {
+        }, PASSAGE_FETCH_CONCURRENCY).then(function (perSensorSeries) {
           var inPts = [];
           var outPts = [];
           perSensorSeries.forEach(function (pair) {
@@ -3120,8 +3128,35 @@
   // -----------------------------------------------------------------------
   // Routing
   // -----------------------------------------------------------------------
+  function scheduler() {
+    return global.SMACATelemetryScheduler || null;
+  }
+
+  function staggerPaint(tasks, gapMs) {
+    var steps = Array.isArray(tasks) ? tasks : [];
+    var sched = scheduler();
+    if (sched && typeof sched.stagger === 'function') {
+      return sched.stagger(steps, gapMs || 52);
+    }
+    steps.forEach(function (step) {
+      try { step(); } catch (e) { /* noop */ }
+    });
+    return Promise.resolve();
+  }
+
+  function setChartRefreshMode(on) {
+    if (tile() && typeof tile().setChartRefreshMode === 'function') {
+      tile().setChartRefreshMode(on);
+    } else if (scheduler() && typeof scheduler().setChartRefreshMode === 'function') {
+      scheduler().setChartRefreshMode(on);
+    } else {
+      global.SMACA_CHART_REFRESH = !!on;
+    }
+  }
+
   function refreshActiveImmediate() {
     if (REFRESH_IN_FLIGHT) return REFRESH_IN_FLIGHT;
+    setChartRefreshMode(true);
     var section = activeSection();
     var seq = ++DEBUG_REFRESH_SEQ;
     if (debugTfEnabled()) {
@@ -3162,6 +3197,7 @@
 
     REFRESH_IN_FLIGHT = scheduleDebugFlush(seq, section, bootPromise).finally(function () {
       REFRESH_IN_FLIGHT = null;
+      setChartRefreshMode(false);
     });
     return REFRESH_IN_FLIGHT;
   }

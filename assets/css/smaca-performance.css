@@ -1,0 +1,78 @@
+/**
+ * SMACA Phase 2 performance — GPU containment, lighter glass, virtual lists.
+ */
+
+:root {
+  --smaca-glass-blur: blur(6px);
+}
+
+/* Isolate repaint-heavy dashboard regions */
+.main,
+.content,
+.dashboard-section,
+[data-smaca-telemetry],
+.smaca-tile,
+.smaca-tile--chart,
+.iaq-sensor-floor,
+.occupancy-sensor-floor,
+.energy-meter-floor {
+  contain: layout style;
+}
+
+.smaca-tile__chart,
+.chart-placeholder,
+#iaq-co2-band-chart,
+#iaq-co2-hourly-heatmap {
+  contain: strict;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+/* Glass only on outer section shells — skip nested KPI cards */
+.card .stat-card:not(.overview-kpi-card),
+#iaq #iaq-kpi-cards .stat-card,
+#environmental #environmental-kpi-grid .stat-card,
+.occupancy-sensor-card,
+.iaq-sensor-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.smaca-tile,
+.smaca-tile--chart {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Virtual sensor / passage lists */
+.smaca-virtual-list--active {
+  position: relative;
+  max-height: min(52vh, 440px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.smaca-virtual-list__spacer {
+  width: 100%;
+  pointer-events: none;
+}
+
+.smaca-virtual-list__window {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.smaca-virtual-list__row {
+  contain: layout style paint;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iaq-sensor-floor__body,
+  .occupancy-sensor-floor__body {
+    transition: none !important;
+  }
+}

@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-enterprise-ui.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-enterprise-ui.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-institutional-tone.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-institutional-tone.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-visual-clay.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-visual-clay.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-performance.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-performance.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-icon-chips.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-icon-chips.css') }}">
 </head>
 <body>
@@ -773,7 +774,10 @@
   <script defer src="{{ asset('assets/js/smaca-data-normalizer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-data-normalizer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-loader.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-loader.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-highcharts-adapter.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-highcharts-adapter.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-telemetry-scheduler.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-telemetry-scheduler.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-list-virtual.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-list-virtual.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-telemetry.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-telemetry.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-chart-visibility.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-chart-visibility.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-telemetry-bootstrap.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-telemetry-bootstrap.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-accurate-charts.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-accurate-charts.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-accurate-dashboard.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-accurate-dashboard.js') }}"></script>
