@@ -1,10 +1,10 @@
   /* Design Tokens */
 :root {
-  /* Colors - Dark Theme */
-  --bg: #0f1419;
-  --surface: #1a1f2e;
-  --surface-2: #252b3a;
-  --border: #2d3441;
+  /* Colors - Institutional dark theme */
+  --bg: #0b1220;
+  --surface: #101827;
+  --surface-2: #172033;
+  --border: rgba(255, 255, 255, 0.06);
   --text: #e4e7eb;
   --muted: #9ca3af;
   --accent: #3b82f6;
@@ -59,7 +59,55 @@
   --line-height-relaxed: 1.75;
   
   /* Layout */
-  --sidebar-width: 280px;
+  --sidebar-width: 260px;
+
+  /* Institutional UI tokens */
+  --smaca-navy-950: #0b1220;
+  --smaca-navy-900: #101827;
+  --smaca-navy-850: #142033;
+  --smaca-navy-800: #172033;
+  --smaca-panel-border: rgba(255, 255, 255, 0.06);
+  --smaca-panel-bg: #101827;
+  --smaca-glow-soft: none;
+  --smaca-glow-iaq: none;
+  --smaca-transition-fast: 0.12s ease;
+  --smaca-transition-med: 0.12s ease;
+  --smaca-section-gap: var(--space-4);
+  --smaca-card-pad: var(--space-3);
+  --smaca-hero-pad: var(--space-3);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.3);
+
+  /* VISUAL-CLAY-1 — restrained claymorphism */
+  --smaca-surface-clay: #111b2b;
+  --smaca-surface-clay-raised: #162235;
+  --smaca-surface-clay-soft: #1a2940;
+  --smaca-border-clay: rgba(148, 163, 184, 0.12);
+  --smaca-shadow-clay:
+    8px 10px 24px rgba(0, 0, 0, 0.32),
+    -4px -4px 14px rgba(255, 255, 255, 0.025),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --smaca-shadow-clay-hover:
+    10px 14px 30px rgba(0, 0, 0, 0.38),
+    -5px -5px 16px rgba(255, 255, 255, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  --smaca-shadow-clay-inset:
+    inset 0 2px 5px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --smaca-radius-clay: 18px;
+  --smaca-radius-clay-sm: 14px;
+  --smaca-clay-transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease, background 0.14s ease;
+
+  /* Module accent tints (borders / capsules / corner wash only) */
+  --smaca-accent-iaq: rgba(45, 122, 130, 0.55);
+  --smaca-accent-iaq-soft: rgba(45, 122, 130, 0.12);
+  --smaca-accent-occupancy: rgba(146, 118, 72, 0.55);
+  --smaca-accent-occupancy-soft: rgba(146, 118, 72, 0.12);
+  --smaca-accent-energy: rgba(161, 132, 62, 0.55);
+  --smaca-accent-energy-soft: rgba(161, 132, 62, 0.12);
+  --smaca-accent-environmental: rgba(158, 122, 68, 0.55);
+  --smaca-accent-environmental-soft: rgba(158, 122, 68, 0.12);
+  --smaca-accent-connectivity: rgba(71, 118, 168, 0.55);
+  --smaca-accent-connectivity-soft: rgba(71, 118, 168, 0.12);
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');

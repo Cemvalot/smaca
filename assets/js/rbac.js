@@ -45,6 +45,43 @@
     return ADMIN_ONLY_SECTIONS.includes(sectionId);
   }
 
+  function applySidebarNavAccess() {
+    var nav = document.querySelector('.sidebar__nav');
+    if (!nav) return;
+
+    nav.querySelectorAll('[data-section]').forEach(function (link) {
+      var section = link.getAttribute('data-section');
+      if (!canAccessSection(section)) {
+        link.remove();
+      }
+    });
+
+    nav.querySelectorAll('.sidebar__group').forEach(function (group) {
+      if (!group.querySelector('[data-section]')) {
+        group.remove();
+      }
+    });
+  }
+
+  function applyAdminVisibility() {
+    var admin = isAdmin();
+    document.querySelectorAll('[data-admin-only]').forEach(function (el) {
+      if (admin) {
+        el.hidden = false;
+        el.removeAttribute('aria-hidden');
+      } else {
+        el.remove();
+      }
+    });
+    applySidebarNavAccess();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyAdminVisibility);
+  } else {
+    applyAdminVisibility();
+  }
+
   global.SMACARBAC = {
     getRole,
     setRole,
@@ -52,6 +89,8 @@
     canAccessSection,
     hasFullAccess,
     isAdminOnlySection,
+    applySidebarNavAccess,
+    applyAdminVisibility,
     ROLES,
     STORAGE_KEY
   };

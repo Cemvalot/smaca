@@ -1039,13 +1039,13 @@ function initRBAC() {
     badge.textContent = isAdmin ? 'Admin' : 'User';
     badge.className = 'role-badge role-badge--' + (isAdmin ? 'admin' : 'user');
   }
-  const adminLinks = document.querySelectorAll('.nav-link--admin-only, [data-admin-only].nav-link--section');
-  adminLinks.forEach(function(link) {
+  // Only lock the management nav item — energy/connectivity/ai-insights keep their Blade hrefs.
+  const managementLinks = document.querySelectorAll('.nav-link--admin-only');
+  managementLinks.forEach(function (link) {
     if (isAdmin) {
       link.classList.remove('nav-link--locked');
       link.removeAttribute('aria-disabled');
       link.style.pointerEvents = '';
-      link.href = '/dashboard/management';
     } else {
       link.classList.add('nav-link--locked');
       link.setAttribute('aria-disabled', 'true');

@@ -788,28 +788,20 @@
   cursor: not-allowed;
 }
 
-/* Section header variants (modifier classes) – Claymorphism */
+/* Section header — operational band (institutional tone applied in enterprise CSS) */
 .section-hero {
-  border-radius: 20px;
-  padding: var(--space-6);
-  margin-bottom: var(--space-6);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    inset 2px 2px 4px rgba(255, 255, 255, 0.15),
-    inset -1px -1px 3px rgba(0, 0, 0, 0.15),
-    8px 8px 24px rgba(0, 0, 0, 0.35),
-    2px 2px 8px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: var(--r-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+  transition: none;
 }
 
 .section-hero:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    inset 2px 2px 4px rgba(255, 255, 255, 0.18),
-    inset -1px -1px 3px rgba(0, 0, 0, 0.12),
-    12px 12px 32px rgba(0, 0, 0, 0.4),
-    4px 4px 12px rgba(0, 0, 0, 0.25);
+  transform: none;
+  box-shadow: none;
 }
 
 .section-hero__inner {
@@ -865,14 +857,14 @@
   letter-spacing: 0.5px;
 }
 
-.section-hero--overview { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); }
-.section-hero--iaq { background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); }
-.section-hero--occupancy { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); }
-.section-hero--energy { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
-.section-hero--connectivity { background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); }
-.section-hero--environmental { background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%); }
-.section-hero--ai-insights { background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); }
-.section-hero--management { background: linear-gradient(135deg, #6b7280 0%, #3b82f6 100%); }
+.section-hero--overview { background: var(--surface-2); border-left: 3px solid rgba(96, 165, 250, 0.45); }
+.section-hero--iaq { background: var(--surface-2); border-left: 3px solid rgba(45, 122, 130, 0.55); }
+.section-hero--occupancy { background: var(--surface-2); border-left: 3px solid rgba(146, 118, 72, 0.55); }
+.section-hero--energy { background: var(--surface-2); border-left: 3px solid rgba(161, 132, 62, 0.55); }
+.section-hero--connectivity { background: var(--surface-2); border-left: 3px solid rgba(71, 118, 168, 0.55); }
+.section-hero--environmental { background: var(--surface-2); border-left: 3px solid rgba(158, 122, 68, 0.55); }
+.section-hero--ai-insights { background: var(--surface-2); border-left: 3px solid rgba(107, 114, 128, 0.5); }
+.section-hero--management { background: var(--surface-2); border-left: 3px solid rgba(107, 114, 128, 0.5); }
 
 /* Data status & Last updated pills */
 .data-status-pill {
@@ -2082,8 +2074,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 340px;
-  padding: var(--space-5) var(--space-4);
+  min-height: 220px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .overview-air-score-interactive {
@@ -2286,7 +2278,7 @@
 }
 
 .overview-trend-card .card__body {
-  min-height: 340px;
+  min-height: 240px;
 }
 
 .overview-chart-shell {

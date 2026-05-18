@@ -1,0 +1,139 @@
+/**
+ * SMACA Institutional Tone — final override layer
+ * Neutralizes glow / gradient / showcase styling from earlier passes.
+ * Loads after smaca-dashboard.css and smaca-enterprise-ui.css.
+ */
+
+/* ================================================================== *
+ * Palette enforcement
+ * ================================================================== */
+:root {
+  --bg: #0b1220;
+  --surface: #101827;
+  --surface-2: #172033;
+  --border: rgba(255, 255, 255, 0.06);
+  --smaca-panel-border: rgba(255, 255, 255, 0.06);
+  --smaca-panel-bg: #101827;
+  --smaca-glow-soft: none;
+  --smaca-glow-iaq: none;
+  --smaca-section-gap: var(--space-4);
+  --smaca-card-pad: var(--space-3);
+  --smaca-hero-pad: var(--space-3);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+body {
+  background-color: var(--bg);
+}
+
+/* ================================================================== *
+ * Overview — remove decorative / cinematic layers
+ * ================================================================== */
+.overview-page::before {
+  display: none !important;
+}
+
+/* Decorative snapshot sparklines — still suppressed (VISUAL-CLAY-1 handles card depth) */
+.overview-kpi-card--snapshot::before,
+.overview-kpi-card--snapshot::after {
+  display: none !important;
+}
+
+/* IAQ gauge — operational readout, not showcase */
+.overview-gauge__halo {
+  display: none !important;
+}
+
+#overview-iaq-gauge .overview-gauge__ring,
+#overview-iaq-score-link .overview-gauge__ring,
+#overview-iaq-gauge[data-iaq-gauge-status] .overview-gauge__ring {
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+#overview-iaq-gauge[data-iaq-gauge-status="normal"] .overview-gauge__progress,
+#overview-iaq-gauge[data-iaq-gauge-status="idle"] .overview-gauge__progress {
+  stroke: #6b9aaa;
+}
+
+#overview-iaq-gauge[data-iaq-gauge-status="warning"] .overview-gauge__progress {
+  stroke: #b8955a;
+}
+
+#overview-iaq-gauge[data-iaq-gauge-status="critical"] .overview-gauge__progress {
+  stroke: #b86b6b;
+}
+
+.overview-air-score-body {
+  min-height: 220px !important;
+}
+
+.overview-air-score-interactive {
+  min-height: 180px !important;
+}
+
+/* Live panel — no ambient animation */
+#overview .overview-live-panel {
+  box-shadow: none !important;
+}
+
+#overview .overview-live-panel .card__body::before {
+  display: none !important;
+}
+
+#overview [data-tile="status-donut"] .highcharts-container {
+  filter: none !important;
+}
+
+#overview [data-tile="status-donut"] .smaca-donut-legend__swatch {
+  box-shadow: none !important;
+}
+
+/* Module nav decorative pseudo — clay layer uses ::before for accent wash */
+#overview .overview-module-card:hover .overview-module-card__icon {
+  transform: none !important;
+}
+
+/* KPI decorative pseudo from older passes — keep suppressed */
+.overview-kpi-card::before {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+.overview-kpi-card .stat-card__value {
+  font-size: 1.5rem !important;
+  text-shadow: none !important;
+}
+
+.card .chart-placeholder {
+  background: transparent !important;
+}
+
+/* ================================================================== *
+ * Section heroes — kill legacy saturated gradients
+ * ================================================================== */
+.section-hero--overview,
+.section-hero--iaq,
+.section-hero--occupancy,
+.section-hero--energy,
+.section-hero--connectivity,
+.section-hero--environmental,
+.section-hero--ai-insights,
+.section-hero--management {
+  background: var(--surface-2) !important;
+}
+
+/* ================================================================== *
+ * Scope summary / typography
+ * ================================================================== */
+.overview-spatial-summary,
+.overview-live-note {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.section-header h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+}

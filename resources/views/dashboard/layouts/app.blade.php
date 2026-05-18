@@ -27,6 +27,9 @@
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-logo.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-logo.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/dashboard.css') }}?v={{ $smacaAssetVersion('assets/css/dashboard.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-dashboard.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-dashboard.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-enterprise-ui.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-enterprise-ui.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-institutional-tone.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-institutional-tone.css') }}">
+  <link rel="stylesheet" href="{{ asset('assets/css/smaca-visual-clay.css') }}?v={{ $smacaAssetVersion('assets/css/smaca-visual-clay.css') }}">
 </head>
 <body>
   <div class="app">

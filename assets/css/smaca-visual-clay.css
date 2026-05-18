@@ -1,0 +1,500 @@
+/**
+ * VISUAL-CLAY-1 — Controlled claymorphism layer
+ * Soft 3D depth for enterprise / academic monitoring (University of Piraeus tone).
+ * Visual-only; loads after institutional-tone.css.
+ */
+
+/* ================================================================== *
+ * Base clay surface utility
+ * ================================================================== */
+.smaca-clay {
+  background: var(--smaca-surface-clay-raised);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay);
+  box-shadow: var(--smaca-shadow-clay);
+}
+
+.smaca-clay--soft {
+  background: var(--smaca-surface-clay-soft);
+}
+
+.smaca-clay--flat {
+  box-shadow: none;
+}
+
+/* Corner accent wash (module tint) — applied via modifier classes */
+.smaca-clay-accent::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 42%;
+  height: 42%;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.55;
+}
+
+/* ================================================================== *
+ * Cards & chart panels
+ * ================================================================== */
+.card,
+.stat-card {
+  position: relative;
+  background: var(--smaca-surface-clay-raised);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay-sm);
+  box-shadow: var(--smaca-shadow-clay);
+  transition: var(--smaca-clay-transition);
+}
+
+.card:hover,
+.stat-card:not(.overview-kpi-card--skeleton):hover {
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: var(--smaca-shadow-clay-hover);
+}
+
+.card .chart-placeholder {
+  background: transparent;
+  border-radius: calc(var(--smaca-radius-clay-sm) - 4px);
+}
+
+/* ================================================================== *
+ * KPI cards — raised body, hover lift
+ * ================================================================== */
+.overview-kpi-card,
+.stat-card.overview-kpi-card,
+#iaq #iaq-kpi-cards .stat-card,
+#environmental #environmental-kpi-grid .stat-card,
+#occupancy .occupancy-kpi-grid .stat-card,
+.management-status-card.stat-card {
+  background: var(--smaca-surface-clay-raised);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay-sm);
+  box-shadow: var(--smaca-shadow-clay);
+}
+
+.overview-kpi-card:not(.overview-kpi-card--skeleton):hover,
+.stat-card.overview-kpi-card:not(.overview-kpi-card--skeleton):hover,
+#iaq #iaq-kpi-cards .stat-card:hover,
+#environmental #environmental-kpi-grid .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--smaca-shadow-clay-hover);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.overview-kpi-card--skeleton,
+.overview-kpi-card--skeleton:hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--smaca-surface-clay);
+}
+
+/* Module accent — 1px border tint + corner wash */
+.overview-kpi-card[data-overview-module="iaq"],
+.overview-kpi-card--iaq {
+  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 35%, var(--smaca-border-clay));
+}
+
+.overview-kpi-card[data-overview-module="occupancy"] {
+  border-color: color-mix(in srgb, var(--smaca-accent-occupancy) 35%, var(--smaca-border-clay));
+}
+
+.overview-kpi-card[data-overview-module="energy"] {
+  border-color: color-mix(in srgb, var(--smaca-accent-energy) 35%, var(--smaca-border-clay));
+}
+
+.overview-kpi-card[data-overview-module="environmental"] {
+  border-color: color-mix(in srgb, var(--smaca-accent-environmental) 35%, var(--smaca-border-clay));
+}
+
+.overview-kpi-card[data-overview-module="connectivity"] {
+  border-color: color-mix(in srgb, var(--smaca-accent-connectivity) 35%, var(--smaca-border-clay));
+}
+
+.overview-kpi-card[data-overview-module]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.overview-kpi-card[data-overview-module="iaq"]::after,
+.overview-kpi-card--iaq::after {
+  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-iaq-soft), transparent 62%);
+}
+
+.overview-kpi-card[data-overview-module="occupancy"]::after {
+  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-occupancy-soft), transparent 62%);
+}
+
+.overview-kpi-card[data-overview-module="energy"]::after {
+  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-energy-soft), transparent 62%);
+}
+
+.overview-kpi-card[data-overview-module="environmental"]::after {
+  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-environmental-soft), transparent 62%);
+}
+
+.overview-kpi-card[data-overview-module="connectivity"]::after {
+  background: radial-gradient(90% 70% at 100% 0%, var(--smaca-accent-connectivity-soft), transparent 62%);
+}
+
+/* ================================================================== *
+ * Live telemetry tiles
+ * ================================================================== */
+.smaca-tile {
+  background: var(--smaca-surface-clay-raised);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay-sm);
+  box-shadow: var(--smaca-shadow-clay);
+  backdrop-filter: none;
+}
+
+.smaca-tile::before {
+  opacity: 0.35;
+}
+
+.smaca-tile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(148, 163, 184, 0.2);
+  box-shadow: var(--smaca-shadow-clay-hover);
+}
+
+#overview .overview-live-panel.card {
+  background: var(--smaca-surface-clay-soft);
+  box-shadow: var(--smaca-shadow-clay);
+}
+
+/* ================================================================== *
+ * Overview module nav cards
+ * ================================================================== */
+#overview .overview-module-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--smaca-surface-clay-raised);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay-sm);
+  box-shadow: var(--smaca-shadow-clay);
+}
+
+#overview .overview-module-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--smaca-shadow-clay-hover);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+#overview .overview-module-card[data-section="iaq"] {
+  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 30%, var(--smaca-border-clay));
+}
+
+#overview .overview-module-card[data-section="occupancy"] {
+  border-color: color-mix(in srgb, var(--smaca-accent-occupancy) 30%, var(--smaca-border-clay));
+}
+
+#overview .overview-module-card[data-section="energy"] {
+  border-color: color-mix(in srgb, var(--smaca-accent-energy) 30%, var(--smaca-border-clay));
+}
+
+#overview .overview-module-card[data-section="environmental"] {
+  border-color: color-mix(in srgb, var(--smaca-accent-environmental) 30%, var(--smaca-border-clay));
+}
+
+#overview .overview-module-card[data-section="connectivity"] {
+  border-color: color-mix(in srgb, var(--smaca-accent-connectivity) 30%, var(--smaca-border-clay));
+}
+
+#overview .overview-module-card[data-section]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40%;
+  height: 40%;
+  pointer-events: none;
+  display: block;
+  opacity: 0.4;
+}
+
+#overview .overview-module-card[data-section="iaq"]::before {
+  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-iaq-soft), transparent 65%);
+}
+
+#overview .overview-module-card[data-section="occupancy"]::before {
+  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-occupancy-soft), transparent 65%);
+}
+
+#overview .overview-module-card[data-section="energy"]::before {
+  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-energy-soft), transparent 65%);
+}
+
+#overview .overview-module-card[data-section="environmental"]::before {
+  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-environmental-soft), transparent 65%);
+}
+
+#overview .overview-module-card[data-section="connectivity"]::before {
+  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-connectivity-soft), transparent 65%);
+}
+
+#overview .overview-module-card__icon {
+  position: relative;
+  z-index: 1;
+  border-radius: 10px;
+  border: 1px solid var(--smaca-border-clay);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+#overview .overview-module-card[data-section="iaq"] .overview-module-card__icon {
+  background: var(--smaca-accent-iaq-soft);
+  color: #8eb8bf;
+}
+
+#overview .overview-module-card[data-section="occupancy"] .overview-module-card__icon {
+  background: var(--smaca-accent-occupancy-soft);
+  color: #c4ad82;
+}
+
+#overview .overview-module-card[data-section="energy"] .overview-module-card__icon {
+  background: var(--smaca-accent-energy-soft);
+  color: #c9b070;
+}
+
+#overview .overview-module-card[data-section="environmental"] .overview-module-card__icon {
+  background: var(--smaca-accent-environmental-soft);
+  color: #c4a574;
+}
+
+#overview .overview-module-card[data-section="connectivity"] .overview-module-card__icon {
+  background: var(--smaca-accent-connectivity-soft);
+  color: #8aaed4;
+}
+
+/* ================================================================== *
+ * Section heroes — dark clay slab (no saturated gradient)
+ * ================================================================== */
+.section-hero {
+  background: var(--smaca-surface-clay-soft);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay-sm);
+  box-shadow: var(--smaca-shadow-clay);
+  padding: var(--space-3) var(--space-4);
+}
+
+.section-hero:hover {
+  transform: none;
+  box-shadow: var(--smaca-shadow-clay);
+}
+
+.section-hero__icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--smaca-surface-clay-raised);
+  border: 1px solid var(--smaca-border-clay);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.section-hero--overview { border-left: 3px solid rgba(96, 165, 250, 0.45); background: var(--smaca-surface-clay-soft) !important; }
+.section-hero--iaq { border-left: 3px solid var(--smaca-accent-iaq); background: var(--smaca-surface-clay-soft) !important; }
+.section-hero--occupancy { border-left: 3px solid var(--smaca-accent-occupancy); background: var(--smaca-surface-clay-soft) !important; }
+.section-hero--energy { border-left: 3px solid var(--smaca-accent-energy); background: var(--smaca-surface-clay-soft) !important; }
+.section-hero--connectivity { border-left: 3px solid var(--smaca-accent-connectivity); background: var(--smaca-surface-clay-soft) !important; }
+.section-hero--environmental { border-left: 3px solid var(--smaca-accent-environmental); background: var(--smaca-surface-clay-soft) !important; }
+.section-hero--ai-insights,
+.section-hero--management {
+  border-left: 3px solid rgba(107, 114, 128, 0.5);
+  background: var(--smaca-surface-clay-soft) !important;
+}
+
+.section-hero--iaq .section-hero__icon { color: #8eb8bf; background: var(--smaca-accent-iaq-soft); }
+.section-hero--occupancy .section-hero__icon { color: #c4ad82; background: var(--smaca-accent-occupancy-soft); }
+.section-hero--energy .section-hero__icon { color: #c9b070; background: var(--smaca-accent-energy-soft); }
+.section-hero--environmental .section-hero__icon { color: #c4a574; background: var(--smaca-accent-environmental-soft); }
+.section-hero--connectivity .section-hero__icon { color: #8aaed4; background: var(--smaca-accent-connectivity-soft); }
+
+/* ================================================================== *
+ * Sidebar — subtle clay depth
+ * ================================================================== */
+.sidebar {
+  background: var(--smaca-surface-clay);
+  border-right: 1px solid var(--smaca-border-clay);
+  box-shadow:
+    6px 0 18px rgba(0, 0, 0, 0.22),
+    inset -1px 0 0 rgba(255, 255, 255, 0.02);
+}
+
+.nav-link--section.is-active {
+  background: var(--smaca-surface-clay-raised);
+  border: 1px solid var(--smaca-border-clay);
+  box-shadow: var(--smaca-shadow-clay);
+}
+
+.nav-link--section .nav-link__icon {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.nav-link--section.is-active .nav-link__icon {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ================================================================== *
+ * Scope selector — raised clay container + pressed pills
+ * ================================================================== */
+.overview-scope-control__glass {
+  background: var(--smaca-surface-clay-raised);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay-sm);
+  box-shadow: var(--smaca-shadow-clay);
+  backdrop-filter: none;
+}
+
+.overview-scope-control__segment,
+.overview-scope-control__pill {
+  background: var(--smaca-surface-clay);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition: var(--smaca-clay-transition);
+}
+
+.overview-scope-control__segment:hover,
+.overview-scope-control__pill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow: var(--smaca-shadow-clay);
+}
+
+.overview-scope-control__segment[aria-selected="true"],
+.overview-scope-control__pill[aria-pressed="true"] {
+  background: var(--smaca-surface-clay-soft);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #e8edf5;
+  transform: translateY(1px);
+  box-shadow: var(--smaca-shadow-clay-inset);
+}
+
+/* ================================================================== *
+ * IAQ sensor breakdown rows
+ * ================================================================== */
+.iaq-sensor-floor {
+  position: relative;
+  background: var(--smaca-surface-clay-raised);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: var(--smaca-radius-clay-sm);
+  box-shadow: var(--smaca-shadow-clay);
+  backdrop-filter: none;
+  transition: var(--smaca-clay-transition);
+}
+
+.iaq-sensor-floor::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36%;
+  height: 36%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(100% 80% at 100% 0%, var(--smaca-accent-iaq-soft), transparent 68%);
+  opacity: 0.5;
+}
+
+.iaq-sensor-floor:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 28%, var(--smaca-border-clay));
+  box-shadow: var(--smaca-shadow-clay-hover);
+}
+
+.iaq-sensor-floor.is-open {
+  background: var(--smaca-surface-clay-soft);
+  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 35%, var(--smaca-border-clay));
+  box-shadow: var(--smaca-shadow-clay-hover);
+  transform: translateY(-1px);
+}
+
+.iaq-sensor-floor__icon {
+  background: var(--smaca-accent-iaq-soft);
+  border: 1px solid color-mix(in srgb, var(--smaca-accent-iaq) 40%, transparent);
+  color: #8eb8bf;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.iaq-sensor-floor__code {
+  color: #9eb8bf;
+  background: var(--smaca-accent-iaq-soft);
+  border-color: color-mix(in srgb, var(--smaca-accent-iaq) 35%, transparent);
+}
+
+.iaq-sensor-card {
+  background: var(--smaca-surface-clay);
+  border: 1px solid var(--smaca-border-clay);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.iaq-sensor-card:hover {
+  background: var(--smaca-surface-clay-raised);
+  box-shadow: var(--smaca-shadow-clay);
+  transform: translateY(-1px);
+}
+
+/* ================================================================== *
+ * Charts — clay panel only; series stay analytical (no line bloom)
+ * ================================================================== */
+.overview-trend-card,
+.overview-air-score-card,
+.environmental-chart-card,
+.occupancy-primary-card {
+  box-shadow: var(--smaca-shadow-clay);
+}
+
+.highcharts-series-group .highcharts-graph,
+#uv-main-chart .highcharts-graph {
+  filter: none !important;
+}
+
+/* ================================================================== *
+ * Reduced motion
+ * ================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .stat-card,
+  .overview-kpi-card,
+  .smaca-tile,
+  .overview-module-card,
+  .iaq-sensor-floor,
+  .iaq-sensor-card,
+  .overview-scope-control__segment,
+  .overview-scope-control__pill,
+  .nav-link--section {
+    transition: none !important;
+  }
+
+  .card:hover,
+  .stat-card:hover,
+  .overview-kpi-card:hover,
+  .smaca-tile:hover,
+  #overview .overview-module-card:hover,
+  .iaq-sensor-floor:hover,
+  .iaq-sensor-card:hover,
+  .overview-scope-control__segment:hover,
+  .overview-scope-control__pill:hover,
+  .iaq-sensor-floor.is-open {
+    transform: none !important;
+  }
+}

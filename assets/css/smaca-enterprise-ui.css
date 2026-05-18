@@ -1,0 +1,452 @@
+/**
+ * SMACA Institutional UI — operations console tone
+ * University / research infrastructure monitoring aesthetic.
+ * Visual-only; no functional changes.
+ */
+
+/* ================================================================== *
+ * Global foundation
+ * ================================================================== */
+.content {
+  padding: var(--space-5) var(--space-6);
+}
+
+.dashboard-section {
+  gap: var(--space-4);
+}
+
+.grid {
+  gap: var(--space-3);
+}
+
+.card__header {
+  padding: var(--space-3) var(--space-4);
+}
+
+.card__body {
+  padding: var(--space-3) var(--space-4);
+}
+
+.card__title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.card__header p,
+.card__subtitle {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: normal;
+}
+
+.topbar {
+  padding: var(--space-3) var(--space-5);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: none;
+}
+
+.topbar__heading {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+}
+
+/* ================================================================== *
+ * Sidebar — enterprise sections
+ * ================================================================== */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar__header {
+  padding: var(--space-4);
+}
+
+.sidebar__nav {
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  gap: var(--space-3);
+}
+
+.sidebar__group + .sidebar__group {
+  padding-top: var(--space-2);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar__group-label {
+  padding: 0 var(--space-3) 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(156, 163, 175, 0.55);
+}
+
+.sidebar__group--admin .sidebar__group-label {
+  color: rgba(156, 163, 175, 0.5);
+}
+
+.nav-link--section {
+  border-radius: var(--r-sm);
+  padding: 8px var(--space-3);
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.nav-link--section:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.nav-link--section.is-active {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.22);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.nav-link--section.is-active .nav-link__icon {
+  color: var(--accent-2);
+}
+
+.nav-link--section[data-section].is-active {
+  box-shadow: none;
+}
+
+/* ================================================================== *
+ * Module headers — thin operational band (not landing hero)
+ * ================================================================== */
+.section-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  min-height: 0;
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+  transition: none;
+}
+
+.section-hero::before,
+.section-hero::after {
+  display: none;
+}
+
+.section-hero:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.section-hero__inner {
+  gap: var(--space-4);
+}
+
+.section-hero__title-row {
+  margin-bottom: 2px;
+}
+
+.section-hero__icon {
+  width: 22px;
+  height: 22px;
+  color: rgba(203, 213, 225, 0.85);
+}
+
+.section-hero__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.section-hero__subtitle {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 56ch;
+}
+
+.section-hero__stat {
+  min-width: 88px;
+  padding-left: var(--space-4);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.section-hero__stat-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.section-hero__stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+/* Muted module tint — accent as left edge only */
+.section-hero--overview {
+  background: var(--surface-2);
+  border-left: 3px solid rgba(96, 165, 250, 0.45);
+}
+
+.section-hero--iaq {
+  background: var(--surface-2);
+  border-left: 3px solid rgba(45, 122, 130, 0.55);
+}
+
+.section-hero--occupancy {
+  background: var(--surface-2);
+  border-left: 3px solid rgba(146, 118, 72, 0.55);
+}
+
+.section-hero--energy {
+  background: var(--surface-2);
+  border-left: 3px solid rgba(161, 132, 62, 0.55);
+}
+
+.section-hero--connectivity {
+  background: var(--surface-2);
+  border-left: 3px solid rgba(71, 118, 168, 0.55);
+}
+
+.section-hero--environmental {
+  background: var(--surface-2);
+  border-left: 3px solid rgba(158, 122, 68, 0.55);
+}
+
+.section-hero--ai-insights,
+.section-hero--management {
+  background: var(--surface-2);
+  border-left: 3px solid rgba(107, 114, 128, 0.5);
+}
+
+/* ================================================================== *
+ * Panels & KPI cards — flat structural
+ * ================================================================== */
+.card,
+.stat-card {
+  border-radius: var(--r-md);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface);
+  box-shadow: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.card:hover,
+.stat-card:hover {
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: none;
+}
+
+.stat-card {
+  padding: var(--space-3) var(--space-4);
+}
+
+.stat-card__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stat-card__value,
+.stat-card__value-number {
+  font-size: 1.35rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.overview-kpi-card--snapshot {
+  min-height: 0;
+}
+
+/* ================================================================== *
+ * Charts — analytical, no bloom
+ * ================================================================== */
+.highcharts-background {
+  fill: transparent !important;
+}
+
+.highcharts-grid-line {
+  stroke: rgba(255, 255, 255, 0.06) !important;
+}
+
+.highcharts-axis-line,
+.highcharts-tick {
+  stroke: rgba(255, 255, 255, 0.08) !important;
+}
+
+.highcharts-axis-labels text {
+  fill: rgba(156, 163, 175, 0.9) !important;
+  font-size: 10px !important;
+  font-family: var(--font-family) !important;
+}
+
+.highcharts-legend-item text {
+  fill: rgba(203, 213, 225, 0.88) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+}
+
+.highcharts-tooltip-box {
+  fill: #111827 !important;
+  stroke: rgba(255, 255, 255, 0.1) !important;
+  stroke-width: 1px !important;
+}
+
+.highcharts-tooltip text {
+  fill: #e5e7eb !important;
+  font-size: 11px !important;
+}
+
+.highcharts-series-group .highcharts-graph,
+#uv-main-chart .highcharts-graph {
+  filter: none !important;
+}
+
+.chart-tooltip-floating,
+.overview-chart-tooltip {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111827;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  backdrop-filter: none;
+  border-radius: var(--r-sm);
+}
+
+.chart-placeholder {
+  min-height: 220px;
+}
+
+/* ================================================================== *
+ * Overview — operations console density
+ * ================================================================== */
+.overview-page {
+  gap: var(--space-4);
+}
+
+.overview-middle-grid {
+  grid-template-columns: 1.8fr 1fr;
+  gap: var(--space-4);
+}
+
+.overview-trend-card .card__body {
+  min-height: 240px;
+  padding: var(--space-3);
+}
+
+.overview-air-score-body {
+  min-height: 240px;
+  padding: var(--space-3);
+}
+
+.overview-air-score-interactive {
+  min-height: 200px;
+}
+
+.overview-air-score-interactive:hover {
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: none;
+}
+
+.overview-gauge__ring {
+  width: 128px;
+  height: 128px;
+  transition: none;
+}
+
+.overview-air-score-interactive:hover .overview-gauge__ring {
+  transform: none;
+}
+
+.overview-gauge__svg {
+  width: 128px;
+  height: 128px;
+}
+
+.overview-gauge__value {
+  font-size: 1.65rem;
+  font-weight: 600;
+}
+
+.overview-gauge__progress {
+  stroke: #5b9aa8;
+}
+
+.overview-gauge__center {
+  inset: 18px;
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.overview-air-score-cta {
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 1;
+}
+
+.overview-air-score-interactive:hover .overview-air-score-cta {
+  color: var(--accent-2);
+  transform: none;
+}
+
+.overview-chart-shell__plot {
+  min-height: 200px;
+}
+
+#overview .card__body {
+  padding: var(--space-3) var(--space-4);
+}
+
+/* ================================================================== *
+ * Module pages — density
+ * ================================================================== */
+#environmental #environmental-kpi-grid .stat-card {
+  min-height: 100px;
+}
+
+.environmental-chart-card .card__body {
+  min-height: 260px;
+}
+
+.environmental-chart-card .card__body,
+.environmental-summary-card {
+  background: var(--surface);
+}
+
+.environmental-chart-placeholder {
+  min-height: 220px;
+}
+
+#iaq #iaq-kpi-cards .stat-card:hover,
+#occupancy .occupancy-primary-card:hover {
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.smaca-iaq-zone--live.card {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-hero,
+  .stat-card,
+  .card,
+  .nav-link--section {
+    transition: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .overview-middle-grid,
+  .environmental-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
