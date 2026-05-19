@@ -466,7 +466,7 @@
       return;
     }
     strip.hidden = false;
-    var pills = alerts.concat(alerts).map(function (msg) {
+    var pills = alerts.map(function (msg) {
       return '<span class="conn-alert-pill">' + esc(msg) + '</span>';
     }).join('');
     strip.innerHTML = '<div class="conn-alert-strip__track">' + pills + '</div>';

@@ -4,7 +4,8 @@ const SMACAState = {
     iaq: [],
     occupancy: [],
     environmental: [],
-    energy: []
+    energy: [],
+    connectivity: []
   },
   cacheVersion: 0,
   filteredCache: {},
@@ -92,6 +93,10 @@ const SMACAState = {
   // Get filtered Energy data
   getFilteredEnergy() {
     return this.getFilteredByType('energy');
+  },
+
+  getFilteredConnectivity() {
+    return this.getFilteredByType('connectivity');
   },
   
   // Set timeframe and trigger update
@@ -188,7 +193,8 @@ const SMACAState = {
       iaq: this.getFilteredIAQ(),
       occupancy: this.getFilteredOccupancy(),
       environmental: this.getFilteredEnvironmental(),
-      energy: this.getFilteredEnergy()
+      energy: this.getFilteredEnergy(),
+      connectivity: this.getFilteredConnectivity()
     };
     this.listeners.forEach((callback, index) => {
       try {

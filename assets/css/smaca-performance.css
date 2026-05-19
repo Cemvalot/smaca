@@ -496,14 +496,11 @@ html.smaca-is-scrolling .occupancy-sensor-floor__body {
 
 .conn-alert-strip {
   margin-top: var(--space-3);
-  overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
 .conn-alert-strip__track {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  width: max-content;
-  animation: conn-alert-scroll 40s linear infinite;
 }
 .conn-alert-pill {
   font-size: 11px;
@@ -512,11 +509,8 @@ html.smaca-is-scrolling .occupancy-sensor-floor__body {
   border: 1px solid rgba(129, 140, 248, 0.35);
   background: rgba(99, 102, 241, 0.12);
   color: #c7d2fe;
-  white-space: nowrap;
-}
-@keyframes conn-alert-scroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  white-space: normal;
+  max-width: 100%;
 }
 
 .conn-table-toolbar { margin-bottom: var(--space-2); }

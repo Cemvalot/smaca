@@ -108,7 +108,7 @@ function logSmacaHydratedState(lengths) {
 }
 
 const SMACA_PAGE_BUCKETS = {
-  overview: ['iaq', 'occupancy', 'environmental'],
+  overview: ['iaq', 'occupancy', 'environmental', 'connectivity'],
   iaq: ['iaq'],
   occupancy: ['occupancy'],
   environmental: ['environmental'],
@@ -572,7 +572,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     iaq: SMACAState.getFilteredIAQ(),
     occupancy: SMACAState.getFilteredOccupancy(),
     environmental: SMACAState.getFilteredEnvironmental(),
-    energy: typeof SMACAState.getFilteredEnergy === 'function' ? SMACAState.getFilteredEnergy() : []
+    energy: typeof SMACAState.getFilteredEnergy === 'function' ? SMACAState.getFilteredEnergy() : [],
+    connectivity: typeof SMACAState.getFilteredConnectivity === 'function' ? SMACAState.getFilteredConnectivity() : [],
+    connectivity: typeof SMACAState.getFilteredConnectivity === 'function' ? SMACAState.getFilteredConnectivity() : []
   };
   updateAllDashboards(SMACAState.currentTimeframe, filteredData);
   
@@ -649,7 +651,7 @@ function renderIAQSection(reason, allowDeferred) {
 async function initializeStateFromApi() {
   const canUseApi = typeof window !== 'undefined' && window.SMACAApi;
   if (!canUseApi) {
-    applyHydratedState({ iaq: [], occupancy: [], environmental: [], energy: [] });
+    applyHydratedState({ iaq: [], occupancy: [], environmental: [], energy: [], connectivity: [] });
     return;
   }
 
@@ -685,7 +687,7 @@ async function initializeStateFromApi() {
     const selectedSensorId = chooseDefaultSensorIdFromSnapshots(overview, sensors);
     if (!Number.isFinite(Number(selectedSensorId))) {
       // No sensors yet; keep state empty but valid.
-      applyHydratedState({ iaq: [], occupancy: [], environmental: [], energy: [] });
+      applyHydratedState({ iaq: [], occupancy: [], environmental: [], energy: [], connectivity: [] });
       return;
     }
 
@@ -697,7 +699,7 @@ async function initializeStateFromApi() {
     setupSensorSelectionListeners();
   } catch (error) {
     console.error('SMACA API initialization failed:', error);
-    applyHydratedState({ iaq: [], occupancy: [], environmental: [], energy: [] });
+    applyHydratedState({ iaq: [], occupancy: [], environmental: [], energy: [], connectivity: [] });
   }
 }
 
@@ -705,8 +707,69 @@ const SMACA_SECTION_METRICS = {
   iaq: ['co2_ppm', 'temperature_c', 'humidity_rh', 'pm2_5_ugm3', 'pm10_ugm3', 'tvoc_index', 'battery_pct'],
   occupancy: ['people_in', 'people_out', 'people_total_in', 'people_total_out'],
   environmental: ['uv_index'],
-  energy: ['energy_kwh']
+  energy: ['energy_kwh'],
+  connectivity: ['signal_strength', 'snr', 'tx_ccq', 'tx_rate']
 };
+
+function sensorHasWirelessMetrics(sensor) {
+  if (!sensor) return false;
+  var latest = sensor.latest_snapshot || sensor.latest || {};
+  if (typeof window !== 'undefined' && window.SMACA_TELEMETRY_METRIC_NORMALIZE && typeof window.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest === 'function') {
+    latest = window.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest(latest);
+  }
+  if (typeof window !== 'undefined' && window.SMACA_CONNECTIVITY_QUALITY && typeof window.SMACA_CONNECTIVITY_QUALITY.hasConnectivityMetrics === 'function') {
+    return window.SMACA_CONNECTIVITY_QUALITY.hasConnectivityMetrics(latest);
+  }
+  return latest.rssi !== null && latest.rssi !== undefined
+    || latest.signal_strength !== null && latest.signal_strength !== undefined
+    || latest.snr !== null && latest.snr !== undefined
+    || latest.tx_ccq !== null && latest.tx_ccq !== undefined
+    || latest.tx_rate !== null && latest.tx_rate !== undefined;
+}
+
+function connectivityBandToScore(bandKey) {
+  var map = { excellent: 100, very_good: 85, good_usable: 70, weak_unstable: 45, bad: 20 };
+  return map[bandKey] !== undefined ? map[bandKey] : null;
+}
+
+function connectivityMetricsFromRow(row) {
+  var obj = row && row.payload && row.payload.object ? row.payload.object : (row || {});
+  if (typeof window !== 'undefined' && window.SMACA_TELEMETRY_METRIC_NORMALIZE && typeof window.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest === 'function') {
+    obj = window.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest(obj);
+  }
+  return {
+    rssi: obj.rssi !== undefined && obj.rssi !== null ? Number(obj.rssi) : (obj.signal_strength != null ? Number(obj.signal_strength) : null),
+    snr: obj.snr != null ? Number(obj.snr) : null,
+    tx_ccq: obj.tx_ccq != null ? Number(obj.tx_ccq) : null,
+    tx_rate: obj.tx_rate != null ? Number(obj.tx_rate) : null
+  };
+}
+
+function resolveCampusConnectivityQualityPct(sensors) {
+  var list = Array.isArray(sensors) ? sensors.filter(sensorHasWirelessMetrics) : [];
+  if (!list.length || typeof window === 'undefined' || !window.SMACA_CONNECTIVITY_QUALITY) return null;
+  var sums = { rssi: [], snr: [], tx_ccq: [], tx_rate: [] };
+  list.forEach(function (sensor) {
+    var latest = sensor.latest_snapshot || sensor.latest || {};
+    var m = connectivityMetricsFromRow({ payload: { object: latest } });
+    if (Number.isFinite(m.rssi)) sums.rssi.push(m.rssi);
+    if (Number.isFinite(m.snr)) sums.snr.push(m.snr);
+    if (Number.isFinite(m.tx_ccq)) sums.tx_ccq.push(m.tx_ccq);
+    if (Number.isFinite(m.tx_rate)) sums.tx_rate.push(m.tx_rate);
+  });
+  function avg(arr) {
+    if (!arr.length) return null;
+    return arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
+  }
+  var overall = window.SMACA_CONNECTIVITY_QUALITY.classifyOverall({
+    rssi: avg(sums.rssi),
+    snr: avg(sums.snr),
+    tx_ccq: avg(sums.tx_ccq),
+    tx_rate: avg(sums.tx_rate)
+  });
+  var band = (overall && (overall.dominant_band || overall.overall_band)) || null;
+  return band ? connectivityBandToScore(band) : null;
+}
 
 function isValidFiniteNumber(value) {
   const parsed = Number(value);
@@ -890,6 +953,15 @@ function buildBucketSensorIds(currentPage, bucket, selectedBySection, iaqSensorI
     if (bucket === 'occupancy') {
       return occupancyIds.length > 0 ? occupancyIds : [];
     }
+    if (bucket === 'connectivity') {
+      var wirelessIds = (Array.isArray(allSensorIds) ? allSensorIds : [])
+        .filter(function (id) {
+          var sensor = (window.SMACADashboardContext && window.SMACADashboardContext.sensors || [])
+            .find(function (s) { return Number(s && s.id) === id; });
+          return sensorHasWirelessMetrics(sensor);
+        });
+      return wirelessIds.slice(0, 3);
+    }
 
     const selectedSensorId = Number(selected[bucket]);
     return Number.isFinite(selectedSensorId) ? [selectedSensorId] : [];
@@ -1015,6 +1087,10 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
       energy: function () {
         const ids = buildBucketSensorIds(currentPage, 'energy', selectedBySection, iaqSensorIds, occupancySensorIds, allSensorIds);
         return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.energy, 'energy', forceRefresh);
+      },
+      connectivity: function () {
+        const ids = buildBucketSensorIds(currentPage, 'connectivity', selectedBySection, iaqSensorIds, occupancySensorIds, allSensorIds);
+        return fetchAndMapTimeseriesForSensors(ids, tf, SMACA_SECTION_METRICS.connectivity, 'connectivity', forceRefresh);
       }
     };
 
@@ -1031,7 +1107,8 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
       iaq: [],
       occupancy: [],
       environmental: [],
-      energy: []
+      energy: [],
+      connectivity: []
     };
     fetchedBuckets.forEach(function (bucketPayload) {
       if (nextHydratedState[bucketPayload.bucket] !== undefined) {
@@ -2100,12 +2177,16 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, b
   let items = [];
   if (bucket === 'iaq') items = adapters.timeseriesPointsToIAQItems(firstResponse?.payload?.points || [], meta);
   if (bucket === 'occupancy') items = adapters.timeseriesPointsToOccupancyItems(firstResponse?.payload?.points || [], meta);
-  if (bucket === 'environmental' || bucket === 'energy') items = adapters.timeseriesPointsToEnvironmentalItems(firstResponse?.payload?.points || [], meta);
+  if (bucket === 'environmental' || bucket === 'energy' || bucket === 'connectivity') {
+    items = adapters.timeseriesPointsToEnvironmentalItems(firstResponse?.payload?.points || [], meta);
+  }
 
   responses.forEach(function (response) {
     if (bucket === 'iaq') items = adapters.mergeMetricIntoIAQItems(items, response.metric, response.payload?.points || []);
     if (bucket === 'occupancy') items = adapters.mergeMetricIntoOccupancyItems(items, response.metric, response.payload?.points || []);
-    if (bucket === 'environmental' || bucket === 'energy') items = adapters.mergeMetricIntoEnvironmentalItems(items, response.metric, response.payload?.points || []);
+    if (bucket === 'environmental' || bucket === 'energy' || bucket === 'connectivity') {
+      items = adapters.mergeMetricIntoEnvironmentalItems(items, response.metric, response.payload?.points || []);
+    }
   });
 
   if (bucket === 'iaq' && latestRow && items.length === 0) {
@@ -2206,11 +2287,13 @@ function applyHydratedState(data, shouldNotify) {
   SMACAState.rawData.occupancy = Array.isArray(data?.occupancy) ? data.occupancy : [];
   SMACAState.rawData.environmental = Array.isArray(data?.environmental) ? data.environmental : [];
   SMACAState.rawData.energy = Array.isArray(data?.energy) ? data.energy : [];
+  SMACAState.rawData.connectivity = Array.isArray(data?.connectivity) ? data.connectivity : [];
   logSmacaHydratedState({
     iaq: SMACAState.rawData.iaq.length,
     occupancy: SMACAState.rawData.occupancy.length,
     environmental: SMACAState.rawData.environmental.length,
-    energy: SMACAState.rawData.energy.length
+    energy: SMACAState.rawData.energy.length,
+    connectivity: SMACAState.rawData.connectivity.length
   });
   const iaqHydratedSample = SMACAState.rawData.iaq.slice(0, 10).map(function (row) {
     return {
@@ -2444,7 +2527,8 @@ function renderCurrentPageOnly(timeframe, filteredData) {
     (filteredData?.iaq || []).length,
     (filteredData?.occupancy || []).length,
     (filteredData?.environmental || []).length,
-    (filteredData?.energy || []).length
+    (filteredData?.energy || []).length,
+    (filteredData?.connectivity || []).length
   ].join('|');
   if (SMACA_TS_CACHE.render.lastSignature === signature) return;
   SMACA_TS_CACHE.render.lastSignature = signature;
@@ -4482,7 +4566,10 @@ function updateOverviewSystemStatus() {
   const totalSensors = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensors.length;
   const connectivityHealthCounter = document.getElementById('overview-connectivity-health');
   if (connectivityHealthCounter) {
-    connectivityHealthCounter.textContent = totalSensors > 0 ? `${Math.round((connectedSensors / totalSensors) * 100)}%` : smacaT('not_available','Not available');
+    const wirelessPct = resolveCampusConnectivityQualityPct(sensors);
+    connectivityHealthCounter.textContent = wirelessPct !== null
+      ? `${Math.round(wirelessPct)}%`
+      : (totalSensors > 0 ? `${Math.round((connectedSensors / totalSensors) * 100)}%` : smacaT('not_available','Not available'));
   }
   
   // Update AI events (from AI Insights if available)
@@ -4515,7 +4602,10 @@ function updateOverviewLiveValues(overview, sensorRows) {
   const totals = overview?.totals || {};
   const connectedSensors = Number.isFinite(Number(totals.connected_sensors)) ? Number(totals.connected_sensors) : sensorRows.length;
   const totalSensors = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensorRows.length;
-  const connectivityPct = totalSensors > 0 ? Math.round((connectedSensors / totalSensors) * 100) : null;
+  const wirelessQualityPct = resolveCampusConnectivityQualityPct(sensorRows);
+  const connectivityPct = wirelessQualityPct !== null
+    ? Math.round(wirelessQualityPct)
+    : (totalSensors > 0 ? Math.round((connectedSensors / totalSensors) * 100) : null);
 
   const latestCo2 = resolveLatestIaqMetricForOverview('co2', iaqRows, overview, sensorRows);
   const latestPm25 = resolveLatestIaqMetricForOverview('pm2_5', iaqRows, overview, sensorRows);
@@ -4536,7 +4626,9 @@ function updateOverviewLiveValues(overview, sensorRows) {
 
   const connectivityTrendEl = document.getElementById('overview-connectivity-trend');
   if (connectivityTrendEl) {
-    connectivityTrendEl.textContent = Number.isFinite(connectivityPct) ? `${connectivityPct}% ${smacaT('uptime', 'uptime')}` : smacaT('no_connectivity_data', 'No connectivity data');
+    connectivityTrendEl.textContent = Number.isFinite(connectivityPct)
+      ? `${connectivityPct}% ${smacaT('overview_connectivity_quality', 'quality')}`
+      : smacaT('no_connectivity_data', 'No connectivity data');
   }
 
   const badgeAir = document.getElementById('overview-badge-air-quality');
@@ -5153,11 +5245,7 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   const iaqRows = getOverviewModuleRows('iaq', filteredData, timeframe);
   const occupancyRows = getOverviewModuleRows('occupancy', filteredData, timeframe);
   const environmentalRows = getOverviewModuleRows('environmental', filteredData, timeframe);
-  const energyRows = getOverviewModuleRows('energy', filteredData, timeframe);
-
-  const allRows = []
-    .concat(iaqRows, occupancyRows, environmentalRows, energyRows)
-    .filter(Boolean);
+  const connectivityRows = getOverviewModuleRows('connectivity', filteredData, timeframe);
 
   const chartWindow = getSmacaLineChartWindow(timeframe);
   const buckets = chartWindow.bucketTimesMs.slice();
@@ -5166,7 +5254,7 @@ function renderOverviewTrendChart(filteredData, timeframe) {
 
   const co2ByBucket = aggregateMetricByBucket(iaqRows, 'co2', chartWindow);
   const occupancyByBucket = aggregateOccupancyByBucket(occupancyRows, chartWindow);
-  const connectivityByBucket = aggregateConnectivityByBucket(allRows, chartWindow);
+  const connectivityByBucket = aggregateConnectivityQualityByBucket(connectivityRows, chartWindow);
   const uvByBucket = aggregateMetricByBucket(environmentalRows, 'uv_index', chartWindow);
 
   const co2SeriesRaw = buckets.map(function (bucket) {
@@ -5199,7 +5287,7 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   const chartSeriesCandidates = [
     { key: 'co2', label: smacaT('overview_chart_legend_co2', 'CO₂ · Air quality'), unit: 'ppm', color: '#3b82f6', values: co2Series },
     { key: 'occupancy', label: smacaT('overview_chart_movement_balance', 'Movement balance'), unit: '', color: '#22c55e', values: occupancySeries },
-    { key: 'connectivity', label: smacaT('overview_chart_legend_connectivity', 'Connectivity · uptime'), unit: '%', color: '#06b6d4', values: connectivitySeries },
+    { key: 'connectivity', label: smacaT('overview_chart_legend_connectivity', 'Connectivity · quality'), unit: '%', color: '#06b6d4', values: connectivitySeries },
     { key: 'uv', label: smacaT('overview_chart_legend_uv', 'UV · Environmental'), unit: '', color: '#f59e0b', values: uvSeries }
   ];
   const chartSeries = chartSeriesCandidates.filter(function (series) {
@@ -5293,13 +5381,12 @@ function aggregateOccupancyByBucket(rows, chartWindow) {
   return avgByBucket;
 }
 
-function aggregateConnectivityByBucket(rows, chartWindow) {
+function aggregateConnectivityQualityByBucket(rows, chartWindow) {
   const safeRows = Array.isArray(rows) ? rows : [];
-  const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
-  const totalSensors = Math.max(1, sensors.length);
-  const bucketSensorSet = {};
   const startMs = chartWindow?.rangeStartMs;
   const endMs = chartWindow?.rangeEndMs;
+  const quality = typeof window !== 'undefined' ? window.SMACA_CONNECTIVITY_QUALITY : null;
+  const bucketMetrics = {};
 
   safeRows.forEach(function (item) {
     const t = parseSmacaRowTimeMs(item?.time || item?.timestamp || 0);
@@ -5307,13 +5394,44 @@ function aggregateConnectivityByBucket(rows, chartWindow) {
     if (!Number.isFinite(t) || t < startMs || t > endMs || sensorId === null || sensorId === undefined) return;
     const bucket = resolveSmacaChartBucketKey(t, chartWindow);
     if (bucket === null) return;
-    if (!bucketSensorSet[bucket]) bucketSensorSet[bucket] = new Set();
-    bucketSensorSet[bucket].add(String(sensorId));
+    const m = connectivityMetricsFromRow(item);
+    if (!bucketMetrics[bucket]) bucketMetrics[bucket] = {};
+    const sid = String(sensorId);
+    if (!bucketMetrics[bucket][sid]) {
+      bucketMetrics[bucket][sid] = { rssi: [], snr: [], tx_ccq: [], tx_rate: [] };
+    }
+    if (Number.isFinite(m.rssi)) bucketMetrics[bucket][sid].rssi.push(m.rssi);
+    if (Number.isFinite(m.snr)) bucketMetrics[bucket][sid].snr.push(m.snr);
+    if (Number.isFinite(m.tx_ccq)) bucketMetrics[bucket][sid].tx_ccq.push(m.tx_ccq);
+    if (Number.isFinite(m.tx_rate)) bucketMetrics[bucket][sid].tx_rate.push(m.tx_rate);
   });
 
-  return Object.keys(bucketSensorSet).reduce(function (acc, key) {
-    const onlineCount = bucketSensorSet[key].size;
-    acc[Number(key)] = Math.max(0, Math.min(100, (onlineCount / totalSensors) * 100));
+  function avg(arr) {
+    if (!arr || !arr.length) return null;
+    return arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
+  }
+
+  return Object.keys(bucketMetrics).reduce(function (acc, key) {
+    const perSensor = bucketMetrics[key];
+    const scores = [];
+    Object.keys(perSensor).forEach(function (sid) {
+      const s = perSensor[sid];
+      const metrics = {
+        rssi: avg(s.rssi),
+        snr: avg(s.snr),
+        tx_ccq: avg(s.tx_ccq),
+        tx_rate: avg(s.tx_rate)
+      };
+      if (!quality || typeof quality.classifyOverall !== 'function') return;
+      if (metrics.rssi === null && metrics.snr === null && metrics.tx_ccq === null && metrics.tx_rate === null) return;
+      var overall = quality.classifyOverall(metrics);
+      var band = overall && (overall.dominant_band || overall.overall_band);
+      var score = band ? connectivityBandToScore(band) : null;
+      if (score !== null) scores.push(score);
+    });
+    acc[Number(key)] = scores.length
+      ? scores.reduce(function (a, b) { return a + b; }, 0) / scores.length
+      : null;
     return acc;
   }, {});
 }

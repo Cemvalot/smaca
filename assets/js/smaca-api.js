@@ -312,6 +312,20 @@
       if (metric === 'energy_kwh') {
         existing.payload.object.energy_kwh = value;
       }
+      if (metric === 'signal_strength') {
+        existing.payload.object.signal_strength = value;
+        existing.payload.object.rssi = value;
+      }
+      if (metric === 'snr' || metric === 'signal_to_noise') {
+        existing.payload.object.snr = value;
+        existing.payload.object.signal_to_noise = value;
+      }
+      if (metric === 'tx_ccq') {
+        existing.payload.object.tx_ccq = value;
+      }
+      if (metric === 'tx_rate') {
+        existing.payload.object.tx_rate = value;
+      }
     });
 
     return normalized;

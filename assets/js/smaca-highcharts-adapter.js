@@ -731,30 +731,6 @@ function smacaUiT(key, fallback) {
     if (!rendered.ok) return rendered;
     const isFirstRender = !!rendered.initialized;
 
-    if (isFirstRender) {
-      console.info('Highcharts chart initialized', {
-        metric: params.metric,
-        timeframe: params.timeframe,
-        pointCount: params.seriesData.length
-      });
-    } else {
-      const reason = store.lastMetric !== params.metric
-        ? 'metric change'
-        : (store.lastTimeframe !== params.timeframe ? 'timeframe change' : 'data refresh');
-      console.info(
-        reason === 'metric change'
-          ? 'Highcharts chart updated on metric change'
-          : (reason === 'timeframe change'
-            ? 'Highcharts chart updated on timeframe change'
-            : 'Highcharts chart updated'),
-        {
-          metric: params.metric,
-          timeframe: params.timeframe,
-          pointCount: params.seriesData.length
-        }
-      );
-    }
-
     store.lastMetric = params.metric;
     store.lastTimeframe = params.timeframe;
     return { ok: true, initialized: isFirstRender, chartKey: 'iaq-trend-main' };

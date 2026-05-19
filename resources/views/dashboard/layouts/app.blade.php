@@ -768,6 +768,7 @@
       overview_uv_low_exposure: "{{ __('messages.dashboard_i18n.overview_uv_low_exposure') }}",
       overview_chart_legend_co2: "{{ __('messages.dashboard_i18n.overview_chart_legend_co2') }}",
       overview_chart_legend_connectivity: "{{ __('messages.dashboard_i18n.overview_chart_legend_connectivity') }}",
+      overview_connectivity_quality: "{{ __('messages.dashboard_i18n.overview_connectivity_quality') }}",
       overview_chart_legend_uv: "{{ __('messages.dashboard_i18n.overview_chart_legend_uv') }}",
       overview_watch_thermal_comfort: "{{ __('messages.dashboard_i18n.overview_watch_thermal_comfort') }}",
       overview_watch_iaq_health: "{{ __('messages.dashboard_i18n.overview_watch_iaq_health') }}",

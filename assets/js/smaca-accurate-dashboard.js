@@ -112,10 +112,6 @@ function initAccurateIAQDashboard(forceRefresh) {
   // Get current timeframe
   const currentTimeframe = SMACAState.currentTimeframe;
   const lastRendered = typeof window !== 'undefined' ? window.lastRenderedTimeframe : null;
-  if (typeof window !== 'undefined' && lastRendered !== currentTimeframe) {
-    console.debug('[SMACA][IAQ] timeframe change start', { from: lastRendered, to: currentTimeframe });
-  }
-  console.debug('[SMACA][IAQ] active timeframe = ' + currentTimeframe);
 
   const filteredIAQ = SMACAState.getFilteredIAQ();
   const dataStamp = [
@@ -669,7 +665,6 @@ function renderIaqMainTrendChart(computed) {
   if (typeof window !== 'undefined' && window.SMACAHighchartsAdapter && window.SMACAHighchartsAdapter.hasHighcharts()) {
     // Strict guard: when Highcharts is available, clear any previous fallback artifacts first.
     clearFallbackArtifacts();
-    console.debug('[SMACA][IAQ] chart update start', { timeframe: computed.timeframe, metric: metric });
     const highchartsSeries = series.map(function (entry) {
       return [new Date(entry.time).getTime(), Number(entry.value)];
     }).filter(function (point) {
@@ -697,13 +692,6 @@ function renderIaqMainTrendChart(computed) {
       }
       renderer = 'highcharts';
       setIaqRendererState('highcharts');
-      console.debug('[SMACA][IAQ] renderer = highcharts');
-      console.debug('[SMACA][IAQ] chart update success', {
-        timeframe: computed.timeframe,
-        metric: metric,
-        pointCount: highchartsSeries.length,
-        recreated: !!rendered.recreated
-      });
       if (typeof window !== 'undefined' && window.__iaqHighchartsDebug) {
         window.__iaqHighchartsDebug.usingHighcharts = true;
       }
@@ -741,7 +729,6 @@ function renderIaqMainTrendChart(computed) {
     window.SMACAHighchartsAdapter.destroyIaqTrendHighchart();
   }
   setIaqRendererState('fallback');
-  console.debug('[SMACA][IAQ] renderer = fallback');
 
   // Fallback legacy SVG rendering when Highcharts is unavailable.
   const currentPage = typeof getSmacaCurrentPage === 'function' ? getSmacaCurrentPage() : null;
@@ -1202,7 +1189,6 @@ function renderIaqHourlyHeatStrip(computed) {
           window.SMACATelemetry.markChartHostRendered(heatHost, String(timeframe || '') + '|heatstrip');
         }
       }
-      console.debug('[SMACA][IAQ] pattern update success', { timeframe: timeframe, recreated: !!rendered.recreated });
     }
   } else {
     // Fallback: keep a lightweight strip if heatmap module is unavailable.
