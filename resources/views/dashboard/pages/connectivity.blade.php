@@ -25,6 +25,17 @@
     <span class="last-updated-pill" id="connectivity-last-updated">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span>
   </div>
 
+  <section class="conn-hero-health" aria-labelledby="conn-health-title">
+    <div class="conn-hero-health__copy">
+      <h3 id="conn-health-title" class="conn-hero-health__title">{{ __('messages.dashboard_i18n.connectivity_health_title') }}</h3>
+      <p class="conn-hero-health__subtitle">{{ __('messages.dashboard_i18n.connectivity_health_subtitle') }}</p>
+      <div id="connectivity-health-legend" class="conn-health-legend" aria-live="polite"></div>
+    </div>
+    <div class="conn-hero-health__ring-wrap">
+      <div id="connectivity-health-ring" class="conn-health-ring" role="img" aria-labelledby="conn-health-title"></div>
+    </div>
+  </section>
+
   {{-- §1 Quality overview KPIs --}}
   <section class="card conn-zone conn-zone--kpis" aria-labelledby="conn-kpis-title">
     <div class="card__header">
@@ -35,6 +46,7 @@
       <div id="connectivity-kpi-grid" class="conn-kpi-grid" aria-live="polite">
         <div class="conn-kpi-skeleton"></div>
       </div>
+      <div id="connectivity-alert-strip" class="conn-alert-strip" aria-live="polite" hidden></div>
     </div>
   </section>
 
@@ -45,6 +57,12 @@
       <p class="card__subtitle">{{ __('messages.dashboard_i18n.connectivity_wireless_table_subtitle') }}</p>
     </div>
     <div class="card__body conn-table-wrap">
+      <div class="conn-table-toolbar">
+        <label class="conn-table-search">
+          <span class="sr-only">{{ __('messages.dashboard_i18n.connectivity_table_search') }}</span>
+          <input type="search" id="connectivity-table-search" class="conn-table-search__input" placeholder="{{ __('messages.dashboard_i18n.connectivity_table_search') }}" autocomplete="off" />
+        </label>
+      </div>
       <div id="connectivity-wireless-table-root"></div>
     </div>
   </section>

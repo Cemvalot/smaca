@@ -133,8 +133,30 @@
     };
   }
 
+  function medianRank(ranks) {
+    if (!ranks.length) return null;
+    var sorted = ranks.slice().sort(function (a, b) { return a - b; });
+    return sorted[Math.floor(sorted.length / 2)];
+  }
+
+  function rankToBand(rank) {
+    var keys = ['excellent', 'very_good', 'good_usable', 'weak_unstable', 'bad'];
+    return keys[Math.min(4, Math.max(0, rank))] || 'bad';
+  }
+
+  function compositeLabel(dominantBand, limitingKey) {
+    var dom = bandLabel(dominantBand);
+    var lim = metricLabel(limitingKey);
+    var tpl = t('connectivity_composite_with_limit', ':dominant with :metric limitation');
+    if (tpl.indexOf(':dominant') >= 0) {
+      return tpl.replace(':dominant', dom).replace(':metric', lim);
+    }
+    return dom + ' · ' + lim;
+  }
+
   function classifyOverall(metrics) {
     var classifications = {};
+    var ranks = [];
     var worstRank = -1;
     var worstBand = null;
     var limitingKey = null;
@@ -147,6 +169,7 @@
       var cls = classifyMetric(key, raw);
       if (!cls) continue;
       classifications[key] = cls;
+      ranks.push(cls.band_rank);
       if (cls.band_rank > worstRank) {
         worstRank = cls.band_rank;
         worstBand = cls.band_key;
@@ -155,11 +178,14 @@
       }
     }
 
-    if (!worstBand) {
+    if (!worstBand || !ranks.length) {
       return {
         overall_band: null,
         overall_label: null,
         overall_severity: 'insufficient_data',
+        dominant_band: null,
+        dominant_label: null,
+        composite_label: null,
         limiting_metric: null,
         limiting_metric_key: null,
         limiting_metric_value: null,
@@ -167,17 +193,40 @@
       };
     }
 
-    var sev = (BANDS[worstBand] || BANDS.bad).severity;
+    var medRank = medianRank(ranks);
+    var dominantBand = rankToBand(medRank !== null ? medRank : worstRank);
+    var gap = worstRank - (medRank !== null ? medRank : worstRank);
+    var useComposite = gap >= 2 && limitingKey;
+    var displayLabel = useComposite ? compositeLabel(dominantBand, limitingKey) : bandLabel(worstBand);
+    var displayBand = useComposite ? dominantBand : worstBand;
+    var displaySev = (BANDS[displayBand] || BANDS.bad).severity;
+    if (!useComposite && worstRank >= 3) {
+      displaySev = (BANDS[worstBand] || BANDS.bad).severity;
+    }
+
     return {
       overall_band: worstBand,
-      overall_label: bandLabel(worstBand),
-      overall_severity: sev,
+      overall_label: displayLabel,
+      overall_severity: displaySev,
+      dominant_band: dominantBand,
+      dominant_label: bandLabel(dominantBand),
+      composite_label: useComposite ? displayLabel : null,
       limiting_metric: metricLabel(limitingKey),
       limiting_metric_key: limitingKey,
       limiting_metric_value: limitingCls ? limitingCls.value : null,
       limiting_metric_unit: limitingCls ? limitingCls.unit : null,
       metrics: classifications
     };
+  }
+
+  function healthBandCounts(devices) {
+    var counts = { excellent: 0, very_good: 0, good_usable: 0, weak_unstable: 0, bad: 0 };
+    (devices || []).forEach(function (d) {
+      var o = d.overall || {};
+      var b = o.dominant_band || o.overall_band;
+      if (b && counts[b] !== undefined) counts[b] += 1;
+    });
+    return counts;
   }
 
   function extractMetricsFromLatest(latest) {
@@ -229,12 +278,22 @@
     return TIMESERIES_METRIC[metricKey] || metricKey;
   }
 
+  var HEALTH_RING_COLORS = {
+    excellent: '#22d3ee',
+    very_good: '#34d399',
+    good_usable: '#fbbf24',
+    weak_unstable: '#fb923c',
+    bad: '#f87171'
+  };
+
   global.SMACA_CONNECTIVITY_QUALITY = {
     BANDS: BANDS,
     METRICS: METRICS,
     METRIC_ORDER: METRIC_ORDER,
+    HEALTH_RING_COLORS: HEALTH_RING_COLORS,
     classifyMetric: classifyMetric,
     classifyOverall: classifyOverall,
+    healthBandCounts: healthBandCounts,
     extractMetricsFromLatest: extractMetricsFromLatest,
     hasConnectivityMetrics: hasConnectivityMetrics,
     pickMetricValue: pickMetricValue,

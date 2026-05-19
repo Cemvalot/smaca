@@ -9,6 +9,9 @@
   var refreshToken = 0;
   var lastFingerprint = '';
   var sparkCache = {};
+  var tableDevices = [];
+  var tableSort = { key: 'quality', dir: 'asc' };
+  var tableSearch = '';
 
   var BAND_COLORS = {
     excellent: '#34d399',
@@ -32,6 +35,21 @@
     return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
   function tile() { return global.SMACATelemetry || null; }
+  function ringColors() {
+    var qm = q();
+    return qm.HEALTH_RING_COLORS || BAND_COLORS;
+  }
+
+  function wirelessBarsSvg(strength) {
+    var bars = Math.min(4, Math.max(0, Math.round((strength || 0) / 25)));
+    var h = [4, 7, 10, 13];
+    var out = '<svg class="conn-wifi-bars" width="18" height="14" viewBox="0 0 18 14" aria-hidden="true">';
+    for (var i = 0; i < 4; i++) {
+      var on = i < bars;
+      out += '<rect x="' + (i * 4 + 1) + '" y="' + (14 - h[i]) + '" width="2.5" height="' + h[i] + '" rx="0.5" fill="' + (on ? '#22d3ee' : 'rgba(148,163,184,0.25)') + '"/>';
+    }
+    return out + '</svg>';
+  }
 
   function normalizeLatest(latest) {
     var fn = global.SMACA_TELEMETRY_METRIC_NORMALIZE && global.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest;
@@ -186,7 +204,7 @@
       return x.toFixed(1) + ',' + y.toFixed(1);
     }).join(' ');
     return '<svg class="conn-spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true">' +
-      '<polyline fill="none" stroke="' + esc(stroke) + '" stroke-width="1.5" points="' + coords + '"/></svg>';
+      '<polyline fill="none" stroke="' + esc(stroke) + '" stroke-width="1.75" stroke-opacity="0.95" points="' + coords + '"/></svg>';
   }
 
   function fetchSparkline(sensorId, metricApiKey) {
@@ -210,17 +228,19 @@
     var accent = spec.accent || 'cyan';
     var spark = spec.sparkHtml || '';
     var val = cls ? (cls.value + (cls.unit ? ' ' + cls.unit : '')) : '—';
-    var band = cls ? cls.label : t('connectivity_no_data', 'No data');
+    var band = cls ? (cls.display_label || cls.label) : t('connectivity_no_data', 'No data');
     return (
       '<article class="conn-kpi-card conn-kpi-card--' + accent + '">' +
+      '<div class="conn-kpi-card__glow" aria-hidden="true"></div>' +
       '<div class="conn-kpi-card__icon" aria-hidden="true">' + (spec.icon || '') + '</div>' +
       '<div class="conn-kpi-card__body">' +
       '<div class="conn-kpi-card__label">' + esc(label) + '</div>' +
-      '<div class="conn-kpi-card__value-row">' +
+      '<div class="conn-kpi-card__main">' +
       '<span class="conn-kpi-card__value">' + esc(String(val)) + '</span>' +
-      spark +
-      '<span class="conn-kpi-card__band badge badge--' + esc(cls ? cls.severity : 'muted') + '">' + esc(band) + '</span>' +
-      '</div></div></article>'
+      '<span class="conn-kpi-card__chip badge badge--' + esc(cls ? cls.severity : 'muted') + '">' + esc(band) + '</span>' +
+      '</div>' +
+      '<div class="conn-kpi-card__spark-row">' + (spark || '') + '</div>' +
+      '</div></article>'
     );
   }
 
@@ -244,9 +264,10 @@
     var overallCls = overall.overall_band ? {
       band_key: overall.overall_band,
       label: overall.overall_label,
+      display_label: overall.composite_label || overall.overall_label,
       severity: overall.overall_severity,
-      value: overall.overall_label,
-      unit: ''
+      value: devices.length,
+      unit: t('devices', 'devices')
     } : null;
 
     if (limitingEl && overall.limiting_metric) {
@@ -276,13 +297,153 @@
       fetchSparkline(sample.id, apiKeys[mk]).then(function (pts) {
         var card = grid.querySelector('.conn-kpi-card--' + ({ rssi: 'cyan', snr: 'green', tx_ccq: 'amber', tx_rate: 'indigo' }[mk]));
         if (!card) return;
-        var row = card.querySelector('.conn-kpi-card__value-row');
+        var row = card.querySelector('.conn-kpi-card__spark-row');
         if (!row || pts.length < 2) return;
-        var existing = row.querySelector('.conn-spark');
-        if (existing) existing.remove();
-        row.insertAdjacentHTML('beforeend', sparklineSvg(pts, sparkColors[mk]));
+        row.innerHTML = sparklineSvg(pts, sparkColors[mk]);
       });
     });
+    renderAlertStrip(devices);
+  }
+
+  function renderHealthRing(devices) {
+    var ringEl = document.getElementById('connectivity-health-ring');
+    var legendEl = document.getElementById('connectivity-health-legend');
+    if (!ringEl) return;
+    var quality = q();
+    var colors = ringColors();
+    var bandLabels = {
+      excellent: t('connectivity_band_excellent', 'Excellent'),
+      very_good: t('connectivity_band_very_good', 'Very good'),
+      good_usable: t('connectivity_band_good_usable', 'Good'),
+      weak_unstable: t('connectivity_band_weak_unstable', 'Weak'),
+      bad: t('connectivity_band_bad', 'Bad')
+    };
+    var counts = quality.healthBandCounts ? quality.healthBandCounts(devices) : bandCounts(devices, 'rssi');
+    var order = ['excellent', 'very_good', 'good_usable', 'weak_unstable', 'bad'];
+    var data = order.map(function (bk) {
+      return { name: bandLabels[bk], y: counts[bk] || 0, color: colors[bk] || BAND_COLORS[bk] };
+    }).filter(function (d) { return d.y > 0; });
+    var total = devices.length;
+    if (!total || !data.length) {
+      ringEl.innerHTML = '<p class="overview-live-note">' + esc(t('connectivity_no_data', 'No data')) + '</p>';
+      if (legendEl) legendEl.innerHTML = '';
+      return;
+    }
+    var tel = tile();
+    ringEl.innerHTML = '';
+    if (tel && tel.renderDonut) {
+      tel.renderDonut(ringEl, {
+        data: data,
+        centerLabel: total,
+        centerSubLabel: t('devices', 'devices'),
+        height: 220,
+        showLegend: false,
+        innerSize: '72%'
+      });
+    }
+    if (legendEl) {
+      legendEl.innerHTML = order.map(function (bk) {
+        var n = counts[bk] || 0;
+        if (!n) return '';
+        return '<span class="conn-health-legend__item"><span class="conn-health-legend__dot" style="background:' + (colors[bk] || BAND_COLORS[bk]) + '"></span>' +
+          esc(bandLabels[bk]) + ' <strong>' + n + '</strong></span>';
+      }).join('');
+    }
+  }
+
+  function buildAlerts(devices) {
+    var alerts = [];
+    var byLoc = {};
+    devices.forEach(function (d) {
+      var loc = d.location || '';
+      if (!byLoc[loc]) byLoc[loc] = { weakCcq: 0, weakRate: 0, stale: 0 };
+      if (d.status.key === 'stale' || d.status.key === 'offline') byLoc[loc].stale += 1;
+      if (d.classifications.tx_ccq && (d.classifications.tx_ccq.band_key === 'bad' || d.classifications.tx_ccq.band_key === 'weak_unstable')) {
+        byLoc[loc].weakCcq += 1;
+      }
+      if (d.classifications.tx_rate && (d.classifications.tx_rate.band_key === 'bad' || d.classifications.tx_rate.band_key === 'weak_unstable')) {
+        byLoc[loc].weakRate += 1;
+      }
+    });
+    Object.keys(byLoc).forEach(function (loc) {
+      var b = byLoc[loc];
+      if (b.weakRate >= 2) {
+        alerts.push(t('connectivity_alert_tx_rate', 'TX-rate degraded on :location').replace(':location', loc));
+      }
+      if (b.weakCcq >= 2) {
+        alerts.push(t('connectivity_alert_weak_ccq', 'Weak TX-CCQ detected in :location').replace(':location', loc));
+      }
+    });
+    var staleCount = devices.filter(function (d) { return d.status.key === 'stale'; }).length;
+    if (staleCount) {
+      alerts.push(t('connectivity_alert_stale_devices', ':count stale wireless devices').replace(':count', String(staleCount)));
+    }
+    var weakRssi = devices.filter(function (d) {
+      return d.classifications.rssi && d.classifications.rssi.band_key === 'weak_unstable';
+    }).length;
+    if (weakRssi >= 2) {
+      alerts.push(t('connectivity_alert_signal_instability', 'Signal instability detected'));
+    }
+    return alerts.slice(0, 12);
+  }
+
+  function renderAlertStrip(devices) {
+    var strip = document.getElementById('connectivity-alert-strip');
+    if (!strip) return;
+    var alerts = buildAlerts(devices);
+    if (!alerts.length) {
+      strip.hidden = true;
+      strip.innerHTML = '';
+      return;
+    }
+    strip.hidden = false;
+    var pills = alerts.concat(alerts).map(function (msg) {
+      return '<span class="conn-alert-pill">' + esc(msg) + '</span>';
+    }).join('');
+    strip.innerHTML = '<div class="conn-alert-strip__track">' + pills + '</div>';
+  }
+
+  function bandRank(band) {
+    var ranks = { excellent: 0, very_good: 1, good_usable: 2, weak_unstable: 3, bad: 4 };
+    return ranks[band] !== undefined ? ranks[band] : 9;
+  }
+
+  function sortDevices(list) {
+    var key = tableSort.key;
+    var dir = tableSort.dir === 'desc' ? -1 : 1;
+    return list.slice().sort(function (a, b) {
+      var av; var bv;
+      if (key === 'device') { av = a.name; bv = b.name; return dir * String(av).localeCompare(String(bv)); }
+      if (key === 'location') { av = a.location; bv = b.location; return dir * String(av).localeCompare(String(bv)); }
+      if (key === 'quality') {
+        av = bandRank((a.overall && a.overall.dominant_band) || a.overall.overall_band);
+        bv = bandRank((b.overall && b.overall.dominant_band) || b.overall.overall_band);
+        return dir * (av - bv);
+      }
+      if (key === 'status') {
+        av = a.status.key; bv = b.status.key;
+        return dir * String(av).localeCompare(String(bv));
+      }
+      av = a.metrics[key]; bv = b.metrics[key];
+      if (av === null) av = dir > 0 ? Infinity : -Infinity;
+      if (bv === null) bv = dir > 0 ? Infinity : -Infinity;
+      return dir * ((av || 0) - (bv || 0));
+    });
+  }
+
+  function filterDevices(list) {
+    var qstr = (tableSearch || '').trim().toLowerCase();
+    if (!qstr) return list;
+    return list.filter(function (d) {
+      return (d.name || '').toLowerCase().indexOf(qstr) >= 0 ||
+        (d.deviceId || '').toLowerCase().indexOf(qstr) >= 0 ||
+        (d.location || '').toLowerCase().indexOf(qstr) >= 0;
+    });
+  }
+
+  function sortTh(key, label) {
+    var active = tableSort.key === key ? ' conn-th--active conn-th--' + tableSort.dir : '';
+    return '<th class="conn-th' + active + '" data-sort="' + key + '" scope="col" tabindex="0">' + esc(label) + '</th>';
   }
 
   function renderWirelessTable(devices) {
@@ -292,49 +453,41 @@
       root.innerHTML = '<p class="overview-live-note">' + esc(t('connectivity_breakdown_no_devices', 'No wireless devices in scope')) + '</p>';
       return;
     }
-    var groups = {};
-    devices.forEach(function (d) {
-      var fk = d.floorKey;
-      if (!groups[fk]) groups[fk] = [];
-      groups[fk].push(d);
+    tableDevices = devices;
+    var rows = sortDevices(filterDevices(devices));
+    var html = '<div class="conn-table-scroll"><table class="conn-table"><thead><tr>' +
+      sortTh('device', t('connectivity_col_device', 'Device')) +
+      sortTh('location', t('connectivity_col_location', 'Location')) +
+      sortTh('rssi', 'RSSI') + sortTh('snr', 'SNR') + sortTh('tx_ccq', 'TX-CCQ') + sortTh('tx_rate', 'TX-rate') +
+      sortTh('quality', t('connectivity_col_quality', 'Quality')) +
+      sortTh('status', t('connectivity_col_status', 'Status')) +
+      '</tr></thead><tbody>';
+    rows.forEach(function (d) {
+      var cls = d.classifications;
+      var qLabel = d.overall.composite_label || d.overall.overall_label;
+      var pulse = d.status.key === 'online' ? '<span class="conn-row-pulse" aria-hidden="true"></span>' : '';
+      html += '<tr class="conn-table-row conn-table-row--' + esc(d.status.key) + '">' +
+        '<td class="conn-td-device"><span class="conn-td-device__name">' + esc(d.name) + '</span>' +
+        '<span class="conn-td-device__id">' + esc(d.deviceId) + '</span></td>' +
+        '<td>' + esc(d.location) + '</td>' +
+        metricCellHtml('rssi', cls.rssi, d.metrics.rssi) +
+        metricCellHtml('snr', cls.snr, d.metrics.snr) +
+        metricCellHtml('tx_ccq', cls.tx_ccq, d.metrics.tx_ccq) +
+        metricCellHtml('tx_rate', cls.tx_rate, d.metrics.tx_rate) +
+        '<td class="conn-td-quality">' + badgeHtml({ band_key: d.overall.dominant_band || d.overall.overall_band, label: qLabel, severity: d.overall.overall_severity }, qLabel) + '</td>' +
+        '<td class="conn-td-status">' + pulse + '<span class="conn-status conn-status--' + esc(d.status.key) + '">' + esc(d.status.label) + '</span></td>' +
+        '</tr>';
     });
-    var floors = Object.keys(groups).sort();
-    var html = '';
-    floors.forEach(function (fk) {
-      var rows = groups[fk];
-      var floorLabel = fk === '__other' ? t('iaq_sensor_breakdown_unknown_location', 'Other') :
-        (global.SMACASpatial && global.SMACASpatial.labelFor ? global.SMACASpatial.labelFor(fk) : fk);
-      html += '<div class="conn-table-group"><div class="conn-table-group__head">' + esc(floorLabel) +
-        ' <span class="conn-table-group__count">' + rows.length + '</span></div>';
-      html += '<div class="conn-table-scroll"><table class="conn-table"><thead><tr>' +
-        '<th>' + esc(t('connectivity_col_device', 'Device')) + '</th>' +
-        '<th>' + esc(t('connectivity_col_location', 'Location')) + '</th>' +
-        '<th>RSSI</th><th>SNR</th><th>TX-CCQ</th><th>TX-rate</th>' +
-        '<th>' + esc(t('connectivity_col_quality', 'Quality')) + '</th>' +
-        '<th>' + esc(t('connectivity_col_status', 'Status')) + '</th>' +
-        '</tr></thead><tbody>';
-      rows.sort(function (a, b) {
-        var ar = (a.overall.metrics && Object.keys(a.overall.metrics).length) ? (a.overall.overall_band || '') : 'z';
-        var br = (b.overall.metrics && Object.keys(b.overall.metrics).length) ? (b.overall.overall_band || '') : 'z';
-        return String(ar).localeCompare(String(br));
-      });
-      rows.forEach(function (d) {
-        var cls = d.classifications;
-        html += '<tr class="conn-table-row conn-table-row--' + esc(d.status.key) + '">' +
-          '<td class="conn-td-device"><span class="conn-td-device__name">' + esc(d.name) + '</span>' +
-          '<span class="conn-td-device__id">' + esc(d.deviceId) + '</span></td>' +
-          '<td>' + esc(d.location) + '</td>' +
-          metricCellHtml('rssi', cls.rssi, d.metrics.rssi) +
-          metricCellHtml('snr', cls.snr, d.metrics.snr) +
-          metricCellHtml('tx_ccq', cls.tx_ccq, d.metrics.tx_ccq) +
-          metricCellHtml('tx_rate', cls.tx_rate, d.metrics.tx_rate) +
-          '<td>' + badgeHtml({ band_key: d.overall.overall_band, label: d.overall.overall_label, severity: d.overall.overall_severity }, d.overall.overall_label) + '</td>' +
-          '<td><span class="conn-status conn-status--' + esc(d.status.key) + '">' + esc(d.status.label) + '</span></td>' +
-          '</tr>';
-      });
-      html += '</tbody></table></div></div>';
-    });
+    html += '</tbody></table></div>';
     root.innerHTML = html;
+    root.querySelectorAll('.conn-th[data-sort]').forEach(function (th) {
+      th.addEventListener('click', function () {
+        var key = th.getAttribute('data-sort');
+        if (tableSort.key === key) tableSort.dir = tableSort.dir === 'asc' ? 'desc' : 'asc';
+        else { tableSort.key = key; tableSort.dir = 'asc'; }
+        renderWirelessTable(tableDevices);
+      });
+    });
   }
 
   function renderAnalytics(devices) {
@@ -405,13 +558,75 @@
       } else ccqEl.innerHTML = '<p class="overview-live-note">—</p>';
     }
 
-    var rateEl = document.getElementById('conn-chart-tx-rate-bars');
-    if (rateEl && tel.renderRankedBars) {
-      var ranked = devices
-        .filter(function (d) { return d.metrics.tx_rate !== null; })
+    renderTxRateChart(document.getElementById('conn-chart-tx-rate-bars'), devices, tel);
+  }
+
+  function renderTxRateChart(rateEl, devices, tel) {
+    if (!rateEl) return;
+    var rates = devices.map(function (d) { return d.metrics.tx_rate; }).filter(function (v) {
+      return v !== null && Number.isFinite(Number(v));
+    }).map(Number);
+    rateEl.innerHTML = '';
+    if (!rates.length) {
+      rateEl.innerHTML = '<p class="overview-live-note">—</p>';
+      return;
+    }
+    var buckets = [
+      { label: '0–24', min: 0, max: 24, color: BAND_COLORS.bad },
+      { label: '24–72', min: 24, max: 72, color: BAND_COLORS.weak_unstable },
+      { label: '72–150', min: 72, max: 150, color: BAND_COLORS.good_usable },
+      { label: '150–300', min: 150, max: 300, color: BAND_COLORS.very_good },
+      { label: '300+', min: 300, max: Infinity, color: BAND_COLORS.excellent }
+    ];
+    var series = buckets.map(function (b) { return { name: b.label, y: 0, color: '#818cf8' }; });
+    rates.forEach(function (v) {
+      for (var i = 0; i < buckets.length; i++) {
+        if (v >= buckets[i].min && (buckets[i].max === Infinity || v < buckets[i].max)) {
+          series[i].y += 1;
+          series[i].color = buckets[i].color;
+          break;
+        }
+      }
+    });
+    var avg = rates.reduce(function (a, b) { return a + b; }, 0) / rates.length;
+    if (global.Highcharts) {
+      global.Highcharts.chart(rateEl, {
+        chart: { type: 'column', height: 150, backgroundColor: 'transparent', animation: { duration: 500 } },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+          categories: buckets.map(function (b) { return b.label; }),
+          title: { text: 'Mbps', style: { color: '#94a3b8', fontSize: '10px' } },
+          labels: { style: { color: '#94a3b8', fontSize: '10px' } },
+          lineColor: 'rgba(148,163,184,0.25)'
+        },
+        yAxis: {
+          min: 0,
+          allowDecimals: false,
+          title: { text: t('devices', 'devices'), style: { color: '#94a3b8', fontSize: '10px' } },
+          gridLineColor: 'rgba(148,163,184,0.12)',
+          labels: { style: { color: '#94a3b8', fontSize: '10px' } }
+        },
+        subtitle: {
+          text: 'Avg ' + avg.toFixed(0) + ' Mbps · <24 weak',
+          style: { color: '#a5b4fc', fontSize: '10px' },
+          align: 'right'
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15,23,42,0.95)',
+          borderColor: 'rgba(129,140,248,0.4)',
+          style: { color: '#e2e8f0', fontSize: '11px' }
+        },
+        plotOptions: { column: { borderRadius: 3, animation: { duration: 500 }, color: '#818cf8' } },
+        series: [{ name: 'TX-rate', data: series.map(function (s) { return { y: s.y, color: s.color }; }) }]
+      });
+      return;
+    }
+    if (tel && tel.renderHorizontalBars) {
+      var ranked = devices.filter(function (d) { return d.metrics.tx_rate !== null; })
         .sort(function (a, b) { return (b.metrics.tx_rate || 0) - (a.metrics.tx_rate || 0); })
-        .slice(0, 12)
-        .map(function (d) {
+        .slice(0, 12).map(function (d) {
           return {
             label: d.name,
             value: d.metrics.tx_rate,
@@ -419,9 +634,7 @@
             unit: 'Mbps'
           };
         });
-      rateEl.innerHTML = '';
-      if (ranked.length && tel.renderHorizontalBars) tel.renderHorizontalBars(rateEl, { items: ranked, unit: 'Mbps' });
-      else rateEl.innerHTML = '<p class="overview-live-note">—</p>';
+      tel.renderHorizontalBars(rateEl, { items: ranked, unit: 'Mbps' });
     }
   }
 
@@ -470,23 +683,22 @@
     });
     grid.innerHTML = sorted.slice(0, 24).map(function (d) {
       var rssiPct = metricBarPct('rssi', d.metrics.rssi);
+      var qLabel = d.overall.composite_label || d.overall.overall_label;
       var pulse = d.status.key === 'online' ? '<span class="conn-device-card__pulse" aria-hidden="true"></span>' : '';
       return (
         '<article class="conn-device-card conn-device-card--' + esc(d.status.key) + '">' +
+        '<div class="conn-device-card__quality">' + badgeHtml({ band_key: d.overall.dominant_band || d.overall.overall_band, label: qLabel, severity: d.overall.overall_severity }) + '</div>' +
         pulse +
-        '<div class="conn-device-card__head">' +
-        '<span class="conn-device-card__name">' + esc(d.name) + '</span>' +
-        badgeHtml({ band_key: d.overall.overall_band, label: d.overall.overall_label, severity: d.overall.overall_severity }) +
-        '</div>' +
+        '<div class="conn-device-card__name">' + esc(d.name) + '</div>' +
         '<div class="conn-device-card__loc">' + esc(d.location) + '</div>' +
         '<div class="conn-device-card__signal">' +
-        '<span class="conn-device-card__signal-label">RSSI</span>' +
-        '<span class="conn-device-card__signal-bar"><span style="width:' + rssiPct + '%"></span></span>' +
+        wirelessBarsSvg(rssiPct) +
+        '<div class="conn-device-card__signal-track"><span style="width:' + rssiPct + '%"></span></div>' +
         '<span class="conn-device-card__signal-val">' + (d.metrics.rssi !== null ? esc(d.metrics.rssi) + ' dBm' : '—') + '</span>' +
         '</div>' +
-        '<div class="conn-device-card__foot">' +
-        '<span>TX ' + (d.metrics.tx_rate !== null ? esc(d.metrics.tx_rate) + ' Mbps' : '—') + '</span>' +
-        '<span class="conn-status conn-status--' + esc(d.status.key) + '">' + esc(d.status.label) + '</span>' +
+        '<div class="conn-device-card__tx">' +
+        '<span class="conn-device-card__tx-label">TX-rate</span>' +
+        '<span class="conn-device-card__tx-val">' + (d.metrics.tx_rate !== null ? esc(d.metrics.tx_rate) + ' Mbps' : '—') + '</span>' +
         '</div></article>'
       );
     }).join('');
@@ -541,6 +753,7 @@
       lastFingerprint = fp;
       sparkCache = {};
       updateHero(devices, sensors);
+      renderHealthRing(devices);
       renderKpiGrid(devices);
       renderWirelessTable(devices);
       renderAnalytics(devices);
@@ -555,6 +768,14 @@
 
   function init() {
     if (global.SMACA_CURRENT_PAGE !== 'connectivity') return;
+    var searchInput = document.getElementById('connectivity-table-search');
+    if (searchInput && !searchInput.dataset.connBound) {
+      searchInput.dataset.connBound = '1';
+      searchInput.addEventListener('input', function () {
+        tableSearch = searchInput.value || '';
+        renderWirelessTable(tableDevices);
+      });
+    }
     refresh();
     global.addEventListener('smaca:scope-changed', function () { lastFingerprint = ''; refresh(); });
     global.addEventListener('smaca:timeframe-changed', function () { lastFingerprint = ''; sparkCache = {}; refresh(); });
