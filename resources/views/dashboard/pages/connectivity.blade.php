@@ -29,6 +29,7 @@
     <div class="conn-hero-health__copy">
       <h3 id="conn-health-title" class="conn-hero-health__title">{{ __('messages.dashboard_i18n.connectivity_health_title') }}</h3>
       <p class="conn-hero-health__subtitle">{{ __('messages.dashboard_i18n.connectivity_health_subtitle') }}</p>
+      <div id="connectivity-health-summary" class="conn-health-summary" aria-live="polite"></div>
       <div id="connectivity-health-legend" class="conn-health-legend" aria-live="polite"></div>
     </div>
     <div class="conn-hero-health__ring-wrap">

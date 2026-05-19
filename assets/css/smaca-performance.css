@@ -604,7 +604,257 @@ html.smaca-is-scrolling .occupancy-sensor-floor__body {
 .conn-device-card__tx-val { font-weight: 700; color: #a5b4fc; }
 .conn-wifi-bars { flex-shrink: 0; }
 
+/* Health operational summary */
+.conn-health-summary { margin-top: var(--space-3); }
+.conn-health-summary__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.conn-health-pill {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.55);
+  min-width: 72px;
+}
+.conn-health-pill__label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.conn-health-pill__val { font-size: 13px; font-weight: 700; }
+.conn-health-pill--cyan { border-top: 2px solid #22d3ee; }
+.conn-health-pill--cyan .conn-health-pill__val { color: #67e8f9; }
+.conn-health-pill--green { border-top: 2px solid #10b981; }
+.conn-health-pill--green .conn-health-pill__val { color: #6ee7b7; }
+.conn-health-pill--amber { border-top: 2px solid #fbbf24; }
+.conn-health-pill--amber .conn-health-pill__val { color: #fcd34d; }
+.conn-health-pill--indigo { border-top: 2px solid #818cf8; }
+.conn-health-pill--indigo .conn-health-pill__val { color: #a5b4fc; }
+.conn-health-pill--warn { border-top: 2px solid #fb923c; }
+.conn-health-pill--warn .conn-health-pill__val { color: #fdba74; }
+.conn-health-pill--crit { border-top: 2px solid #f87171; }
+.conn-health-pill--crit .conn-health-pill__val { color: #fca5a5; }
+.conn-health-summary__alerts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.conn-health-alert {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.1);
+  color: #fecaca;
+}
+.conn-health-alert--ok {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(52, 211, 153, 0.08);
+  color: #6ee7b7;
+}
+
+/* KPI polish */
+.conn-kpi-card__value {
+  font-size: 1.78rem;
+  color: #f1f5f9;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.06);
+}
+.conn-kpi-card--cyan { box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.15); }
+.conn-kpi-card--green { box-shadow: inset 0 1px 0 rgba(16, 185, 129, 0.15); }
+.conn-kpi-card--amber { box-shadow: inset 0 1px 0 rgba(251, 191, 36, 0.15); }
+.conn-kpi-card--indigo { box-shadow: inset 0 1px 0 rgba(129, 140, 248, 0.15); }
+.conn-spark { filter: brightness(1.25) drop-shadow(0 0 4px currentColor); }
+
+/* Network ops table */
+.conn-td-device__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.conn-wifi-icon { color: #22d3ee; flex-shrink: 0; opacity: 0.85; }
+.conn-td-device__text { min-width: 0; }
+.conn-td-rssi-mini {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.conn-td-rssi-mini__val { font-weight: 600; color: #94a3b8; }
+.conn-table-row { transition: background 0.12s ease; }
+.conn-table-row:hover { background: rgba(34, 211, 238, 0.06); }
+.conn-quality-short {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(148, 163, 184, 0.08);
+}
+.conn-quality-short--good { border-color: rgba(52, 211, 153, 0.35); color: #6ee7b7; }
+.conn-quality-short--normal { border-color: rgba(251, 191, 36, 0.35); color: #fcd34d; }
+.conn-quality-short--warning { border-color: rgba(251, 146, 60, 0.4); color: #fdba74; }
+.conn-quality-short--critical { border-color: rgba(248, 113, 113, 0.4); color: #fca5a5; }
+.conn-table thead th {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Analytics depth */
+.conn-analytics-tile {
+  min-height: 200px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.conn-analytics-tile__chart { min-height: 168px; }
+
+/* NOC alert feed */
+.conn-zone--attention .card__body { padding-top: var(--space-2); }
+.conn-noc-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.conn-noc-feed__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  border-left: 2px solid #fb923c;
+  background: rgba(251, 146, 60, 0.06);
+  font-size: 11px;
+}
+.conn-noc-feed__item--critical { border-left-color: #f87171; background: rgba(248, 113, 113, 0.08); }
+.conn-noc-feed__item--good { border-left-color: #34d399; }
+.conn-noc-feed__icon { flex-shrink: 0; opacity: 0.85; line-height: 1.2; }
+.conn-noc-feed__name { font-weight: 600; display: block; color: #e2e8f0; }
+.conn-noc-feed__detail { color: var(--muted); font-size: 10px; }
+.conn-noc-feed__empty { font-size: 11px; color: var(--muted); padding: var(--space-2); }
+.conn-noc-feed__empty--ok { color: #6ee7b7; }
+
+/* Enterprise node tiles */
+.conn-device-grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-2);
+}
+.conn-node-tile {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--r-md);
+  padding: var(--space-2) var(--space-3);
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.9), rgba(12, 18, 32, 0.75));
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  min-height: 118px;
+}
+.conn-node-tile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(129, 140, 248, 0.35);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+.conn-node-tile__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.conn-node-tile__chip {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #cbd5e1;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.conn-node-tile__chip--good { border-color: rgba(52, 211, 153, 0.4); color: #6ee7b7; }
+.conn-node-tile__chip--warning { border-color: rgba(251, 146, 60, 0.45); color: #fdba74; }
+.conn-node-tile__chip--critical { border-color: rgba(248, 113, 113, 0.45); color: #fca5a5; }
+.conn-node-tile__pulse {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  flex-shrink: 0;
+  animation: conn-pulse 2s infinite;
+}
+.conn-node-tile__body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.conn-node-tile__info { min-width: 0; flex: 1; }
+.conn-node-tile__name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.conn-node-tile__loc {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.conn-node-glyph { flex-shrink: 0; opacity: 0.7; }
+.conn-node-tile__metrics {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr 0.9fr;
+  gap: 4px;
+  padding-top: var(--space-2);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10px;
+}
+.conn-node-metric {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  font-weight: 600;
+}
+.conn-node-metric__k {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 2px;
+}
+.conn-node-metric--cyan { color: #67e8f9; }
+.conn-node-metric--green { color: #6ee7b7; }
+.conn-node-metric--indigo { color: #a5b4fc; }
+
+@media (max-width: 1200px) {
+  .conn-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .conn-hero-health { grid-template-columns: 1fr minmax(180px, 240px); }
+}
 @media (max-width: 900px) {
   .conn-hero-health { grid-template-columns: 1fr; }
   .conn-health-ring { min-height: 200px; }
+  .conn-analytics-grid { grid-template-columns: 1fr; }
+  .conn-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .conn-kpi-grid { grid-template-columns: 1fr; }
+  .conn-device-grid { grid-template-columns: 1fr; }
+  .conn-table-scroll { max-height: 360px; }
 }

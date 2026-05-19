@@ -1043,8 +1043,8 @@ async function refreshDashboardForSelection(sensorId, timeframe, options) {
     if (shouldHydrateLatestRows) {
       await hydrateSensorLatestRowsForUi(sensors, forceRefresh);
     }
-    if (currentPage === 'connectivity' && global.SMACAConnectivityDashboard && typeof global.SMACAConnectivityDashboard.refresh === 'function') {
-      global.SMACAConnectivityDashboard.refresh();
+    if (currentPage === 'connectivity' && window.SMACAConnectivityDashboard && typeof window.SMACAConnectivityDashboard.refresh === 'function') {
+      window.SMACAConnectivityDashboard.refresh();
     }
     if (currentPage === 'management' && document.getElementById('sensors-management-table-body')) {
       renderManagementSensorsFromLiveData();
@@ -2467,8 +2467,8 @@ function renderCurrentPageOnly(timeframe, filteredData) {
     if (!document.getElementById('environmental')) return;
     updateEnvironmentalDashboard(filteredData.environmental, timeframe);
   }
-  if (currentPage === 'connectivity' && global.SMACAConnectivityDashboard && typeof global.SMACAConnectivityDashboard.refresh === 'function') {
-    global.SMACAConnectivityDashboard.refresh();
+  if (currentPage === 'connectivity' && window.SMACAConnectivityDashboard && typeof window.SMACAConnectivityDashboard.refresh === 'function') {
+    window.SMACAConnectivityDashboard.refresh();
   }
   if (currentPage === 'management' && document.getElementById('sensors-management-table-body')) {
     renderManagementSensorsFromLiveData();

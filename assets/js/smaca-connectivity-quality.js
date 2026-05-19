@@ -144,14 +144,38 @@
     return keys[Math.min(4, Math.max(0, rank))] || 'bad';
   }
 
-  function compositeLabel(dominantBand, limitingKey) {
-    var dom = bandLabel(dominantBand);
-    var lim = metricLabel(limitingKey);
-    var tpl = t('connectivity_composite_with_limit', ':dominant with :metric limitation');
-    if (tpl.indexOf(':dominant') >= 0) {
-      return tpl.replace(':dominant', dom).replace(':metric', lim);
+  var BAND_SHORT = {
+    excellent: 'Excellent',
+    very_good: 'Very good',
+    good_usable: 'Good',
+    weak_unstable: 'Weak',
+    bad: 'Bad'
+  };
+
+  var LIMIT_SUFFIX = {
+    tx_rate: 'TX limited',
+    tx_ccq: 'CCQ limited',
+    rssi: 'RSSI weak',
+    snr: 'SNR weak'
+  };
+
+  function compactQualityLabel(overall) {
+    if (!overall || !overall.dominant_band) {
+      return (overall && overall.overall_label) ? overall.overall_label : '—';
     }
-    return dom + ' · ' + lim;
+    var dom = t('connectivity_band_short_' + overall.dominant_band, BAND_SHORT[overall.dominant_band] || overall.dominant_band);
+    var limKey = overall.limiting_metric_key;
+    if (!limKey || !overall.metrics || !overall.metrics[limKey]) return dom;
+    var limCls = overall.metrics[limKey];
+    var domRank = (BANDS[overall.dominant_band] || BANDS.bad).rank;
+    if (limCls.band_rank <= domRank) return dom;
+    if (limCls.band_rank - domRank < 2 && limCls.band_rank < 3) return dom;
+    var suffix = LIMIT_SUFFIX[limKey];
+    if (!suffix && (limCls.band_key === 'weak_unstable' || limCls.band_key === 'bad')) {
+      suffix = t('connectivity_quality_unstable', 'unstable');
+    }
+    if (!suffix) suffix = (limKey === 'tx_rate' ? 'TX' : limKey.toUpperCase()) + ' limited';
+    return dom + ' / ' + suffix;
   }
 
   function classifyOverall(metrics) {
@@ -197,7 +221,13 @@
     var dominantBand = rankToBand(medRank !== null ? medRank : worstRank);
     var gap = worstRank - (medRank !== null ? medRank : worstRank);
     var useComposite = gap >= 2 && limitingKey;
-    var displayLabel = useComposite ? compositeLabel(dominantBand, limitingKey) : bandLabel(worstBand);
+    var interim = {
+      overall_band: worstBand,
+      dominant_band: dominantBand,
+      limiting_metric_key: limitingKey,
+      metrics: classifications
+    };
+    var displayLabel = compactQualityLabel(interim);
     var displayBand = useComposite ? dominantBand : worstBand;
     var displaySev = (BANDS[displayBand] || BANDS.bad).severity;
     if (!useComposite && worstRank >= 3) {
@@ -211,6 +241,7 @@
       dominant_band: dominantBand,
       dominant_label: bandLabel(dominantBand),
       composite_label: useComposite ? displayLabel : null,
+      compact_label: displayLabel,
       limiting_metric: metricLabel(limitingKey),
       limiting_metric_key: limitingKey,
       limiting_metric_value: limitingCls ? limitingCls.value : null,
@@ -293,6 +324,7 @@
     HEALTH_RING_COLORS: HEALTH_RING_COLORS,
     classifyMetric: classifyMetric,
     classifyOverall: classifyOverall,
+    compactQualityLabel: compactQualityLabel,
     healthBandCounts: healthBandCounts,
     extractMetricsFromLatest: extractMetricsFromLatest,
     hasConnectivityMetrics: hasConnectivityMetrics,

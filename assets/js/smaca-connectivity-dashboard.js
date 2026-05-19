@@ -51,6 +51,30 @@
     return out + '</svg>';
   }
 
+  function wifiIconSvg() {
+    return '<svg class="conn-wifi-icon" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path fill="currentColor" d="M12 3C7.5 3 3.7 5 1.2 8.1l1.5 1.2C4.9 6.4 8.3 4.7 12 4.7s7.1 1.7 9.3 4.6l1.5-1.2C20.3 5 16.5 3 12 3zm0 5c-2.8 0-5.3 1.2-7.1 3.1l1.4 1.1C7.9 10.4 9.9 9.5 12 9.5s4.1.9 5.7 2.7l1.4-1.1C17.3 9.2 14.8 8 12 8zm0 5c-1.4 0-2.6.6-3.5 1.5L12 17l3.5-2.5C14.6 13.6 13.4 13 12 13z"/></svg>';
+  }
+
+  function networkGlyphSvg() {
+    return '<svg class="conn-node-glyph" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="2.5" fill="#818cf8"/>' +
+      '<path stroke="#818cf8" stroke-width="1.2" fill="none" d="M12 4v3M12 17v3M4 12h3M17 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M6.3 17.7l2.1-2.1M15.6 8.4l2.1-2.1"/></svg>';
+  }
+
+  function compactQ(deviceOrOverall) {
+    var o = deviceOrOverall && deviceOrOverall.overall ? deviceOrOverall.overall : deviceOrOverall;
+    var quality = q();
+    if (quality.compactQualityLabel) return quality.compactQualityLabel(o);
+    return (o && (o.compact_label || o.composite_label || o.overall_label)) || '—';
+  }
+
+  function fmtAvg(val, unit, digits) {
+    if (val === null || !Number.isFinite(val)) return '—';
+    var d = digits !== undefined ? digits : (Math.abs(val) < 10 ? 1 : 0);
+    return val.toFixed(d) + (unit ? ' ' + unit : '');
+  }
+
   function normalizeLatest(latest) {
     var fn = global.SMACA_TELEMETRY_METRIC_NORMALIZE && global.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest;
     return typeof fn === 'function' ? fn(latest || {}) : (latest || {});
@@ -264,7 +288,7 @@
     var overallCls = overall.overall_band ? {
       band_key: overall.overall_band,
       label: overall.overall_label,
-      display_label: overall.composite_label || overall.overall_label,
+      display_label: compactQ(overall),
       severity: overall.overall_severity,
       value: devices.length,
       unit: t('devices', 'devices')
@@ -286,7 +310,7 @@
 
     grid.innerHTML = cards.map(function (c) { return kpiCardHtml(c); }).join('');
 
-    var sparkColors = { rssi: '#22d3ee', snr: '#34d399', tx_ccq: '#fbbf24', tx_rate: '#818cf8' };
+    var sparkColors = { rssi: '#22d3ee', snr: '#10b981', tx_ccq: '#fbbf24', tx_rate: '#818cf8' };
     var apiKeys = { rssi: 'signal_strength', snr: 'snr', tx_ccq: 'tx_ccq', tx_rate: 'tx_rate' };
     ['rssi', 'snr', 'tx_ccq', 'tx_rate'].forEach(function (mk) {
       var sample = null;
@@ -305,9 +329,54 @@
     renderAlertStrip(devices);
   }
 
+  function renderHealthSummary(devices) {
+    var summaryEl = document.getElementById('connectivity-health-summary');
+    if (!summaryEl) return;
+    if (!devices.length) {
+      summaryEl.innerHTML = '';
+      return;
+    }
+    var avgs = {
+      rssi: avgMetric(devices, 'rssi'),
+      snr: avgMetric(devices, 'snr'),
+      tx_ccq: avgMetric(devices, 'tx_ccq'),
+      tx_rate: avgMetric(devices, 'tx_rate')
+    };
+    var weakCount = devices.filter(function (d) {
+      var b = d.overall && d.overall.overall_band;
+      return b === 'weak_unstable' || b === 'bad';
+    }).length;
+    var problemCount = devices.filter(function (d) {
+      if (d.status.key !== 'online') return true;
+      var b = d.overall && d.overall.overall_band;
+      return b === 'weak_unstable' || b === 'bad';
+    }).length;
+    var alerts = buildAlerts(devices).slice(0, 4);
+    var pills = [
+      { cls: 'cyan', label: 'RSSI', val: fmtAvg(avgs.rssi, 'dBm', 0) },
+      { cls: 'green', label: 'SNR', val: fmtAvg(avgs.snr, 'dB', 0) },
+      { cls: 'amber', label: 'TX-CCQ', val: fmtAvg(avgs.tx_ccq, '%', 0) },
+      { cls: 'indigo', label: 'TX-rate', val: fmtAvg(avgs.tx_rate, 'Mbps', 1) },
+      { cls: 'warn', label: t('connectivity_health_weak', 'Weak'), val: String(weakCount) },
+      { cls: 'crit', label: t('connectivity_health_problem', 'Problem APs'), val: String(problemCount) }
+    ];
+    var pillsHtml = pills.map(function (p) {
+      return '<span class="conn-health-pill conn-health-pill--' + p.cls + '"><span class="conn-health-pill__label">' +
+        esc(p.label) + '</span><span class="conn-health-pill__val">' + esc(p.val) + '</span></span>';
+    }).join('');
+    var alertsHtml = alerts.length ? alerts.map(function (a) {
+      return '<span class="conn-health-alert">' + esc(a) + '</span>';
+    }).join('') : '<span class="conn-health-alert conn-health-alert--ok">' +
+      esc(t('connectivity_attention_none', 'All links within acceptable ranges')) + '</span>';
+    summaryEl.innerHTML =
+      '<div class="conn-health-summary__pills">' + pillsHtml + '</div>' +
+      '<div class="conn-health-summary__alerts">' + alertsHtml + '</div>';
+  }
+
   function renderHealthRing(devices) {
     var ringEl = document.getElementById('connectivity-health-ring');
     var legendEl = document.getElementById('connectivity-health-legend');
+    renderHealthSummary(devices);
     if (!ringEl) return;
     var quality = q();
     var colors = ringColors();
@@ -464,18 +533,23 @@
       '</tr></thead><tbody>';
     rows.forEach(function (d) {
       var cls = d.classifications;
-      var qLabel = d.overall.composite_label || d.overall.overall_label;
+      var qLabel = compactQ(d);
       var pulse = d.status.key === 'online' ? '<span class="conn-row-pulse" aria-hidden="true"></span>' : '';
+      var rssiPct = metricBarPct('rssi', d.metrics.rssi);
       html += '<tr class="conn-table-row conn-table-row--' + esc(d.status.key) + '">' +
-        '<td class="conn-td-device"><span class="conn-td-device__name">' + esc(d.name) + '</span>' +
-        '<span class="conn-td-device__id">' + esc(d.deviceId) + '</span></td>' +
+        '<td class="conn-td-device">' +
+        '<span class="conn-td-device__row">' + wifiIconSvg() + pulse +
+        '<span class="conn-td-device__text"><span class="conn-td-device__name">' + esc(d.name) + '</span>' +
+        '<span class="conn-td-device__id">' + esc(d.deviceId) + '</span></span></span>' +
+        '<span class="conn-td-rssi-mini" title="RSSI">' + wirelessBarsSvg(rssiPct) +
+        '<span class="conn-td-rssi-mini__val">' + (d.metrics.rssi !== null ? esc(d.metrics.rssi) : '—') + '</span></span></td>' +
         '<td>' + esc(d.location) + '</td>' +
         metricCellHtml('rssi', cls.rssi, d.metrics.rssi) +
         metricCellHtml('snr', cls.snr, d.metrics.snr) +
         metricCellHtml('tx_ccq', cls.tx_ccq, d.metrics.tx_ccq) +
         metricCellHtml('tx_rate', cls.tx_rate, d.metrics.tx_rate) +
-        '<td class="conn-td-quality">' + badgeHtml({ band_key: d.overall.dominant_band || d.overall.overall_band, label: qLabel, severity: d.overall.overall_severity }, qLabel) + '</td>' +
-        '<td class="conn-td-status">' + pulse + '<span class="conn-status conn-status--' + esc(d.status.key) + '">' + esc(d.status.label) + '</span></td>' +
+        '<td class="conn-td-quality"><span class="conn-quality-short conn-quality-short--' + esc(d.overall.overall_severity || 'muted') + '">' + esc(qLabel) + '</span></td>' +
+        '<td class="conn-td-status"><span class="conn-status conn-status--' + esc(d.status.key) + '">' + esc(d.status.label) + '</span></td>' +
         '</tr>';
     });
     html += '</tbody></table></div>';
@@ -526,7 +600,7 @@
         if (rssiCounts[bk]) { cats.push(bandLabels[bk]); data.push({ y: rssiCounts[bk], color: BAND_COLORS[bk] }); }
       });
       rssiEl.innerHTML = '';
-      if (data.length) tel.renderHeatStripColumn(rssiEl, { data: data, categories: cats, showAxis: true, height: 140 });
+      if (data.length) tel.renderHeatStripColumn(rssiEl, { data: data, categories: cats, showAxis: true, height: 168 });
       else rssiEl.innerHTML = '<p class="overview-live-note">—</p>';
     }
 
@@ -538,7 +612,7 @@
         if (snrCounts[bk]) { sc.push(bandLabels[bk]); sd.push({ y: snrCounts[bk], color: BAND_COLORS[bk] }); }
       });
       snrEl.innerHTML = '';
-      if (sd.length) tel.renderHeatStripColumn(snrEl, { data: sd, categories: sc, showAxis: true, height: 140 });
+      if (sd.length) tel.renderHeatStripColumn(snrEl, { data: sd, categories: sc, showAxis: true, height: 168 });
       else snrEl.innerHTML = '<p class="overview-live-note">—</p>';
     }
 
@@ -552,7 +626,7 @@
           data: donutData,
           centerLabel: devices.length,
           centerSubLabel: t('devices', 'devices'),
-          height: 150,
+          height: 168,
           showLegend: true
         });
       } else ccqEl.innerHTML = '<p class="overview-live-note">—</p>';
@@ -572,34 +646,54 @@
       return;
     }
     var buckets = [
-      { label: '0–24', min: 0, max: 24, color: BAND_COLORS.bad },
-      { label: '24–72', min: 24, max: 72, color: BAND_COLORS.weak_unstable },
-      { label: '72–150', min: 72, max: 150, color: BAND_COLORS.good_usable },
-      { label: '150–300', min: 150, max: 300, color: BAND_COLORS.very_good },
-      { label: '300+', min: 300, max: Infinity, color: BAND_COLORS.excellent }
+      { label: '0–12', min: 0, max: 12, weak: true },
+      { label: '12–24', min: 12, max: 24, weak: true },
+      { label: '24–48', min: 24, max: 48 },
+      { label: '48–72', min: 48, max: 72 },
+      { label: '72–100', min: 72, max: 100 },
+      { label: '100–150', min: 100, max: 150 },
+      { label: '150–300', min: 150, max: 300 },
+      { label: '300+', min: 300, max: Infinity }
     ];
-    var series = buckets.map(function (b) { return { name: b.label, y: 0, color: '#818cf8' }; });
+    var bucketColor = function (b) {
+      if (b.weak) return BAND_COLORS.bad;
+      if (b.min >= 300) return BAND_COLORS.excellent;
+      if (b.min >= 150) return BAND_COLORS.very_good;
+      if (b.min >= 72) return BAND_COLORS.good_usable;
+      if (b.min >= 24) return BAND_COLORS.weak_unstable;
+      return BAND_COLORS.bad;
+    };
+    var series = buckets.map(function (b) { return { name: b.label, y: 0, color: bucketColor(b) }; });
     rates.forEach(function (v) {
       for (var i = 0; i < buckets.length; i++) {
         if (v >= buckets[i].min && (buckets[i].max === Infinity || v < buckets[i].max)) {
           series[i].y += 1;
-          series[i].color = buckets[i].color;
           break;
         }
       }
     });
     var avg = rates.reduce(function (a, b) { return a + b; }, 0) / rates.length;
+    var avgBucketIdx = 0;
+    for (var j = 0; j < buckets.length; j++) {
+      if (avg >= buckets[j].min && (buckets[j].max === Infinity || avg < buckets[j].max)) {
+        avgBucketIdx = j;
+        break;
+      }
+    }
     if (global.Highcharts) {
       global.Highcharts.chart(rateEl, {
-        chart: { type: 'column', height: 150, backgroundColor: 'transparent', animation: { duration: 500 } },
+        chart: { type: 'column', height: 168, backgroundColor: 'transparent', animation: { duration: 450 } },
         title: { text: null },
         credits: { enabled: false },
         legend: { enabled: false },
         xAxis: {
           categories: buckets.map(function (b) { return b.label; }),
-          title: { text: 'Mbps', style: { color: '#94a3b8', fontSize: '10px' } },
-          labels: { style: { color: '#94a3b8', fontSize: '10px' } },
-          lineColor: 'rgba(148,163,184,0.25)'
+          title: { text: 'Mbps', style: { color: '#94a3b8', fontSize: '10px', fontWeight: '600' } },
+          labels: { style: { color: '#94a3b8', fontSize: '9px' } },
+          lineColor: 'rgba(148,163,184,0.3)',
+          plotBands: [{ from: -0.5, to: 1.5, color: 'rgba(248,113,113,0.08)' }],
+          plotLines: [{ value: avgBucketIdx, color: '#a5b4fc', width: 2, dashStyle: 'Dash',
+            label: { text: 'avg ' + avg.toFixed(0), style: { color: '#c7d2fe', fontSize: '9px' } } }]
         },
         yAxis: {
           min: 0,
@@ -608,18 +702,23 @@
           gridLineColor: 'rgba(148,163,184,0.12)',
           labels: { style: { color: '#94a3b8', fontSize: '10px' } }
         },
-        subtitle: {
-          text: 'Avg ' + avg.toFixed(0) + ' Mbps · <24 weak',
-          style: { color: '#a5b4fc', fontSize: '10px' },
-          align: 'right'
-        },
         tooltip: {
-          backgroundColor: 'rgba(15,23,42,0.95)',
-          borderColor: 'rgba(129,140,248,0.4)',
-          style: { color: '#e2e8f0', fontSize: '11px' }
+          backgroundColor: 'rgba(15,23,42,0.96)',
+          borderColor: 'rgba(129,140,248,0.45)',
+          style: { color: '#e2e8f0', fontSize: '11px' },
+          headerFormat: '<span style="color:#a5b4fc">{point.key} Mbps</span><br/>'
         },
-        plotOptions: { column: { borderRadius: 3, animation: { duration: 500 }, color: '#818cf8' } },
-        series: [{ name: 'TX-rate', data: series.map(function (s) { return { y: s.y, color: s.color }; }) }]
+        plotOptions: {
+          column: {
+            borderRadius: 3,
+            animation: { duration: 450 },
+            borderWidth: 0,
+            states: { hover: { brightness: 0.12 } }
+          }
+        },
+        series: [{ name: 'TX-rate', data: series.map(function (s, idx) {
+          return { y: s.y, color: bucketColor(buckets[idx]) };
+        }) }]
       });
       return;
     }
@@ -638,11 +737,16 @@
     }
   }
 
+  function attentionIcon(type) {
+    var icons = { stale: '⏱', rssi: '📶', ccq: '◆', tx: '◇', snr: '◈' };
+    return icons[type] || '⚠';
+  }
+
   function renderAttention(devices) {
     var panel = document.getElementById('connectivity-attention-panel');
     if (!panel) return;
     if (!devices.length) {
-      panel.innerHTML = '<p class="overview-live-note">' + esc(t('connectivity_attention_none', 'No issues detected')) + '</p>';
+      panel.innerHTML = '<p class="conn-noc-feed__empty">' + esc(t('connectivity_attention_none', 'No issues detected')) + '</p>';
       return;
     }
     var items = [];
@@ -653,20 +757,28 @@
       if (d.classifications.rssi && (d.classifications.rssi.band_key === 'bad' || d.classifications.rssi.band_key === 'weak_unstable')) {
         items.push({ type: 'rssi', label: d.name, detail: 'RSSI ' + d.classifications.rssi.value + ' dBm', severity: d.classifications.rssi.severity });
       }
+      if (d.classifications.snr && (d.classifications.snr.band_key === 'bad' || d.classifications.snr.band_key === 'weak_unstable')) {
+        items.push({ type: 'snr', label: d.name, detail: 'SNR ' + d.classifications.snr.value + ' dB', severity: d.classifications.snr.severity });
+      }
       if (d.classifications.tx_ccq && (d.classifications.tx_ccq.band_key === 'bad' || d.classifications.tx_ccq.band_key === 'weak_unstable')) {
-        items.push({ type: 'ccq', label: d.name, detail: 'TX-CCQ ' + d.classifications.tx_ccq.value + '%', severity: d.classifications.tx_ccq.severity });
+        items.push({ type: 'ccq', label: d.name, detail: 'CCQ ' + d.classifications.tx_ccq.value + '%', severity: d.classifications.tx_ccq.severity });
+      }
+      if (d.classifications.tx_rate && (d.classifications.tx_rate.band_key === 'bad' || d.classifications.tx_rate.band_key === 'weak_unstable')) {
+        items.push({ type: 'tx', label: d.name, detail: 'TX ' + d.classifications.tx_rate.value + ' Mbps', severity: d.classifications.tx_rate.severity });
       }
     });
-    items = items.slice(0, 8);
+    items = items.slice(0, 12);
     if (!items.length) {
-      panel.innerHTML = '<p class="overview-live-note conn-attention-ok">' + esc(t('connectivity_attention_none', 'All links within acceptable ranges')) + '</p>';
+      panel.innerHTML = '<p class="conn-noc-feed__empty conn-noc-feed__empty--ok">' +
+        esc(t('connectivity_attention_none', 'All links within acceptable ranges')) + '</p>';
       return;
     }
-    panel.innerHTML = items.map(function (it) {
-      return '<div class="conn-attention-item conn-attention-item--' + esc(it.severity) + '">' +
-        '<span class="conn-attention-item__label">' + esc(it.label) + '</span>' +
-        '<span class="conn-attention-item__detail">' + esc(it.detail) + '</span></div>';
-    }).join('');
+    panel.innerHTML = '<div class="conn-noc-feed">' + items.map(function (it) {
+      return '<div class="conn-noc-feed__item conn-noc-feed__item--' + esc(it.severity) + '">' +
+        '<span class="conn-noc-feed__icon" aria-hidden="true">' + attentionIcon(it.type) + '</span>' +
+        '<span class="conn-noc-feed__body"><span class="conn-noc-feed__name">' + esc(it.label) + '</span>' +
+        '<span class="conn-noc-feed__detail">' + esc(it.detail) + '</span></span></div>';
+    }).join('') + '</div>';
   }
 
   function renderDeviceGrid(devices) {
@@ -677,28 +789,30 @@
       return;
     }
     var sorted = devices.slice().sort(function (a, b) {
-      var ar = a.overall.overall_band || 'z';
-      var br = b.overall.overall_band || 'z';
-      return String(ar).localeCompare(String(br));
+      var ar = bandRank((a.overall && a.overall.overall_band) || 'z');
+      var br = bandRank((b.overall && b.overall.overall_band) || 'z');
+      return ar - br;
     });
     grid.innerHTML = sorted.slice(0, 24).map(function (d) {
       var rssiPct = metricBarPct('rssi', d.metrics.rssi);
-      var qLabel = d.overall.composite_label || d.overall.overall_label;
-      var pulse = d.status.key === 'online' ? '<span class="conn-device-card__pulse" aria-hidden="true"></span>' : '';
+      var qShort = compactQ(d);
+      var pulse = d.status.key === 'online' ? '<span class="conn-node-tile__pulse" aria-hidden="true"></span>' : '';
+      var chip = '<span class="conn-node-tile__chip conn-node-tile__chip--' + esc(d.overall.overall_severity || 'muted') + '">' + esc(qShort) + '</span>';
       return (
-        '<article class="conn-device-card conn-device-card--' + esc(d.status.key) + '">' +
-        '<div class="conn-device-card__quality">' + badgeHtml({ band_key: d.overall.dominant_band || d.overall.overall_band, label: qLabel, severity: d.overall.overall_severity }) + '</div>' +
-        pulse +
-        '<div class="conn-device-card__name">' + esc(d.name) + '</div>' +
-        '<div class="conn-device-card__loc">' + esc(d.location) + '</div>' +
-        '<div class="conn-device-card__signal">' +
-        wirelessBarsSvg(rssiPct) +
-        '<div class="conn-device-card__signal-track"><span style="width:' + rssiPct + '%"></span></div>' +
-        '<span class="conn-device-card__signal-val">' + (d.metrics.rssi !== null ? esc(d.metrics.rssi) + ' dBm' : '—') + '</span>' +
-        '</div>' +
-        '<div class="conn-device-card__tx">' +
-        '<span class="conn-device-card__tx-label">TX-rate</span>' +
-        '<span class="conn-device-card__tx-val">' + (d.metrics.tx_rate !== null ? esc(d.metrics.tx_rate) + ' Mbps' : '—') + '</span>' +
+        '<article class="conn-node-tile conn-node-tile--' + esc(d.status.key) + '">' +
+        '<div class="conn-node-tile__top">' + chip + pulse + '</div>' +
+        '<div class="conn-node-tile__body">' +
+        '<div class="conn-node-tile__info">' +
+        '<div class="conn-node-tile__name">' + esc(d.name) + '</div>' +
+        '<div class="conn-node-tile__loc">' + esc(d.location) + '</div>' +
+        '</div>' + networkGlyphSvg() + '</div>' +
+        '<div class="conn-node-tile__metrics">' +
+        '<span class="conn-node-metric conn-node-metric--cyan" title="RSSI">' +
+        wirelessBarsSvg(rssiPct) + '<span>' + (d.metrics.rssi !== null ? esc(d.metrics.rssi) : '—') + '</span></span>' +
+        '<span class="conn-node-metric conn-node-metric--green" title="SNR">' +
+        '<span class="conn-node-metric__k">SNR</span>' + (d.metrics.snr !== null ? esc(d.metrics.snr) + ' dB' : '—') + '</span>' +
+        '<span class="conn-node-metric conn-node-metric--indigo" title="TX-rate">' +
+        '<span class="conn-node-metric__k">TX</span>' + (d.metrics.tx_rate !== null ? esc(d.metrics.tx_rate) + ' Mbps' : '—') + '</span>' +
         '</div></article>'
       );
     }).join('');
