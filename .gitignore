@@ -28,6 +28,7 @@ temp/
 .env
 .env.local
 .env.*.local
+deploy/.env.unipi.vm
 
 # Build output
 dist/§

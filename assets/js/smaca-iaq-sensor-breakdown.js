@@ -10,6 +10,10 @@
     return map[key] || fallback;
   }
 
+  function co2LabelHtml() {
+    return '<span class="smaca-chem-co2" aria-label="CO₂">CO<sub>2</sub></span>';
+  }
+
   function escapeHtml(value) {
     if (value === null || value === undefined) return '';
     return String(value)
@@ -658,23 +662,25 @@
     return 'iaq-sev--tvoc-ok';
   }
 
-  function miniMetricCollapsed(label, valueHtml, iconSvg, sevMod) {
+  function miniMetricCollapsed(label, valueHtml, iconSvg, sevMod, labelIsHtml) {
     var mod = sevMod || 'iaq-sev--na';
+    var labelHtml = labelIsHtml ? String(label) : escapeHtml(label);
     return (
       '<span class="iaq-mini-metric iaq-mini-metric--collapsed ' + mod + '">' +
       (iconSvg ? '<span class="iaq-mini-metric__icon" aria-hidden="true">' + iconSvg + '</span>' : '') +
       '<span class="iaq-mini-metric__stack">' +
       '<span class="iaq-mini-metric__value">' + valueHtml + '</span>' +
-      '<span class="iaq-mini-metric__label">' + escapeHtml(label) + '</span>' +
+      '<span class="iaq-mini-metric__label">' + labelHtml + '</span>' +
       '</span></span>'
     );
   }
 
-  function miniMetricDetail(label, valueMainHtml, unitHtml, hintText, sevMod) {
+  function miniMetricDetail(label, valueMainHtml, unitHtml, hintText, sevMod, labelIsHtml) {
     var hint = hintText
       ? '<span class="iaq-mini-metric__hint">' + escapeHtml(hintText) + '</span>'
       : '';
     var unit = unitHtml || '';
+    var labelHtml = labelIsHtml ? String(label) : escapeHtml(label);
     return (
       '<div class="iaq-mini-metric iaq-mini-metric--detail ' + (sevMod || 'iaq-sev--na') + '">' +
       '<span class="iaq-mini-metric__value-row">' +
@@ -682,7 +688,7 @@
       (unit ? '<span class="iaq-mini-metric__unit">' + unit + '</span>' : '') +
       '</span>' +
       hint +
-      '<span class="iaq-mini-metric__label">' + escapeHtml(label) + '</span>' +
+      '<span class="iaq-mini-metric__label">' + labelHtml + '</span>' +
       '</div>'
     );
   }
@@ -751,7 +757,7 @@
     var env = environmentalSafetyNarrative(latest, semTvoc);
     var lightN = lightingNarrative(latest, semLight);
 
-    var lblCo2 = t('labels_co2', 'CO₂');
+    var lblCo2 = co2LabelHtml();
     var lblT = t('temperature_label', 'Temperature');
     var lblH = t('humidity_label', 'Humidity');
     var lblPm25 = t('labels_pm25', 'PM2.5');
@@ -834,7 +840,7 @@
       '<div class="iaq-detail__block">' +
       '<div class="iaq-detail__block-title">' + escapeHtml(t('iaq_sensor_breakdown_latest_readings', 'Latest readings')) + '</div>' +
       '<div class="iaq-detail__measure-grid">' +
-      miniMetricDetail(lblCo2, co2Main, 'ppm', vent, co2SeverityMod(latest)) +
+      miniMetricDetail(lblCo2, co2Main, 'ppm', vent, co2SeverityMod(latest), true) +
       miniMetricDetail(lblT, tMain, '°C', tHint, thermalSeverityMod(latest)) +
       miniMetricDetail(lblH, hMain, '%', '', thermalSeverityMod(latest)) +
       miniMetricDetail(lblPm25, p25Main, 'µg/m³', p25Hint, pm25SeverityMod(latest)) +
@@ -918,7 +924,7 @@
       badgeRow +
       '</span>' +
       '<span class="iaq-sensor-card__metrics iaq-sensor-card__metrics--dense">' +
-      miniMetricCollapsed(t('labels_co2', 'CO₂'), co2Collapsed, ICON_CO2, co2SeverityMod(latest)) +
+      miniMetricCollapsed(co2LabelHtml(), co2Collapsed, ICON_CO2, co2SeverityMod(latest), true) +
       miniMetricCollapsed(t('temperature_label', 'Temperature'), tCollapsed, ICON_TEMP, thermalSeverityMod(latest)) +
       miniMetricCollapsed(t('humidity_label', 'Humidity'), hCollapsed, ICON_HUM, thermalSeverityMod(latest)) +
       miniMetricCollapsed(t('labels_pm25', 'PM2.5'), pm25Collapsed, ICON_PM, pm25SeverityMod(latest)) +

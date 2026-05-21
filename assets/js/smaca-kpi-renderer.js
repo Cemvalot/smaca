@@ -109,6 +109,17 @@
       .replace(/'/g, '&#39;');
   }
 
+  function co2LabelHtml() {
+    return '<span class="smaca-chem-co2" aria-label="CO₂">CO<sub>2</sub></span>';
+  }
+
+  /** Replace CO2 / CO₂ tokens with subscript markup (safe for server-translated captions). */
+  function formatCo2InText(text) {
+    return String(text || '')
+      .replace(/CO₂/g, co2LabelHtml())
+      .replace(/CO2/g, co2LabelHtml());
+  }
+
   /** Strip trailing "(…ppm…)" from ventilation band labels so ppm stays in captions only. */
   function stripTrailingPpmParenthetical(text) {
     if (text === null || text === undefined) return '';
@@ -364,7 +375,9 @@
       }
       const cardTitle = kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '';
       const valueCaption = ((snapshotLayout || !compact) && kpi.value_caption)
-        ? `<p class="overview-kpi-card__value-caption${kpi.key === 'ventilation_quality_index' ? ' overview-kpi-card__value-caption--vent-co2' : ''}">${escapeHtml(String(kpi.value_caption))}</p>`
+        ? (kpi.key === 'ventilation_quality_index'
+          ? `<p class="overview-kpi-card__value-caption overview-kpi-card__value-caption--vent-co2">${formatCo2InText(kpi.value_caption)}</p>`
+          : `<p class="overview-kpi-card__value-caption">${escapeHtml(String(kpi.value_caption))}</p>`)
         : '';
       const semanticRow = buildIaqSemanticRowHtml(kpi, boundModule);
       const moduleKeyAttr = kpi.overview_module_key ? ` data-overview-module="${escapeHtml(kpi.overview_module_key)}"` : '';

@@ -774,7 +774,7 @@ return [
         'indoor_air_quality' => 'Εσωτερική Ποιότητα Αέρα',
         'energy' => 'Ενέργεια',
         'occupancy' => 'Πληρότητα',
-        'co2' => 'CO2',
+        'co2' => 'CO₂',
         'pm25' => 'PM2.5',
         'pm10' => 'PM10',
         'normalized_energy_intensity' => 'Κανονικοποιημένη Ενεργειακή Ένταση',

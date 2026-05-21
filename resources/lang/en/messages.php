@@ -773,7 +773,7 @@ return [
         'indoor_air_quality' => 'Indoor Air Quality',
         'energy' => 'Energy',
         'occupancy' => 'Occupancy',
-        'co2' => 'CO2',
+        'co2' => 'CO₂',
         'pm25' => 'PM2.5',
         'pm10' => 'PM10',
         'normalized_energy_intensity' => 'Normalized Energy Intensity',
