@@ -293,7 +293,7 @@ class IaqSemanticKpiComposer
             }
         }
         $label = $this->translateShortKey($labelKey);
-        $status = $lvl <= 1 ? 'warning' : ($lvl >= 4 ? 'warning' : 'good');
+        $status = ($lvl === 0 || $lvl >= 5) ? 'warning' : 'good';
 
         return $this->wrapKpi('visual_lighting_condition', [
             'value' => $label,

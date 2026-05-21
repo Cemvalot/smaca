@@ -556,10 +556,9 @@
         }
       } else {
         var ll = le.primary;
+        // Normalized 0–5: only level 0 (minimal) and 5 (intense) warn; 1–4 are acceptable (e.g. dim indoor = 1).
         if (ll === 0) {
           w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_minimal', 'Minimal lighting detected') });
-        } else if (ll <= 1) {
-          w.push({ sev: 2, kind: 'lighting', text: t('iaq_sensor_breakdown_warn_lighting', 'Lighting outside comfortable range') });
         } else if (ll >= 5) {
           w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_intense', 'Intense lighting detected') });
         }
@@ -644,7 +643,7 @@
       return 'iaq-sev--light-office';
     }
     var lv = r.primary;
-    if (lv <= 1) return 'iaq-sev--light-minimal';
+    if (lv === 0) return 'iaq-sev--light-minimal';
     if (lv >= 5) return 'iaq-sev--light-intense';
     return 'iaq-sev--light-office';
   }

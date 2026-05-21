@@ -219,6 +219,8 @@ return [
         'iaq_chart_snapshot_mode_mix' => 'CO₂ and PM: direct measurements. TVOC follows the configured semantic scale unless raw µg/m³ mode is active.',
         'iaq_semantic_row_tvoc' => 'TVOC',
         'iaq_semantic_row_light' => 'Lighting',
+        'iaq_semantic_row_light_level' => 'Level',
+        'iaq_lighting_level_of' => '/5',
         'iaq_semantic_row_direct' => 'Direct measurements',
         'iaq_sensor_breakdown_title' => 'IAQ sensor breakdown',
         'iaq_sensor_breakdown_subtitle' => 'Latest readings per indoor air quality sensor in the selected scope.',
@@ -897,12 +899,12 @@ return [
     ],
 
     'iaq_lighting_level' => [
-        'minimal' => 'Minimal light',
-        'dim_indoor' => 'Dim indoor',
-        'residential' => 'Residential indoor',
-        'office' => 'Office lighting',
-        'detailed_work' => 'High-detail workspace',
-        'intense' => 'Intense lighting',
+        'minimal' => 'Very Low',
+        'dim_indoor' => 'Dim indoor environment',
+        'residential' => 'Low indoor lighting',
+        'office' => 'Comfortable indoor lighting',
+        'detailed_work' => 'Bright indoor environment',
+        'intense' => 'Intense indoor lighting',
     ],
 
     'iaq_lighting_lux' => [
@@ -914,10 +916,10 @@ return [
     ],
 
     'iaq_co2_band' => [
-        'outdoor_normal' => 'Sufficient',
-        'good_ventilation' => 'Sufficient',
-        'poor_ventilation' => 'Insufficient',
-        'high_discomfort' => 'Insufficient',
+        'outdoor_normal' => 'Adequate',
+        'good_ventilation' => 'Adequate',
+        'poor_ventilation' => 'Moderate',
+        'high_discomfort' => 'Moderate',
         'workplace_limit' => 'Insufficient',
         'dangerous' => 'Insufficient',
     ],

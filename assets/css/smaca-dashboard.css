@@ -3537,6 +3537,11 @@
 @media (min-width: 900px) {
   .smaca-iaq-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: stretch;
+  }
+
+  .smaca-iaq-kpi-grid .overview-kpi-card--iaq {
+    min-height: 27.5rem;
   }
 }
 
@@ -3546,8 +3551,13 @@
 
 .smaca-iaq-kpi-grid .overview-kpi-card--iaq {
   min-height: 232px;
+  height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.smaca-iaq-kpi-grid > .overview-kpi-card--iaq {
+  align-self: stretch;
 }
 
 .smaca-iaq-kpi-grid .overview-kpi-card--iaq .stat-card__content {
@@ -3575,13 +3585,20 @@
 }
 
 .smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__desc {
-  margin-top: auto;
+  margin-top: var(--space-2);
   align-self: center;
-  padding-top: var(--space-3);
+  padding-top: 0;
   font-size: 12.5px;
   line-height: 1.55;
   max-width: 44ch;
   overflow-wrap: anywhere;
+}
+
+/* Pin “How to read this” to the same baseline across IAQ comfort KPI cards */
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .kpi-help {
+  margin-top: auto;
+  align-self: stretch;
+  padding-top: var(--space-3);
 }
 
 /* IAQ KPI cards: one muted tone for captions, semantic rows, and descriptions */
@@ -3598,6 +3615,41 @@
 .smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__semantic-sep,
 .smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__semantic-val {
   color: inherit;
+}
+
+/* Lighting KPI: numeric 0–5 level is the primary headline */
+.smaca-iaq-kpi-grid .overview-kpi-card--lighting .stat-card__value-number {
+  font-size: clamp(2.15rem, 4.5vw, 2.85rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: #f8fafc;
+  text-shadow: 0 0 28px rgba(251, 191, 36, 0.18);
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--lighting .stat-card__value-unit {
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: rgba(203, 213, 225, 0.92);
+  margin-left: 0.12em;
+  vertical-align: baseline;
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--lighting .overview-kpi-card__semantic-val--level {
+  font-size: 1.15em;
+  font-weight: 700;
+  color: #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--lighting .overview-kpi-card__semantic-val-suffix {
+  font-weight: 600;
+  color: rgba(203, 213, 225, 0.88);
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--lighting .overview-kpi-card__semantic-val-meta {
+  font-weight: 500;
+  color: var(--muted);
 }
 
 .smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__badge {

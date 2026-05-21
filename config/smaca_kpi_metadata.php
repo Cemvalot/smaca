@@ -180,7 +180,7 @@ return [
             ],
             'plain_definition' => [
                 'en' => 'The Thermal Comfort index evaluates environmental conditions based on recorded temperature and relative humidity, providing an overall assessment of comfort levels within classrooms and study areas.',
-                'el' => 'Ο δείκτης Θερμικής Άνεσης αξιολογεί τις περιβαλλοντικές συνθήκες του χώρου βάσει της καταγεγραμμένης θερμοκρασίας και σχετικής υγρασίας, παρέχοντας μια συνολική εκτίμηση του επιπέδου άνεσης εντός των αιθουσών διδασκαλίας και των χώρων μελέτης.',
+                'el' => 'Ο Δείκτης Θερμικής Άνεσης αξιολογεί τις περιβαλλοντικές συνθήκες του χώρου βάσει της καταγεγραμμένης θερμοκρασίας και σχετικής υγρασίας, παρέχοντας μια συνολική εκτίμηση του επιπέδου άνεσης εντός των αιθουσών διδασκαλίας και των χώρων μελέτης.',
             ],
             'source_type' => 'measured',
             'status_meanings' => [
@@ -203,7 +203,7 @@ return [
             ],
             'plain_definition' => [
                 'en' => 'The index reflects ventilation adequacy in the building’s indoor space based on average CO₂ concentration (ppm). Conditions are classified into three levels: Sufficient, Insufficient, and Inadequate.',
-                'el' => 'Ο δείκτης αποτυπώνει την επάρκεια αερισμού του εσωτερικού χώρου του κτηρίου βάσει της μέσης συγκέντρωσης CO₂ (ppm). Οι συνθήκες ταξινομούνται σε τρία επίπεδα: Επαρκής, Μη επαρκής και Ανεπαρκής.',
+                'el' => 'Ο δείκτης αποτυπώνει την επάρκεια αερισμού του εσωτερικού χώρου του κτηρίου βάσει της μέσης συγκέντρωσης CO₂ (ppm). Οι συνθήκες ταξινομούνται σε τρία επίπεδα: Επαρκές, Μη επαρκές και Ανεπαρκές.',
             ],
             'source_type' => 'measured',
             'status_meanings' => [
@@ -237,8 +237,8 @@ return [
                 'el' => 'Το κανονικοποιημένο επίπεδο 0–5 αντιστοιχεί σε ενδεικτικά εύρη lux· όχι βαθμονομημένο μετρητή lux.',
             ],
             'plain_definition' => [
-                'en' => 'Describes visual lighting condition from the sensor lighting classification, not precise lux.',
-                'el' => 'Περιγράφει την οπτική συνθήκη φωτισμού από ταξινόμηση αισθητήρα, όχι ακριβή lux.',
+                'en' => 'The Visual Comfort Index assesses lighting conditions by correlating indoor illuminance (lux) with outdoor solar radiation. Using a normalized scale (0–5), it rates visual comfort and lighting adequacy, and supports detecting over-lighting and optimizing shading and dimming practices.',
+                'el' => 'Ο Δείκτης Οπτικής Άνεσης αξιολογεί τις συνθήκες φωτισμού των χώρων μέσω συσχέτισης της εσωτερικής φωτεινότητας (Lux) και της εξωτερικής ηλιακής ακτινοβολίας. Μέσω κανονικοποιημένης κλίμακας (0–5), αποτιμά την οπτική άνεση και την επάρκεια φωτισμού, ενώ υποστηρίζει τον εντοπισμό συνθηκών υπερφωτισμού και τη βελτιστοποίηση πρακτικών σκίασης και dimming.',
             ],
             'technical_definition' => [
                 'en' => 'Mode from config: normalized_level_0_5 uses discrete level→label map; raw_lux uses lux bands.',

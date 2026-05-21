@@ -437,6 +437,8 @@
       iaq_chart_snapshot_mode_mix: "{{ __('messages.dashboard_i18n.iaq_chart_snapshot_mode_mix') }}",
       iaq_semantic_row_tvoc: "{{ __('messages.dashboard_i18n.iaq_semantic_row_tvoc') }}",
       iaq_semantic_row_light: "{{ __('messages.dashboard_i18n.iaq_semantic_row_light') }}",
+      iaq_semantic_row_light_level: "{{ __('messages.dashboard_i18n.iaq_semantic_row_light_level') }}",
+      iaq_lighting_level_of: "{{ __('messages.dashboard_i18n.iaq_lighting_level_of') }}",
       iaq_semantic_row_direct: "{{ __('messages.dashboard_i18n.iaq_semantic_row_direct') }}",
       iaq_env_safety_good: "{{ __('messages.iaq_kpi.environmental_safety.healthy') }}",
       iaq_env_safety_moderate: "{{ __('messages.iaq_kpi.environmental_safety.medium') }}",
