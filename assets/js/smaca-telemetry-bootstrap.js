@@ -3220,7 +3220,7 @@
     });
   }
 
-  function boot() {
+  function bootCharts() {
     if (!api() || !tile()) return;
     if (debugTfEnabled()) {
       try { console.log('[SMACA_TF] debug logger active — every chart will report timeframe/scope/endpoint metadata.'); } catch (e) {}
@@ -3235,6 +3235,15 @@
     /* Spatial dispatches both scope events; listen once to avoid duplicate chart rebuilds. */
     document.addEventListener('smaca:scope-changed', refreshActive);
     document.addEventListener('smaca:timeframe-changed', refreshActive);
+  }
+
+  function boot() {
+    var loader = global.SMACAHighchartsLoader;
+    if (loader && typeof loader.load === 'function') {
+      loader.load().then(bootCharts, bootCharts);
+      return;
+    }
+    bootCharts();
   }
 
   if (document.readyState === 'loading') {

@@ -536,7 +536,16 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
   // API-first initialization for production dashboard data.
   await initializeStateFromApi();
-  
+
+  if (typeof window.SMACAHighchartsLoader !== 'undefined'
+    && typeof window.SMACAHighchartsLoader.load === 'function') {
+    try {
+      await window.SMACAHighchartsLoader.load();
+    } catch (e) {
+      smacaDebug('[SMACA] Highcharts preload failed; chart tiles may use fallbacks', e);
+    }
+  }
+
   // Setup time range selector
   setupTimeRangeSelector();
   

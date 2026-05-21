@@ -209,25 +209,41 @@ if (!function_exists('smacaReadingsLatestIaqMapForSensors_impl')) {
             }
         }
 
-        $query = DB::table('readings as r')->select($select);
-
         if ($scope === 'sensor_uid') {
             $uids = array_values(array_unique(array_values($uidBySensorId)));
             if ($uids === []) {
                 return [];
             }
-            $query->whereIn('r.sensor_uid', $uids)
-                ->whereRaw(
-                    'r.measured_at = (SELECT MAX(r2.measured_at) FROM readings r2 WHERE r2.sensor_uid = r.sensor_uid)'
-                );
-        } else {
-            $query->whereIn('r.sensor_id', $sensorIds)
-                ->whereRaw(
-                    'r.measured_at = (SELECT MAX(r2.measured_at) FROM readings r2 WHERE r2.sensor_id = r.sensor_id)'
-                );
-        }
+            $latest = DB::table('readings')
+                ->select('sensor_uid', DB::raw('MAX(measured_at) as measured_at'))
+                ->whereIn('sensor_uid', $uids)
+                ->groupBy('sensor_uid');
 
-        $rows = $query->orderByDesc('r.id')->get();
+            $rows = DB::table('readings as r')
+                ->select($select)
+                ->joinSub($latest, 'latest', function ($join) {
+                    $join->on('r.sensor_uid', '=', 'latest.sensor_uid')
+                        ->on('r.measured_at', '=', 'latest.measured_at');
+                })
+                ->whereIn('r.sensor_uid', $uids)
+                ->orderByDesc('r.id')
+                ->get();
+        } else {
+            $latest = DB::table('readings')
+                ->select('sensor_id', DB::raw('MAX(measured_at) as measured_at'))
+                ->whereIn('sensor_id', $sensorIds)
+                ->groupBy('sensor_id');
+
+            $rows = DB::table('readings as r')
+                ->select($select)
+                ->joinSub($latest, 'latest', function ($join) {
+                    $join->on('r.sensor_id', '=', 'latest.sensor_id')
+                        ->on('r.measured_at', '=', 'latest.measured_at');
+                })
+                ->whereIn('r.sensor_id', $sensorIds)
+                ->orderByDesc('r.id')
+                ->get();
+        }
         $map = [];
         foreach ($rows as $reading) {
             if ($scope === 'sensor_uid') {

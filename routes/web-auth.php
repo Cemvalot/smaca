@@ -5,6 +5,7 @@
  * database/migrations/0001_01_01_000000_create_users_table.php — ensure production DB matches.
  */
 
+use App\Support\SmacaPassword;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -14,20 +15,6 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
-
-if (! function_exists('smaca_password_matches')) {
-    /**
-     * Mixed-mode password check for legacy plaintext + bcrypt hashes.
-     */
-    function smaca_password_matches(string $plain, string $stored): bool
-    {
-        if (Hash::info($stored)['algo'] !== null) {
-            return Hash::check($plain, $stored);
-        }
-
-        return hash_equals($stored, $plain);
-    }
-}
 
 Route::get('/login', function () {
     if (session()->has('user_id')) {
@@ -65,7 +52,7 @@ Route::post('/login', function (Request $request) {
         ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNormalized])
         ->first();
 
-    if (! $user || ! smaca_password_matches($password, (string) $user->password)) {
+    if (! $user || ! SmacaPassword::matches($password, (string) $user->password)) {
         RateLimiter::hit($limitKey, 60);
 
         return redirect('/login')

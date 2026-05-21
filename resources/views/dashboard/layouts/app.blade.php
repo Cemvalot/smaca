@@ -235,9 +235,9 @@
       } catch (e) {}
     });
     window.SMACA_SENSORS = @json($sensors ?? []);
-    window.SMACA_HIGHCHARTS_SRC = "https://code.highcharts.com/12.2.0/highcharts.js";
+    window.SMACA_HIGHCHARTS_SRC = "{{ asset('assets/vendor/highcharts/highcharts.js') }}";
     window.SMACA_HIGHCHARTS_MODULES = [
-      "https://code.highcharts.com/12.2.0/modules/heatmap.js"
+      "{{ asset('assets/vendor/highcharts/heatmap.js') }}"
     ];
     window.SMACA_TRANSLATIONS = {
       loading_data: "{{ __('messages.app.loading_data') }}",
