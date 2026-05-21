@@ -34,17 +34,6 @@
     </div>
   </section>
 
-
-  <section class="card smaca-energy-zone smaca-energy-zone--meter-breakdown" style="margin: var(--space-6) 0;" aria-labelledby="energy-meter-breakdown-title">
-    <div class="card__header">
-      <h3 id="energy-meter-breakdown-title" class="card__title">{{ __('messages.dashboard_i18n.energy_meter_breakdown_title') }}</h3>
-      <p class="card__subtitle">{{ __('messages.dashboard_i18n.energy_meter_breakdown_subtitle') }}</p>
-    </div>
-    <div class="card__body">
-      <div id="energy-meter-groups" class="iaq-sensor-groups energy-meter-groups" hidden></div>
-    </div>
-  </section>
-
   <section class="card smaca-telemetry-card">
     <div class="card__header">
       <h3 class="card__title">{{ __('messages.nav.energy') }} · {{ __('messages.dashboard.live') }}</h3>
@@ -155,6 +144,16 @@
       </div>
     </article>
   </div>
+
+  <section class="card smaca-energy-zone smaca-energy-zone--meter-breakdown" style="margin: var(--space-6) 0;" aria-labelledby="energy-meter-breakdown-title">
+    <div class="card__header">
+      <h3 id="energy-meter-breakdown-title" class="card__title">{{ __('messages.dashboard_i18n.energy_meter_breakdown_title') }}</h3>
+      <p class="card__subtitle">{{ __('messages.dashboard_i18n.energy_meter_breakdown_subtitle') }}</p>
+    </div>
+    <div class="card__body">
+      <div id="energy-meter-groups" class="iaq-sensor-groups energy-meter-groups" hidden></div>
+    </div>
+  </section>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;

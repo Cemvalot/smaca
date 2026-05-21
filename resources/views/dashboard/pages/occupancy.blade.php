@@ -33,7 +33,6 @@
               <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="grid grid--metrics grid--metrics-2 occupancy-metrics-grid">
                 <p class="overview-live-note">{{ __('messages.common.loading') }}...</p>
               </div>
-              <div id="occupancy-sensor-groups" class="occupancy-sensor-groups" hidden></div>
             </div>
           </section>
 
@@ -132,6 +131,15 @@
               </div>
             </div>
           </div>
+
+          <section class="card smaca-occupancy-zone smaca-occupancy-zone--sensor-breakdown" style="margin: var(--space-6) 0;" aria-labelledby="occupancy-sensor-breakdown-title">
+            <div class="card__header">
+              <h3 id="occupancy-sensor-breakdown-title" class="card__title">{{ __('messages.dashboard_i18n.occupancy_sensor_breakdown_title') }}</h3>
+            </div>
+            <div class="card__body">
+              <div id="occupancy-sensor-groups" class="occupancy-sensor-groups" hidden></div>
+            </div>
+          </section>
         </div>
 <script>
   document.addEventListener('DOMContentLoaded', function () {

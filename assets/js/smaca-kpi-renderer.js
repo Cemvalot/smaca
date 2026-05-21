@@ -827,7 +827,7 @@
       );
     });
 
-    container.innerHTML = '<h4 class="occupancy-sensor-groups__title">' + escapeHtml(t('occupancy_sensor_breakdown_title', 'Sensor breakdown by floor')) + '</h4>' + sections.join('');
+    container.innerHTML = sections.join('');
     bindOccupancySensorGroupInteractions(container);
     floorCodes.forEach(function (floorCode) {
       if (!container.__smacaFloorState || !container.__smacaFloorState[floorCode]) return;
