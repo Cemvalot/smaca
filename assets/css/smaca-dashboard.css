@@ -3584,6 +3584,22 @@
   overflow-wrap: anywhere;
 }
 
+/* IAQ KPI cards: one muted tone for captions, semantic rows, and descriptions */
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__value-caption,
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__value-caption--vent-co2,
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__semantic-row,
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__semantic-row--muted,
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__desc,
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-live-note {
+  color: var(--muted);
+}
+
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__semantic-key,
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__semantic-sep,
+.smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__semantic-val {
+  color: inherit;
+}
+
 .smaca-iaq-kpi-grid .overview-kpi-card--iaq .overview-kpi-card__badge {
   font-size: 11px;
   font-weight: 600;

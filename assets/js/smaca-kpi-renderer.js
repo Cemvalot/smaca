@@ -175,6 +175,38 @@
     return { value: cleaned, unit: '' };
   }
 
+  /** Environmental safety: headline and badge follow KPI status (not a static server string). */
+  function environmentalSafetyLabelForStatus(displayStatus, kpi) {
+    var s = String(displayStatus || (kpi && kpi.status) || '').toLowerCase();
+    if (s === 'insufficient_data') {
+      return t('insufficient_data', 'insufficient data');
+    }
+    if (s === 'good' || s === 'normal' || s === 'low') {
+      return t('iaq_env_safety_good', 'Good quality');
+    }
+    if (s === 'warning' || s === 'medium' || s === 'notice') {
+      return t('iaq_env_safety_moderate', 'Moderate quality');
+    }
+    if (s === 'critical' || s === 'high' || s === 'crowded') {
+      return t('iaq_env_safety_high', 'Poor quality');
+    }
+    var vn = kpi && kpi.value_numeric;
+    if (vn !== undefined && vn !== null && Number.isFinite(Number(vn))) {
+      var n = Math.round(Number(vn));
+      if (n <= 0) return t('iaq_env_safety_good', 'Good quality');
+      if (n === 1) return t('iaq_env_safety_moderate', 'Moderate burden');
+      return t('iaq_env_safety_high', 'High burden');
+    }
+    return '';
+  }
+
+  function environmentalSafetyHeadlineParts(kpi, displayStatus) {
+    if (!kpi || String(kpi.key) !== 'environmental_safety_index') return null;
+    var label = environmentalSafetyLabelForStatus(displayStatus, kpi);
+    if (!label) return null;
+    return { value: label, unit: '' };
+  }
+
   /** IAQ-only: semantic mode strip (uses server-translated labels from SMACA_IAQ_SEMANTICS). */
   function buildIaqSemanticRowHtml(kpi, boundModule) {
     if (boundModule !== 'iaq' || !kpi) return '';
@@ -245,6 +277,45 @@
     return s;
   }
 
+  function environmentalUnitExplanation(kpi) {
+    var sem = global.SMACA_IAQ_SEMANTICS || {};
+    var mode = String((kpi && kpi.semantic_mode) || sem.tvoc_semantic_mode || 'iaq_rating_level');
+    var tvocPart = mode === 'raw_tvoc_ugm3'
+      ? t('kpi_help_environmental_unit_tvoc_ugm3', 'TVOC (µg/m³)')
+      : t('kpi_help_environmental_unit_tvoc_rating', 'TVOC (IAQ Rating)');
+    var template = t(
+      'kpi_help_environmental_units',
+      'PM2.5 (µg/m³), PM10 (µg/m³), :tvoc. The card shows a categorical quality level (good / moderate / poor), not a single concentration.'
+    );
+    return template.replace(':tvoc', tvocPart);
+  }
+
+  function resolveUnitExplanation(kpi) {
+    if (!kpi) return '';
+    if (String(kpi.key || '') === 'environmental_safety_index') {
+      return environmentalUnitExplanation(kpi);
+    }
+    return kpi.unit_explanation ? String(kpi.unit_explanation) : '';
+  }
+
+  function resolveUnitLabel(kpi) {
+    if (kpi && String(kpi.key || '') === 'environmental_safety_index') {
+      return t('kpi_help_measurement_units', 'Measurement unit');
+    }
+    return t('kpi_help_unit', 'Unit');
+  }
+
+  function isCompactIaqHelpKpi(kpi) {
+    var key = kpi ? String(kpi.key || '') : '';
+    return key === 'environmental_safety_index'
+      || key === 'ventilation_quality_index'
+      || key === 'iaq_thermal_comfort';
+  }
+
+  function showHelpUnitLine(kpi) {
+    return kpi && String(kpi.key || '') === 'environmental_safety_index';
+  }
+
   // Build the collapsible "How to read this" details block for a KPI card.
   // For user/student we keep it short (plain definition + unit + limitations).
   // For admin/researcher we include technical definition, sensors, formula.
@@ -256,7 +327,8 @@
     const helpHint = t('kpi_help_hint', 'Click to learn more');
 
     const plainDef = kpi.plain_definition ? escapeHtml(kpi.plain_definition) : '';
-    const unitExp = kpi.unit_explanation ? escapeHtml(kpi.unit_explanation) : '';
+    const unitExpRaw = resolveUnitExplanation(kpi);
+    const unitExp = unitExpRaw ? escapeHtml(unitExpRaw) : '';
     const statusMeaning = kpi.status_meaning ? escapeHtml(kpi.status_meaning) : '';
     const limitationsSimple = kpi.limitations_simple ? escapeHtml(kpi.limitations_simple) : '';
     const limitations = kpi.limitations ? escapeHtml(kpi.limitations) : limitationsSimple;
@@ -284,23 +356,23 @@
     if (plainDef) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;">' + plainDef + '</p>');
     }
-    if (kpi.semantic_explainer) {
+    if (kpi.semantic_explainer && !isCompactIaqHelpKpi(kpi)) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;color:var(--muted);font-size:11px;">' + escapeHtml(kpi.semantic_explainer) + '</p>');
     }
-    if (unitExp) {
-      parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_unit', 'Unit')) + ':</strong> ' + unitExp + '</p>');
+    if (unitExp && showHelpUnitLine(kpi)) {
+      parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(resolveUnitLabel(kpi)) + ':</strong> ' + unitExp + '</p>');
     }
-    if (statusMeaning) {
+    if (statusMeaning && !isCompactIaqHelpKpi(kpi)) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_current_status', 'Current status')) + ':</strong> ' + statusMeaning + '</p>');
     }
     if (showTech) {
-      if (techDef) {
+      if (techDef && !isCompactIaqHelpKpi(kpi)) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_technical', 'Technical definition')) + ':</strong> ' + techDef + '</p>');
       }
-      if (calc) {
+      if (calc && !isCompactIaqHelpKpi(kpi)) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_formula', 'Calculation')) + ':</strong> ' + calc + '</p>');
       }
-      if (sensors) {
+      if (sensors && !isCompactIaqHelpKpi(kpi)) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_sensors', 'Sensors used')) + ':</strong> ' + sensors + '</p>');
       }
       if (sourceType || kpiCategory) {
@@ -311,7 +383,7 @@
         parts.push('<p style="margin:0 0 var(--space-1) 0;">' + meta.join(' ') + '</p>');
       }
     }
-    if (limitations) {
+    if (limitations && !isCompactIaqHelpKpi(kpi)) {
       var lim = showTech ? limitations : (limitationsSimple || limitations);
       parts.push('<p style="margin:0;color:var(--muted);"><strong>' + escapeHtml(t('kpi_help_limitations', 'Limitations')) + ':</strong> ' + lim + '</p>');
     }
@@ -367,17 +439,27 @@
     var cards = list.map(function (kpi) {
       const confidence = formatConfidence(kpi.confidence);
       const compactStyle = compact ? ' style="min-height: 124px;"' : '';
-      const descriptionText = kpi.description || '';
+      const descriptionText = kpi.key === 'environmental_safety_index'
+        ? ''
+        : (kpi.description || '');
       const helpBlock = compact ? '' : buildHelpBlock(kpi);
       var vu = splitValueUnit(kpi);
+      const displayStatus = resolveEffectiveKpiStatus(kpi, boundModule);
       var ventHead = ventilationHeadlineParts(kpi);
       if (ventHead && ventHead.value) {
         vu = { value: ventHead.value, unit: ventHead.unit };
       }
-      const displayStatus = resolveEffectiveKpiStatus(kpi, boundModule);
+      var envHead = environmentalSafetyHeadlineParts(kpi, displayStatus);
+      if (envHead && envHead.value) {
+        vu = { value: envHead.value, unit: envHead.unit };
+      }
       const snapshotLayout = compact && showModuleSource;
       const interpLabel = formatInterpretationLabel(kpi);
       let badgeText = interpLabel || formatStatus(displayStatus);
+      if (kpi.key === 'environmental_safety_index') {
+        var envBadge = environmentalSafetyLabelForStatus(displayStatus, kpi);
+        if (envBadge) badgeText = envBadge;
+      }
       if (snapshotLayout && kpi.key === 'uv_exposure_risk') {
         badgeText = t('overview_uv_high_exposure', 'High exposure');
         var uvStatus = String(displayStatus || '').toLowerCase();
@@ -426,13 +508,13 @@
             <div class="stat-card__value">${valueHtml}</div>
             <div class="stat-card__meta">
               <span class="badge ${statusClass(displayStatus)} badge--sm overview-kpi-card__badge"><span class="${dotClass}"></span>${escapeHtml(badgeText)}</span>
-              ${!compact && showConfidence && confidence ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
+              ${!compact && showConfidence && confidence && boundModule !== 'iaq' ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
             </div>
             ${hintHtml}
             ${moduleSourceHtml}
             ${valueCaption}
             ${semanticRow}
-            ${compact ? '' : `<p class="overview-live-note overview-kpi-card__desc">${escapeHtml(descriptionText)}</p>`}
+            ${compact || !String(descriptionText).trim() ? '' : `<p class="overview-live-note overview-kpi-card__desc">${escapeHtml(descriptionText)}</p>`}
             ${helpBlock}
           </div>
         </article>

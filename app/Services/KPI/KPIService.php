@@ -226,7 +226,7 @@ class KPIService
             $statusMeaning = $meta['status_meanings'][$canonical] ?? null;
 
             // Additive merge — never overwrite caller-provided fields.
-            return array_merge($kpi, [
+            $merged = array_merge($kpi, [
                 'kpi_category' => $meta['kpi_category'] ?? null,
                 'metadata_complete' => $meta['metadata_complete'] ?? false,
                 'source_type' => $meta['source_type'] ?? 'measured',
@@ -240,6 +240,23 @@ class KPIService
                 'limitations_simple' => $meta['limitations_simple'] ?? null,
                 'status_meaning' => $statusMeaning,
             ]);
+
+            // IAQ summary cards use a short help panel — omit extended metadata blocks.
+            if (in_array($key, ['environmental_safety_index', 'ventilation_quality_index', 'iaq_thermal_comfort'], true)) {
+                $merged['limitations'] = null;
+                $merged['limitations_simple'] = null;
+                $merged['technical_definition'] = null;
+                $merged['calculation_summary'] = null;
+                $merged['sensors_used'] = [];
+                if ($key !== 'environmental_safety_index') {
+                    $merged['unit_explanation'] = null;
+                }
+                if ($key === 'iaq_thermal_comfort') {
+                    $merged['status_meaning'] = null;
+                }
+            }
+
+            return $merged;
         }, $kpis);
     }
 

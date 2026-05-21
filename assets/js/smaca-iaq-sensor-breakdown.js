@@ -421,12 +421,12 @@
   function ventilationBandFromCo2(ppm) {
     var p = toNum(ppm);
     if (p === null) return null;
-    if (p <= 400) return t('iaq_co2_band_outdoor_normal', 'Normal outdoor air (≤400 ppm)');
-    if (p <= 1000) return t('iaq_co2_band_good_ventilation', 'Good ventilation');
-    if (p <= 2000) return t('iaq_co2_band_poor_ventilation', 'Poor air quality — ventilation required (1000–2000 ppm)');
-    if (p <= 5000) return t('iaq_co2_band_high_discomfort', 'High discomfort / possible symptoms (2000–5000 ppm)');
-    if (p <= 40000) return t('iaq_co2_band_workplace_limit', 'Workplace exposure limit band (5000–40000 ppm)');
-    return t('iaq_co2_band_dangerous', 'Dangerous exposure (>40000 ppm)');
+    if (p <= 400) return t('iaq_co2_band_outdoor_normal', 'Sufficient');
+    if (p <= 1000) return t('iaq_co2_band_good_ventilation', 'Sufficient');
+    if (p <= 2000) return t('iaq_co2_band_poor_ventilation', 'Insufficient');
+    if (p <= 5000) return t('iaq_co2_band_high_discomfort', 'Insufficient');
+    if (p <= 40000) return t('iaq_co2_band_workplace_limit', 'Insufficient');
+    return t('iaq_co2_band_dangerous', 'Insufficient');
   }
 
   function thermalComfortState(latest) {

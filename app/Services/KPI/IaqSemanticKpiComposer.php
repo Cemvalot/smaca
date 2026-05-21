@@ -125,7 +125,7 @@ class IaqSemanticKpiComposer
                 'description' => __('messages.iaq_kpi.thermal_comfort.insufficient'),
                 'recommended_action' => __('messages.thresholds.insufficient_data_action'),
                 'display_kind' => 'boolean',
-            ], __('messages.iaq_explainer.thermal_comfort'));
+            ]);
         }
 
         $bands = $this->registry->thermalComfortBands();
@@ -169,7 +169,7 @@ class IaqSemanticKpiComposer
                 'temp' => round((float) $t, 1),
                 'rh' => round((float) $rh, 0),
             ]),
-        ], __('messages.iaq_explainer.thermal_comfort'));
+        ]);
     }
 
     /**
