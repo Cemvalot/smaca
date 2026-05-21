@@ -4658,29 +4658,6 @@ function updateOverviewLiveValues(overview, sensorRows) {
   const dataFreshness = document.getElementById('overview-data-freshness');
   if (dataFreshness) dataFreshness.textContent = `${smacaT('data_freshness_label', 'Data freshness')}: ${freshnessText}`;
 
-  const airScore = computeAirQualityScore(latestCo2, latestPm25);
-  const airScoreValueEl = document.getElementById('overview-air-score-value');
-  if (airScoreValueEl) airScoreValueEl.textContent = Number.isFinite(airScore) ? String(Math.round(airScore)) : '--';
-  const airScoreMeta = document.getElementById('overview-air-score-meta');
-  if (airScoreMeta) {
-    if (Number.isFinite(latestCo2) && Number.isFinite(latestPm25)) {
-      airScoreMeta.textContent = `CO₂ ${Math.round(latestCo2)} ppm and PM2.5 ${latestPm25.toFixed(1)} μg/m³.`;
-    } else if (Number.isFinite(latestCo2)) {
-      airScoreMeta.textContent = `CO₂ ${Math.round(latestCo2)} ppm.`;
-    } else if (Number.isFinite(latestPm25)) {
-      airScoreMeta.textContent = `PM2.5 ${latestPm25.toFixed(1)} μg/m³.`;
-    } else {
-      airScoreMeta.textContent = smacaT('awaiting_live_iaq_data', 'Awaiting live IAQ data.');
-    }
-  }
-  const airScoreProgress = document.getElementById('overview-air-score-progress');
-  if (airScoreProgress) {
-    const score = Number.isFinite(airScore) ? Math.max(0, Math.min(100, airScore)) : 0;
-    const circumference = 326.73;
-    const offset = circumference - (score / 100) * circumference;
-    airScoreProgress.style.strokeDashoffset = String(offset);
-  }
-
   setOverviewModuleStatus('overview-module-status-iaq', airStatus.moduleStatus, airStatus.moduleClass);
   setOverviewModuleStatus('overview-module-status-environmental', uvStatus.moduleStatus, uvStatus.moduleClass);
   setOverviewModuleStatus('overview-module-status-occupancy', occupancyStatus.moduleStatus, occupancyStatus.moduleClass);
@@ -4909,14 +4886,6 @@ function normalizeUvIndexValue(rawUv) {
   if (uv <= 150) return uv / 10;
   if (uv <= 2000) return uv / 100;
   return uv;
-}
-
-function computeAirQualityScore(co2, pm25) {
-  if (!Number.isFinite(co2) && !Number.isFinite(pm25)) return null;
-  const co2Score = Number.isFinite(co2) ? Math.max(0, Math.min(100, 100 - ((co2 - 400) / 8))) : null;
-  const pmScore = Number.isFinite(pm25) ? Math.max(0, Math.min(100, 100 - (pm25 * 2))) : null;
-  if (Number.isFinite(co2Score) && Number.isFinite(pmScore)) return (co2Score * 0.7) + (pmScore * 0.3);
-  return Number.isFinite(co2Score) ? co2Score : pmScore;
 }
 
 function computeOverviewFreshnessLabel() {

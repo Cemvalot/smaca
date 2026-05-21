@@ -247,8 +247,8 @@ return [
         'iaq_sensor_breakdown_warnings' => 'Προειδοποιήσεις',
         'iaq_sensor_breakdown_thermal_comfortable' => 'Εντός ζώνης άνεσης',
         'iaq_sensor_breakdown_thermal_uncomfortable' => 'Εκτός ζώνης άνεσης',
-        'iaq_sensor_breakdown_env_elevated' => 'Αυξημένα σωματίδια ή TVOC — παρακολουθήστε τον αερισμό',
-        'iaq_sensor_breakdown_env_acceptable' => 'Χωρίς σημαντικές ενδείξεις PM/TVOC από το τελευταίο στιγμιότυπο',
+        'iaq_sensor_breakdown_env_elevated' => 'Αυξημένα PM2.5, PM10 ή TVOC — παρακολουθήστε τον αερισμό',
+        'iaq_sensor_breakdown_env_acceptable' => 'Χωρίς σημαντικές ενδείξεις PM2.5, PM10 ή TVOC από το τελευταίο στιγμιότυπο',
         'iaq_sensor_breakdown_warn_co2_high' => 'CO₂ αυξημένο (≥1000 ppm)',
         'iaq_sensor_breakdown_warn_co2_critical' => 'CO₂ κρίσιμο (≥2000 ppm)',
         'iaq_sensor_breakdown_warn_pm25' => 'PM2.5 ανθυγιεινό (>35,4 µg/m³)',
@@ -832,12 +832,12 @@ return [
         'tvoc_raw' => 'Το TVOC ερμηνεύεται ως πρωτογενής συγκέντρωση σε µg/m³.',
         'co2' => 'Το CO₂ μετριέται άμεσα σε ppm και χρησιμοποιείται ως δείκτης ποιότητας αερισμού.',
         'thermal_comfort' => 'Η θερμική άνεση αξιολογείται με συνδυασμένα όρια θερμοκρασίας και υγρασίας.',
-        'environmental_safety' => 'Ο δείκτης συνδυάζει αιωρούμενα σωματίδια και TVOC για εκτίμηση περιβαλλοντικής ασφάλειας.',
+        'environmental_safety' => 'Ο δείκτης συνδυάζει PM2.5, PM10 και TVOC για εκτίμηση περιβαλλοντικής ασφάλειας.',
     ],
 
     'iaq_kpi' => [
         'environmental_safety' => [
-            'insufficient' => 'Ανεπαρκή δεδομένα σωματιδίων ή TVOC για τον δείκτη ασφάλειας.',
+            'insufficient' => 'Ανεπαρκή δεδομένα PM2.5, PM10 ή TVOC για τον δείκτη ασφάλειας.',
             'healthy' => 'Υγιεινό',
             'medium' => 'Μέτριος',
             'unhealthy' => 'Μη υγιής',
@@ -872,7 +872,10 @@ return [
         ],
         'value_caption' => [
             'iaq_health' => 'Σημασιολογία TVOC: :tvoc_mode',
-            'environmental' => 'Σημασιολογία TVOC: :tvoc_mode',
+            'environmental' => 'PM2.5: :pm25 · PM10: :pm10 · TVOC: :tvoc_mode',
+            'pm25' => 'PM2.5: :value µg/m³',
+            'pm10' => 'PM10: :value µg/m³',
+            'tvoc_mode' => 'TVOC: :tvoc_mode',
             'thermal' => 'Τρέχουσα κατάσταση: :temp °C · :rh % RH',
             'ventilation' => 'Μέσος CO₂: :ppm ppm',
             'lighting' => ':mode · :detail',

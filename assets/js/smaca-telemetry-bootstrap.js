@@ -587,7 +587,6 @@
     var reasons = {
       iaq_thermal_comfort: overviewTr('overview_watch_thermal_comfort', 'Thermal comfort outside optimal range', 'Θερμική άνεση εκτός βέλτιστου εύρους'),
       thermal_comfort_index: overviewTr('overview_watch_thermal_comfort', 'Thermal comfort outside optimal range', 'Θερμική άνεση εκτός βέλτιστου εύρους'),
-      iaq_health_index: overviewTr('overview_watch_iaq_health', 'Air quality needs attention', 'Η ποιότητα αέρα χρειάζεται προσοχή'),
       ventilation_quality_index: overviewTr('overview_watch_ventilation', 'Ventilation pressure elevated', 'Αυξημένη πίεση αερισμού'),
       normalized_energy_intensity: overviewTr('overview_watch_energy_intensity', 'Energy intensity elevated', 'Αυξημένη ένταση ενέργειας'),
       base_load_index: overviewTr('overview_watch_base_load', 'Elevated standby load', 'Αυξημένο βασικό φορτίο'),
@@ -1084,7 +1083,7 @@
       // --- 1) Module health matrix — horizontal bars (one per module)
       // showing % of fresh sensors, plus a worst-status indicator dot.
       var overviewWatchKeys = {
-        iaq: ['iaq_health_index', 'iaq_thermal_comfort', 'thermal_comfort_index', 'environmental_safety_index', 'ventilation_quality_index'],
+        iaq: ['iaq_thermal_comfort', 'thermal_comfort_index', 'environmental_safety_index', 'ventilation_quality_index'],
         energy: ['normalized_energy_intensity', 'base_load_index'],
         occupancy: ['movement_activity_index', 'crowd_density_level'],
         environmental: ['uv_exposure_risk', 'environmental_safety_index']

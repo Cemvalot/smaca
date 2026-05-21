@@ -127,11 +127,6 @@
     var occupancy = bundles.occupancy;
     var environmental = bundles.environmental;
 
-    var iaqHealth = findKpi(iaq, 'iaq_health_index');
-    if (iaqHealth) {
-      cards.push(withModuleSource(iaqHealth, 'iaq', t('overview_module_iaq', 'Indoor Air Quality')));
-    }
-
     var occ = buildOccupancyOverviewKpi(occupancy);
     if (occ) cards.push(occ);
 
@@ -146,73 +141,6 @@
     if (comfortUv) cards.push(comfortUv);
 
     return cards;
-  }
-
-  function gaugeVisualStatus(kpi) {
-    if (!kpi || kpi.value === null || kpi.value === undefined) return 'idle';
-    var status = String(kpi.status || 'normal').toLowerCase();
-    if (status === 'critical' || status === 'poor' || status === 'high') return 'critical';
-    if (status === 'warning' || status === 'needs_calibration' || status === 'crowded') return 'warning';
-    return 'normal';
-  }
-
-  function pulseGaugeValue(valueEl) {
-    if (!valueEl) return;
-    valueEl.classList.remove('overview-gauge__value--pulse');
-    void valueEl.offsetWidth;
-    valueEl.classList.add('overview-gauge__value--pulse');
-    window.setTimeout(function () {
-      valueEl.classList.remove('overview-gauge__value--pulse');
-    }, 520);
-  }
-
-  function updateIaqGauge(iaqPayload) {
-    var kpi = findKpi(iaqPayload, 'iaq_health_index');
-    var gaugeEl = document.getElementById('overview-iaq-gauge');
-    var valueEl = document.getElementById('overview-air-score-value');
-    var metaEl = document.getElementById('overview-air-score-meta');
-    var statusEl = document.getElementById('overview-air-score-status');
-    var progressEl = document.getElementById('overview-air-score-progress');
-    var linkEl = document.getElementById('overview-iaq-score-link');
-    if (!valueEl) return;
-
-    var visual = gaugeVisualStatus(kpi);
-    if (gaugeEl) gaugeEl.setAttribute('data-iaq-gauge-status', visual);
-    if (linkEl) linkEl.setAttribute('data-iaq-gauge-status', visual);
-
-    if (!kpi || kpi.value === null || kpi.value === undefined) {
-      valueEl.textContent = '—';
-      if (metaEl) metaEl.textContent = t('awaiting_live_iaq_data', 'Awaiting live IAQ data.');
-      if (statusEl) {
-        statusEl.hidden = true;
-        statusEl.textContent = '';
-      }
-      if (progressEl) progressEl.style.strokeDashoffset = String(326.73);
-      return;
-    }
-
-    var score = Number(kpi.value);
-    var display = Number.isFinite(score) ? String(Math.round(score)) : '—';
-    if (valueEl.textContent !== display) pulseGaugeValue(valueEl);
-    valueEl.textContent = display;
-    if (metaEl) {
-      metaEl.textContent = kpi.value_caption || kpi.semantic_explainer || kpi.description || '';
-    }
-    if (statusEl) {
-      var statusLabel = kpi.interpretation_label || kpi.status || '';
-      if (statusLabel) {
-        statusEl.textContent = String(statusLabel);
-        statusEl.hidden = false;
-        statusEl.setAttribute('data-status', String(kpi.status || 'normal').toLowerCase());
-      } else {
-        statusEl.hidden = true;
-        statusEl.textContent = '';
-      }
-    }
-    if (progressEl && Number.isFinite(score)) {
-      var clamped = Math.max(0, Math.min(100, score));
-      progressEl.style.strokeDashoffset = String(326.73 - (clamped / 100) * 326.73);
-    }
   }
 
   function renderScopeSummary(payload) {
@@ -248,7 +176,6 @@
       });
       var scopePayload = bundles.iaq || bundles.energy || bundles.occupancy || bundles.environmental;
       renderScopeSummary(scopePayload);
-      updateIaqGauge(bundles.iaq);
 
       var kpis = buildOverviewKpiList(bundles);
       var payload = {

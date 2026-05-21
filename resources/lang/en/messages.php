@@ -247,8 +247,8 @@ return [
         'iaq_sensor_breakdown_warnings' => 'Warnings',
         'iaq_sensor_breakdown_thermal_comfortable' => 'Within comfort range',
         'iaq_sensor_breakdown_thermal_uncomfortable' => 'Outside comfort range',
-        'iaq_sensor_breakdown_env_elevated' => 'Elevated particulates or TVOC — monitor ventilation',
-        'iaq_sensor_breakdown_env_acceptable' => 'No major particulate / TVOC flags from latest snapshot',
+        'iaq_sensor_breakdown_env_elevated' => 'Elevated PM2.5, PM10, or TVOC — monitor ventilation',
+        'iaq_sensor_breakdown_env_acceptable' => 'No major PM2.5, PM10, or TVOC flags from latest snapshot',
         'iaq_sensor_breakdown_warn_co2_high' => 'CO₂ elevated (≥1000 ppm)',
         'iaq_sensor_breakdown_warn_co2_critical' => 'CO₂ critical (≥2000 ppm)',
         'iaq_sensor_breakdown_warn_pm25' => 'PM2.5 unhealthy (>35.4 µg/m³)',
@@ -831,12 +831,12 @@ return [
         'tvoc_raw' => 'This metric interprets TVOC as a raw concentration in µg/m³.',
         'co2' => 'CO₂ is measured directly in ppm and used as an indicator of ventilation quality.',
         'thermal_comfort' => 'Thermal comfort is evaluated using combined temperature and humidity thresholds.',
-        'environmental_safety' => 'The index combines particulate matter and TVOC conditions to estimate environmental safety.',
+        'environmental_safety' => 'The index combines PM2.5, PM10, and TVOC conditions to estimate environmental safety.',
     ],
 
     'iaq_kpi' => [
         'environmental_safety' => [
-            'insufficient' => 'Not enough particulate or TVOC data to compute environmental safety.',
+            'insufficient' => 'Not enough PM2.5, PM10, or TVOC data to compute environmental safety.',
             'healthy' => 'Healthy',
             'medium' => 'Medium',
             'unhealthy' => 'Unhealthy',
@@ -871,7 +871,10 @@ return [
         ],
         'value_caption' => [
             'iaq_health' => 'TVOC semantics: :tvoc_mode',
-            'environmental' => 'TVOC semantics: :tvoc_mode',
+            'environmental' => 'PM2.5: :pm25 · PM10: :pm10 · TVOC: :tvoc_mode',
+            'pm25' => 'PM2.5: :value µg/m³',
+            'pm10' => 'PM10: :value µg/m³',
+            'tvoc_mode' => 'TVOC: :tvoc_mode',
             'thermal' => 'Current: :temp °C · :rh % RH',
             'ventilation' => 'Average CO₂: :ppm ppm',
             'lighting' => ':mode · :detail',

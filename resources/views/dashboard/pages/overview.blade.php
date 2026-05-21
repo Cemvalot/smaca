@@ -58,13 +58,8 @@
     </div>
   </section>
 
-  {{-- The legacy "Campus live status" + status groups + Health card +
-       Module activity sidebar all duplicated information that is now
-       answered more clearly by the new top telemetry section
-       (module-health bars, sensor-status donut, alerts/stalest/top-CO₂ tiles).
-       Kept the IAQ Score gauge (still unique) and the campus trend chart
-       (timeseries view, complementary to the snapshot tiles above). --}}
-  <div class="overview-middle-grid {{ $smacaIsAdmin ? '' : 'overview-middle-grid--single' }}">
+  {{-- Campus trend chart (timeseries view, complementary to snapshot tiles above). --}}
+  <div class="overview-middle-grid overview-middle-grid--single">
     <section class="card overview-trend-card">
       <div class="card__header">
         <div class="card__header-icon">
@@ -89,35 +84,6 @@
         </div>
       </div>
     </section>
-
-    <aside class="card overview-air-score-card">
-      <div class="card__header overview-air-score-card__header">
-        <h3 class="card__title">{{ __('messages.nav.iaq') }} {{ __('messages.dashboard_i18n.score') }}</h3>
-        <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_iaq_score_subtitle') }}</p>
-      </div>
-      <div class="card__body overview-air-score-body">
-        <a href="{{ url('/dashboard/iaq') }}" class="overview-air-score-interactive" id="overview-iaq-score-link" aria-label="{{ __('messages.nav.iaq') }} — {{ __('messages.dashboard_i18n.overview_view_module') }}">
-          <div class="overview-air-score-stack">
-            <div class="overview-gauge" id="overview-iaq-gauge" data-iaq-gauge-status="idle" role="img" aria-labelledby="overview-air-score-value overview-air-score-meta">
-              <div class="overview-gauge__halo" aria-hidden="true"></div>
-              <div class="overview-gauge__ring">
-                <svg class="overview-gauge__svg" viewBox="0 0 132 132" aria-hidden="true">
-                  <circle class="overview-gauge__track" cx="66" cy="66" r="52"></circle>
-                  <circle id="overview-air-score-progress" class="overview-gauge__progress" cx="66" cy="66" r="52"></circle>
-                </svg>
-                <div class="overview-gauge__center">
-                  <div id="overview-air-score-value" class="overview-gauge__value">--</div>
-                  <div class="overview-gauge__label">{{ __('messages.dashboard_i18n.iaq_index') }}</div>
-                </div>
-              </div>
-            </div>
-            <span id="overview-air-score-status" class="overview-air-score-status" hidden></span>
-            <p id="overview-air-score-meta" class="overview-air-score-meta">{{ __('messages.dashboard_i18n.awaiting_live_iaq_data') }}</p>
-            <span class="overview-air-score-cta">{{ __('messages.dashboard_i18n.overview_view_module') }}</span>
-          </div>
-        </a>
-      </div>
-    </aside>
   </div>
 
   <section class="card overview-quick-access">
@@ -248,7 +214,7 @@
 
     function hydrateNavIndicators(bundles) {
       var map = {
-        iaq: findOverviewKpi(bundles, 'iaq', ['iaq_health_index']),
+        iaq: findOverviewKpi(bundles, 'iaq', ['environmental_safety_index', 'ventilation_quality_index', 'iaq_thermal_comfort']),
         energy: findOverviewKpi(bundles, 'energy', ['normalized_energy_intensity']),
         occupancy: findOverviewKpi(bundles, 'occupancy', ['movement_activity_index', 'crowd_density_level']),
         environmental: findOverviewKpi(bundles, 'environmental', ['uv_exposure_risk'])

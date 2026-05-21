@@ -156,8 +156,8 @@ return [
                 'el' => 'Κατηγορικός δείκτης (Υγιής / Μέτριος / Μη υγιής), όχι συγκέντρωση.',
             ],
             'plain_definition' => [
-                'en' => 'Combines particulate matter with TVOC using the configured TVOC semantic mode (IAQ rating vs raw concentration).',
-                'el' => 'Συνδυάζει αιωρούμενα με TVOC με βάση τη ρυθμισμένη σημασιολογική λειτουργία TVOC (βαθμολογία IAQ έναντι πρωτογενούς συγκέντρωσης).',
+                'en' => 'Combines PM2.5, PM10, and TVOC using the configured TVOC semantic mode (IAQ rating vs raw concentration).',
+                'el' => 'Συνδυάζει PM2.5, PM10 και TVOC με βάση τη ρυθμισμένη σημασιολογική λειτουργία TVOC (βαθμολογία IAQ έναντι πρωτογενούς συγκέντρωσης).',
             ],
             'technical_definition' => [
                 'en' => 'Raw TVOC mode: unhealthy if any of TVOC>1000 µg/m³, PM2.5>35.4, PM10>154; healthy only if TVOC≤250 AND PM2.5≤12 AND PM10≤54; else medium — worst wins. IAQ rating mode: TVOC mapped to severity bands; same PM gates.',

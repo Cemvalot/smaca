@@ -180,10 +180,27 @@
     if (boundModule !== 'iaq' || !kpi) return '';
     var sem = global.SMACA_IAQ_SEMANTICS || {};
     var key = String(kpi.key || '');
-    if (key === 'iaq_health_index' || key === 'environmental_safety_index') {
+    if (key === 'environmental_safety_index') {
+      var rows = [];
+      var pm25 = kpi.pm25_ugm3;
+      var pm10 = kpi.pm10_ugm3;
+      if (pm25 !== null && pm25 !== undefined && Number.isFinite(Number(pm25))) {
+        rows.push(
+          '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('labels_pm25', 'PM2.5')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(String(Number(pm25).toFixed(1))) + ' µg/m³</span></p>'
+        );
+      }
+      if (pm10 !== null && pm10 !== undefined && Number.isFinite(Number(pm10))) {
+        rows.push(
+          '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('labels_pm10', 'PM10')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(String(Number(pm10).toFixed(1))) + ' µg/m³</span></p>'
+        );
+      }
       var tv = String(sem.tvoc_mode_label || '').trim();
-      if (!tv) return '';
-      return '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('iaq_semantic_row_tvoc', 'TVOC')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(tv) + '</span></p>';
+      if (tv) {
+        rows.push(
+          '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('iaq_semantic_row_tvoc', 'TVOC')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(tv) + '</span></p>'
+        );
+      }
+      return rows.join('');
     }
     if (key === 'visual_lighting_condition') {
       var lm = String(sem.light_mode_label || '').trim();
