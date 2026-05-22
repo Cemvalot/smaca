@@ -161,10 +161,32 @@ function smacaUiT(key, fallback) {
     return {};
   }
 
-  function formatOperationalHourLabel(timestampMs) {
-    const d = new Date(timestampMs);
+  const OPERATIONAL_DAY_TICK_HOURS = [0, 6, 12, 18, 24];
+
+  function formatOperationalHourLabel(timestampMs, dayEndMs) {
+    const t = Number(timestampMs);
+    if (!Number.isFinite(t)) return '';
+    if (Number.isFinite(dayEndMs) && t >= dayEndMs - 1) return '24:00';
+    const d = new Date(t);
     if (!Number.isFinite(d.getTime())) return '';
     return String(d.getHours()).padStart(2, '0') + ':00';
+  }
+
+  function buildOperational24hXAxisOptions(chartWindow) {
+    if (!chartWindow || chartWindow.timeframe !== '24h' || !Array.isArray(chartWindow.bucketTimesMs) || !chartWindow.bucketTimesMs.length) {
+      return null;
+    }
+    const dayStart = Number(chartWindow.bucketTimesMs[0]);
+    const dayEnd = dayStart + (24 * 3600000);
+    const tickPositions = OPERATIONAL_DAY_TICK_HOURS.map(function (h) {
+      return dayStart + (h * 3600000);
+    });
+    return {
+      min: dayStart,
+      max: dayEnd,
+      tickPositions: tickPositions,
+      dayEndMs: dayEnd
+    };
   }
 
   function buildChartWindowFromBucketTimes(timeframe, times) {
@@ -176,12 +198,30 @@ function smacaUiT(key, fallback) {
       bucketMs: bucketMs,
       bucketTimesMs: bucketTimesMs,
       rangeStartMs: Number(bucketTimesMs[0]),
-      rangeEndMs: Number(bucketTimesMs[bucketTimesMs.length - 1]) + bucketMs
+      rangeEndMs: Number(bucketTimesMs[bucketTimesMs.length - 1]) + bucketMs,
+      operationalDay: timeframe === '24h' && bucketTimesMs.length === 24
     };
   }
 
   function mergeDatetimeXAxis(base, chartWindow) {
-    return Object.assign({}, base || {}, getDatetimeAxisBounds({ chartWindow: chartWindow }));
+    const bounds = getDatetimeAxisBounds({ chartWindow: chartWindow });
+    const op24h = buildOperational24hXAxisOptions(chartWindow);
+    if (!op24h) {
+      return Object.assign({}, base || {}, bounds);
+    }
+    const merged = Object.assign({}, base || {}, bounds, {
+      min: op24h.min,
+      max: op24h.max,
+      tickPositions: op24h.tickPositions,
+      tickPixelInterval: undefined
+    });
+    const baseLabels = (base && base.labels) ? base.labels : {};
+    merged.labels = Object.assign({}, baseLabels, {
+      formatter: function () {
+        return formatOperationalHourLabel(this.value, op24h.dayEndMs);
+      }
+    });
+    return merged;
   }
 
   function createOrUpdateChart(params) {
@@ -250,7 +290,7 @@ function smacaUiT(key, fallback) {
     const map = {
       co2: { label: 'CO₂', unit: 'ppm', decimals: 0, color: '#3b82f6' },
       temperature: { label: chartT('temperature_label', 'Temperature'), unit: '°C', decimals: 1, color: '#06b6d4' },
-      humidity: { label: chartT('humidity_label', 'Humidity'), unit: '%', decimals: 0, color: '#6366f1' },
+      humidity: { label: chartT('humidity_label', 'Relative Humidity'), unit: '%', decimals: 0, color: '#6366f1' },
       pm2_5: { label: 'PM2.5', unit: 'μg/m³', decimals: 1, color: '#f59e0b' },
       pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
       tvoc: tvocUi
@@ -374,6 +414,7 @@ function smacaUiT(key, fallback) {
     const fillTopAlpha = isCo2 ? 0.22 : 0.12;
     const seriesData = Array.isArray(params.seriesData) ? params.seriesData : [];
     const axisBounds = getDatetimeAxisBounds(params);
+    const op24hAxis = params.timeframe === '24h' ? buildOperational24hXAxisOptions(params.chartWindow) : null;
     const latestPoint = seriesData.length ? seriesData[seriesData.length - 1] : null;
     const maxPoint = seriesData.length
       ? seriesData.reduce(function (currentMax, point) {
@@ -441,7 +482,8 @@ function smacaUiT(key, fallback) {
         lineColor: 'rgba(148, 163, 184, 0.28)',
         tickColor: 'rgba(148, 163, 184, 0.22)',
         tickLength: 4,
-        tickPixelInterval: params.timeframe === '24h' ? 84 : 120,
+        tickPixelInterval: op24hAxis ? undefined : (params.timeframe === '24h' ? 84 : 120),
+        tickPositions: op24hAxis ? op24hAxis.tickPositions : undefined,
         labels: {
           style: {
             color: '#94a3b8',
@@ -451,12 +493,13 @@ function smacaUiT(key, fallback) {
           autoRotation: [-20, -35],
           autoRotationLimit: 80,
           formatter: function () {
-            if (params.timeframe === '24h') return window.Highcharts.dateFormat('%H:%M', this.value);
+            if (op24hAxis) return formatOperationalHourLabel(this.value, op24hAxis.dayEndMs);
+            if (params.timeframe === '24h') return formatOperationalHourLabel(this.value);
             if (params.timeframe === '7d') return window.Highcharts.dateFormat('%a %d', this.value);
             return window.Highcharts.dateFormat('%d %b', this.value);
           }
         }
-      }, axisBounds),
+      }, axisBounds, op24hAxis ? { min: op24hAxis.min, max: op24hAxis.max } : {}),
       yAxis: {
         title: {
           text: cfg.unit,
@@ -508,7 +551,7 @@ function smacaUiT(key, fallback) {
             '<div style="min-width:140px;">' +
             '<div style="margin-bottom:7px;color:#93a7bf;font-size:10px;letter-spacing:0.02em;">' +
             (params.timeframe === '24h'
-              ? window.Highcharts.dateFormat('%H:%M', this.x)
+              ? formatOperationalHourLabel(this.x, op24hAxis ? op24hAxis.dayEndMs : undefined)
               : window.Highcharts.dateFormat('%d %b', this.x)) +
             '</div>' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">' +

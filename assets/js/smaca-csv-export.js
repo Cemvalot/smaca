@@ -78,7 +78,7 @@ const SMACACSVExport = {
     sensor_location_label: 'Location',
     sensor_location: 'Sensor Location Code',
     temperature_c: 'Temperature (°C)',
-    humidity_rh: 'Humidity (%)',
+    humidity_rh: 'Relative Humidity (%)',
     co2_ppm: 'CO₂ (ppm)',
     pm2_5_ugm3: 'PM2.5 (μg/m³)',
     pm10_ugm3: 'PM10 (µg/m³)',

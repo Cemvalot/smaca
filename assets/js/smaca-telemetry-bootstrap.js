@@ -227,17 +227,31 @@
     };
   }
 
-  // Pretty axis labels for daily buckets (7d / 30d). For 7d we show every
-  // bucket; for 30d we step every ~5th label so the axis stays readable.
-  // For hourly buckets (24h) we keep showAxis: false and let the tile
-  // title tell the user it's hour-of-day.
-  function axisOptsForBucket(bucketed) {
-    if (!bucketed) return { showAxis: false };
-    if (bucketed.bucket !== 'daily') return { showAxis: false };
+  // Axis labels from bucketed timeseries (hourly 24h or daily 7d/30d).
+  function axisOptsForBucket(bucketed, unit) {
+    if (!bucketed) return { showAxis: false, showYAxis: false };
     var labels = Array.isArray(bucketed.labels) ? bucketed.labels : [];
     var binCount = bucketed.binCount || labels.length;
+    var yTitle = unit ? String(unit) : '';
+    if (bucketed.bucket === 'hourly') {
+      return {
+        showAxis: true,
+        showYAxis: true,
+        categories: labels,
+        step: 2,
+        xAxisTitle: locText('Hour', 'Ώρα'),
+        yAxisTitle: yTitle
+      };
+    }
     var step = (binCount > 14) ? Math.max(1, Math.floor(binCount / 7)) : 1;
-    return { showAxis: true, categories: labels, step: step };
+    return {
+      showAxis: true,
+      showYAxis: true,
+      categories: labels,
+      step: step,
+      xAxisTitle: locText('Day', 'Ημέρα'),
+      yAxisTitle: yTitle
+    };
   }
 
   function applyDebugTimeframe(tf) {
@@ -740,6 +754,19 @@
   function operationalDayStartMs() {
     var d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+  }
+
+  // Keep only readings that fall on today's local calendar day (00:00–24:00).
+  // Rolling "last 24h" API windows can include yesterday evening; those hours
+  // must not land in the midnight-to-midnight hourly strip.
+  function filterPointsToOperationalDay(points) {
+    if (!Array.isArray(points)) return [];
+    var dayStart = operationalDayStartMs();
+    var dayEnd = dayStart + 86400000;
+    return points.filter(function (p) {
+      var t = Date.parse(p.time || 0);
+      return Number.isFinite(t) && t >= dayStart && t < dayEnd;
+    });
   }
 
   function operationalHourIndex(timestampMs) {
@@ -1402,28 +1429,12 @@
             message: locText('No pollutant readings', 'Χωρίς δεδομένα ρύπων')
           });
         } else {
-          var pollutantSubParts = [
-            locText(
-              'How close each pollutant is to its reference limit right now.',
-              'Πόσο κοντά είναι κάθε ρύπος στο όριο αναφοράς.'
-            )
-          ];
-          if (tvocMode !== 'raw_tvoc_ugm3') {
-            pollutantSubParts.push(iaqTrans(
-              'iaq_pollutant_subtitle_tvoc_semantic',
-              'TVOC uses the sensor’s IAQ rating scale in this deployment; bar fill is not raw µg/m³.',
-              'Σε αυτή την εγκατάσταση το TVOC χρησιμοποιεί την κλίμακα IAQ rating του αισθητήρα· η πλήρωση της μπάρας δεν είναι ακατέργαστο µg/m³.'
-            ));
-          }
-          pollutantSubParts.push(iaqTfMetaLine());
-          pollutantSubParts.push(iaqTrans(
-            'iaq_chart_snapshot_mode_mix',
-            'CO₂ and PM: direct measurements. TVOC follows the configured semantic scale unless raw µg/m³ mode is active.',
-            'CO₂ και PM: άμεσες μετρήσεις. Το TVOC ακολουθεί τη ρυθμισμένη σημασιολογική κλίμακα, εκτός αν είναι ενεργή λειτουργία ακατέργαστου µg/m³.'
-          ));
           var host = tile().renderChartTile(compareEl, {
             label: locText('Pollutant vs limit', 'Ρύποι vs όριο'),
-            subtitle: pollutantSubParts.filter(Boolean).join(' '),
+            subtitle: locText(
+              'This chart illustrates the relative proximity of each parameter to its corresponding maximum permissible threshold, providing an immediate indication of the building’s environmental conditions. Measurements are presented over a 24-hour period.',
+              'Το διάγραμμα απεικονίζει τη σχετική εγγύτητα κάθε παραμέτρου προς το αντίστοιχο ανώτατο επιτρεπτό όριο, προσφέροντας άμεση ένδειξη των περιβαλλοντικών συνθηκών του κτηρίου. Οι μετρήσεις παρουσιάζονται σε χρονικό διάστημα 24 ωρών.'
+            ),
             legend: locText('| = WHO limit', '| = όριο WHO'),
             meta: locText('Latest readings · campus average', 'Τελ. ενδείξεις · μέσος όρος πανεπιστημιούπολης')
           });
@@ -1452,21 +1463,12 @@
           var sorted = compareItems.slice().sort(function (a, b) {
             return (b.value / b.threshold) - (a.value / a.threshold);
           });
-          var thrSubParts = [
-            locText(
-              '100 % means the pollutant has reached its reference limit.',
-              '100% σημαίνει ότι ο ρύπος έφτασε το όριο.'
-            ),
-            iaqTfMetaLine(),
-            iaqTrans(
-              'iaq_chart_snapshot_mode_mix',
-              'CO₂ and PM: direct measurements. TVOC follows the configured semantic scale unless raw µg/m³ mode is active.',
-              'CO₂ και PM: άμεσες μετρήσεις. Το TVOC ακολουθεί τη ρυθμισμένη σημασιολογική κλίμακα, εκτός αν είναι ενεργή λειτουργία ακατέργαστου µg/m³.'
-            )
-          ];
           var hostThr = tile().renderChartTile(thrEl, {
             label: locText('% of limit consumed', '% του ορίου'),
-            subtitle: thrSubParts.filter(Boolean).join(' '),
+            subtitle: locText(
+              'This chart illustrates the degree of proximity of each measured parameter to its corresponding maximum acceptable threshold. A value of 100% indicates that the concentration has reached the maximum permissible limit. Measurements are presented over a 24-hour period, with CO₂ and PM indicators based on direct readings, while TVOC is represented through the sensor’s IAQ Rating, according to the configured evaluation mode.',
+              'Το διάγραμμα απεικονίζει το βαθμό εγγύτητας κάθε μετρούμενης παραμέτρου προς το αντίστοιχο ανώτατο αποδεκτό όριο. Η τιμή 100% υποδηλώνει ότι η συγκέντρωση έφτασε το ανώτατο επιτρεπτό όριο. Οι μετρήσεις παρουσιάζονται σε χρονικό διάστημα 24 ωρών· οι δείκτες CO₂ και PM βασίζονται σε άμεσες καταγραφές, ενώ το TVOC αποδίδεται μέσω της βαθμολογίας IAQ Rating του αισθητήρα, σύμφωνα με τη ρυθμισμένη λειτουργία αξιολόγησης.'
+            ),
             unit: '%',
             meta: locText('Ranked by proximity to limit', 'Ταξινόμηση κατά προσέγγιση στο όριο')
           });
@@ -1500,19 +1502,22 @@
       });
       var top = ranked[0];
       if (top) {
+        var topPct = ((top.value / top.threshold) * 100).toFixed(0);
         renderValueOrEmpty(grid, 'top-concern', {
           label: locText('Top concern', 'Κύρια ανησυχία'),
           value: top.label,
+          unit: topPct + '%',
           status: top.tone,
           icon: ICONS.alert,
-          meta: locText(((top.value / top.threshold) * 100).toFixed(0) + '% of limit',
-                        ((top.value / top.threshold) * 100).toFixed(0) + '% του ορίου')
+          meta: locText('of reference limit', 'του ορίου αναφοράς'),
+          layout: 'center'
         });
       } else {
         renderValueOrEmpty(grid, 'top-concern', {
           label: locText('Top concern', 'Κύρια ανησυχία'),
-          icon: ICONS.alert
-        }, { message: locText('No pollutants', 'Χωρίς ρύπους') });
+          icon: ICONS.alert,
+          layout: 'center'
+        }, { message: locText('No pollutants', 'Χωρίς ρύπους'), layout: 'center' });
       }
       logChart('iaq:top-concern', {
         module: 'iaq',
@@ -1530,16 +1535,19 @@
       if (hotLocation) {
         renderValueOrEmpty(grid, 'hot-location', {
           label: locText('Hottest CO₂ area', 'Υψηλότερο CO₂'),
-          value: labelForLocation(hotLocation.sensor.sensor_location, hotLocation.sensor.name || hotLocation.sensor.sensor_uid),
+          value: String(Math.round(hotLocation.value)),
+          unit: 'ppm',
           status: hotLocation.value <= 800 ? 'good' : (hotLocation.value <= 1200 ? 'warning' : 'critical'),
           icon: ICONS.location,
-          meta: Math.round(hotLocation.value) + ' ppm'
+          meta: labelForLocation(hotLocation.sensor.sensor_location, hotLocation.sensor.name || hotLocation.sensor.sensor_uid),
+          layout: 'center'
         });
       } else {
         renderValueOrEmpty(grid, 'hot-location', {
           label: locText('Hottest CO₂ area', 'Υψηλότερο CO₂'),
-          icon: ICONS.location
-        }, { message: locText('No data', 'Χωρίς δεδομένα') });
+          icon: ICONS.location,
+          layout: 'center'
+        }, { message: locText('No data', 'Χωρίς δεδομένα'), layout: 'center' });
       }
       logChart('iaq:hot-location', {
         module: 'iaq',
@@ -1564,13 +1572,15 @@
           status: freshSensors === iaq.length ? 'good'
             : (freshSensors >= iaq.length * 0.6 ? 'warning' : 'critical'),
           icon: ICONS.sensor,
-          meta: locText('Reporting in last 30 min', 'Ενημέρωση τελ. 30 λ.')
+          meta: locText('Reporting in last 30 min', 'Ενημέρωση τελ. 30 λ.'),
+          layout: 'center'
         });
       } else {
         renderValueOrEmpty(grid, 'coverage', {
           label: locText('Sensor coverage', 'Κάλυψη αισθητήρων'),
-          icon: ICONS.sensor
-        }, { message: locText('No IAQ sensors', 'Χωρίς αισθητήρες IAQ') });
+          icon: ICONS.sensor,
+          layout: 'center'
+        }, { message: locText('No IAQ sensors', 'Χωρίς αισθητήρες IAQ'), layout: 'center' });
       }
       logChart('iaq:coverage', {
         module: 'iaq',
@@ -1591,13 +1601,15 @@
           status: !isFiniteNum(min) ? 'muted'
             : (min < 5 ? 'good' : (min < 30 ? 'warning' : 'critical')),
           icon: ICONS.clock,
-          meta: labelForLocation(freshest.sensor_location, freshest.name || freshest.sensor_uid)
+          meta: labelForLocation(freshest.sensor_location, freshest.name || freshest.sensor_uid),
+          layout: 'center'
         });
       } else {
         renderValueOrEmpty(grid, 'freshness', {
           label: locText('Freshest IAQ stream', 'Πιο φρέσκια ροή IAQ'),
-          icon: ICONS.clock
-        }, { message: locText('No data', 'Χωρίς δεδομένα') });
+          icon: ICONS.clock,
+          layout: 'center'
+        }, { message: locText('No data', 'Χωρίς δεδομένα'), layout: 'center' });
       }
       logChart('iaq:freshness', {
         module: 'iaq',
@@ -1616,27 +1628,31 @@
         }
       } else if (tile()) {
         seriesTasks = loadTimeseries(freshest.id, 'co2_ppm').then(function (resp) {
-          var pts = (resp && Array.isArray(resp.points)) ? resp.points : [];
+          var ptsRaw = (resp && Array.isArray(resp.points)) ? resp.points : [];
+          var pts = (activeTimeframe() === '24h') ? filterPointsToOperationalDay(ptsRaw) : ptsRaw;
           if (pts.length < 4) {
             emptyChart(grid, 'hourly-heat', locText('Hourly CO₂ pattern', 'Ωριαίο μοτίβο CO₂'), noTfDataMsg());
             logChart('iaq:hourly-heat', { module: 'iaq', endpoint: '/api/sensors/' + freshest.id + '/timeseries?metric=co2_ppm&timeframe=' + activeTimeframe(), points: pts.length, note: 'insufficient points' });
             return;
           }
           var bucketed = bucketAdaptive(pts, 'avg');
+          var co2StripSeries = buildEnergyLoadProfileChartData(bucketed);
           var bands = [
             { from: 0, to: 800,  color: '#34d399' },
             { from: 800, to: 1200, color: '#fbbf24' },
             { from: 1200, to: 1e6, color: '#f87171' }
           ];
-          var subtitleText = [
-            iaqTfMetaLine(),
-            bucketed.bucket === 'hourly'
-              ? locText('Average CO₂ per hour over the last 24 hours.', 'Μέση τιμή CO₂ ανά ώρα τις τελευταίες 24 ώρες.')
-              : locText('Daily average CO₂ across the selected window.', 'Ημερήσιος μέσος CO₂ στο επιλεγμένο διάστημα.'),
-            iaqTrans('iaq_chart_co2_heat_sub', 'Hourly CO₂ pattern — direct ppm readings.', 'Ωριαίο μοτίβο CO₂ — άμεσες αναγνώσεις ppm.')
-          ].filter(Boolean).join(' ');
+          var subtitleText = bucketed.bucket === 'hourly'
+            ? locText(
+              'This chart presents the hourly CO₂ concentration profile (ppm) over the current 24-hour period. Values are based on direct measurements and provide an indication of ventilation adequacy across the building’s indoor spaces.',
+              'Το διάγραμμα παρουσιάζει το ωριαίο προφίλ συγκέντρωσης CO₂ (ppm) για το τρέχον 24ωρο. Οι τιμές βασίζονται σε άμεσες μετρήσεις και προσφέρουν ένδειξη επάρκειας αερισμού στους εσωτερικούς χώρους του κτηρίου.'
+            )
+            : locText(
+              'The chart shows the daily average CO₂ concentration profile (ppm) for the selected timeframe. Values are based on direct measurements.',
+              'Το διάγραμμα παρουσιάζει τον ημερήσιο μέσο όρο συγκέντρωσης CO₂ (ppm) στο επιλεγμένο χρονικό διάστημα. Οι τιμές βασίζονται σε άμεσες μετρήσεις.'
+            );
           var legendText = bucketed.bucket === 'hourly'
-            ? '0–23 h'
+            ? '00:00 → 24:00'
             : (bucketed.labels[0] + ' → ' + bucketed.labels[bucketed.labels.length - 1]);
           var host = tile().renderChartTile(heatHostEl, {
             label: locText('CO₂ pattern', 'Μοτίβο CO₂'),
@@ -1646,10 +1662,60 @@
             meta: labelForLocation(freshest.sensor_location, freshest.name) + ' · ' + iaqTimeframeLabel(activeTimeframe())
           });
           if (host) {
-            var axisOpts = axisOptsForBucket(bucketed);
-            tile().renderHeatStripColumn(host, Object.assign({
-              data: bucketed.values, bands: bands, height: 90
-            }, axisOpts));
+            var yMaxCo2 = co2StripSeries.maxReal > 0 ? co2StripSeries.maxReal * 1.12 : 400;
+            var yMidCo2 = yMaxCo2 / 2;
+            var co2HourLbl = locText('Hour', 'Ώρα');
+            var co2NoData = locText('No data', 'Χωρίς δεδομένα');
+            tile().renderHeatStripColumn(host, {
+              data: co2StripSeries.chartData,
+              bands: bands,
+              height: bucketed.bucket === 'hourly' ? 168 : 150,
+              showAxis: true,
+              showYAxis: true,
+              categories: co2StripSeries.categories,
+              yAxisMax: yMaxCo2,
+              yAxisTickPositions: [0, yMidCo2, yMaxCo2],
+              yAxisTitle: 'ppm',
+              xAxisTitle: bucketed.bucket === 'hourly'
+                ? locText('Hour (00:00–24:00)', 'Ώρα (00:00–24:00)')
+                : locText('Day', 'Ημέρα'),
+              xAxisLabelStep: 1,
+              xAxisLabelFormatter: bucketed.bucket === 'hourly'
+                ? function (idx) {
+                  if (idx === 0) return '00';
+                  if (idx === 6) return '06';
+                  if (idx === 12) return '12';
+                  if (idx === 18) return '18';
+                  if (idx === 23) return '24';
+                  return '';
+                }
+                : function (idx) {
+                  var step = bucketed.binCount > 14
+                    ? Math.max(1, Math.floor(bucketed.binCount / 7))
+                    : 1;
+                  if (idx % step !== 0 && idx !== (bucketed.binCount - 1)) return '';
+                  return co2StripSeries.categories[idx] || '';
+                },
+              tooltipFormatter: function () {
+                var pt = this.point || {};
+                var label = pt.bucketLabel || '';
+                if (pt.future || pt.hasData === false) {
+                  return (
+                    '<div style="min-width:150px;">' +
+                    '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;">' + co2HourLbl + ': ' + label + '</div>' +
+                    '<div style="color:#dbe7f5;font-size:11px;">' + co2NoData + '</div>' +
+                    '</div>'
+                  );
+                }
+                var ppm = Number.isFinite(Number(this.y)) ? Math.round(Number(this.y)) : '—';
+                return (
+                  '<div style="min-width:150px;">' +
+                  '<div style="margin-bottom:6px;color:#93a7bf;font-size:10px;">' + co2HourLbl + ': ' + label + '</div>' +
+                  '<div style="color:#f8fbff;font-size:11px;font-weight:600;">CO₂: ' + ppm + ' ppm</div>' +
+                  '</div>'
+                );
+              }
+            });
           }
           var tsList = pts.map(function (p) { return Date.parse(p.time); }).filter(Number.isFinite);
           var sStats = seriesStats(bucketed.values);

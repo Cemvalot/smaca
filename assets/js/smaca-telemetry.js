@@ -306,6 +306,11 @@
       : '';
 
     el.classList.add('smaca-tile');
+    if (safeOpts.layout === 'center') {
+      el.classList.add('smaca-tile--center');
+    } else {
+      el.classList.remove('smaca-tile--center');
+    }
     el.setAttribute('data-tone', tone);
     el.innerHTML = ''
       + '<div class="smaca-tile__head">'
@@ -359,6 +364,11 @@
     el.classList.add('smaca-tile');
     el.classList.add('smaca-tile--empty');
     el.classList.remove('smaca-tile--chart');
+    if (safeOpts.layout === 'center') {
+      el.classList.add('smaca-tile--center');
+    } else {
+      el.classList.remove('smaca-tile--center');
+    }
     el.setAttribute('data-tone', 'muted');
     var iconHtml = safeOpts.icon
       ? '<span class="smaca-tile__icon" data-tone="muted" aria-hidden="true">'

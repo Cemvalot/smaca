@@ -5,9 +5,19 @@
 (function (global) {
   'use strict';
 
+  function decodeHtmlEntities(value) {
+    return String(value == null ? '' : value)
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+
   function t(key, fallback) {
     var map = global.SMACA_TRANSLATIONS || {};
-    return map[key] || fallback;
+    var raw = Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
+    return decodeHtmlEntities(raw);
   }
 
   function co2LabelHtml() {
@@ -246,10 +256,10 @@
       out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_temp_high', 'Temperature above comfort band (>24 °C)') });
     }
     if (rh !== null && rh < 40) {
-      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_low', 'Humidity below comfort band (<40 % RH)') });
+      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_low', 'Relative humidity below comfort band (<40 % RH)') });
     }
     if (rh !== null && rh > 60) {
-      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_high', 'Humidity above comfort band (>60 % RH)') });
+      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_high', 'Relative humidity above comfort band (>60 % RH)') });
     }
     return out;
   }
@@ -758,7 +768,7 @@
 
     var lblCo2 = co2LabelHtml();
     var lblT = t('temperature_label', 'Temperature');
-    var lblH = t('humidity_label', 'Humidity');
+    var lblH = t('humidity_label', 'Relative Humidity');
     var lblPm25 = t('labels_pm25', 'PM2.5');
     var lblPm10 = t('labels_pm10', 'PM10');
 
@@ -925,7 +935,7 @@
       '<span class="iaq-sensor-card__metrics iaq-sensor-card__metrics--dense">' +
       miniMetricCollapsed(co2LabelHtml(), co2Collapsed, ICON_CO2, co2SeverityMod(latest), true) +
       miniMetricCollapsed(t('temperature_label', 'Temperature'), tCollapsed, ICON_TEMP, thermalSeverityMod(latest)) +
-      miniMetricCollapsed(t('humidity_label', 'Humidity'), hCollapsed, ICON_HUM, thermalSeverityMod(latest)) +
+      miniMetricCollapsed(t('humidity_label', 'Relative Humidity'), hCollapsed, ICON_HUM, thermalSeverityMod(latest)) +
       miniMetricCollapsed(t('labels_pm25', 'PM2.5'), pm25Collapsed, ICON_PM, pm25SeverityMod(latest)) +
       miniMetricCollapsed(t('labels_pm10', 'PM10'), pm10Collapsed, ICON_PM, pm10SeverityMod(latest)) +
       miniMetricCollapsed(tvocColumnTitle(), tvCollapsed, ICON_TVOC, tvocSeverityMod(latest, semTvoc)) +

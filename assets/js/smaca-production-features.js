@@ -350,6 +350,12 @@ function getSmacaHighchartsAxisBounds(chartWindow) {
     return {};
   }
   const first = chartWindow.bucketTimesMs[0];
+  if (chartWindow.timeframe === '24h' && chartWindow.operationalDay) {
+    return {
+      min: first,
+      max: first + (24 * SMACA_CHART_HOUR_MS)
+    };
+  }
   const last = chartWindow.bucketTimesMs[chartWindow.bucketTimesMs.length - 1];
   return {
     min: first,
@@ -2700,7 +2706,7 @@ function updateIAQDashboardWithTrends(filteredIAQ, timeframe) {
     <div class="stat-card" style="position: relative;" title="Relative humidity percentage">
       <div class="stat-card__content">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
-          <div class="stat-card__label">${smacaT('humidity_label', 'Humidity')}</div>
+          <div class="stat-card__label">${smacaT('humidity_label', 'Relative Humidity')}</div>
           <span class="trend-pill ${humidityTrendFormatted.class}" style="font-size: var(--font-size-xs); padding: var(--space-1) var(--space-2); border-radius: var(--r-sm); background: var(--surface-2);">${humidityTrendFormatted.text}</span>
         </div>
         <div class="stat-card__value">${formatMetricValue(humidity, 0)}</div>

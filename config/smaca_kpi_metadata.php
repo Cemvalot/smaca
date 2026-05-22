@@ -185,8 +185,8 @@ return [
             'source_type' => 'measured',
             'status_meanings' => [
                 'insufficient_data' => [
-                    'en' => 'Temperature or humidity readings are missing.',
-                    'el' => 'Λείπουν μετρήσεις θερμοκρασίας ή υγρασίας.',
+                    'en' => 'Temperature or relative humidity readings are missing.',
+                    'el' => 'Λείπουν μετρήσεις θερμοκρασίας ή σχετικής υγρασίας.',
                 ],
             ],
         ],
@@ -517,8 +517,8 @@ return [
                 'el' => 'Βαθμολογία 0–100 — υψηλότερο σημαίνει πιο άνετο.',
             ],
             'plain_definition' => [
-                'en' => 'Indoor thermal comfort score based on average temperature and humidity in the selected zone.',
-                'el' => 'Βαθμολογία θερμικής άνεσης για εσωτερικούς χώρους με βάση τη μέση θερμοκρασία και υγρασία στη ζώνη.',
+                'en' => 'Indoor thermal comfort score based on average temperature and relative humidity in the selected zone.',
+                'el' => 'Βαθμολογία θερμικής άνεσης για εσωτερικούς χώρους με βάση τη μέση θερμοκρασία και σχετική υγρασία στη ζώνη.',
             ],
             'technical_definition' => [
                 'en' => '100 − |T − 22°C| × 10 − |RH − 50%| × 1.6, clamped to [0, 100].',
@@ -555,8 +555,8 @@ return [
                     'el' => 'Οι θερμικές συνθήκες είναι μακριά από τον στόχο — ρυθμίστε τον κλιματισμό.',
                 ],
                 'insufficient_data' => [
-                    'en' => 'Temperature or humidity readings are missing.',
-                    'el' => 'Λείπουν μετρήσεις θερμοκρασίας ή υγρασίας.',
+                    'en' => 'Temperature or relative humidity readings are missing.',
+                    'el' => 'Λείπουν μετρήσεις θερμοκρασίας ή σχετικής υγρασίας.',
                 ],
             ],
         ],
