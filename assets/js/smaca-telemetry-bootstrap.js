@@ -553,7 +553,7 @@
       iaq: overviewTr('overview_module_iaq', 'Indoor Air Quality', 'Ποιότητα Εσωτερικού Αέρα'),
       energy: overviewTr('overview_module_energy', 'Energy', 'Ενέργεια'),
       occupancy: overviewTr('overview_module_occupancy', 'Occupancy / Movement', 'Κίνηση / Πληρότητα'),
-      environmental: overviewTr('overview_module_environmental', 'Environmental / UV', 'Περιβάλλον / UV')
+      environmental: overviewTr('overview_module_environmental', 'Solar Exposure (UV)', 'Ηλιακική Έκθεση (UV)')
     };
     return map[moduleKey] || moduleKey;
   }
@@ -607,7 +607,7 @@
       movement_activity_index: overviewTr('overview_watch_movement', 'High entry/exit activity', 'Υψηλή δραστηριότητα εισόδων/εξόδων'),
       crowd_density_level: overviewTr('overview_watch_movement', 'High entry/exit activity', 'Υψηλή δραστηριότητα εισόδων/εξόδων'),
       uv_exposure_risk: overviewTr('overview_watch_uv', 'High UV exposure', 'Υψηλή έκθεση UV'),
-      environmental_safety_index: overviewTr('overview_watch_environmental', 'Environmental risk elevated', 'Αυξημένος περιβαλλοντικός κίνδυνος')
+      environmental_safety_index: overviewTr('overview_watch_environmental', 'Indoor air burden elevated', 'Αυξημένη επιβάρυνση ποιότητας αέρα')
     };
     if (reasons[key]) return reasons[key];
     if (kpi.label) return String(kpi.label);
@@ -1135,7 +1135,7 @@
         { key: 'iaq',           label: locText('Air quality', 'Ποιότητα αέρα'),       color: '#22d3ee', sensorTypes: ['iaq'] },
         { key: 'occupancy',     label: locText('Movement', 'Κίνηση'),                 color: '#a78bfa', sensorTypes: ['occupancy'] },
         { key: 'energy',        label: locText('Energy', 'Ενέργεια'),                 color: '#fbbf24', sensorTypes: ['energy'] },
-        { key: 'environmental', label: locText('Environmental / UV', 'Περιβάλλον / UV'), color: '#f97316', sensorTypes: ['environmental'] }
+        { key: 'environmental', label: locText('Solar Exposure (UV)', 'Ηλιακική Έκθεση (UV)'), color: '#f97316', sensorTypes: ['environmental'] }
       ];
       var matrixItems = moduleDefs.map(function (m) {
         var matching = sensors.filter(function (s) {

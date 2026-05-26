@@ -405,8 +405,8 @@ return [
                 'el' => 'kWh ενέργειας που καταναλώθηκαν ανά εκτιμώμενο άτομο που διήλθε από τη ζώνη.',
             ],
             'plain_definition' => [
-                'en' => 'How much energy is used compared with estimated occupancy in the selected timeframe.',
-                'el' => 'Πόση ενέργεια καταναλώνεται σε σχέση με την εκτιμώμενη πληρότητα στο επιλεγμένο διάστημα.',
+                'en' => 'The Normalized Energy Intensity index reflects energy consumption relative to estimated space occupancy, enabling comparable assessment of energy performance under different usage conditions.',
+                'el' => 'Ο δείκτης Κανονικοποιημένης Ενεργειακής Έντασης αποτυπώνει την κατανάλωση ενέργειας σε σχέση με την εκτιμώμενη πληρότητα του χώρου, επιτρέποντας τη συγκρίσιμη αξιολόγηση της ενεργειακής απόδοσης υπό διαφορετικές συνθήκες χρήσης.',
             ],
             'technical_definition' => [
                 'en' => 'Total kWh consumed in the selected timeframe (SUM of per-meter MAX−MIN energy_kwh deltas) ÷ estimated presence from movement counter deltas (entries/exits, capped). Not cumulative meter snapshots.',
@@ -619,7 +619,7 @@ return [
 
         // ----------------------------------------------------- UV exposure
         'uv_exposure_risk' => [
-            'kpi_category' => 'Environmental',
+            'kpi_category' => 'Solar Exposure (UV)',
             'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => 'index',
@@ -667,8 +667,8 @@ return [
                     'el' => 'Υψηλός κίνδυνος UV — περιορίστε τον χρόνο σε εξωτερικό χώρο, χρησιμοποιήστε αντηλιακό και προστασία.',
                 ],
                 'insufficient_data' => [
-                    'en' => 'No UV/environmental sensor data is available for this location.',
-                    'el' => 'Δεν υπάρχουν δεδομένα αισθητήρα UV / περιβάλλοντος για αυτή τη θέση.',
+                    'en' => 'No solar exposure (UV) sensor data is available for this location.',
+                    'el' => 'Δεν υπάρχουν δεδομένα αισθητήρα ηλιακικής έκθεσης (UV) για αυτή τη θέση.',
                 ],
             ],
         ],

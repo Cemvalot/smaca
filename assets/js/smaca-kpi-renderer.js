@@ -439,6 +439,29 @@
     return parts.join('');
   }
 
+  // Energy module: short "What is this metric?" panel (plain definition only).
+  function buildEnergyMetricHelpBlock(kpi) {
+    if (!kpi) return '';
+    var plainDef = kpi.plain_definition ? String(kpi.plain_definition).trim() : '';
+    if (!plainDef) return '';
+
+    var parts = [];
+    parts.push('<details class="kpi-help kpi-help--energy" style="margin-top:var(--space-2);">');
+    parts.push('  <summary class="kpi-help__summary" style="cursor:pointer;font-size:11px;color:var(--muted);user-select:none;">'
+      + escapeHtml(t('kpi_what_is_this_metric', 'What is this metric?'))
+      + '</summary>');
+    parts.push('  <div class="kpi-help__body" style="margin-top:var(--space-2);font-size:12px;line-height:1.5;color:var(--text);">');
+    parts.push('<p style="margin:0;">' + escapeHtml(plainDef) + '</p>');
+    if (kpi.key === 'normalized_energy_intensity') {
+      parts.push('<p style="margin:var(--space-1) 0 0 0;color:var(--muted);font-size:11px;">'
+        + escapeHtml(t('kpi_note_occupancy_estimate', 'This is an estimate based on available people-counter data, not exact live headcount.'))
+        + '</p>');
+    }
+    parts.push('  </div>');
+    parts.push('</details>');
+    return parts.join('');
+  }
+
   function render(containerId, payload, options) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -485,10 +508,13 @@
     var cards = list.map(function (kpi) {
       const confidence = formatConfidence(kpi.confidence);
       const compactStyle = compact ? ' style="min-height: 124px;"' : '';
-      const descriptionText = kpi.key === 'environmental_safety_index'
+      const descriptionText = kpi.key === 'environmental_safety_index' || boundModule === 'energy'
         ? ''
         : (kpi.description || '');
-      const helpBlock = compact ? '' : buildHelpBlock(kpi);
+      const showHelp = renderOptions.showHelp !== false && !compact;
+      const helpBlock = boundModule === 'energy'
+        ? buildEnergyMetricHelpBlock(kpi)
+        : (showHelp ? buildHelpBlock(kpi) : '');
       var vu = splitValueUnit(kpi);
       const displayStatus = resolveEffectiveKpiStatus(kpi, boundModule);
       var ventHead = ventilationHeadlineParts(kpi);
@@ -525,7 +551,9 @@
       if (snapshotLayout && kpi.key === 'remaining_inside_daily') {
         badgeText = t('estimated', 'estimated');
       }
-      const cardTitle = kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '';
+      const cardTitle = boundModule === 'energy'
+        ? ''
+        : (kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '');
       const valueCaption = ((snapshotLayout || !compact) && kpi.value_caption)
         ? (kpi.key === 'ventilation_quality_index'
           ? `<p class="overview-kpi-card__value-caption overview-kpi-card__value-caption--vent-co2">${formatCo2InText(kpi.value_caption)}</p>`
@@ -841,20 +869,13 @@
     });
   }
 
-  function buildOccupancyMetricCard(labelKey, tooltipKey, value) {
+  function buildOccupancyMetricCard(metricKey, labelKey, tooltipKey, value) {
     var label = t(labelKey, labelKey);
     var tooltip = t(tooltipKey, '');
-    var occIcon = (typeof window !== 'undefined' && window.SMACAIcons && window.SMACAIcons.chipHtml)
-      ? window.SMACAIcons.chipHtml('occupancy', 'md', { className: 'overview-kpi-card__icon' })
-      : '<span class="overview-kpi-card__icon" data-category="occupancy" aria-hidden="true">' + categoryIconSvg('occupancy') + '</span>';
     return (
-      '<article class="stat-card overview-kpi-card">' +
-      occIcon +
-      '<div class="stat-card__content">' +
-      '<div class="stat-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
-      '<div class="stat-card__value"><span class="stat-card__value-number">' + escapeHtml(formatOccupancyMetricValue(value)) + '</span></div>' +
-      (tooltip ? '<p class="overview-live-note occupancy-metric-card__tooltip">' + escapeHtml(tooltip) + '</p>' : '') +
-      '</div>' +
+      '<article class="smaca-occupancy-metric-card" data-occupancy-metric="' + escapeHtml(metricKey) + '">' +
+      '<div class="smaca-occupancy-metric-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
+      '<div class="smaca-occupancy-metric-card__value">' + escapeHtml(formatOccupancyMetricValue(value)) + '</div>' +
       '</article>'
     );
   }
@@ -868,16 +889,16 @@
       var msg = hasLocation
         ? t('kpi_empty_occupancy', 'No movement counters are available for this selected zone.')
         : t('no_occupancy_data', 'No occupancy data');
-      container.innerHTML = '<p class="overview-live-note">' + escapeHtml(msg) + '</p>';
+      container.innerHTML = '<p class="smaca-occupancy-kpi-grid__empty">' + escapeHtml(msg) + '</p>';
       return;
     }
 
     var cards = [
-      buildOccupancyMetricCard('occupancy_metric_people_in', 'occupancy_tooltip_people_in', metrics.people_in),
-      buildOccupancyMetricCard('occupancy_metric_people_out', 'occupancy_tooltip_people_out', metrics.people_out),
-      buildOccupancyMetricCard('occupancy_metric_remaining_inside', 'occupancy_tooltip_remaining_inside', metrics.remaining_inside),
-      buildOccupancyMetricCard('occupancy_metric_crowd_density', 'occupancy_tooltip_crowd_density', metrics.crowd_density),
-      buildOccupancyMetricCard('occupancy_metric_peak', 'occupancy_tooltip_peak', metrics.peak)
+      buildOccupancyMetricCard('people_in', 'occupancy_metric_people_in', 'occupancy_tooltip_people_in', metrics.people_in),
+      buildOccupancyMetricCard('people_out', 'occupancy_metric_people_out', 'occupancy_tooltip_people_out', metrics.people_out),
+      buildOccupancyMetricCard('remaining_inside', 'occupancy_metric_remaining_inside', 'occupancy_tooltip_remaining_inside', metrics.remaining_inside),
+      buildOccupancyMetricCard('crowd_density', 'occupancy_metric_crowd_density', 'occupancy_tooltip_crowd_density', metrics.crowd_density),
+      buildOccupancyMetricCard('peak', 'occupancy_metric_peak', 'occupancy_tooltip_peak', metrics.peak)
     ];
 
     var windowNote = '';
@@ -889,7 +910,7 @@
     }
 
     container.innerHTML = cards.join('') + (windowNote
-      ? '<p class="overview-live-note occupancy-metrics-window-note">' + escapeHtml(windowNote) + '</p>'
+      ? '<p class="smaca-occupancy-kpi-grid__window">' + escapeHtml(windowNote) + '</p>'
       : '');
   }
 

@@ -1852,7 +1852,7 @@ function renderManagementSmartAlerts(sensors, latestById) {
 
   const latestUv = resolveLatestMetricValue(Array.isArray(SMACAState?.rawData?.environmental) ? SMACAState.rawData.environmental : [], 'uv_index');
   if (Number.isFinite(latestUv) && latestUv >= 8) {
-    alerts.push({ type: 'uv-peak', title: 'UV peak warning', location: 'Environmental zone', severity: 'high', status: 'open', date: new Date().toLocaleDateString() });
+    alerts.push({ type: 'uv-peak', title: 'UV peak warning', location: 'Solar exposure zone', severity: 'high', status: 'open', date: new Date().toLocaleDateString() });
   }
 
   const severityBadge = function (severity) {
@@ -5015,10 +5015,10 @@ function getOverviewOperationalInsight(moduleKey, status) {
     if (status.moduleClass === 'stable') return { tone, chip: smacaT('stable_watch_upper', 'STABLE WATCH'), headline: smacaT('occupancy_patterns_balanced', 'Occupancy patterns balanced'), detail: smacaT('footfall_moderate_no_spikes', 'Footfall remains moderate with no unusual spikes requiring immediate operational action.') };
     return { tone, chip: smacaT('operational_upper', 'OPERATIONAL'), headline: smacaT('occupancy_flow_normal', 'Occupancy flow normal'), detail: smacaT('space_utilization_light_consistent', 'Space utilization is light and consistent with normal campus operating behavior.') };
   }
-  if (hasNoData) return { tone, chip: 'Missing', headline: 'Environmental data currently unavailable', detail: 'Environmental or UV telemetry is not reporting at the moment.' };
-  if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: 'Environmental exposure elevated', detail: 'UV or ambient exposure is above preferred levels and should be monitored.' };
-  if (status.moduleClass === 'stable') return { tone, chip: smacaT('stable_watch_upper', 'STABLE WATCH'), headline: smacaT('environmental_conditions_moderate', 'Environmental conditions moderate'), detail: smacaT('environmental_conditions_controlled', 'Environmental conditions remain within controlled limits with no severe risk indicators.') };
-  return { tone, chip: smacaT('operational_upper', 'OPERATIONAL'), headline: smacaT('environmental_module_normal', 'Environmental module normal'), detail: smacaT('environmental_uv_streams_healthy', 'Environmental and UV monitoring streams are healthy with expected operating behavior.') };
+  if (hasNoData) return { tone, chip: 'Missing', headline: smacaT('environmental_data_unavailable', 'Solar exposure data currently unavailable'), detail: smacaT('environmental_telemetry_missing', 'Solar exposure (UV) telemetry is not reporting at the moment.') };
+  if (status.moduleClass === 'warning') return { tone, chip: 'Degraded', headline: smacaT('environmental_exposure_elevated', 'Solar exposure elevated'), detail: smacaT('environmental_exposure_elevated_detail', 'UV exposure is above preferred levels and should be monitored.') };
+  if (status.moduleClass === 'stable') return { tone, chip: smacaT('stable_watch_upper', 'STABLE WATCH'), headline: smacaT('environmental_conditions_moderate', 'Solar exposure conditions moderate'), detail: smacaT('environmental_conditions_controlled', 'Solar exposure remains within controlled limits with no severe risk indicators.') };
+  return { tone, chip: smacaT('operational_upper', 'OPERATIONAL'), headline: smacaT('environmental_module_normal', 'Solar Exposure module operating normally'), detail: smacaT('environmental_uv_streams_healthy', 'Solar exposure (UV) monitoring streams are healthy with expected operating behavior.') };
 }
 
 function getOverviewOperationalTone(status) {
@@ -5263,7 +5263,7 @@ function renderOverviewTrendChart(filteredData, timeframe) {
     { key: 'co2', label: smacaT('overview_chart_legend_co2', 'CO₂ · Air quality'), unit: 'ppm', color: '#3b82f6', values: co2Series },
     { key: 'occupancy', label: smacaT('overview_chart_movement_balance', 'Movement balance'), unit: '', color: '#22c55e', values: occupancySeries },
     { key: 'connectivity', label: smacaT('overview_chart_legend_connectivity', 'Connectivity · quality'), unit: '%', color: '#06b6d4', values: connectivitySeries },
-    { key: 'uv', label: smacaT('overview_chart_legend_uv', 'UV · Environmental'), unit: '', color: '#f59e0b', values: uvSeries }
+    { key: 'uv', label: smacaT('overview_chart_legend_uv', 'Solar Exposure (UV)'), unit: '', color: '#f59e0b', values: uvSeries }
   ];
   const chartSeries = chartSeriesCandidates.filter(function (series) {
     return Array.isArray(series.values) && series.values.some(Number.isFinite);

@@ -65,7 +65,7 @@
           <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
           </svg>
-          <span class="nav-link__text">Environmental / UV</span>
+          <span class="nav-link__text">Solar Exposure (UV)</span>
         </a>
         <a href="/dashboard/ai-insights" class="nav-link nav-link--section" data-section="ai-insights">
           <svg class="nav-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@
                     <li>Real-time air quality monitoring</li>
                     <li>Occupancy and people flow analysis</li>
                     <li>Energy consumption metrics</li>
-                    <li>Environmental indicators (UV, temperature)</li>
+                    <li>Solar exposure (UV) indicators</li>
                     <li>AI-powered predictions and recommendations</li>
                     <li>Sensor management</li>
                   </ul>
@@ -302,7 +302,7 @@
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
-                    Environmental / UV
+                    Solar Exposure (UV)
                   </a>
                   <a href="/dashboard/ai-insights" class="btn btn--secondary quick-link" data-section="ai-insights">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -588,13 +588,13 @@
           </div>
         </div>
 
-        <!-- Environmental / UV Section -->
+        <!-- Solar Exposure (UV) Section -->
         <div class="dashboard-section" id="environmental" data-section="environmental" style="display: none;">
           <div class="section-hero section-hero--environmental">
             <div class="section-hero__inner">
               <div>
                 <div class="section-hero__title-row"><svg class="section-hero__icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                  <h2 class="section-hero__title">Environmental / UV</h2>
+                  <h2 class="section-hero__title">Solar Exposure (UV)</h2>
                 </div>
                 <p class="section-hero__subtitle">UV index and environmental conditions</p>
               </div>

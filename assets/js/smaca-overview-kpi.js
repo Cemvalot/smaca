@@ -89,12 +89,12 @@
       && String(thermal.status || '').toLowerCase() !== 'insufficient_data';
 
     if (uvOk) {
-      return withModuleSource(decorateOverviewUvKpi(uv), 'environmental', t('overview_module_environmental', 'Environmental / UV'));
+      return withModuleSource(decorateOverviewUvKpi(uv), 'environmental', t('overview_module_environmental', 'Solar Exposure (UV)'));
     }
     if (thermalOk) {
       return withModuleSource(thermal, 'iaq', t('overview_module_iaq', 'Indoor Air Quality'));
     }
-    if (uv) return withModuleSource(decorateOverviewUvKpi(uv), 'environmental', t('overview_module_environmental', 'Environmental / UV'));
+    if (uv) return withModuleSource(decorateOverviewUvKpi(uv), 'environmental', t('overview_module_environmental', 'Solar Exposure (UV)'));
     if (thermal) return withModuleSource(thermal, 'iaq', t('overview_module_iaq', 'Indoor Air Quality'));
     return null;
   }
