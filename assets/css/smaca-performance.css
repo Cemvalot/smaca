@@ -51,8 +51,7 @@ body {
   opacity: 0.28;
 }
 
-/* Isolate repaint-heavy dashboard regions */
-.main,
+/* Isolate repaint-heavy dashboard regions (not .main — breaks .content scroll) */
 .dashboard-section,
 [data-smaca-telemetry] {
   contain: layout style;

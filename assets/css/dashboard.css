@@ -3,8 +3,12 @@
 /* Layout */
 .app {
   display: flex;
+  height: 100vh;
+  height: 100dvh;
   min-height: 100vh;
+  min-height: 100dvh;
   min-width: 0;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -94,8 +98,10 @@
   margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 0;
+  height: 100%;
   min-width: 0;
+  overflow: hidden;
 }
 
 .topbar {
@@ -151,8 +157,11 @@
 .content {
   flex: 1;
   padding: var(--space-8);
+  min-height: 0;
   overflow-y: auto;
   overflow-x: clip;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   position: relative;
   min-width: 0;
 }

@@ -40,9 +40,10 @@ rsync -avz \
 rsync -avz \
   "${ROOT}/config/smaca_"*.php "${REMOTE}:${UPLOAD}/config/" 2>/dev/null || true
 
-if [[ -f "${ROOT}/deploy/vm-add-sensor-latest-iaq-columns.sql" ]]; then
-  rsync -avz "${ROOT}/deploy/vm-add-sensor-latest-iaq-columns.sql" "${REMOTE}:${UPLOAD}/"
-fi
+rsync -avz \
+  "${ROOT}/deploy/vm-add-sensor-latest-iaq-columns.sql" \
+  "${ROOT}/deploy/vm-verify-and-fix.sh" \
+  "${REMOTE}:${UPLOAD}/" 2>/dev/null || true
 
 cat <<EOF
 
@@ -56,6 +57,12 @@ In VM SSH (chirpstack@192.168.158.9) paste this INSTALL block:
 
 # 0) Restart PHP first (fixes 60s hangs when workers are stuck)
 sudo systemctl restart php8.3-fpm nginx
+
+# 0b) More FPM workers (default is often 5 — dashboard exhausts them)
+if grep -q '^pm.max_children = 5' /etc/php/8.3/fpm/pool.d/www.conf 2>/dev/null; then
+  sudo sed -i 's/^pm.max_children = 5/pm.max_children = 15/' /etc/php/8.3/fpm/pool.d/www.conf
+  sudo systemctl restart php8.3-fpm
+fi
 
 # 1) Ensure public/assets symlink exists
 if [[ ! -L ${APP}/public/assets ]]; then
@@ -81,11 +88,12 @@ if [[ -f ${UPLOAD}/vm-add-sensor-latest-iaq-columns.sql ]]; then
   sudo mysql -u laravel -p'laravel' smaca < ${UPLOAD}/vm-add-sensor-latest-iaq-columns.sql || true
 fi
 
-# 5) Smoke tests
-curl -sI http://127.0.0.1/assets/vendor/highcharts/highcharts.js | head -1
-curl -sI http://127.0.0.1/assets/js/smaca-highcharts-loader.js | head -1
-curl -w "login TTFB:%{time_starttransfer}s\n" -o /dev/null -s http://127.0.0.1/login
-time curl -s -o /dev/null -w "sensors HTTP:%{http_code} %{time_total}s\n" http://127.0.0.1/api/sensors
+# 5) Smoke tests (Host header required — bare 127.0.0.1 often returns 403)
+H="Host: smaca.unipi.gr"
+curl -sI -H "\$H" http://127.0.0.1/assets/vendor/highcharts/highcharts.js | head -1
+curl -sI -H "\$H" http://127.0.0.1/assets/js/smaca-highcharts-loader.js | head -1
+curl -w "login HTTP:%{http_code} TTFB:%{time_starttransfer}s\n" -o /dev/null -s -H "\$H" http://127.0.0.1/login
+time curl -s -o /dev/null -w "sensors HTTP:%{http_code} %{time_total}s\n" -H "\$H" http://127.0.0.1/api/sensors
 
 Then on Mac: hard-refresh http://smaca.unipi.gr/dashboard (Cmd+Shift+R)
 
