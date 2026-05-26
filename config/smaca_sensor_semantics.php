@@ -133,6 +133,15 @@ return [
         ],
     ],
 
+    /**
+     * Normalized lighting 0–5 — breakdown/KPI warn only at 0 (minimal) and 5 (intense).
+     * Levels 1–4 (e.g. dim indoor = 1) are treated as acceptable.
+     */
+    'lighting_normalized_thresholds' => [
+        'warn_level_exact' => [0, 5],
+        'comfort_levels' => [1, 2, 3, 4],
+    ],
+
     /** Normalized lighting level 0–5 → indicative lux ranges (documentation only). */
     'light_modes' => [
         'normalized_level_0_5' => [

@@ -19,20 +19,6 @@ class IaqSemanticKpiComposer
     }
 
     /**
-     * TVOC contribution to the weighted IAQ health index (0–100 sub-score).
-     */
-    public function tvocHealthSubscore(?float $tvoc, string $tvocMode): ?float
-    {
-        if ($tvoc === null) {
-            return null;
-        }
-        $cfg = $this->registry->tvocModeConfig($tvocMode);
-        $curve = (array) ($cfg['health_index_curve'] ?? []);
-
-        return $this->interpolateCurve($tvoc, $curve);
-    }
-
-    /**
      * @return array<string, mixed>
      */
     public function buildEnvironmentalSafetyIndex(array $inputs): array
@@ -117,9 +103,9 @@ class IaqSemanticKpiComposer
             'display_kind' => 'categorical',
             'semantic_mode' => $tvocMode,
             'value_numeric' => $worst,
-            'value_caption' => __('messages.iaq_kpi.value_caption.environmental', [
-                'tvoc_mode' => $this->tvocModeDisplayLabel($tvocMode),
-            ]),
+            'pm25_ugm3' => $pm25 !== null ? round((float) $pm25, 1) : null,
+            'pm10_ugm3' => $pm10 !== null ? round((float) $pm10, 1) : null,
+            'value_caption' => $this->environmentalValueCaption($pm25, $pm10, $tvocMode),
         ], __('messages.iaq_explainer.environmental_safety'));
     }
 
@@ -139,7 +125,7 @@ class IaqSemanticKpiComposer
                 'description' => __('messages.iaq_kpi.thermal_comfort.insufficient'),
                 'recommended_action' => __('messages.thresholds.insufficient_data_action'),
                 'display_kind' => 'boolean',
-            ], __('messages.iaq_explainer.thermal_comfort'));
+            ]);
         }
 
         $bands = $this->registry->thermalComfortBands();
@@ -183,7 +169,7 @@ class IaqSemanticKpiComposer
                 'temp' => round((float) $t, 1),
                 'rh' => round((float) $rh, 0),
             ]),
-        ], __('messages.iaq_explainer.thermal_comfort'));
+        ]);
     }
 
     /**
@@ -307,7 +293,7 @@ class IaqSemanticKpiComposer
             }
         }
         $label = $this->translateShortKey($labelKey);
-        $status = $lvl <= 1 ? 'warning' : ($lvl >= 4 ? 'warning' : 'good');
+        $status = ($lvl === 0 || $lvl >= 5) ? 'warning' : 'good';
 
         return $this->wrapKpi('visual_lighting_condition', [
             'value' => $label,
@@ -367,37 +353,6 @@ class IaqSemanticKpiComposer
         ], __('messages.iaq_explainer.lighting_lux'));
     }
 
-    /**
-     * @param list<array{0:float,1:float}> $curve
-     */
-    private function interpolateCurve(float $x, array $curve): ?float
-    {
-        if ($curve === []) {
-            return null;
-        }
-        usort($curve, static fn ($a, $b) => ($a[0] <=> $b[0]));
-        if ($x <= $curve[0][0]) {
-            return $curve[0][1];
-        }
-        $n = count($curve);
-        for ($i = 1; $i < $n; $i++) {
-            $x0 = $curve[$i - 1][0];
-            $y0 = $curve[$i - 1][1];
-            $x1 = $curve[$i][0];
-            $y1 = $curve[$i][1];
-            if ($x <= $x1) {
-                if ($x1 <= $x0) {
-                    return $y1;
-                }
-                $t = ($x - $x0) / ($x1 - $x0);
-
-                return $y0 + $t * ($y1 - $y0);
-            }
-        }
-
-        return $curve[$n - 1][1];
-    }
-
     private function pmSeverityTriLevel(float $v, float $healthyMax, float $unhealthyMin): int
     {
         if ($v > $unhealthyMin) {
@@ -448,6 +403,22 @@ class IaqSemanticKpiComposer
         return $lightMode === 'raw_lux'
             ? __('messages.iaq_semantic_mode.light_raw_lux')
             : __('messages.iaq_semantic_mode.light_normalized_level_0_5');
+    }
+
+    private function environmentalValueCaption(mixed $pm25, mixed $pm10, string $tvocMode): string
+    {
+        $parts = [];
+        if ($pm25 !== null) {
+            $parts[] = __('messages.iaq_kpi.value_caption.pm25', ['value' => round((float) $pm25, 1)]);
+        }
+        if ($pm10 !== null) {
+            $parts[] = __('messages.iaq_kpi.value_caption.pm10', ['value' => round((float) $pm10, 1)]);
+        }
+        $parts[] = __('messages.iaq_kpi.value_caption.tvoc_mode', [
+            'tvoc_mode' => $this->tvocModeDisplayLabel($tvocMode),
+        ]);
+
+        return implode(' · ', $parts);
     }
 
     /**

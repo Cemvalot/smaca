@@ -54,7 +54,7 @@ function getIaqMetricConfig() {
   return {
     co2: { label: 'CO₂', unit: 'ppm', decimals: 0, color: '#3b82f6' },
     temperature: { label: smacaUiT('temperature_label', 'Temperature'), unit: '°C', decimals: 1, color: '#06b6d4' },
-    humidity: { label: smacaUiT('humidity_label', 'Humidity'), unit: '%', decimals: 0, color: '#6366f1' },
+    humidity: { label: smacaUiT('humidity_label', 'Relative Humidity'), unit: '%', decimals: 0, color: '#6366f1' },
     pm2_5: { label: 'PM2.5', unit: 'μg/m³', decimals: 1, color: '#f59e0b' },
     pm10: { label: 'PM10', unit: 'µg/m³', decimals: 1, color: '#f97316' },
     tvoc: { label: 'TVOC', unit: tvocUnit, decimals: tvocDecimals, color: '#ec4899' }
@@ -217,6 +217,22 @@ function parseUtcMs(value) {
 function getIaqChartWindow(timeframe) {
   if (typeof window !== 'undefined' && window.SMACAChartTime && typeof window.SMACAChartTime.getLineChartWindow === 'function') {
     return window.SMACAChartTime.getLineChartWindow(timeframe);
+  }
+  const tf = timeframe || '24h';
+  if (tf === '24h') {
+    const dayStartMs = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 0, 0, 0, 0).getTime();
+    const bucketTimesMs = Array.from({ length: 24 }, function (_, idx) {
+      return dayStartMs + (idx * 3600000);
+    });
+    return {
+      timeframe: '24h',
+      bucketMs: 3600000,
+      bucketCount: 24,
+      bucketTimesMs: bucketTimesMs,
+      rangeStartMs: dayStartMs,
+      rangeEndMs: Date.now(),
+      operationalDay: true
+    };
   }
   const bucketMs = getBucketMsForTimeframe(timeframe);
   const windowMs = getTimeframeWindowMs(timeframe);
@@ -393,11 +409,11 @@ function evaluateOverallIaqSummary(latestValues, activeSensorCount, latestTimest
   else if (avgScore < 3) statusLabel = smacaAccurateT('moderate', smacaUiT('moderate','Moderate'));
   else if (avgScore >= 4.5) statusLabel = smacaAccurateT('excellent', 'Excellent');
   const topDriver = statuses.sort(function (a, b) { return a.status.score - b.status.score; })[0];
-  const driverLabelMap = { co2: 'CO₂', pm2_5: 'PM2.5', pm10: 'PM10', humidity: smacaUiT('humidity_label', 'Humidity'), temperature: smacaUiT('temperature_label', 'Temperature'), tvoc: 'TVOC' };
+  const driverLabelMap = { co2: 'CO₂', pm2_5: 'PM2.5', pm10: 'PM10', humidity: smacaUiT('humidity_label', 'Relative Humidity'), temperature: smacaUiT('temperature_label', 'Temperature'), tvoc: 'TVOC' };
   let explanation = smacaAccurateT('iaq_metrics_expected_ranges', 'IAQ metrics are within expected ranges');
   if (topDriver) {
     if (topDriver.metric === 'humidity' && topDriver.status.score === 3) {
-      explanation = smacaAccurateT('humidity_slightly_off_text', 'Humidity is slightly off');
+      explanation = smacaAccurateT('humidity_slightly_off_text', 'Relative humidity is slightly off');
     } else {
       explanation = `${driverLabelMap[topDriver.metric]} ${smacaAccurateT('is_label', 'is')} ${topDriver.status.label.toLowerCase()}`;
     }
@@ -757,10 +773,20 @@ function renderIaqMainTrendChart(computed) {
       renderer: renderer
     };
   }
+  const chartWindow = getIaqChartWindow(computed.timeframe);
+  const xDomainStart = Number(chartWindow.rangeStartMs);
+  const xDomainEnd = (computed.timeframe === '24h' && Array.isArray(chartWindow.bucketTimesMs) && chartWindow.bucketTimesMs.length)
+    ? (Number(chartWindow.bucketTimesMs[0]) + (24 * 3600000))
+    : Number(chartWindow.rangeEndMs);
+  const xSpan = xDomainEnd - xDomainStart || 1;
   const yScale = function (v) { return chartHeight - ((v - min) / (max - min || 1)) * chartHeight; };
-  const xScale = function (i) { return (i / Math.max(1, series.length - 1)) * chartWidth; };
-  const points = series.map(function (entry, i) {
-    const x = xScale(i);
+  const xScaleTime = function (timeMs) {
+    const t = parseUtcMs(timeMs);
+    if (!Number.isFinite(t)) return 0;
+    return ((t - xDomainStart) / xSpan) * chartWidth;
+  };
+  const points = series.map(function (entry) {
+    const x = xScaleTime(entry.time);
     const y = yScale(Number(entry.value));
     return { x: x, y: y, value: Number(entry.value), time: entry.time };
   });
@@ -866,7 +892,7 @@ function renderIaqMainTrendChart(computed) {
   line.setAttribute('stroke-linejoin', 'round');
   line.setAttribute('stroke-linecap', 'round');
   const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  const areaPath = `${path} L ${xScale(series.length - 1).toFixed(2)} ${chartHeight} L 0 ${chartHeight} Z`;
+  const areaPath = `${path} L ${points[points.length - 1].x.toFixed(2)} ${chartHeight} L ${points[0].x.toFixed(2)} ${chartHeight} Z`;
   area.setAttribute('d', areaPath);
   area.setAttribute('fill', `url(#${gradientKey}-area)`);
   g.appendChild(area);
@@ -925,19 +951,36 @@ function renderIaqMainTrendChart(computed) {
   yAxis.setAttribute('stroke', 'var(--border)');
   g.appendChild(yAxis);
 
-  const tickCount = 5;
-  for (let i = 0; i < tickCount; i += 1) {
-    const idx = Math.floor((i / Math.max(1, tickCount - 1)) * (series.length - 1));
-    const x = xScale(idx);
+  function formatIaqFallbackXLabel(timeMs) {
+    if (computed.timeframe !== '24h') {
+      return formatTime(timeMs, true);
+    }
+    const t = Number(timeMs);
+    if (!Number.isFinite(t)) return '';
+    if (t >= xDomainEnd - 1) return '24:00';
+    const d = new Date(t);
+    return String(d.getHours()).padStart(2, '0') + ':00';
+  }
+
+  const xTickTimes = computed.timeframe === '24h'
+    ? [0, 6, 12, 18, 24].map(function (h) { return xDomainStart + (h * 3600000); })
+    : series.map(function (entry, i) {
+      if (i === 0 || i === series.length - 1 || i % Math.max(1, Math.floor(series.length / 4)) === 0) {
+        return parseUtcMs(entry.time);
+      }
+      return null;
+    }).filter(Number.isFinite);
+  xTickTimes.forEach(function (tickMs) {
+    const x = ((tickMs - xDomainStart) / xSpan) * chartWidth;
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', String(x));
     label.setAttribute('y', String(chartHeight + 16));
     label.setAttribute('fill', 'var(--muted)');
     label.setAttribute('font-size', '10');
     label.setAttribute('text-anchor', 'middle');
-    label.textContent = formatTime(series[idx].time, computed.timeframe !== '24h');
+    label.textContent = formatIaqFallbackXLabel(tickMs);
     g.appendChild(label);
-  }
+  });
 
   const yAxisUnitLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   yAxisUnitLabel.setAttribute('x', '-40');

@@ -14,30 +14,31 @@
                 </div>
                 <p class="section-hero__subtitle">{{ __('messages.dashboard_i18n.occupancy_hero_subtitle') }}</p>
               </div>
-              @if($smacaIsAdmin)
-              <div class="section-hero__stat"><div id="occupancy-current-count" class="section-hero__stat-value">{{ __('messages.common.loading') }}...</div><div class="section-hero__stat-label">{{ __('messages.dashboard_i18n.recent_movements') }}</div></div>
-              @endif
             </div>
           </div>
           @if($smacaIsAdmin)
-          <div class="section-meta"><span class="data-status-pill data-status-pill--live" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span><span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span></div>
+          <div class="section-meta smaca-occupancy-meta">
+            <span class="data-status-pill data-status-pill--live smaca-occupancy-live-pill" title="Data is being updated in real time">{{ __('messages.dashboard.live') }}</span>
+            <span class="last-updated-pill" title="Time since last data sync">{{ __('messages.dashboard.last_update') }}: {{ __('messages.common.loading') }}...</span>
+          </div>
           @endif
-          <section class="card" style="margin: var(--space-6) 0;">
-            <div class="card__header">
-              <h3 class="card__title">{{ __('messages.dashboard_i18n.kpi_title_occupancy') }}</h3>
-            </div>
-            <div class="card__body">
-              <p class="overview-live-note" style="margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.occupancy_scope_daily_note') }}</p>
-              <p class="overview-live-note" style="margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
-              <p class="overview-live-note" style="margin-bottom: var(--space-3); font-style: italic; color: var(--muted);">{{ __('messages.dashboard_i18n.flow_estimate_note') }}</p>
-              <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="grid grid--metrics grid--metrics-2 occupancy-metrics-grid">
-                <p class="overview-live-note">{{ __('messages.common.loading') }}...</p>
+          <section class="smaca-occupancy-panel" aria-labelledby="smaca-occupancy-panel-title">
+            <header class="smaca-occupancy-panel__header">
+              <h3 id="smaca-occupancy-panel-title" class="smaca-occupancy-panel__title">{{ __('messages.dashboard_i18n.kpi_title_occupancy') }}</h3>
+            </header>
+            <div class="smaca-occupancy-panel__body">
+              <div class="smaca-occupancy-panel__intro" role="note">
+                <p class="smaca-occupancy-info-strip">{{ __('messages.dashboard_i18n.occupancy_scope_daily_note') }} {{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
+                <p class="smaca-occupancy-kpi-footnote">{{ __('messages.dashboard_i18n.flow_estimate_note') }}</p>
               </div>
-              <div id="occupancy-sensor-groups" class="occupancy-sensor-groups" hidden></div>
+              <div class="smaca-occupancy-panel__divider" aria-hidden="true"></div>
+              <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="smaca-occupancy-kpi-grid">
+                <p class="smaca-occupancy-kpi-grid__loading">{{ __('messages.common.loading') }}...</p>
+              </div>
             </div>
           </section>
 
-          <section class="card smaca-telemetry-card">
+          <section class="card smaca-telemetry-card smaca-occupancy-telemetry-card">
             <div class="card__header">
               <h3 class="card__title">{{ __('messages.nav.occupancy') }} · {{ __('messages.dashboard.live') }}</h3>
               <p class="card__subtitle">{{ __('messages.dashboard_i18n.occupancy_scope_timeframe_note') }}</p>
@@ -132,6 +133,15 @@
               </div>
             </div>
           </div>
+
+          <section class="card smaca-occupancy-zone smaca-occupancy-zone--sensor-breakdown" style="margin: var(--space-6) 0;" aria-labelledby="occupancy-sensor-breakdown-title">
+            <div class="card__header">
+              <h3 id="occupancy-sensor-breakdown-title" class="card__title">{{ __('messages.dashboard_i18n.occupancy_sensor_breakdown_title') }}</h3>
+            </div>
+            <div class="card__body">
+              <div id="occupancy-sensor-groups" class="occupancy-sensor-groups" hidden></div>
+            </div>
+          </section>
         </div>
 <script>
   document.addEventListener('DOMContentLoaded', function () {

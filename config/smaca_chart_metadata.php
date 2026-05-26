@@ -350,9 +350,9 @@ return [
             ],
         ],
 
-        // ======================================================= Environmental
+        // ======================================================= Solar Exposure (UV)
         'uv-main-chart' => [
-            'category' => 'Environmental',
+            'category' => 'Solar Exposure (UV)',
             'title' => [
                 'en' => 'UV index trend',
                 'el' => 'Τάση δείκτη UV',
@@ -384,7 +384,7 @@ return [
         ],
 
         'uv-pattern-chart' => [
-            'category' => 'Environmental',
+            'category' => 'Solar Exposure (UV)',
             'title' => [
                 'en' => 'Hourly UV pattern',
                 'el' => 'Ωριαίο μοτίβο UV',
@@ -416,7 +416,7 @@ return [
         ],
 
         'uv-daily-comparison-chart' => [
-            'category' => 'Environmental',
+            'category' => 'Solar Exposure (UV)',
             'title' => [
                 'en' => 'Daily UV comparison',
                 'el' => 'Ημερήσια σύγκριση UV',

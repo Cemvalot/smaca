@@ -259,8 +259,8 @@ html.smaca-is-scrolling #environmental #environmental-kpi-grid .stat-card:hover 
 }
 
 .section-hero--occupancy {
-  background: var(--smaca-accent-occupancy-hero), var(--smaca-section-bg) !important;
-  border-left: 3px solid var(--smaca-accent-occupancy);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%), var(--smaca-section-bg) !important;
+  border-left: 2px solid rgba(255, 170, 70, 0.4);
 }
 
 .section-hero--environmental {
@@ -289,7 +289,7 @@ html.smaca-is-scrolling #environmental #environmental-kpi-grid .stat-card:hover 
 }
 
 .section-hero--iaq .section-hero__icon { color: #7fd4ce; background: var(--smaca-accent-iaq-soft); }
-.section-hero--occupancy .section-hero__icon { color: #e8c090; background: var(--smaca-accent-occupancy-soft); }
+.section-hero--occupancy .section-hero__icon { color: rgba(255, 170, 70, 0.9); background: rgba(255, 170, 70, 0.1); }
 .section-hero--environmental .section-hero__icon { color: #e8a878; background: var(--smaca-accent-environmental-soft); }
 .section-hero--energy .section-hero__icon { color: #e8d080; background: var(--smaca-accent-energy-soft); }
 .section-hero--connectivity .section-hero__icon { color: #9ec8ef; background: var(--smaca-accent-connectivity-soft); }

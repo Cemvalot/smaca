@@ -226,7 +226,7 @@ class KPIService
             $statusMeaning = $meta['status_meanings'][$canonical] ?? null;
 
             // Additive merge — never overwrite caller-provided fields.
-            return array_merge($kpi, [
+            $merged = array_merge($kpi, [
                 'kpi_category' => $meta['kpi_category'] ?? null,
                 'metadata_complete' => $meta['metadata_complete'] ?? false,
                 'source_type' => $meta['source_type'] ?? 'measured',
@@ -240,6 +240,23 @@ class KPIService
                 'limitations_simple' => $meta['limitations_simple'] ?? null,
                 'status_meaning' => $statusMeaning,
             ]);
+
+            // IAQ summary cards use a short help panel — omit extended metadata blocks.
+            if (in_array($key, ['environmental_safety_index', 'ventilation_quality_index', 'iaq_thermal_comfort'], true)) {
+                $merged['limitations'] = null;
+                $merged['limitations_simple'] = null;
+                $merged['technical_definition'] = null;
+                $merged['calculation_summary'] = null;
+                $merged['sensors_used'] = [];
+                if ($key !== 'environmental_safety_index') {
+                    $merged['unit_explanation'] = null;
+                }
+                if ($key === 'iaq_thermal_comfort') {
+                    $merged['status_meaning'] = null;
+                }
+            }
+
+            return $merged;
         }, $kpis);
     }
 
@@ -249,7 +266,6 @@ class KPIService
         $baseLoadIndex = $this->calculateBaseLoadIndex($inputs);
         $thermalComfort = $this->calculateThermalComfortIndex($inputs);
         $visualComfort = $this->calculateVisualComfortKpi($inputs);
-        $iaqHealth = $this->calculateIaqHealthIndex($inputs);
         $crowdDensity = $this->calculateCrowdDensityLevel($inputs);
         $movementActivity = $this->calculateMovementActivityIndex($inputs);
         $uvExposure = $this->calculateUvExposureRisk($inputs);
@@ -264,7 +280,6 @@ class KPIService
 
         return [
             'overview' => [
-                $iaqHealth,
                 $crowdDensity,
                 $normalizedEnergyIntensity,
                 $thermalComfort,
@@ -274,7 +289,6 @@ class KPIService
                 $baseLoadIndex,
             ],
             'iaq' => [
-                $iaqHealth,
                 $this->iaqSemanticComposer()->buildEnvironmentalSafetyIndex($inputs),
                 $this->iaqSemanticComposer()->buildThermalComfortBoolean($inputs),
                 $this->iaqSemanticComposer()->buildVentilationQuality($inputs),
@@ -618,128 +632,6 @@ class KPIService
         ];
     }
 
-    private function calculateIaqHealthIndex(array $inputs): array
-    {
-        $co2 = $inputs['avg_co2_ppm'] ?? null;
-        $tvoc = $inputs['tvoc'] ?? $inputs['avg_tvoc_index'] ?? null;
-        $pm25 = $inputs['pm25'] ?? $inputs['avg_pm25_ugm3'] ?? null;
-        $pm10 = $inputs['pm10'] ?? $inputs['avg_pm10_ugm3'] ?? null;
-        $available = array_filter([$co2, $tvoc, $pm25, $pm10], static fn($v) => $v !== null);
-        if (count($available) === 0) {
-            return $this->insufficientKpi(
-                'iaq_health_index',
-                'IAQ Health Index',
-                '%',
-                'Indoor air quality health score using CO2, TVOC, PM2.5 and PM10.'
-            );
-        }
-        $weights = [
-            'co2' => 0.40,
-            'tvoc' => 0.20,
-            'pm25' => 0.25,
-            'pm10' => 0.15,
-        ];
-        $subScores = [];
-        if ($co2 !== null) {
-            $subScores['co2'] = $this->scoreFromCurve($co2, [
-                [400.0, 100.0],
-                [600.0, 90.0],
-                [800.0, 75.0],
-                [1000.0, 60.0],
-                [1500.0, 30.0],
-                [2000.0, 10.0],
-            ]);
-        }
-        $composer = $this->iaqSemanticComposer();
-        if ($tvoc !== null) {
-            $tvocSub = $composer->tvocHealthSubscore((float) $tvoc, $composer->tvocMode());
-            if ($tvocSub !== null) {
-                $subScores['tvoc'] = $tvocSub;
-            }
-        }
-        if ($pm25 !== null) {
-            $subScores['pm25'] = $this->scoreFromCurve($pm25, [
-                [0.0, 100.0],
-                [5.0, 100.0],
-                [10.0, 85.0],
-                [20.0, 60.0],
-                [35.0, 30.0],
-                [55.0, 10.0],
-            ]);
-        }
-        if ($pm10 !== null) {
-            $subScores['pm10'] = $this->scoreFromCurve($pm10, [
-                [0.0, 100.0],
-                [20.0, 90.0],
-                [40.0, 70.0],
-                [70.0, 40.0],
-                [120.0, 15.0],
-            ]);
-        }
-
-        $effectiveWeight = 0.0;
-        $weightedScore = 0.0;
-        foreach ($subScores as $field => $subScore) {
-            $effectiveWeight += $weights[$field];
-            $weightedScore += $subScore * $weights[$field];
-        }
-        $value = $effectiveWeight > 0 ? (int) round($weightedScore / $effectiveWeight) : null;
-        if ($value === null) {
-            return $this->insufficientKpi(
-                'iaq_health_index',
-                'IAQ Health Index',
-                '%',
-                'Indoor air quality health score using CO2, TVOC, PM2.5 and PM10.'
-            );
-        }
-
-        $tvocMode = $composer->tvocMode();
-        $tvocNearOptimal = $tvocMode === 'iaq_rating_level'
-            ? ($tvoc !== null && $tvoc <= 2.99)
-            : ($tvoc !== null && $tvoc <= 80.0);
-
-        $allNearOptimal = $co2 !== null
-            && $tvoc !== null
-            && $pm25 !== null
-            && $pm10 !== null
-            && $co2 <= 450.0
-            && $tvocNearOptimal
-            && $pm25 <= 5.0
-            && $pm10 <= 10.0;
-
-        // Avoid unrealistic perfect saturation unless all key metrics are truly near-ideal.
-        if (!$allNearOptimal && $value >= 100) {
-            $value = 99;
-        }
-
-        $evaluation = $this->thresholdService->evaluate('iaq_health_index', $value);
-        $status = $this->normalizeStatus($evaluation['status']);
-        $status = $this->applyCompositeOverrides('iaq_health_index_overrides', $status, $inputs);
-        $confidence = count($subScores) < 4 ? 'partial' : 'high';
-        $tvocExpl = $tvocMode === 'iaq_rating_level'
-            ? __('messages.iaq_explainer.tvoc_iaq_rating')
-            : __('messages.iaq_explainer.tvoc_raw');
-        $tvocModeLabel = $tvocMode === 'raw_tvoc_ugm3'
-            ? __('messages.iaq_semantic_mode.tvoc_raw_tvoc_ugm3')
-            : __('messages.iaq_semantic_mode.tvoc_iaq_rating_level');
-
-        return [
-            'key' => 'iaq_health_index',
-            'label' => __('messages.labels.iaq_health_index'),
-            'value' => $value,
-            'unit' => '%',
-            'status' => $status,
-            'confidence' => $confidence,
-            'description' => $evaluation['explanation'],
-            'recommended_action' => $evaluation['recommended_action'],
-            'display_kind' => 'numeric',
-            'semantic_explainer' => $tvocExpl,
-            'value_caption' => __('messages.iaq_kpi.value_caption.iaq_health', [
-                'tvoc_mode' => $tvocModeLabel,
-            ]),
-        ];
-    }
-
     /**
      * Crowd Density Level — used for floor / area aggregates (parents that
      * contain people counters as children). REDEFINED in events/hour:
@@ -875,44 +767,6 @@ class KPIService
         $resolved = strtolower(trim((string) ($module ?? 'overview')));
         $allowed = ['overview', 'energy', 'iaq', 'occupancy', 'environmental', 'connectivity'];
         return in_array($resolved, $allowed, true) ? $resolved : 'overview';
-    }
-
-    private function clampToPercent(float $value): float
-    {
-        return max(0.0, min(100.0, $value));
-    }
-
-    private function scoreFromCurve(float $inputValue, array $points): float
-    {
-        usort($points, static fn(array $a, array $b) => $a[0] <=> $b[0]);
-        $count = count($points);
-        if ($count === 0) {
-            return 0.0;
-        }
-
-        if ($inputValue <= $points[0][0]) {
-            return $this->clampToPercent((float) $points[0][1]);
-        }
-        if ($inputValue >= $points[$count - 1][0]) {
-            return $this->clampToPercent((float) $points[$count - 1][1]);
-        }
-
-        for ($i = 1; $i < $count; $i++) {
-            $leftX = (float) $points[$i - 1][0];
-            $leftY = (float) $points[$i - 1][1];
-            $rightX = (float) $points[$i][0];
-            $rightY = (float) $points[$i][1];
-            if ($inputValue <= $rightX) {
-                if ($rightX === $leftX) {
-                    return $this->clampToPercent($rightY);
-                }
-
-                $ratio = ($inputValue - $leftX) / ($rightX - $leftX);
-                return $this->clampToPercent($leftY + (($rightY - $leftY) * $ratio));
-            }
-        }
-
-        return $this->clampToPercent((float) $points[$count - 1][1]);
     }
 
     private function applyCompositeOverrides(string $configKey, string $currentStatus, array $inputs): string

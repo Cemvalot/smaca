@@ -5,9 +5,23 @@
 (function (global) {
   'use strict';
 
+  function decodeHtmlEntities(value) {
+    return String(value == null ? '' : value)
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+
   function t(key, fallback) {
     var map = global.SMACA_TRANSLATIONS || {};
-    return map[key] || fallback;
+    var raw = Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
+    return decodeHtmlEntities(raw);
+  }
+
+  function co2LabelHtml() {
+    return '<span class="smaca-chem-co2" aria-label="CO₂">CO<sub>2</sub></span>';
   }
 
   function escapeHtml(value) {
@@ -242,10 +256,10 @@
       out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_temp_high', 'Temperature above comfort band (>24 °C)') });
     }
     if (rh !== null && rh < 40) {
-      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_low', 'Humidity below comfort band (<40 % RH)') });
+      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_low', 'Relative humidity below comfort band (<40 % RH)') });
     }
     if (rh !== null && rh > 60) {
-      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_high', 'Humidity above comfort band (>60 % RH)') });
+      out.push({ sev: 2, kind: 'thermal', text: t('iaq_warn_rh_high', 'Relative humidity above comfort band (>60 % RH)') });
     }
     return out;
   }
@@ -417,12 +431,12 @@
   function ventilationBandFromCo2(ppm) {
     var p = toNum(ppm);
     if (p === null) return null;
-    if (p <= 400) return t('iaq_co2_band_outdoor_normal', 'Normal outdoor air (≤400 ppm)');
-    if (p <= 1000) return t('iaq_co2_band_good_ventilation', 'Good ventilation');
-    if (p <= 2000) return t('iaq_co2_band_poor_ventilation', 'Poor air quality — ventilation required (1000–2000 ppm)');
-    if (p <= 5000) return t('iaq_co2_band_high_discomfort', 'High discomfort / possible symptoms (2000–5000 ppm)');
-    if (p <= 40000) return t('iaq_co2_band_workplace_limit', 'Workplace exposure limit band (5000–40000 ppm)');
-    return t('iaq_co2_band_dangerous', 'Dangerous exposure (>40000 ppm)');
+    if (p <= 400) return t('iaq_co2_band_outdoor_normal', 'Sufficient');
+    if (p <= 1000) return t('iaq_co2_band_good_ventilation', 'Sufficient');
+    if (p <= 2000) return t('iaq_co2_band_poor_ventilation', 'Insufficient');
+    if (p <= 5000) return t('iaq_co2_band_high_discomfort', 'Insufficient');
+    if (p <= 40000) return t('iaq_co2_band_workplace_limit', 'Insufficient');
+    return t('iaq_co2_band_dangerous', 'Insufficient');
   }
 
   function thermalComfortState(latest) {
@@ -552,10 +566,9 @@
         }
       } else {
         var ll = le.primary;
+        // Normalized 0–5: only level 0 (minimal) and 5 (intense) warn; 1–4 are acceptable (e.g. dim indoor = 1).
         if (ll === 0) {
           w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_minimal', 'Minimal lighting detected') });
-        } else if (ll <= 1) {
-          w.push({ sev: 2, kind: 'lighting', text: t('iaq_sensor_breakdown_warn_lighting', 'Lighting outside comfortable range') });
         } else if (ll >= 5) {
           w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_intense', 'Intense lighting detected') });
         }
@@ -640,7 +653,7 @@
       return 'iaq-sev--light-office';
     }
     var lv = r.primary;
-    if (lv <= 1) return 'iaq-sev--light-minimal';
+    if (lv === 0) return 'iaq-sev--light-minimal';
     if (lv >= 5) return 'iaq-sev--light-intense';
     return 'iaq-sev--light-office';
   }
@@ -658,23 +671,25 @@
     return 'iaq-sev--tvoc-ok';
   }
 
-  function miniMetricCollapsed(label, valueHtml, iconSvg, sevMod) {
+  function miniMetricCollapsed(label, valueHtml, iconSvg, sevMod, labelIsHtml) {
     var mod = sevMod || 'iaq-sev--na';
+    var labelHtml = labelIsHtml ? String(label) : escapeHtml(label);
     return (
       '<span class="iaq-mini-metric iaq-mini-metric--collapsed ' + mod + '">' +
       (iconSvg ? '<span class="iaq-mini-metric__icon" aria-hidden="true">' + iconSvg + '</span>' : '') +
       '<span class="iaq-mini-metric__stack">' +
       '<span class="iaq-mini-metric__value">' + valueHtml + '</span>' +
-      '<span class="iaq-mini-metric__label">' + escapeHtml(label) + '</span>' +
+      '<span class="iaq-mini-metric__label">' + labelHtml + '</span>' +
       '</span></span>'
     );
   }
 
-  function miniMetricDetail(label, valueMainHtml, unitHtml, hintText, sevMod) {
+  function miniMetricDetail(label, valueMainHtml, unitHtml, hintText, sevMod, labelIsHtml) {
     var hint = hintText
       ? '<span class="iaq-mini-metric__hint">' + escapeHtml(hintText) + '</span>'
       : '';
     var unit = unitHtml || '';
+    var labelHtml = labelIsHtml ? String(label) : escapeHtml(label);
     return (
       '<div class="iaq-mini-metric iaq-mini-metric--detail ' + (sevMod || 'iaq-sev--na') + '">' +
       '<span class="iaq-mini-metric__value-row">' +
@@ -682,7 +697,7 @@
       (unit ? '<span class="iaq-mini-metric__unit">' + unit + '</span>' : '') +
       '</span>' +
       hint +
-      '<span class="iaq-mini-metric__label">' + escapeHtml(label) + '</span>' +
+      '<span class="iaq-mini-metric__label">' + labelHtml + '</span>' +
       '</div>'
     );
   }
@@ -751,9 +766,9 @@
     var env = environmentalSafetyNarrative(latest, semTvoc);
     var lightN = lightingNarrative(latest, semLight);
 
-    var lblCo2 = t('labels_co2', 'CO₂');
+    var lblCo2 = co2LabelHtml();
     var lblT = t('temperature_label', 'Temperature');
-    var lblH = t('humidity_label', 'Humidity');
+    var lblH = t('humidity_label', 'Relative Humidity');
     var lblPm25 = t('labels_pm25', 'PM2.5');
     var lblPm10 = t('labels_pm10', 'PM10');
 
@@ -834,7 +849,7 @@
       '<div class="iaq-detail__block">' +
       '<div class="iaq-detail__block-title">' + escapeHtml(t('iaq_sensor_breakdown_latest_readings', 'Latest readings')) + '</div>' +
       '<div class="iaq-detail__measure-grid">' +
-      miniMetricDetail(lblCo2, co2Main, 'ppm', vent, co2SeverityMod(latest)) +
+      miniMetricDetail(lblCo2, co2Main, 'ppm', vent, co2SeverityMod(latest), true) +
       miniMetricDetail(lblT, tMain, '°C', tHint, thermalSeverityMod(latest)) +
       miniMetricDetail(lblH, hMain, '%', '', thermalSeverityMod(latest)) +
       miniMetricDetail(lblPm25, p25Main, 'µg/m³', p25Hint, pm25SeverityMod(latest)) +
@@ -918,9 +933,9 @@
       badgeRow +
       '</span>' +
       '<span class="iaq-sensor-card__metrics iaq-sensor-card__metrics--dense">' +
-      miniMetricCollapsed(t('labels_co2', 'CO₂'), co2Collapsed, ICON_CO2, co2SeverityMod(latest)) +
+      miniMetricCollapsed(co2LabelHtml(), co2Collapsed, ICON_CO2, co2SeverityMod(latest), true) +
       miniMetricCollapsed(t('temperature_label', 'Temperature'), tCollapsed, ICON_TEMP, thermalSeverityMod(latest)) +
-      miniMetricCollapsed(t('humidity_label', 'Humidity'), hCollapsed, ICON_HUM, thermalSeverityMod(latest)) +
+      miniMetricCollapsed(t('humidity_label', 'Relative Humidity'), hCollapsed, ICON_HUM, thermalSeverityMod(latest)) +
       miniMetricCollapsed(t('labels_pm25', 'PM2.5'), pm25Collapsed, ICON_PM, pm25SeverityMod(latest)) +
       miniMetricCollapsed(t('labels_pm10', 'PM10'), pm10Collapsed, ICON_PM, pm10SeverityMod(latest)) +
       miniMetricCollapsed(tvocColumnTitle(), tvCollapsed, ICON_TVOC, tvocSeverityMod(latest, semTvoc)) +

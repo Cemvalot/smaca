@@ -183,7 +183,7 @@ class KPIInputAssembler
             if ($schema->hasColumn('readings', 'lux')) {
                 $readingsSelects[] = 'AVG(lux) as avg_lux';
             }
-            // Environmental / UV (outdoor / VS350-class sensors)
+            // Solar Exposure (UV) — outdoor / VS350-class sensors
             if ($schema->hasColumn('readings', 'solar_radiation')) {
                 $readingsSelects[] = 'AVG(solar_radiation) as avg_solar_radiation';
             }

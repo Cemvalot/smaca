@@ -28,20 +28,9 @@
     <div class="card__body">
       <p class="overview-live-note" style="margin-bottom: var(--space-2);">{{ __('messages.dashboard_i18n.kpi_intro_energy') }}</p>
       <p class="overview-live-note" style="margin-bottom: var(--space-3); font-size: 11px;">{{ __('messages.dashboard_i18n.kpi_note_occupancy_estimate') }}</p>
-      <div id="energy-kpi-summary-cards" class="grid grid--metrics grid--metrics-2">
+      <div id="energy-kpi-summary-cards" data-kpi-module="energy" class="grid grid--metrics grid--metrics-2">
         <article class="stat-card overview-kpi-card"><div class="stat-card__content"><div class="stat-card__label">KPI</div><div class="stat-card__value">--</div></div></article>
       </div>
-    </div>
-  </section>
-
-
-  <section class="card smaca-energy-zone smaca-energy-zone--meter-breakdown" style="margin: var(--space-6) 0;" aria-labelledby="energy-meter-breakdown-title">
-    <div class="card__header">
-      <h3 id="energy-meter-breakdown-title" class="card__title">{{ __('messages.dashboard_i18n.energy_meter_breakdown_title') }}</h3>
-      <p class="card__subtitle">{{ __('messages.dashboard_i18n.energy_meter_breakdown_subtitle') }}</p>
-    </div>
-    <div class="card__body">
-      <div id="energy-meter-groups" class="iaq-sensor-groups energy-meter-groups" hidden></div>
     </div>
   </section>
 
@@ -155,6 +144,16 @@
       </div>
     </article>
   </div>
+
+  <section class="card smaca-energy-zone smaca-energy-zone--meter-breakdown" style="margin: var(--space-6) 0;" aria-labelledby="energy-meter-breakdown-title">
+    <div class="card__header">
+      <h3 id="energy-meter-breakdown-title" class="card__title">{{ __('messages.dashboard_i18n.energy_meter_breakdown_title') }}</h3>
+      <p class="card__subtitle">{{ __('messages.dashboard_i18n.energy_meter_breakdown_subtitle') }}</p>
+    </div>
+    <div class="card__body">
+      <div id="energy-meter-groups" class="iaq-sensor-groups energy-meter-groups" hidden></div>
+    </div>
+  </section>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (!window.SMACAApi || typeof window.SMACAApi.fetchKpiSummary !== 'function') return;
@@ -163,10 +162,10 @@
     function loadEnergyKpis() {
       window.SMACAApi.fetchKpiSummary('energy')
         .then(function (payload) {
-          window.SMACAKPIRenderer.render('energy-kpi-summary-cards', payload, { compact: false });
+          window.SMACAKPIRenderer.render('energy-kpi-summary-cards', payload);
         })
         .catch(function () {
-          window.SMACAKPIRenderer.render('energy-kpi-summary-cards', { kpis: [] }, { compact: false });
+          window.SMACAKPIRenderer.render('energy-kpi-summary-cards', { kpis: [] });
         });
     }
 

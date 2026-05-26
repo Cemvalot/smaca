@@ -152,47 +152,15 @@ return [
             'unit' => '',
             'unit_label' => ['en' => '', 'el' => ''],
             'unit_explanation' => [
-                'en' => 'Categorical index (Healthy / Medium / Unhealthy), not a concentration.',
-                'el' => 'Κατηγορικός δείκτης (Υγιής / Μέτριος / Μη υγιής), όχι συγκέντρωση.',
+                'en' => 'PM2.5 (µg/m³), PM10 (µg/m³), TVOC (µg/m³ or IAQ Rating depending on sensor mode). The card headline is a categorical quality level (good / moderate / poor), not a single concentration.',
+                'el' => 'PM2.5 (µg/m³), PM10 (µg/m³), TVOC (µg/m³ ή IAQ Rating ανά λειτουργία αισθητήρα). Η κύρια τιμή της κάρτας είναι κατηγορικό επίπεδο ποιότητας (καλή / μέτρια / υψηλή επιβάρυνση), όχι μία συγκέντρωση.',
             ],
             'plain_definition' => [
-                'en' => 'Combines particulate matter with TVOC using the configured TVOC semantic mode (IAQ rating vs raw concentration).',
-                'el' => 'Συνδυάζει αιωρούμενα με TVOC με βάση τη ρυθμισμένη σημασιολογική λειτουργία TVOC (βαθμολογία IAQ έναντι πρωτογενούς συγκέντρωσης).',
-            ],
-            'technical_definition' => [
-                'en' => 'Raw TVOC mode: unhealthy if any of TVOC>1000 µg/m³, PM2.5>35.4, PM10>154; healthy only if TVOC≤250 AND PM2.5≤12 AND PM10≤54; else medium — worst wins. IAQ rating mode: TVOC mapped to severity bands; same PM gates.',
-                'el' => 'Λειτουργία raw TVOC: μη υγιές αν TVOC>1000 µg/m³ ή PM2.5>35.4 ή PM10>154· υγιές μόνο αν TVOC≤250 ΚΑΙ PM2.5≤12 ΚΑΙ PM10≤54· αλλιώς μέτριο — ισχύει το χειρότερο. Λειτουργία βαθμολογίας IAQ: TVOC σε κλίμακα σοβαρότητας· ίδια όρια PM.',
-            ],
-            'sensors_used' => [
-                'en' => ['TVOC (mode-dependent)', 'PM2.5', 'PM10'],
-                'el' => ['TVOC (ανά λειτουργία)', 'PM2.5', 'PM10'],
-            ],
-            'calculation_summary' => [
-                'en' => 'Per-dimension tri-level severity from config thresholds; overall = worst dimension.',
-                'el' => 'Τριεπίπεδη σοβαρότητα ανά διάσταση από ορία ρύθμισης· συνολικά = χειρότερη διάσταση.',
+                'en' => 'The Air Quality index reflects the indoor burden level by combining measurements of airborne particulates (PM2.5, PM10) and volatile organic compounds (TVOC). Conditions are classified into three levels: good quality, moderate burden, and high burden.',
+                'el' => 'Ο δείκτης ποιότητας αέρα αποτυπώνει το επίπεδο επιβάρυνσης στο εσωτερικό του κτηρίου, συνδυάζοντας μετρήσεις αιωρούμενων σωματιδίων (PM2.5, PM10) και πτητικών οργανικών ενώσεων (TVOC). Οι συνθήκες ταξινομούνται σε τρία επίπεδα: καλή ποιότητα, μέτρια επιβάρυνση και υψηλή επιβάρυνση.',
             ],
             'source_type' => 'measured',
-            'limitations' => [
-                'en' => 'Requires correct TVOC semantic mode in deployment config; misconfiguration misclassifies TVOC.',
-                'el' => 'Απαιτείται σωστή λειτουργία σημασιολογίας TVOC στη ρύθμιση· λανθασμένη ρύθμιση παραμορφώνει το TVOC.',
-            ],
-            'limitations_simple' => [
-                'en' => 'Depends on the TVOC interpretation mode set for your sensors.',
-                'el' => 'Εξαρτάται από τη λειτουργία ερμηνείας TVOC για τους αισθητήρες σας.',
-            ],
             'status_meanings' => [
-                'good' => [
-                    'en' => 'Environmental safety is in the healthy band.',
-                    'el' => 'Η περιβαλλοντική ασφάλεια είναι στην υγιή ζώνη.',
-                ],
-                'warning' => [
-                    'en' => 'Some pollutants are in a medium band — monitor and ventilate.',
-                    'el' => 'Ορισμένοι ρύποι είναι σε μέτρια ζώνη — παρακολουθήστε και αερίστε.',
-                ],
-                'critical' => [
-                    'en' => 'One or more pollutants indicate unhealthy conditions.',
-                    'el' => 'Ένας ή περισσότεροι ρύποι υποδηλώνουν μη υγιείς συνθήκες.',
-                ],
                 'insufficient_data' => [
                     'en' => 'Not enough TVOC/PM data to compute this index.',
                     'el' => 'Ανεπαρκή δεδομένα TVOC/PM για τον δείκτη.',
@@ -207,50 +175,18 @@ return [
             'unit' => '',
             'unit_label' => ['en' => '', 'el' => ''],
             'unit_explanation' => [
-                'en' => 'Boolean comfort from overlapping temperature and humidity bands.',
-                'el' => 'Δυαδική άνεση από κοινές ζώνες θερμοκρασίας και υγρασίας.',
+                'en' => '',
+                'el' => '',
             ],
             'plain_definition' => [
-                'en' => 'Comfortable when average temperature is 20–24 °C and humidity is 40–60 %.',
-                'el' => 'Άνετο όταν η μέση θερμοκρασία είναι 20–24 °C και η υγρασία 40–60 %.',
-            ],
-            'technical_definition' => [
-                'en' => 'Comfortable iff T∈[20,24] °C AND RH∈[40,60] % (configurable via smaca_sensor_semantics).',
-                'el' => 'Άνετο αν και μόνο αν T∈[20,24] °C ΚΑΙ RH∈[40,60] % (ρυθμιζόμενο μέσω smaca_sensor_semantics).',
-            ],
-            'sensors_used' => [
-                'en' => ['Temperature', 'Relative humidity'],
-                'el' => ['Θερμοκρασία', 'Σχετική υγρασία'],
-            ],
-            'calculation_summary' => [
-                'en' => 'AND of two range tests on timeframe-averaged inputs.',
-                'el' => 'Λογικό AND δύο ελέγχων εύρους σε μέσους όρους διαστήματος.',
+                'en' => 'The Thermal Comfort index evaluates environmental conditions based on recorded temperature and relative humidity, providing an overall assessment of comfort levels within classrooms and study areas.',
+                'el' => 'Ο Δείκτης Θερμικής Άνεσης αξιολογεί τις περιβαλλοντικές συνθήκες του χώρου βάσει της καταγεγραμμένης θερμοκρασίας και σχετικής υγρασίας, παρέχοντας μια συνολική εκτίμηση του επιπέδου άνεσης εντός των αιθουσών διδασκαλίας και των χώρων μελέτης.',
             ],
             'source_type' => 'measured',
-            'limitations' => [
-                'en' => 'Does not model radiant asymmetry, air speed, or clothing/activity — simplified comfort proxy.',
-                'el' => 'Δεν μοντελοποιεί ακτινική ασυμμετρία, ταχύτητα αέρα ή ρουχισμό/δραστηριότητα — απλοποιημένο υποκατάστατο άνεσης.',
-            ],
-            'limitations_simple' => [
-                'en' => 'A simplified comfort rule, not a full PMV/PPD model.',
-                'el' => 'Απλοποιημένος κανόνας άνεσης, όχι πλήρες μοντέλο PMV/PPD.',
-            ],
             'status_meanings' => [
-                'good' => [
-                    'en' => 'Comfortable — temperature and humidity are both in band.',
-                    'el' => 'Άνετο — θερμοκρασία και υγρασία εντός ζώνης.',
-                ],
-                'warning' => [
-                    'en' => 'N/A for boolean comfort.',
-                    'el' => 'Δεν εφαρμόζεται στη δυαδική άνεση.',
-                ],
-                'critical' => [
-                    'en' => 'Uncomfortable — at least one of temperature or humidity is out of band.',
-                    'el' => 'Άβολο — τουλάχιστον μία από θερμοκρασία ή υγρασία εκτός ζώνης.',
-                ],
                 'insufficient_data' => [
-                    'en' => 'Temperature or humidity readings are missing.',
-                    'el' => 'Λείπουν μετρήσεις θερμοκρασίας ή υγρασίας.',
+                    'en' => 'Temperature or relative humidity readings are missing.',
+                    'el' => 'Λείπουν μετρήσεις θερμοκρασίας ή σχετικής υγρασίας.',
                 ],
             ],
         ],
@@ -262,34 +198,14 @@ return [
             'unit' => 'ppm',
             'unit_label' => ['en' => 'ppm', 'el' => 'ppm'],
             'unit_explanation' => [
-                'en' => 'CO₂ is a direct ppm measurement used as a ventilation proxy.',
-                'el' => 'Το CO₂ είναι άμεση μέτρηση ppm ως δείκτης αερισμού.',
+                'en' => '',
+                'el' => '',
             ],
             'plain_definition' => [
-                'en' => 'Interprets average CO₂ in ppm against ventilation bands (outdoor reference through workplace limits).',
-                'el' => 'Ερμηνεύει το μέσο CO₂ σε ppm με ζώνες αερισμού (αναφορά εξωτερικού αέρα έως όρια χώρου εργασίας).',
-            ],
-            'technical_definition' => [
-                'en' => 'Bands from config/smaca_sensor_semantics.php co2_ventilation_bands; status is worst matched band.',
-                'el' => 'Ζώνες από config/smaca_sensor_semantics.php co2_ventilation_bands· η κατάσταση είναι η χειρότερη ταυτοποιημένη ζώνη.',
-            ],
-            'sensors_used' => [
-                'en' => ['CO₂'],
-                'el' => ['CO₂'],
-            ],
-            'calculation_summary' => [
-                'en' => 'Timeframe-averaged CO₂ compared to ordered ppm bands.',
-                'el' => 'Μέσος CO₂ διαστήματος σε σχέση με διατεταγμένες ζώνες ppm.',
+                'en' => 'The index reflects ventilation adequacy in the building’s indoor space based on average CO₂ concentration (ppm). Conditions are classified into three levels: Sufficient, Insufficient, and Inadequate.',
+                'el' => 'Ο δείκτης αποτυπώνει την επάρκεια αερισμού του εσωτερικού χώρου του κτηρίου βάσει της μέσης συγκέντρωσης CO₂ (ppm). Οι συνθήκες ταξινομούνται σε τρία επίπεδα: Επαρκές, Μη επαρκές και Ανεπαρκές.',
             ],
             'source_type' => 'measured',
-            'limitations' => [
-                'en' => 'Single-point proxy; local pockets or sensor placement can bias readings.',
-                'el' => 'Μονοδιάστατο υποκατάστατο· τοπικές διακυμάνσεις ή θέση αισθητήρα μπορεί να μεροληπεί.',
-            ],
-            'limitations_simple' => [
-                'en' => 'Reflects averaged CO₂ at sensor locations.',
-                'el' => 'Αντικατοπτρίζει μέσο CO₂ στις θέσεις αισθητήρων.',
-            ],
             'status_meanings' => [
                 'good' => [
                     'en' => 'Ventilation appears adequate for the averaged CO₂ level.',
@@ -321,8 +237,8 @@ return [
                 'el' => 'Το κανονικοποιημένο επίπεδο 0–5 αντιστοιχεί σε ενδεικτικά εύρη lux· όχι βαθμονομημένο μετρητή lux.',
             ],
             'plain_definition' => [
-                'en' => 'Describes visual lighting condition from the sensor lighting classification, not precise lux.',
-                'el' => 'Περιγράφει την οπτική συνθήκη φωτισμού από ταξινόμηση αισθητήρα, όχι ακριβή lux.',
+                'en' => 'The Visual Comfort Index assesses lighting conditions by correlating indoor illuminance (lux) with outdoor solar radiation. Using a normalized scale (0–5), it rates visual comfort and lighting adequacy, and supports detecting over-lighting and optimizing shading and dimming practices.',
+                'el' => 'Ο Δείκτης Οπτικής Άνεσης αξιολογεί τις συνθήκες φωτισμού των χώρων μέσω συσχέτισης της εσωτερικής φωτεινότητας (Lux) και της εξωτερικής ηλιακής ακτινοβολίας. Μέσω κανονικοποιημένης κλίμακας (0–5), αποτιμά την οπτική άνεση και την επάρκεια φωτισμού, ενώ υποστηρίζει τον εντοπισμό συνθηκών υπερφωτισμού και τη βελτιστοποίηση πρακτικών σκίασης και dimming.',
             ],
             'technical_definition' => [
                 'en' => 'Mode from config: normalized_level_0_5 uses discrete level→label map; raw_lux uses lux bands.',
@@ -489,8 +405,8 @@ return [
                 'el' => 'kWh ενέργειας που καταναλώθηκαν ανά εκτιμώμενο άτομο που διήλθε από τη ζώνη.',
             ],
             'plain_definition' => [
-                'en' => 'How much energy is used compared with estimated occupancy in the selected timeframe.',
-                'el' => 'Πόση ενέργεια καταναλώνεται σε σχέση με την εκτιμώμενη πληρότητα στο επιλεγμένο διάστημα.',
+                'en' => 'The Normalized Energy Intensity index reflects energy consumption relative to estimated space occupancy, enabling comparable assessment of energy performance under different usage conditions.',
+                'el' => 'Ο δείκτης Κανονικοποιημένης Ενεργειακής Έντασης αποτυπώνει την κατανάλωση ενέργειας σε σχέση με την εκτιμώμενη πληρότητα του χώρου, επιτρέποντας τη συγκρίσιμη αξιολόγηση της ενεργειακής απόδοσης υπό διαφορετικές συνθήκες χρήσης.',
             ],
             'technical_definition' => [
                 'en' => 'Total kWh consumed in the selected timeframe (SUM of per-meter MAX−MIN energy_kwh deltas) ÷ estimated presence from movement counter deltas (entries/exits, capped). Not cumulative meter snapshots.',
@@ -601,8 +517,8 @@ return [
                 'el' => 'Βαθμολογία 0–100 — υψηλότερο σημαίνει πιο άνετο.',
             ],
             'plain_definition' => [
-                'en' => 'Indoor thermal comfort score based on average temperature and humidity in the selected zone.',
-                'el' => 'Βαθμολογία θερμικής άνεσης για εσωτερικούς χώρους με βάση τη μέση θερμοκρασία και υγρασία στη ζώνη.',
+                'en' => 'Indoor thermal comfort score based on average temperature and relative humidity in the selected zone.',
+                'el' => 'Βαθμολογία θερμικής άνεσης για εσωτερικούς χώρους με βάση τη μέση θερμοκρασία και σχετική υγρασία στη ζώνη.',
             ],
             'technical_definition' => [
                 'en' => '100 − |T − 22°C| × 10 − |RH − 50%| × 1.6, clamped to [0, 100].',
@@ -639,8 +555,8 @@ return [
                     'el' => 'Οι θερμικές συνθήκες είναι μακριά από τον στόχο — ρυθμίστε τον κλιματισμό.',
                 ],
                 'insufficient_data' => [
-                    'en' => 'Temperature or humidity readings are missing.',
-                    'el' => 'Λείπουν μετρήσεις θερμοκρασίας ή υγρασίας.',
+                    'en' => 'Temperature or relative humidity readings are missing.',
+                    'el' => 'Λείπουν μετρήσεις θερμοκρασίας ή σχετικής υγρασίας.',
                 ],
             ],
         ],
@@ -703,7 +619,7 @@ return [
 
         // ----------------------------------------------------- UV exposure
         'uv_exposure_risk' => [
-            'kpi_category' => 'Environmental',
+            'kpi_category' => 'Solar Exposure (UV)',
             'metadata_complete' => true,
             'role_visibility' => 'public',
             'unit' => 'index',
@@ -751,8 +667,8 @@ return [
                     'el' => 'Υψηλός κίνδυνος UV — περιορίστε τον χρόνο σε εξωτερικό χώρο, χρησιμοποιήστε αντηλιακό και προστασία.',
                 ],
                 'insufficient_data' => [
-                    'en' => 'No UV/environmental sensor data is available for this location.',
-                    'el' => 'Δεν υπάρχουν δεδομένα αισθητήρα UV / περιβάλλοντος για αυτή τη θέση.',
+                    'en' => 'No solar exposure (UV) sensor data is available for this location.',
+                    'el' => 'Δεν υπάρχουν δεδομένα αισθητήρα ηλιακικής έκθεσης (UV) για αυτή τη θέση.',
                 ],
             ],
         ],

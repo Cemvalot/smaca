@@ -66,10 +66,6 @@
             <div class="hero__actions">
               <a href="{{ url('/dashboard') }}" class="btn btn-primary btn-lg">{{ __('messages.public.view_platform') }}</a>
             </div>
-            <div class="hero__badges">
-              <span class="badge badge--smaca">{{ __('messages.public.universities') }}</span>
-              <span class="badge badge--smaca">{{ __('messages.public.public_buildings') }}</span>
-            </div>
           </div>
           <div class="col-lg-6">
             <div class="hero-preview surface-panel">

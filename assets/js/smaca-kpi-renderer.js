@@ -109,6 +109,17 @@
       .replace(/'/g, '&#39;');
   }
 
+  function co2LabelHtml() {
+    return '<span class="smaca-chem-co2" aria-label="CO₂">CO<sub>2</sub></span>';
+  }
+
+  /** Replace CO2 / CO₂ tokens with subscript markup (safe for server-translated captions). */
+  function formatCo2InText(text) {
+    return String(text || '')
+      .replace(/CO₂/g, co2LabelHtml())
+      .replace(/CO2/g, co2LabelHtml());
+  }
+
   /** Strip trailing "(…ppm…)" from ventilation band labels so ppm stays in captions only. */
   function stripTrailingPpmParenthetical(text) {
     if (text === null || text === undefined) return '';
@@ -132,9 +143,8 @@
     }
     if (lvl === undefined || lvl === null || !Number.isFinite(Number(lvl))) return null;
     var n = Math.max(0, Math.min(5, Math.round(Number(lvl))));
-    if (n === 2 || n === 3) return 'good';
-    if (n === 1 || n === 4) return 'notice';
-    return 'warning';
+    if (n === 0 || n >= 5) return 'warning';
+    return 'good';
   }
 
   function resolveEffectiveKpiStatus(kpi, boundModule) {
@@ -164,20 +174,115 @@
     return { value: cleaned, unit: '' };
   }
 
+  /** Environmental safety: headline and badge follow KPI status (not a static server string). */
+  function environmentalSafetyLabelForStatus(displayStatus, kpi) {
+    var s = String(displayStatus || (kpi && kpi.status) || '').toLowerCase();
+    if (s === 'insufficient_data') {
+      return t('insufficient_data', 'insufficient data');
+    }
+    if (s === 'good' || s === 'normal' || s === 'low') {
+      return t('iaq_env_safety_good', 'Good quality');
+    }
+    if (s === 'warning' || s === 'medium' || s === 'notice') {
+      return t('iaq_env_safety_moderate', 'Moderate quality');
+    }
+    if (s === 'critical' || s === 'high' || s === 'crowded') {
+      return t('iaq_env_safety_high', 'Poor quality');
+    }
+    var vn = kpi && kpi.value_numeric;
+    if (vn !== undefined && vn !== null && Number.isFinite(Number(vn))) {
+      var n = Math.round(Number(vn));
+      if (n <= 0) return t('iaq_env_safety_good', 'Good quality');
+      if (n === 1) return t('iaq_env_safety_moderate', 'Moderate burden');
+      return t('iaq_env_safety_high', 'High burden');
+    }
+    return '';
+  }
+
+  function environmentalSafetyHeadlineParts(kpi, displayStatus) {
+    if (!kpi || String(kpi.key) !== 'environmental_safety_index') return null;
+    var label = environmentalSafetyLabelForStatus(displayStatus, kpi);
+    if (!label) return null;
+    return { value: label, unit: '' };
+  }
+
+  function lightingLevelNumber(kpi) {
+    if (!kpi || String(kpi.key) !== 'visual_lighting_condition') return null;
+    var lvl = kpi.lighting_level;
+    if (lvl === undefined || lvl === null) {
+      var vn = kpi.value_numeric;
+      if (vn !== undefined && vn !== null && Number.isFinite(Number(vn))) {
+        lvl = Math.round(Number(vn));
+      }
+    }
+    if (lvl === undefined || lvl === null || !Number.isFinite(Number(lvl))) return null;
+    return Math.max(0, Math.min(5, Math.round(Number(lvl))));
+  }
+
+  function lightingHeadlineParts(kpi) {
+    if (!kpi || String(kpi.key) !== 'visual_lighting_condition') return null;
+    var mode = String(kpi.semantic_mode || '');
+    if (mode === 'raw_lux') {
+      var lux = kpi.value_numeric;
+      if (lux !== undefined && lux !== null && Number.isFinite(Number(lux))) {
+        return { value: String(Math.round(Number(lux))), unit: 'lux' };
+      }
+      return null;
+    }
+    var n = lightingLevelNumber(kpi);
+    if (n === null) return null;
+    return { value: String(n), unit: t('iaq_lighting_level_of', '/5') };
+  }
+
+  function lightingValueCaptionHtml(kpi) {
+    if (!kpi || String(kpi.key) !== 'visual_lighting_condition') return '';
+    if (String(kpi.semantic_mode || '') === 'raw_lux') {
+      var cap = String(kpi.value_caption || '').trim();
+      if (!cap) return '';
+      return '<p class="overview-kpi-card__value-caption overview-kpi-card__value-caption--lighting">' + escapeHtml(cap) + '</p>';
+    }
+    return '';
+  }
+
   /** IAQ-only: semantic mode strip (uses server-translated labels from SMACA_IAQ_SEMANTICS). */
   function buildIaqSemanticRowHtml(kpi, boundModule) {
     if (boundModule !== 'iaq' || !kpi) return '';
     var sem = global.SMACA_IAQ_SEMANTICS || {};
     var key = String(kpi.key || '');
-    if (key === 'iaq_health_index' || key === 'environmental_safety_index') {
+    if (key === 'environmental_safety_index') {
+      var rows = [];
+      var pm25 = kpi.pm25_ugm3;
+      var pm10 = kpi.pm10_ugm3;
+      if (pm25 !== null && pm25 !== undefined && Number.isFinite(Number(pm25))) {
+        rows.push(
+          '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('labels_pm25', 'PM2.5')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(String(Number(pm25).toFixed(1))) + ' µg/m³</span></p>'
+        );
+      }
+      if (pm10 !== null && pm10 !== undefined && Number.isFinite(Number(pm10))) {
+        rows.push(
+          '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('labels_pm10', 'PM10')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(String(Number(pm10).toFixed(1))) + ' µg/m³</span></p>'
+        );
+      }
       var tv = String(sem.tvoc_mode_label || '').trim();
-      if (!tv) return '';
-      return '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('iaq_semantic_row_tvoc', 'TVOC')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(tv) + '</span></p>';
+      if (tv) {
+        rows.push(
+          '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('iaq_semantic_row_tvoc', 'TVOC')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(tv) + '</span></p>'
+        );
+      }
+      return rows.join('');
     }
     if (key === 'visual_lighting_condition') {
       var lm = String(sem.light_mode_label || '').trim();
-      if (!lm) return '';
-      return '<p class="overview-kpi-card__semantic-row" role="note"><span class="overview-kpi-card__semantic-key">' + escapeHtml(t('iaq_semantic_row_light', 'Lighting')) + '</span><span class="overview-kpi-card__semantic-sep">: </span><span class="overview-kpi-card__semantic-val">' + escapeHtml(lm) + '</span></p>';
+      var lvl = lightingLevelNumber(kpi);
+      if (lvl === null && !lm) return '';
+      var valHtml = lvl !== null
+        ? '<span class="overview-kpi-card__semantic-val overview-kpi-card__semantic-val--level">' + escapeHtml(String(lvl)) + '</span>'
+          + '<span class="overview-kpi-card__semantic-val-suffix"> / 5</span>'
+          + (lm ? '<span class="overview-kpi-card__semantic-val-meta"> · ' + escapeHtml(lm) + '</span>' : '')
+        : escapeHtml(lm);
+      return '<p class="overview-kpi-card__semantic-row overview-kpi-card__semantic-row--lighting" role="note"><span class="overview-kpi-card__semantic-key">'
+        + escapeHtml(t('iaq_semantic_row_light_level', 'Level')) + '</span><span class="overview-kpi-card__semantic-sep">: </span>'
+        + valHtml + '</p>';
     }
     if (key === 'ventilation_quality_index' || key === 'iaq_thermal_comfort') {
       return '<p class="overview-kpi-card__semantic-row overview-kpi-card__semantic-row--muted" role="note">' + escapeHtml(t('iaq_semantic_row_direct', 'Direct measurements')) + '</p>';
@@ -217,6 +322,46 @@
     return s;
   }
 
+  function environmentalUnitExplanation(kpi) {
+    var sem = global.SMACA_IAQ_SEMANTICS || {};
+    var mode = String((kpi && kpi.semantic_mode) || sem.tvoc_semantic_mode || 'iaq_rating_level');
+    var tvocPart = mode === 'raw_tvoc_ugm3'
+      ? t('kpi_help_environmental_unit_tvoc_ugm3', 'TVOC (µg/m³)')
+      : t('kpi_help_environmental_unit_tvoc_rating', 'TVOC (IAQ Rating)');
+    var template = t(
+      'kpi_help_environmental_units',
+      'PM2.5 (µg/m³), PM10 (µg/m³), :tvoc. The card shows a categorical quality level (good / moderate / poor), not a single concentration.'
+    );
+    return template.replace(':tvoc', tvocPart);
+  }
+
+  function resolveUnitExplanation(kpi) {
+    if (!kpi) return '';
+    if (String(kpi.key || '') === 'environmental_safety_index') {
+      return environmentalUnitExplanation(kpi);
+    }
+    return kpi.unit_explanation ? String(kpi.unit_explanation) : '';
+  }
+
+  function resolveUnitLabel(kpi) {
+    if (kpi && String(kpi.key || '') === 'environmental_safety_index') {
+      return t('kpi_help_measurement_units', 'Measurement unit');
+    }
+    return t('kpi_help_unit', 'Unit');
+  }
+
+  function isCompactIaqHelpKpi(kpi) {
+    var key = kpi ? String(kpi.key || '') : '';
+    return key === 'environmental_safety_index'
+      || key === 'ventilation_quality_index'
+      || key === 'iaq_thermal_comfort'
+      || key === 'visual_lighting_condition';
+  }
+
+  function showHelpUnitLine(kpi) {
+    return kpi && String(kpi.key || '') === 'environmental_safety_index';
+  }
+
   // Build the collapsible "How to read this" details block for a KPI card.
   // For user/student we keep it short (plain definition + unit + limitations).
   // For admin/researcher we include technical definition, sensors, formula.
@@ -228,7 +373,8 @@
     const helpHint = t('kpi_help_hint', 'Click to learn more');
 
     const plainDef = kpi.plain_definition ? escapeHtml(kpi.plain_definition) : '';
-    const unitExp = kpi.unit_explanation ? escapeHtml(kpi.unit_explanation) : '';
+    const unitExpRaw = resolveUnitExplanation(kpi);
+    const unitExp = unitExpRaw ? escapeHtml(unitExpRaw) : '';
     const statusMeaning = kpi.status_meaning ? escapeHtml(kpi.status_meaning) : '';
     const limitationsSimple = kpi.limitations_simple ? escapeHtml(kpi.limitations_simple) : '';
     const limitations = kpi.limitations ? escapeHtml(kpi.limitations) : limitationsSimple;
@@ -256,23 +402,23 @@
     if (plainDef) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;">' + plainDef + '</p>');
     }
-    if (kpi.semantic_explainer) {
+    if (kpi.semantic_explainer && !isCompactIaqHelpKpi(kpi)) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;color:var(--muted);font-size:11px;">' + escapeHtml(kpi.semantic_explainer) + '</p>');
     }
-    if (unitExp) {
-      parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_unit', 'Unit')) + ':</strong> ' + unitExp + '</p>');
+    if (unitExp && showHelpUnitLine(kpi)) {
+      parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(resolveUnitLabel(kpi)) + ':</strong> ' + unitExp + '</p>');
     }
-    if (statusMeaning) {
+    if (statusMeaning && !isCompactIaqHelpKpi(kpi)) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_current_status', 'Current status')) + ':</strong> ' + statusMeaning + '</p>');
     }
     if (showTech) {
-      if (techDef) {
+      if (techDef && !isCompactIaqHelpKpi(kpi)) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_technical', 'Technical definition')) + ':</strong> ' + techDef + '</p>');
       }
-      if (calc) {
+      if (calc && !isCompactIaqHelpKpi(kpi)) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_formula', 'Calculation')) + ':</strong> ' + calc + '</p>');
       }
-      if (sensors) {
+      if (sensors && !isCompactIaqHelpKpi(kpi)) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_sensors', 'Sensors used')) + ':</strong> ' + sensors + '</p>');
       }
       if (sourceType || kpiCategory) {
@@ -283,11 +429,34 @@
         parts.push('<p style="margin:0 0 var(--space-1) 0;">' + meta.join(' ') + '</p>');
       }
     }
-    if (limitations) {
+    if (limitations && !isCompactIaqHelpKpi(kpi)) {
       var lim = showTech ? limitations : (limitationsSimple || limitations);
       parts.push('<p style="margin:0;color:var(--muted);"><strong>' + escapeHtml(t('kpi_help_limitations', 'Limitations')) + ':</strong> ' + lim + '</p>');
     }
 
+    parts.push('  </div>');
+    parts.push('</details>');
+    return parts.join('');
+  }
+
+  // Energy module: short "What is this metric?" panel (plain definition only).
+  function buildEnergyMetricHelpBlock(kpi) {
+    if (!kpi) return '';
+    var plainDef = kpi.plain_definition ? String(kpi.plain_definition).trim() : '';
+    if (!plainDef) return '';
+
+    var parts = [];
+    parts.push('<details class="kpi-help kpi-help--energy" style="margin-top:var(--space-2);">');
+    parts.push('  <summary class="kpi-help__summary" style="cursor:pointer;font-size:11px;color:var(--muted);user-select:none;">'
+      + escapeHtml(t('kpi_what_is_this_metric', 'What is this metric?'))
+      + '</summary>');
+    parts.push('  <div class="kpi-help__body" style="margin-top:var(--space-2);font-size:12px;line-height:1.5;color:var(--text);">');
+    parts.push('<p style="margin:0;">' + escapeHtml(plainDef) + '</p>');
+    if (kpi.key === 'normalized_energy_intensity') {
+      parts.push('<p style="margin:var(--space-1) 0 0 0;color:var(--muted);font-size:11px;">'
+        + escapeHtml(t('kpi_note_occupancy_estimate', 'This is an estimate based on available people-counter data, not exact live headcount.'))
+        + '</p>');
+    }
     parts.push('  </div>');
     parts.push('</details>');
     return parts.join('');
@@ -339,17 +508,37 @@
     var cards = list.map(function (kpi) {
       const confidence = formatConfidence(kpi.confidence);
       const compactStyle = compact ? ' style="min-height: 124px;"' : '';
-      const descriptionText = kpi.description || '';
-      const helpBlock = compact ? '' : buildHelpBlock(kpi);
+      const descriptionText = kpi.key === 'environmental_safety_index' || boundModule === 'energy'
+        ? ''
+        : (kpi.description || '');
+      const showHelp = renderOptions.showHelp !== false && !compact;
+      const helpBlock = boundModule === 'energy'
+        ? buildEnergyMetricHelpBlock(kpi)
+        : (showHelp ? buildHelpBlock(kpi) : '');
       var vu = splitValueUnit(kpi);
+      const displayStatus = resolveEffectiveKpiStatus(kpi, boundModule);
       var ventHead = ventilationHeadlineParts(kpi);
       if (ventHead && ventHead.value) {
         vu = { value: ventHead.value, unit: ventHead.unit };
       }
-      const displayStatus = resolveEffectiveKpiStatus(kpi, boundModule);
+      var envHead = environmentalSafetyHeadlineParts(kpi, displayStatus);
+      if (envHead && envHead.value) {
+        vu = { value: envHead.value, unit: envHead.unit };
+      }
+      var lightHead = lightingHeadlineParts(kpi);
+      if (lightHead && lightHead.value) {
+        vu = { value: lightHead.value, unit: lightHead.unit };
+      }
       const snapshotLayout = compact && showModuleSource;
       const interpLabel = formatInterpretationLabel(kpi);
       let badgeText = interpLabel || formatStatus(displayStatus);
+      if (kpi.key === 'environmental_safety_index') {
+        var envBadge = environmentalSafetyLabelForStatus(displayStatus, kpi);
+        if (envBadge) badgeText = envBadge;
+      }
+      if (kpi.key === 'visual_lighting_condition' && kpi.value) {
+        badgeText = String(kpi.value);
+      }
       if (snapshotLayout && kpi.key === 'uv_exposure_risk') {
         badgeText = t('overview_uv_high_exposure', 'High exposure');
         var uvStatus = String(displayStatus || '').toLowerCase();
@@ -362,10 +551,16 @@
       if (snapshotLayout && kpi.key === 'remaining_inside_daily') {
         badgeText = t('estimated', 'estimated');
       }
-      const cardTitle = kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '';
+      const cardTitle = boundModule === 'energy'
+        ? ''
+        : (kpi.semantic_explainer ? escapeHtml(kpi.semantic_explainer) : '');
       const valueCaption = ((snapshotLayout || !compact) && kpi.value_caption)
-        ? `<p class="overview-kpi-card__value-caption${kpi.key === 'ventilation_quality_index' ? ' overview-kpi-card__value-caption--vent-co2' : ''}">${escapeHtml(String(kpi.value_caption))}</p>`
-        : '';
+        ? (kpi.key === 'ventilation_quality_index'
+          ? `<p class="overview-kpi-card__value-caption overview-kpi-card__value-caption--vent-co2">${formatCo2InText(kpi.value_caption)}</p>`
+          : kpi.key === 'visual_lighting_condition'
+            ? lightingValueCaptionHtml(kpi)
+            : `<p class="overview-kpi-card__value-caption">${escapeHtml(String(kpi.value_caption))}</p>`)
+        : (kpi.key === 'visual_lighting_condition' && !compact ? lightingValueCaptionHtml(kpi) : '');
       const semanticRow = buildIaqSemanticRowHtml(kpi, boundModule);
       const moduleKeyAttr = kpi.overview_module_key ? ` data-overview-module="${escapeHtml(kpi.overview_module_key)}"` : '';
       const moduleSourceHtml = (snapshotLayout && kpi.overview_module_source)
@@ -378,6 +573,7 @@
         ? `<p class="overview-kpi-card__hint" title="${escapeHtml(hintText)}">${escapeHtml(hintText.length > 88 ? hintText.slice(0, 85) + '…' : hintText)}</p>`
         : '';
       const iaqCardClass = (boundModule === 'iaq' && !compact) ? ' overview-kpi-card--iaq' : '';
+      const lightingCardClass = kpi.key === 'visual_lighting_condition' ? ' overview-kpi-card--lighting' : '';
       const snapshotClass = snapshotLayout ? ' overview-kpi-card--snapshot' : '';
       const valueHtml = vu.unit
         ? `<span class="stat-card__value-number">${escapeHtml(vu.value)}</span><span class="stat-card__value-unit">${escapeHtml(vu.unit)}</span>`
@@ -389,20 +585,20 @@
         : `<span class="overview-kpi-card__icon" data-category="${escapeHtml(iconKey)}" aria-hidden="true">${categoryIconSvg(iconKey)}</span>`;
       const dotClass = 'overview-kpi-card__dot overview-kpi-card__dot--' + statusDotClass(displayStatus);
       return `
-        <article class="stat-card overview-kpi-card${iaqCardClass}${compact ? ' overview-kpi-card--compact' : ''}${snapshotClass}"${moduleKeyAttr}${compactStyle}${cardTitle ? ` title="${cardTitle}"` : ''}>
+        <article class="stat-card overview-kpi-card${iaqCardClass}${lightingCardClass}${compact ? ' overview-kpi-card--compact' : ''}${snapshotClass}"${moduleKeyAttr}${compactStyle}${cardTitle ? ` title="${cardTitle}"` : ''}>
           ${iconHtml}
           <div class="stat-card__content">
             <div class="stat-card__label">${resolveLabel(kpi)}</div>
             <div class="stat-card__value">${valueHtml}</div>
             <div class="stat-card__meta">
               <span class="badge ${statusClass(displayStatus)} badge--sm overview-kpi-card__badge"><span class="${dotClass}"></span>${escapeHtml(badgeText)}</span>
-              ${!compact && showConfidence && confidence ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
+              ${!compact && showConfidence && confidence && boundModule !== 'iaq' ? `<span class="overview-trend overview-trend--neutral">${confidence}</span>` : ''}
             </div>
             ${hintHtml}
             ${moduleSourceHtml}
             ${valueCaption}
             ${semanticRow}
-            ${compact ? '' : `<p class="overview-live-note overview-kpi-card__desc">${escapeHtml(descriptionText)}</p>`}
+            ${compact || !String(descriptionText).trim() ? '' : `<p class="overview-live-note overview-kpi-card__desc">${escapeHtml(descriptionText)}</p>`}
             ${helpBlock}
           </div>
         </article>
@@ -673,20 +869,13 @@
     });
   }
 
-  function buildOccupancyMetricCard(labelKey, tooltipKey, value) {
+  function buildOccupancyMetricCard(metricKey, labelKey, tooltipKey, value) {
     var label = t(labelKey, labelKey);
     var tooltip = t(tooltipKey, '');
-    var occIcon = (typeof window !== 'undefined' && window.SMACAIcons && window.SMACAIcons.chipHtml)
-      ? window.SMACAIcons.chipHtml('occupancy', 'md', { className: 'overview-kpi-card__icon' })
-      : '<span class="overview-kpi-card__icon" data-category="occupancy" aria-hidden="true">' + categoryIconSvg('occupancy') + '</span>';
     return (
-      '<article class="stat-card overview-kpi-card">' +
-      occIcon +
-      '<div class="stat-card__content">' +
-      '<div class="stat-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
-      '<div class="stat-card__value"><span class="stat-card__value-number">' + escapeHtml(formatOccupancyMetricValue(value)) + '</span></div>' +
-      (tooltip ? '<p class="overview-live-note occupancy-metric-card__tooltip">' + escapeHtml(tooltip) + '</p>' : '') +
-      '</div>' +
+      '<article class="smaca-occupancy-metric-card" data-occupancy-metric="' + escapeHtml(metricKey) + '">' +
+      '<div class="smaca-occupancy-metric-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
+      '<div class="smaca-occupancy-metric-card__value">' + escapeHtml(formatOccupancyMetricValue(value)) + '</div>' +
       '</article>'
     );
   }
@@ -700,16 +889,16 @@
       var msg = hasLocation
         ? t('kpi_empty_occupancy', 'No movement counters are available for this selected zone.')
         : t('no_occupancy_data', 'No occupancy data');
-      container.innerHTML = '<p class="overview-live-note">' + escapeHtml(msg) + '</p>';
+      container.innerHTML = '<p class="smaca-occupancy-kpi-grid__empty">' + escapeHtml(msg) + '</p>';
       return;
     }
 
     var cards = [
-      buildOccupancyMetricCard('occupancy_metric_people_in', 'occupancy_tooltip_people_in', metrics.people_in),
-      buildOccupancyMetricCard('occupancy_metric_people_out', 'occupancy_tooltip_people_out', metrics.people_out),
-      buildOccupancyMetricCard('occupancy_metric_remaining_inside', 'occupancy_tooltip_remaining_inside', metrics.remaining_inside),
-      buildOccupancyMetricCard('occupancy_metric_crowd_density', 'occupancy_tooltip_crowd_density', metrics.crowd_density),
-      buildOccupancyMetricCard('occupancy_metric_peak', 'occupancy_tooltip_peak', metrics.peak)
+      buildOccupancyMetricCard('people_in', 'occupancy_metric_people_in', 'occupancy_tooltip_people_in', metrics.people_in),
+      buildOccupancyMetricCard('people_out', 'occupancy_metric_people_out', 'occupancy_tooltip_people_out', metrics.people_out),
+      buildOccupancyMetricCard('remaining_inside', 'occupancy_metric_remaining_inside', 'occupancy_tooltip_remaining_inside', metrics.remaining_inside),
+      buildOccupancyMetricCard('crowd_density', 'occupancy_metric_crowd_density', 'occupancy_tooltip_crowd_density', metrics.crowd_density),
+      buildOccupancyMetricCard('peak', 'occupancy_metric_peak', 'occupancy_tooltip_peak', metrics.peak)
     ];
 
     var windowNote = '';
@@ -721,7 +910,7 @@
     }
 
     container.innerHTML = cards.join('') + (windowNote
-      ? '<p class="overview-live-note occupancy-metrics-window-note">' + escapeHtml(windowNote) + '</p>'
+      ? '<p class="smaca-occupancy-kpi-grid__window">' + escapeHtml(windowNote) + '</p>'
       : '');
   }
 
@@ -814,7 +1003,7 @@
       );
     });
 
-    container.innerHTML = '<h4 class="occupancy-sensor-groups__title">' + escapeHtml(t('occupancy_sensor_breakdown_title', 'Sensor breakdown by floor')) + '</h4>' + sections.join('');
+    container.innerHTML = sections.join('');
     bindOccupancySensorGroupInteractions(container);
     floorCodes.forEach(function (floorCode) {
       if (!container.__smacaFloorState || !container.__smacaFloorState[floorCode]) return;
