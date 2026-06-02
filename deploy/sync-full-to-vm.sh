@@ -19,6 +19,10 @@ echo "→ Prepare ${UPLOAD} on ${REMOTE}"
 ssh "${REMOTE}" "rm -rf ${UPLOAD} && mkdir -p ${UPLOAD}"
 
 echo "→ Upload overlay (app, routes, assets, resources, config)"
+# IMPORTANT: This rsync uses --delete ONLY to refresh the staging directory
+# on the VM (/tmp/smaca-full-sync). It must NEVER be used for:
+# - /var/www/smaca
+# - /var/www/smaca/app
 rsync -avz --delete \
   --exclude '.env' \
   --exclude '.env.*' \

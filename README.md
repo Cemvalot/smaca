@@ -131,3 +131,40 @@ Also replace `mockData` references in `smaca-dashboard.js` with API calls for se
 - [ ] Configure API endpoints
 - [ ] Set up error handling/logging
 - [ ] Test with real sensor data
+
+## Production Deployment (Incremental only)
+
+These helpers are designed for **incremental deployments only**. Never run delete-based sync against production.
+
+Hard rule: never use `rsync --delete` against:
+- `/var/www/smaca`
+- `/var/www/smaca/app`
+
+### Deploy last commit (SAFE incremental workflow)
+
+From **Mac**:
+
+```bash
+./scripts/deploy-last-commit.sh
+scp deploy/vm-apply-last-commit.sh chirpstack@195.251.231.125:/tmp/vm-apply-last-commit.sh
+```
+
+From **VM** (SSH as `chirpstack`):
+
+```bash
+bash /tmp/vm-apply-last-commit.sh
+```
+
+What happens:
+- Mac uploads only the files changed in the last commit to `/tmp/smaca_last_commit/`
+- VM applies them to the **Laravel app root**: `/var/www/smaca/app`
+- VM runs a SAFE Laravel cache reset order:
+  1. `php artisan config:clear`
+  2. `php artisan cache:clear`
+  3. `php artisan route:clear`
+  4. `php artisan view:clear`
+- VM smoke tests `/landing`, `/login`, `/dashboard`
+
+### Notes
+- `/var/www/smaca` is **not** the Laravel app root. The Laravel root is `/var/www/smaca/app`.
+- `deploy/sync-full-to-vm.sh` may use `rsync --delete` only to refresh the VM staging directory `/tmp/smaca-full-sync`. It must not target the Laravel app directories.

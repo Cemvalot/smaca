@@ -3,6 +3,9 @@
 # Or after upload: scp deploy/vm-verify-and-fix.sh chirpstack@192.168.158.9:/tmp/
 set -euo pipefail
 
+# Production Laravel root is /var/www/smaca/app
+# /var/www/smaca is NOT the Laravel app root (it contains the app directory).
+# Incremental deploys must never use delete-based sync against production.
 APP="/var/www/smaca/app"
 UPLOAD="/tmp/smaca-full-sync"
 POOL="/etc/php/8.3/fpm/pool.d/www.conf"
@@ -77,8 +80,15 @@ if [[ "${ans}" =~ ^[yY]$ ]]; then
   fi
 
   cd "${APP}"
-  sudo -u www-data php artisan view:clear
+  # SAFE incremental cache reset order:
+  # 1) config:clear
+  # 2) cache:clear
+  # 3) route:clear
+  # 4) view:clear
+  sudo -u www-data php artisan config:clear
+  sudo -u www-data php artisan cache:clear
   sudo -u www-data php artisan route:clear
+  sudo -u www-data php artisan view:clear
 
   echo "Done. Re-run section 5 curls from Mac/browser."
 fi
