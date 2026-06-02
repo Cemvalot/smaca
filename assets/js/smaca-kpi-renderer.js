@@ -354,8 +354,16 @@
     var key = kpi ? String(kpi.key || '') : '';
     return key === 'environmental_safety_index'
       || key === 'ventilation_quality_index'
-      || key === 'iaq_thermal_comfort'
-      || key === 'visual_lighting_condition';
+      || key === 'iaq_thermal_comfort';
+  }
+
+  function isCompactEnvironmentalHelpKpi(kpi) {
+    var key = kpi ? String(kpi.key || '') : '';
+    return key === 'uv_exposure_risk' || key === 'visual_lighting_condition';
+  }
+
+  function isCompactModuleHelpKpi(kpi) {
+    return isCompactIaqHelpKpi(kpi) || isCompactEnvironmentalHelpKpi(kpi);
   }
 
   function showHelpUnitLine(kpi) {
@@ -402,23 +410,23 @@
     if (plainDef) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;">' + plainDef + '</p>');
     }
-    if (kpi.semantic_explainer && !isCompactIaqHelpKpi(kpi)) {
+    if (kpi.semantic_explainer && !isCompactModuleHelpKpi(kpi)) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;color:var(--muted);font-size:11px;">' + escapeHtml(kpi.semantic_explainer) + '</p>');
     }
     if (unitExp && showHelpUnitLine(kpi)) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(resolveUnitLabel(kpi)) + ':</strong> ' + unitExp + '</p>');
     }
-    if (statusMeaning && !isCompactIaqHelpKpi(kpi)) {
+    if (statusMeaning && !isCompactModuleHelpKpi(kpi)) {
       parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_current_status', 'Current status')) + ':</strong> ' + statusMeaning + '</p>');
     }
     if (showTech) {
-      if (techDef && !isCompactIaqHelpKpi(kpi)) {
+      if (techDef && !isCompactModuleHelpKpi(kpi)) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_technical', 'Technical definition')) + ':</strong> ' + techDef + '</p>');
       }
-      if (calc && !isCompactIaqHelpKpi(kpi)) {
+      if (calc && !isCompactModuleHelpKpi(kpi)) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_formula', 'Calculation')) + ':</strong> ' + calc + '</p>');
       }
-      if (sensors && !isCompactIaqHelpKpi(kpi)) {
+      if (sensors && !isCompactModuleHelpKpi(kpi)) {
         parts.push('<p style="margin:0 0 var(--space-1) 0;"><strong>' + escapeHtml(t('kpi_help_sensors', 'Sensors used')) + ':</strong> ' + sensors + '</p>');
       }
       if (sourceType || kpiCategory) {
@@ -429,7 +437,7 @@
         parts.push('<p style="margin:0 0 var(--space-1) 0;">' + meta.join(' ') + '</p>');
       }
     }
-    if (limitations && !isCompactIaqHelpKpi(kpi)) {
+    if (limitations && !isCompactModuleHelpKpi(kpi)) {
       var lim = showTech ? limitations : (limitationsSimple || limitations);
       parts.push('<p style="margin:0;color:var(--muted);"><strong>' + escapeHtml(t('kpi_help_limitations', 'Limitations')) + ':</strong> ' + lim + '</p>');
     }

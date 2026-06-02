@@ -242,13 +242,19 @@ class KPIService
             ]);
 
             // IAQ summary cards use a short help panel — omit extended metadata blocks.
-            if (in_array($key, ['environmental_safety_index', 'ventilation_quality_index', 'iaq_thermal_comfort'], true)) {
+            if (in_array($key, [
+                'environmental_safety_index',
+                'ventilation_quality_index',
+                'iaq_thermal_comfort',
+                'visual_lighting_condition',
+                'uv_exposure_risk',
+            ], true)) {
                 $merged['limitations'] = null;
                 $merged['limitations_simple'] = null;
                 $merged['technical_definition'] = null;
                 $merged['calculation_summary'] = null;
                 $merged['sensors_used'] = [];
-                if ($key !== 'environmental_safety_index') {
+                if (! in_array($key, ['environmental_safety_index'], true)) {
                     $merged['unit_explanation'] = null;
                 }
                 if ($key === 'iaq_thermal_comfort') {
@@ -292,15 +298,11 @@ class KPIService
                 $this->iaqSemanticComposer()->buildEnvironmentalSafetyIndex($inputs),
                 $this->iaqSemanticComposer()->buildThermalComfortBoolean($inputs),
                 $this->iaqSemanticComposer()->buildVentilationQuality($inputs),
-                $this->iaqSemanticComposer()->buildVisualLightingCondition($inputs),
             ],
             'occupancy' => $occupancyKpis,
             'environmental' => [
-                // Outdoor / VS350-class sensors at GH expose UV / solar — not
-                // indoor temp/humidity/lux. Indoor comfort KPIs would render
-                // permanently as `insufficient_data` here, so they have been
-                // removed from the environmental module.
                 $uvExposure,
+                $this->iaqSemanticComposer()->buildVisualLightingCondition($inputs),
             ],
             'connectivity' => $this->connectivitySemanticComposer()->buildModuleKpis($inputs),
         ];

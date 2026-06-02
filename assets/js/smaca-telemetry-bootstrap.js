@@ -1113,7 +1113,7 @@
         iaq: ['iaq_thermal_comfort', 'thermal_comfort_index', 'environmental_safety_index', 'ventilation_quality_index'],
         energy: ['normalized_energy_intensity', 'base_load_index'],
         occupancy: ['movement_activity_index', 'crowd_density_level'],
-        environmental: ['uv_exposure_risk', 'environmental_safety_index']
+        environmental: ['uv_exposure_risk', 'visual_lighting_condition']
       };
       function findWorstWatchKpi(bundle, keys) {
         if (!bundle || !Array.isArray(bundle.kpis) || !keys || !keys.length) return null;

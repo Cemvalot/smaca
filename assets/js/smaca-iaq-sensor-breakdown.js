@@ -294,10 +294,6 @@
     score(availability.pm25);
     score(availability.pm10);
     score(availability.tvoc);
-    if (availability.light && availability.light.primary !== null) {
-      slots += 1;
-      if (!availability.light.stale) ok += 1;
-    }
     if (slots === 0) return { key: 'limited', label: t('iaq_health_missing_metrics', 'Missing metrics') };
     var ratio = ok / slots;
     if (ratio >= 0.95) return { key: 'healthy', label: t('iaq_health_healthy', 'Healthy telemetry') };
@@ -312,14 +308,12 @@
     var hasPm = (availability.pm25 && availability.pm25.effective !== null)
       || (availability.pm10 && availability.pm10.effective !== null);
     var hasTvoc = availability.tvoc && availability.tvoc.effective !== null;
-    var hasLight = availability.light && availability.light.primary !== null;
     var score = 0;
     if (hasCo2) score += 1;
     if (hasThermal) score += 1;
     if (hasPm) score += 1;
     if (hasTvoc) score += 1;
-    if (hasLight) score += 1;
-    if (score >= 5) return t('iaq_semantic_coverage_full', 'Full semantic coverage');
+    if (score >= 4) return t('iaq_semantic_coverage_full', 'Full semantic coverage');
     if (score >= 3) return t('iaq_semantic_coverage_partial', 'Partial semantic coverage');
     return t('iaq_semantic_coverage_limited', 'Limited semantic coverage');
   }
@@ -553,27 +547,6 @@
     }
     var tw = collectThermalWarningsDetailed(latest || {});
     for (var ti = 0; ti < tw.length; ti++) w.push(tw[ti]);
-    var le = effectiveLightForDisplay(latest || {}, lightMode);
-    if (le.primary !== null) {
-      if (String(lightMode || '') === 'raw_lux' && le.source === 'lux') {
-        var lx = le.primary;
-        if (lx <= 0) {
-          w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_minimal', 'Minimal lighting detected') });
-        } else if (lx < 80) {
-          w.push({ sev: 2, kind: 'lighting', text: t('iaq_sensor_breakdown_warn_lighting', 'Lighting outside comfortable range') });
-        } else if (lx > 2500) {
-          w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_intense', 'Intense lighting detected') });
-        }
-      } else {
-        var ll = le.primary;
-        // Normalized 0–5: only level 0 (minimal) and 5 (intense) warn; 1–4 are acceptable (e.g. dim indoor = 1).
-        if (ll === 0) {
-          w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_minimal', 'Minimal lighting detected') });
-        } else if (ll >= 5) {
-          w.push({ sev: 2, kind: 'lighting', text: t('iaq_warn_light_intense', 'Intense lighting detected') });
-        }
-      }
-    }
     return w;
   }
 
@@ -764,7 +737,6 @@
     var vent = ventilationBandFromCo2(effectiveCo2(latest)) || '';
     var thermal = thermalComfortState(latest) || '';
     var env = environmentalSafetyNarrative(latest, semTvoc);
-    var lightN = lightingNarrative(latest, semLight);
 
     var lblCo2 = co2LabelHtml();
     var lblT = t('temperature_label', 'Temperature');
@@ -802,16 +774,6 @@
         tvMain = escapeHtml(fmtFixed(tvVal, 2));
         tvHint = tvocRatingLabel(tvVal);
       }
-    }
-
-    var lightRes = effectiveLightForDisplay(latest, semLight);
-    var lMain = lightRes.primary === null
-      ? escapeHtml(naLabel())
-      : escapeHtml(fmtFixed(lightRes.primary, lightDisplayDecimals(semLight)));
-    var lUnit = (String(semLight) === 'raw_lux' && lightRes.source === 'lux') ? 'lx' : (lightRes.unit || '');
-    var lHint = lightN;
-    if (lightRes.hint) {
-      lHint = lHint ? (lHint + ' · ' + lightRes.hint) : lightRes.hint;
     }
 
     var warnBlock = '';
@@ -855,7 +817,6 @@
       miniMetricDetail(lblPm25, p25Main, 'µg/m³', p25Hint, pm25SeverityMod(latest)) +
       miniMetricDetail(lblPm10, p10Main, 'µg/m³', p10Hint, pm10SeverityMod(latest)) +
       miniMetricDetail(tvocColumnTitle(), tvMain, tvUnit, tvHint, tvocSeverityMod(latest, semTvoc)) +
-      miniMetricDetail(lightColumnTitle(), lMain, lUnit, lHint, lightingSeverityFromLatest(latest, semLight)) +
       '</div></div>' +
 
       '<div class="iaq-detail__block">' +
@@ -864,7 +825,6 @@
       semanticPill(t('ventilation_quality_index', 'Ventilation quality'), vent || t('insufficient_data', 'insufficient data')) +
       semanticPill(t('iaq_sensor_breakdown_thermal_comfort', 'Thermal comfort'), thermal || t('insufficient_data', 'insufficient data')) +
       semanticPill(t('iaq_sensor_breakdown_environmental_safety', 'Environmental safety'), env) +
-      semanticPill(t('iaq_sensor_breakdown_lighting_condition', 'Lighting condition'), lightN) +
       '</div></div>' +
       warnBlock +
       '</div>'
@@ -920,7 +880,6 @@
     var pm25Collapsed = collapsedMetricHtml(effectivePm25(latest), 1, '<span class="iaq-mini-metric__suffix"> µg/m³</span>');
     var pm10Collapsed = collapsedMetricHtml(effectivePm10(latest), 1, '<span class="iaq-mini-metric__suffix"> µg/m³</span>');
     var tvCollapsed = formatTvocDisplay(latest, semTvoc);
-    var liCollapsed = formatLightDisplay(latest, semLight);
 
     return (
       '<article class="iaq-sensor-card" data-sensor-id="' + escapeHtml(String(sensor.id)) + '">' +
@@ -939,7 +898,6 @@
       miniMetricCollapsed(t('labels_pm25', 'PM2.5'), pm25Collapsed, ICON_PM, pm25SeverityMod(latest)) +
       miniMetricCollapsed(t('labels_pm10', 'PM10'), pm10Collapsed, ICON_PM, pm10SeverityMod(latest)) +
       miniMetricCollapsed(tvocColumnTitle(), tvCollapsed, ICON_TVOC, tvocSeverityMod(latest, semTvoc)) +
-      miniMetricCollapsed(lightColumnTitle(), liCollapsed, ICON_LUX, lightingSeverityFromLatest(latest, semLight)) +
       '</span>' +
       '<span class="iaq-sensor-card__side">' + statusChipForSeverity(sev) + '<span class="iaq-sensor-card__chevron" aria-hidden="true">›</span></span>' +
       '</span>' +

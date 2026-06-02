@@ -217,7 +217,7 @@
         iaq: findOverviewKpi(bundles, 'iaq', ['environmental_safety_index', 'ventilation_quality_index', 'iaq_thermal_comfort']),
         energy: findOverviewKpi(bundles, 'energy', ['normalized_energy_intensity']),
         occupancy: findOverviewKpi(bundles, 'occupancy', ['movement_activity_index', 'crowd_density_level']),
-        environmental: findOverviewKpi(bundles, 'environmental', ['uv_exposure_risk'])
+        environmental: findOverviewKpi(bundles, 'environmental', ['uv_exposure_risk', 'visual_lighting_condition'])
       };
       document.querySelectorAll('.overview-module-card[data-section]').forEach(function (card) {
         var section = card.getAttribute('data-section');
