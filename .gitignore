@@ -44,3 +44,8 @@ build/
 /database/*.sql
 /database/*.zip
 /deploy-last-commit.files
+
+# Local database dumps
+/database/*.sql
+/database/*.zip
+/deploy-last-commit.files
