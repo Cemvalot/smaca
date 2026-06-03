@@ -1004,3 +1004,57 @@ Route::get('/api/alerts/summary', function () {
         ], 200);
     }
 });
+
+Route::get('/api/alerts/ai-summary', function () {
+    if ((string) session('role', '') !== 'admin') {
+        return response()->json(['message' => 'Forbidden'], 403);
+    }
+
+    try {
+        $service = app(\App\Services\AI\OllamaAlertSummaryService::class);
+
+        return response()->json($service->getCachedPayload());
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/alerts/ai-summary failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {
+        }
+
+        return response()->json([
+            'summary' => '',
+            'generated_at' => null,
+            'source' => 'none',
+            'degraded' => true,
+        ], 200);
+    }
+});
+
+Route::post('/api/alerts/ai-summary/generate', function () {
+    if ((string) session('role', '') !== 'admin') {
+        return response()->json(['message' => 'Forbidden'], 403);
+    }
+
+    try {
+        $service = app(\App\Services\AI\OllamaAlertSummaryService::class);
+
+        return response()->json($service->generateAndSave());
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('POST /api/alerts/ai-summary/generate failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {
+        }
+
+        return response()->json([
+            'summary' => 'AI summary temporarily unavailable.',
+            'generated_at' => null,
+            'source' => 'fallback',
+            'degraded' => true,
+        ], 200);
+    }
+});

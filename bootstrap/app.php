@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         \App\Console\Commands\CheckAlertsCommand::class,
+        \App\Console\Commands\AiAlertSummaryCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(\App\Http\Middleware\SetLocale::class);

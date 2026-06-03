@@ -212,7 +212,7 @@
 /* AI / Alerts admin page */
 .ai-alerts-page .ai-alerts-summary-card,
 .ai-alerts-page .ai-alerts-events-card,
-.ai-alerts-page .ai-alerts-future-card {
+.ai-alerts-page .ai-alerts-analysis-card {
   margin-bottom: var(--space-6);
 }
 
@@ -297,23 +297,31 @@
   margin-right: var(--space-1);
 }
 
-.ai-alerts-page .ai-alerts-future-card .card__header {
+.ai-alerts-page .ai-alerts-analysis-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
-.ai-alerts-page .ai-alerts-future-card__text {
+.ai-alerts-page .ai-alerts-analysis-card__text {
   margin: 0;
   font-size: var(--font-size-sm);
-  color: var(--muted);
+  color: var(--text);
   line-height: 1.55;
   max-width: 52rem;
+  white-space: pre-wrap;
 }
 
-.ai-alerts-page .ai-alerts-future-card {
-  opacity: 0.92;
+.ai-alerts-page .ai-alerts-analysis-card__text.is-loading {
+  color: var(--muted);
+}
+
+.ai-alerts-page .ai-alerts-analysis-card__meta {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
 }
 
 /* User Modal */

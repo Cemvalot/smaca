@@ -9,7 +9,15 @@
     '/api/dashboard/overview': 12000,
     '/api/sensors': 12000,
     '/api/alerts/summary': 12000,
-    '/api/alerts/events': 15000
+    '/api/alerts/events': 15000,
+    '/api/alerts/ai-summary': 60000
+  };
+
+  const AI_ALERT_SUMMARY_DEFAULT = {
+    summary: '',
+    generated_at: null,
+    source: 'none',
+    degraded: false
   };
 
   const ALERTS_SUMMARY_DEFAULT = {
@@ -106,10 +114,18 @@
     return /load failed|failed to fetch|networkerror/i.test(message);
   }
 
-  async function requestJson(url) {
+  function invalidateCache(path) {
+    delete REQUEST_CACHE.values[path];
+    delete REQUEST_CACHE.inflight[path];
+  }
+
+  async function requestJson(url, options) {
+    const opts = options || {};
     const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' }
+      method: opts.method || 'GET',
+      headers: Object.assign({ 'Accept': 'application/json' }, opts.headers || {}),
+      body: opts.body || undefined,
+      credentials: 'same-origin'
     });
 
     let data = null;
@@ -466,6 +482,53 @@
     }
   }
 
+  function normalizeAiAlertSummaryPayload(data) {
+    if (!data || typeof data !== 'object') {
+      return Object.assign({}, AI_ALERT_SUMMARY_DEFAULT, { degraded: true });
+    }
+    var source = String(data.source || 'none').toLowerCase();
+    if (source !== 'ollama' && source !== 'fallback' && source !== 'none') {
+      source = 'none';
+    }
+    return {
+      summary: typeof data.summary === 'string' ? data.summary : '',
+      generated_at: data.generated_at || null,
+      source: source,
+      degraded: !!data.degraded
+    };
+  }
+
+  async function fetchAiAlertSummary() {
+    try {
+      const data = await fetchJson('/api/alerts/ai-summary');
+      return normalizeAiAlertSummaryPayload(data);
+    } catch (error) {
+      return Object.assign({}, AI_ALERT_SUMMARY_DEFAULT, { degraded: true });
+    }
+  }
+
+  async function generateAiAlertSummary() {
+    const baseUrl = getBaseUrl();
+    const path = '/api/alerts/ai-summary/generate';
+    const url = `${baseUrl}${path}`;
+    invalidateCache('/api/alerts/ai-summary');
+
+    try {
+      const data = await requestJson(url, { method: 'POST' });
+      return normalizeAiAlertSummaryPayload(data);
+    } catch (error) {
+      if (baseUrl && isNetworkLoadError(error)) {
+        try {
+          const data = await requestJson(path, { method: 'POST' });
+          return normalizeAiAlertSummaryPayload(data);
+        } catch (fallbackError) {
+          return Object.assign({}, AI_ALERT_SUMMARY_DEFAULT, { degraded: true });
+        }
+      }
+      return Object.assign({}, AI_ALERT_SUMMARY_DEFAULT, { degraded: true });
+    }
+  }
+
   window.SMACAApi = {
     fetchDashboardOverview: fetchDashboardOverview,
     fetchSensors: fetchSensors,
@@ -475,6 +538,8 @@
     fetchSpatialLocations: fetchSpatialLocations,
     fetchAlertsSummary: fetchAlertsSummary,
     fetchAlertsEvents: fetchAlertsEvents,
+    fetchAiAlertSummary: fetchAiAlertSummary,
+    generateAiAlertSummary: generateAiAlertSummary,
     adapters: {
       normalizeSnapshotToIAQItem: normalizeSnapshotToIAQItem,
       timeseriesPointsToIAQItems: timeseriesPointsToIAQItems,

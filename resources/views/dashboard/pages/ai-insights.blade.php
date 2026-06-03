@@ -12,6 +12,11 @@
   data-i18n-resolve="{{ __('messages.dashboard_i18n.ai_alerts_resolve') }}"
   data-i18n-sensor-id="{{ __('messages.dashboard_i18n.ai_alerts_sensor_id') }}"
   data-i18n-not-available="{{ __('messages.common.not_available') }}"
+  data-i18n-ai-summary-unavailable="{{ __('messages.dashboard_i18n.ai_alerts_ai_summary_unavailable') }}"
+  data-i18n-ai-summary-not-generated="{{ __('messages.dashboard_i18n.ai_alerts_ai_summary_not_generated') }}"
+  data-i18n-ai-summary-generate="{{ __('messages.dashboard_i18n.ai_alerts_ai_summary_generate') }}"
+  data-i18n-ai-summary-generating="{{ __('messages.dashboard_i18n.ai_alerts_ai_summary_generating') }}"
+  data-i18n-ai-summary-fallback="{{ __('messages.dashboard_i18n.ai_alerts_ai_summary_fallback_note') }}"
 >
   <div class="section-hero section-hero--ai-insights">
     <div class="section-hero__inner">
@@ -81,13 +86,19 @@
     </div>
   </section>
 
-  <section class="card ai-alerts-future-card" aria-labelledby="ai-alerts-future-title">
-    <div class="card__header">
-      <h3 class="card__title" id="ai-alerts-future-title">{{ __('messages.dashboard_i18n.ai_alerts_future_ai_title') }}</h3>
-      <span class="badge badge--muted badge--sm">{{ __('messages.dashboard_i18n.ai_alerts_future_ai_badge') }}</span>
+  <section class="card ai-alerts-analysis-card" aria-labelledby="ai-alerts-analysis-title">
+    <div class="card__header ai-alerts-analysis-card__header">
+      <h3 class="card__title" id="ai-alerts-analysis-title">{{ __('messages.dashboard_i18n.ai_alerts_future_ai_title') }}</h3>
+      <button type="button" id="ai-alerts-generate-summary-btn" class="btn btn--secondary btn--sm" hidden>
+        {{ __('messages.dashboard_i18n.ai_alerts_ai_summary_generate') }}
+      </button>
     </div>
     <div class="card__body">
-      <p class="ai-alerts-future-card__text">{{ __('messages.dashboard_i18n.ai_alerts_future_ai_text') }}</p>
+      <p id="ai-alerts-ai-summary-text" class="ai-alerts-analysis-card__text" aria-live="polite">
+        {{ __('messages.common.loading') }}…
+      </p>
+      <p id="ai-alerts-ai-summary-meta" class="ai-alerts-analysis-card__meta" hidden></p>
+      <p id="ai-alerts-ai-summary-notice" class="ai-alerts-page__notice" role="status" hidden></p>
     </div>
   </section>
 </div>

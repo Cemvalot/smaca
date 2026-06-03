@@ -1,6 +1,7 @@
 /**
- * SMACA AI / Alerts admin page — operational alert monitoring (Phase 1 UI).
- * Data: GET /api/alerts/summary, GET /api/alerts/events
+ * SMACA AI / Alerts admin page — operational alert monitoring.
+ * Data: GET /api/alerts/summary, GET /api/alerts/events, GET /api/alerts/ai-summary
+ * Admin generate: POST /api/alerts/ai-summary/generate (manual only; never on page load)
  */
 (function (global) {
   'use strict';
@@ -28,8 +29,15 @@
     acknowledge: 'i18nAcknowledge',
     resolve: 'i18nResolve',
     sensor_id: 'i18nSensorId',
-    not_available: 'i18nNotAvailable'
+    not_available: 'i18nNotAvailable',
+    ai_summary_unavailable: 'i18nAiSummaryUnavailable',
+    ai_summary_not_generated: 'i18nAiSummaryNotGenerated',
+    ai_summary_generate: 'i18nAiSummaryGenerate',
+    ai_summary_generating: 'i18nAiSummaryGenerating',
+    ai_summary_fallback: 'i18nAiSummaryFallback'
   };
+
+  var aiSummaryGenerateInFlight = false;
 
   function pageI18n(key, fallback) {
     var root = pageRoot();
@@ -275,6 +283,163 @@
     }).join('');
   }
 
+  function isPageAdmin() {
+    if (global.SMACARBAC && typeof global.SMACARBAC.isAdmin === 'function') {
+      return global.SMACARBAC.isAdmin();
+    }
+    var user = global.SMACA_USER || {};
+    return String(user.role || '').toLowerCase() === 'admin' || !!user.isAdmin;
+  }
+
+  function initAiSummaryControls() {
+    var btn = document.getElementById('ai-alerts-generate-summary-btn');
+    if (!btn) return;
+    if (isPageAdmin()) {
+      btn.hidden = false;
+      if (!btn.dataset.bound) {
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', function () {
+          if (aiSummaryGenerateInFlight) return;
+          generateAiSummary();
+        });
+      }
+    } else {
+      btn.hidden = true;
+    }
+  }
+
+  function formatAiSummaryMeta(generatedAt, source) {
+    if (!generatedAt) return '';
+    var when = formatDateTime(generatedAt);
+    var sourceLabel = source === 'ollama' ? 'Ollama' : (source === 'fallback' ? 'Fallback' : '');
+    return sourceLabel ? when + ' · ' + sourceLabel : when;
+  }
+
+  function renderAiSummaryPanel(payload, state) {
+    var textEl = document.getElementById('ai-alerts-ai-summary-text');
+    var metaEl = document.getElementById('ai-alerts-ai-summary-meta');
+    var noticeEl = document.getElementById('ai-alerts-ai-summary-notice');
+    if (!textEl) return;
+
+    textEl.classList.remove('is-loading');
+
+    if (state === 'unavailable') {
+      textEl.textContent = pageI18n('ai_summary_unavailable', 'AI summary temporarily unavailable.');
+      if (metaEl) {
+        metaEl.textContent = '';
+        metaEl.hidden = true;
+      }
+      if (noticeEl) {
+        noticeEl.textContent = '';
+        noticeEl.hidden = true;
+      }
+      return;
+    }
+
+    if (state === 'loading') {
+      textEl.classList.add('is-loading');
+      textEl.textContent = pageI18n('ai_summary_generating', 'Generating summary…');
+      if (metaEl) {
+        metaEl.textContent = '';
+        metaEl.hidden = true;
+      }
+      if (noticeEl) {
+        noticeEl.textContent = '';
+        noticeEl.hidden = true;
+      }
+      return;
+    }
+
+    payload = payload || {};
+    var summary = String(payload.summary || '').trim();
+    var source = String(payload.source || 'none').toLowerCase();
+
+    if (!summary) {
+      textEl.textContent = pageI18n('ai_summary_not_generated', 'AI summary has not been generated yet.');
+      if (metaEl) {
+        metaEl.textContent = '';
+        metaEl.hidden = true;
+      }
+      if (noticeEl) {
+        noticeEl.textContent = '';
+        noticeEl.hidden = true;
+      }
+      return;
+    }
+
+    textEl.textContent = summary;
+    if (metaEl) {
+      var meta = formatAiSummaryMeta(payload.generated_at, source);
+      if (meta) {
+        metaEl.textContent = meta;
+        metaEl.hidden = false;
+      } else {
+        metaEl.textContent = '';
+        metaEl.hidden = true;
+      }
+    }
+    if (noticeEl) {
+      if (payload.degraded || source === 'fallback') {
+        noticeEl.textContent = pageI18n('ai_summary_fallback', 'Generated using offline fallback (Ollama unavailable).');
+        noticeEl.hidden = false;
+      } else {
+        noticeEl.textContent = '';
+        noticeEl.hidden = true;
+      }
+    }
+  }
+
+  function loadAiSummaryCached() {
+    initAiSummaryControls();
+    var api = global.SMACAApi;
+    if (!api || typeof api.fetchAiAlertSummary !== 'function') {
+      renderAiSummaryPanel(null, 'unavailable');
+      return Promise.resolve();
+    }
+
+    return api.fetchAiAlertSummary().then(function (payload) {
+      if (payload && payload.degraded && !String(payload.summary || '').trim()) {
+        renderAiSummaryPanel(payload, 'unavailable');
+        return;
+      }
+      renderAiSummaryPanel(payload, 'ok');
+    }).catch(function () {
+      renderAiSummaryPanel(null, 'unavailable');
+    });
+  }
+
+  function generateAiSummary() {
+    var api = global.SMACAApi;
+    var btn = document.getElementById('ai-alerts-generate-summary-btn');
+    if (!api || typeof api.generateAiAlertSummary !== 'function') {
+      renderAiSummaryPanel(null, 'unavailable');
+      return Promise.resolve();
+    }
+
+    aiSummaryGenerateInFlight = true;
+    renderAiSummaryPanel(null, 'loading');
+    if (btn) {
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+    }
+
+    return api.generateAiAlertSummary().then(function (payload) {
+      if (!payload || (!String(payload.summary || '').trim() && payload.degraded)) {
+        renderAiSummaryPanel(payload, 'unavailable');
+        return;
+      }
+      renderAiSummaryPanel(payload, 'ok');
+    }).catch(function () {
+      renderAiSummaryPanel(null, 'unavailable');
+    }).finally(function () {
+      aiSummaryGenerateInFlight = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+      }
+    });
+  }
+
   function updateLastUpdated() {
     var el = document.getElementById('ai-alerts-last-updated');
     if (!el) return;
@@ -297,6 +462,9 @@
   }
 
   function loadAiAlertsPage() {
+    initAiSummaryControls();
+    loadAiSummaryCached();
+
     var api = global.SMACAApi;
     if (!api || typeof api.fetchAlertsSummary !== 'function' || typeof api.fetchAlertsEvents !== 'function') {
       renderSummary({ active_events: 0, resolved_today: 0, enabled_rules: 0, total_rules: 0 }, true);
