@@ -50,3 +50,4 @@ build/
 /database/*.zip
 /deploy-last-commit.files
 deploy-alert-system.files
+deploy-ai-alerts-ui.files
