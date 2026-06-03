@@ -51,3 +51,4 @@ build/
 /deploy-last-commit.files
 deploy-alert-system.files
 deploy-ai-alerts-ui.files
+deploy-ollama-ai-summary.files
