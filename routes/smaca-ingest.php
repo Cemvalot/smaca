@@ -148,6 +148,18 @@ if (!function_exists('smacaHandleIngest_impl')) {
             }
         }
 
+        $waterMeterValues = smacaIngestWaterMeterFieldValues_impl(
+            $request->input('volume_at_log_time_liters'),
+            $request->input('battery_lifetime_months'),
+            $request->input('active_alarms')
+        );
+        foreach ($waterMeterValues as $col => $val) {
+            if (smacaReadingsHasColumn_impl($col)) {
+                $readingInsert[$col] = $val;
+                $metricValues[$col] = $val;
+            }
+        }
+
         $readingId = DB::table('readings')->insertGetId($readingInsert);
 
         DB::table('sensors')
@@ -203,6 +215,11 @@ if (!function_exists('smacaHandleIngest_impl')) {
         ] as $col => $val) {
             if ($latestSchema->hasColumn('sensor_latest', $col)) {
                 $latestRow[$col] = $val;
+            }
+        }
+        foreach (['volume_at_log_time_liters', 'battery_lifetime_months', 'active_alarms'] as $col) {
+            if ($latestSchema->hasColumn('sensor_latest', $col)) {
+                $latestRow[$col] = $metricValues[$col] ?? null;
             }
         }
 

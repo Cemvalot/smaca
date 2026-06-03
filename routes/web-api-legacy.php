@@ -106,7 +106,8 @@ Route::get('/api/dashboard/overview', function () {
             'sl.people_total_out',
         ], TelemetryMetricColumns::sensorLatestPm25SelectFragments('sl'),
             TelemetryMetricColumns::sensorLatestPm10SelectFragments('sl'),
-            smacaApiSensorLatestOptionalSelectColumns_impl()))
+            smacaApiSensorLatestOptionalSelectColumns_impl(),
+            smacaApiWaterMeterSelectFragments_impl('sl')))
         ->orderByDesc('sl.measured_at')
         ->get();
 
@@ -165,7 +166,8 @@ Route::get('/api/sensors', function () {
             'sl.people_total_out',
         ], TelemetryMetricColumns::sensorLatestPm25SelectFragments('sl'),
             TelemetryMetricColumns::sensorLatestPm10SelectFragments('sl'),
-            smacaApiSensorLatestOptionalSelectColumns_impl()))
+            smacaApiSensorLatestOptionalSelectColumns_impl(),
+            smacaApiWaterMeterSelectFragments_impl('sl', 'r')))
         ->orderBy('s.id')
         ->get();
 
@@ -250,7 +252,8 @@ Route::get('/api/sensors/{id}/latest', function ($id) {
             'sl.people_total_out',
         ], TelemetryMetricColumns::sensorLatestPm25SelectFragments('sl'),
             TelemetryMetricColumns::sensorLatestPm10SelectFragments('sl'),
-            smacaApiSensorLatestOptionalSelectColumns_impl()))
+            smacaApiSensorLatestOptionalSelectColumns_impl(),
+            smacaApiWaterMeterSelectFragments_impl('sl', 'r')))
         ->where('s.id', (int) $id)
         ->first();
 

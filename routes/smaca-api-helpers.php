@@ -263,6 +263,92 @@ if (!function_exists('smacaReadingsLatestIaqMapForSensors_impl')) {
     }
 }
 
+if (!function_exists('smacaIngestParseOptionalInt_impl')) {
+    function smacaIngestParseOptionalInt_impl(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_int($value)) {
+            return $value;
+        }
+
+        $s = trim((string) $value);
+        if ($s === '' || !is_numeric($s)) {
+            return null;
+        }
+
+        return (int) $s;
+    }
+}
+
+if (!function_exists('smacaIngestNormalizeActiveAlarms_impl')) {
+    /**
+     * Normalize water-meter active_alarms ingest: comma-separated string or NULL.
+     */
+    function smacaIngestNormalizeActiveAlarms_impl(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $s = trim((string) $value);
+        if ($s === '' || strcasecmp($s, 'none') === 0 || $s === '[]') {
+            return null;
+        }
+
+        return $s;
+    }
+}
+
+if (!function_exists('smacaIngestWaterMeterFieldValues_impl')) {
+    /**
+     * @return array{
+     *   volume_at_log_time_liters: int|null,
+     *   battery_lifetime_months: int|null,
+     *   active_alarms: string|null
+     * }
+     */
+    function smacaIngestWaterMeterFieldValues_impl(
+        mixed $volumeRaw,
+        mixed $batteryLifetimeRaw,
+        mixed $activeAlarmsRaw
+    ): array {
+        return [
+            'volume_at_log_time_liters' => smacaIngestParseOptionalInt_impl($volumeRaw),
+            'battery_lifetime_months' => smacaIngestParseOptionalInt_impl($batteryLifetimeRaw),
+            'active_alarms' => smacaIngestNormalizeActiveAlarms_impl($activeAlarmsRaw),
+        ];
+    }
+}
+
+if (!function_exists('smacaApiWaterMeterSelectFragments_impl')) {
+    /**
+     * Optional water-meter columns from sensor_latest and/or readings (when joined).
+     *
+     * @return array<int, string>
+     */
+    function smacaApiWaterMeterSelectFragments_impl(string $slAlias = 'sl', ?string $readingsAlias = null): array
+    {
+        $cols = [];
+        try {
+            $schema = DB::getSchemaBuilder();
+            foreach (['volume_at_log_time_liters', 'battery_lifetime_months', 'active_alarms'] as $column) {
+                if ($schema->hasColumn('sensor_latest', $column)) {
+                    $cols[] = $slAlias.'.'.$column;
+                } elseif ($readingsAlias !== null && smacaReadingsHasColumn_impl($column)) {
+                    $cols[] = $readingsAlias.'.'.$column;
+                }
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        return $cols;
+    }
+}
+
 if (!function_exists('smacaApiSnapshotFromRow_impl')) {
     function smacaApiSnapshotFromRow_impl(object $row): array
     {
@@ -287,6 +373,9 @@ if (!function_exists('smacaApiSnapshotFromRow_impl')) {
             'snr' => $row->snr ?? null,
             'tx_ccq' => $row->tx_ccq ?? null,
             'tx_rate' => $row->tx_rate ?? null,
+            'volume_at_log_time_liters' => $row->volume_at_log_time_liters ?? null,
+            'battery_lifetime_months' => $row->battery_lifetime_months ?? null,
+            'active_alarms' => $row->active_alarms ?? null,
         ];
 
         return TelemetryLatestNormalizer::mergeNormalizedSemanticKeys($snap, $row);
