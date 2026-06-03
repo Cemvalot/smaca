@@ -34,3 +34,8 @@ deploy/.env.unipi.vm
 dist/§
 build/
 *.min.js.map
+
+# Local database dumps
+/database/*.sql
+/database/*.zip
+/deploy-last-commit.files

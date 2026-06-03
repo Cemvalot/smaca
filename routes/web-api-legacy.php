@@ -15,6 +15,7 @@ require_once __DIR__ . '/smaca-api-helpers.php';
 require_once __DIR__ . '/smaca-ingest.php';
 require_once __DIR__ . '/smaca-telemetry-rebuild.php';
 require_once __DIR__ . '/smaca-energy-kpi-audit.php';
+require_once __DIR__ . '/smaca-alerts.php';
 
 if (!function_exists('smacaApiMetricWhitelist')) {
     function smacaApiMetricWhitelist(): array
@@ -953,5 +954,53 @@ Route::post('/api/admin/rebuild-sensor-latest', function (Request $request) {
         }
 
         return response()->json($payload, 500);
+    }
+});
+
+Route::get('/api/alerts/events', function () {
+    try {
+        smacaAlertsEnsureLoaded();
+
+        return response()->json([
+            'events' => smacaAlertsEventsPayload(),
+        ]);
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/alerts/events failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {
+        }
+
+        return response()->json([
+            'message' => 'Alert events unavailable',
+            'events' => [],
+            'degraded' => true,
+        ], 200);
+    }
+});
+
+Route::get('/api/alerts/summary', function () {
+    try {
+        smacaAlertsEnsureLoaded();
+
+        return response()->json(smacaAlertsSummaryPayload());
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/alerts/summary failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {
+        }
+
+        return response()->json([
+            'active_events' => 0,
+            'resolved_today' => 0,
+            'enabled_rules' => 0,
+            'total_rules' => 0,
+            'degraded' => true,
+        ], 200);
     }
 });
