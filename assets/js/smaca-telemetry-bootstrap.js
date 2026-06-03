@@ -706,6 +706,65 @@
   function loadOverview() { var a = api(); if (!a) return Promise.resolve(null); return a.fetchDashboardOverview().catch(function () { return null; }); }
   function loadSensors()  { var a = api(); if (!a) return Promise.resolve(null); return a.fetchSensors().catch(function () { return null; }); }
   function loadKpiSummary(module) { var a = api(); if (!a) return Promise.resolve(null); return a.fetchKpiSummary(module).catch(function () { return null; }); }
+  function loadAlertsSummary() {
+    var a = api();
+    if (!a || typeof a.fetchAlertsSummary !== 'function') {
+      return Promise.resolve({
+        active_events: 0,
+        resolved_today: 0,
+        enabled_rules: 0,
+        total_rules: 0,
+        degraded: true
+      });
+    }
+    return a.fetchAlertsSummary();
+  }
+
+  function isAlertsAdminView() {
+    if (global.SMACARBAC && typeof global.SMACARBAC.isAdmin === 'function') {
+      return global.SMACARBAC.isAdmin();
+    }
+    return !!(global.SMACA_USER && global.SMACA_USER.isAdmin);
+  }
+
+  function buildAlertsTileMeta(summary, activeEvents) {
+    summary = summary || {};
+    if (!activeEvents) {
+      if (isAlertsAdminView()) {
+        var adminIdle = [locText('Operational', 'Σε λειτουργία')];
+        if (summary.resolved_today > 0) {
+          adminIdle.push(overviewTr(
+            'overview_alerts_resolved_today',
+            summary.resolved_today + ' resolved today',
+            summary.resolved_today + ' επιλύθηκαν σήμερα'
+          ));
+        }
+        adminIdle.push(overviewTr(
+          'overview_alerts_rules_enabled',
+          summary.enabled_rules + ' / ' + summary.total_rules + ' rules enabled',
+          summary.enabled_rules + ' / ' + summary.total_rules + ' ενεργοί κανόνες'
+        ));
+        return adminIdle.join(' · ');
+      }
+      return locText('Operational', 'Σε λειτουργία');
+    }
+    var openMeta = locText(activeEvents + ' open', activeEvents + ' ανοικτά');
+    if (!isAlertsAdminView()) return openMeta;
+    var parts = [openMeta];
+    if (summary.resolved_today > 0) {
+      parts.push(overviewTr(
+        'overview_alerts_resolved_today',
+        summary.resolved_today + ' resolved today',
+        summary.resolved_today + ' επιλύθηκαν σήμερα'
+      ));
+    }
+    parts.push(overviewTr(
+      'overview_alerts_rules_enabled',
+      summary.enabled_rules + ' / ' + summary.total_rules + ' rules enabled',
+      summary.enabled_rules + ' / ' + summary.total_rules + ' ενεργοί κανόνες'
+    ));
+    return parts.join(' · ');
+  }
   function loadTimeseries(sensorId, metric) {
     var a = api(); if (!a) return Promise.resolve(null);
     var tf = activeTimeframe();
@@ -1095,9 +1154,17 @@
       loadKpiSummary('iaq'),
       loadKpiSummary('energy'),
       loadKpiSummary('occupancy'),
-      loadKpiSummary('environmental')
+      loadKpiSummary('environmental'),
+      loadAlertsSummary()
     ]).then(function (results) {
       var overview = results[0] || {};
+      var alertsSummary = results[6] || {
+        active_events: 0,
+        resolved_today: 0,
+        enabled_rules: 0,
+        total_rules: 0,
+        degraded: true
+      };
       var sensorsAll = (results[1] && Array.isArray(results[1].rows)) ? results[1].rows : [];
       // Scope-filter once and reuse. Snapshot tiles below are still
       // "right now" — they don't need timeframe but they MUST respect
@@ -1274,15 +1341,18 @@
         });
       }
 
-      // --- 4) Live alerts ---
-      var alerts = (overview.totals && overview.totals.active_alerts) || 0;
+      // --- 4) Live alerts (active alert events from /api/alerts/summary) ---
+      var activeEvents = alertsSummary.active_events || 0;
       renderValueOrEmpty(grid, 'alerts', {
         label: locText('Live alerts', 'Ζωντανά συμβάντα'),
-        value: alerts,
-        status: !alerts ? 'good' : (alerts < 3 ? 'warning' : 'critical'),
+        value: activeEvents,
+        status: !activeEvents ? 'good' : (activeEvents < 3 ? 'warning' : 'critical'),
         icon: ICONS.alert,
-        meta: !alerts ? locText('Operational', 'Σε λειτουργία') : locText(alerts + ' open', alerts + ' ανοικτά')
+        meta: buildAlertsTileMeta(alertsSummary, activeEvents)
       });
+      if (global.SMACAAlertsIndicator && typeof global.SMACAAlertsIndicator.render === 'function') {
+        global.SMACAAlertsIndicator.render(alertsSummary);
+      }
 
       // --- 5) Highest CO₂ now ---
       var topCo2 = sensors
@@ -1350,10 +1420,10 @@
       });
       logChart('overview:alerts', {
         module: 'overview',
-        endpoint: '/api/dashboard/overview',
-        points: alerts,
+        endpoint: '/api/alerts/summary',
+        points: activeEvents,
         bucket: 'snapshot',
-        note: 'live alert count'
+        note: alertsSummary.degraded ? 'active_events (degraded)' : 'active_events'
       });
       logChart('overview:top-co2', {
         module: 'overview',

@@ -578,7 +578,12 @@ function persistUsers() {
 }
 
 function switchManagementTab(targetTab) {
-  const tabId = targetTab || localStorage.getItem(STORAGE_KEYS.managementTab) || 'sensors';
+  const validManagementTabs = ['sensors', 'users', 'system-health', 'settings'];
+  let tabId = targetTab || localStorage.getItem(STORAGE_KEYS.managementTab) || 'sensors';
+  if (validManagementTabs.indexOf(tabId) === -1) {
+    tabId = 'sensors';
+    try { localStorage.setItem(STORAGE_KEYS.managementTab, tabId); } catch (e) {}
+  }
   const managementTabs = document.querySelectorAll('.management-tab');
   const tabContents = document.querySelectorAll('.management-tab-content');
   managementTabs.forEach(t => {

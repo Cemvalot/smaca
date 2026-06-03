@@ -801,7 +801,17 @@
       overview_nav_connectivity_desc: "{{ __('messages.dashboard_i18n.overview_nav_connectivity_desc') }}",
       overview_nav_management_desc: "{{ __('messages.dashboard_i18n.overview_nav_management_desc') }}",
       overview_nav_ai_desc: "{{ __('messages.dashboard_i18n.overview_nav_ai_desc') }}",
-      overview_coming_soon: "{{ __('messages.dashboard_i18n.overview_coming_soon') }}"
+      overview_coming_soon: "{{ __('messages.dashboard_i18n.overview_coming_soon') }}",
+      alerts_indicator_label: "{{ __('messages.dashboard_i18n.alerts_indicator_label') }}",
+      alerts_indicator_active: "{{ __('messages.dashboard_i18n.alerts_indicator_active') }}",
+      alerts_indicator_resolved_today: "{{ __('messages.dashboard_i18n.alerts_indicator_resolved_today') }}",
+      alerts_indicator_rules_enabled: "{{ __('messages.dashboard_i18n.alerts_indicator_rules_enabled') }}",
+      alerts_indicator_rules_total: "{{ __('messages.dashboard_i18n.alerts_indicator_rules_total') }}",
+      alerts_indicator_degraded: "{{ __('messages.dashboard_i18n.alerts_indicator_degraded') }}",
+      ai_alerts_stat_active: "{{ __('messages.dashboard_i18n.ai_alerts_stat_active') }}",
+      ai_alerts_stat_resolved_today: "{{ __('messages.dashboard_i18n.ai_alerts_stat_resolved_today') }}",
+      ai_alerts_stat_rules_enabled: "{{ __('messages.dashboard_i18n.ai_alerts_stat_rules_enabled') }}",
+      ai_alerts_stat_rules_total: "{{ __('messages.dashboard_i18n.ai_alerts_stat_rules_total') }}"
     };
     window.SMACA_IAQ_SEMANTICS = @json($smacaIaqSemanticsForJs);
   </script>
@@ -815,6 +825,7 @@
   <script defer src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-csv-export.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-telemetry-metric-normalize.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-telemetry-metric-normalize.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-api.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-api.js') }}"></script>
+  <script defer src="{{ asset('assets/js/smaca-alerts-indicator.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-alerts-indicator.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-spatial.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-spatial.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-role.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-role.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-icons.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-icons.js') }}"></script>

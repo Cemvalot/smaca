@@ -1411,16 +1411,6 @@ function renderManagementSensorsFromLiveData() {
   const maintenanceEl = document.getElementById('maintenance-sensors');
   if (maintenanceEl) maintenanceEl.textContent = String(maintenanceSensors);
 
-  const aiEventsOpenEl = document.getElementById('ai-events-open-count');
-  if (aiEventsOpenEl) {
-    const openCount = Array.from(document.querySelectorAll('#management-ai-events-tab tbody tr')).filter(function (row) {
-      const statusCell = row.querySelector('td:nth-child(5)');
-      const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
-      return statusText === smacaT('open','open').toLowerCase();
-    }).length;
-    aiEventsOpenEl.textContent = String(openCount);
-  }
-
   const activeUsersTodayEl = document.getElementById('management-active-users-today');
   if (activeUsersTodayEl) {
     const activeUsers = Array.from(document.querySelectorAll('#users-management-table-body tr')).filter(function (row) {
@@ -1435,8 +1425,6 @@ function renderManagementSensorsFromLiveData() {
   ensureManagementAccessControlSeed();
   ensureManagementUsersObserver();
   ensureManagementSettingsActions();
-  renderManagementSmartAlerts(sensors, latestById);
-  ensureManagementAiEventActions();
   updateManagementSystemHealth(sensors, latestById, activeSensors);
   updateManagementCriticalIssues(sensors, latestById, activeSensors, maintenanceSensors);
   updateManagementAdminMetaTicker();
@@ -1946,11 +1934,6 @@ function updateManagementSystemHealth(sensors, latestById, activeSensors) {
   const telemetryState = hasIngestion ? smacaT('health','Healthy') : 'Stalled';
   const uptimeState = offlineSensors <= 1 ? '99.9%' : (offlineSensors <= 3 ? '99.5%' : '98.7%');
   const storageUsage = estimateLocalStorageUsagePct();
-  const openIncidents = Array.from(document.querySelectorAll('#management-smart-alerts-body tr')).filter(function (row) {
-    const statusCell = row.querySelector('td:nth-child(5) .badge');
-    const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
-    return statusText === smacaT('open','open').toLowerCase();
-  }).length;
 
   const toBadge = function (text, cls) {
     return '<span class="badge ' + cls + '">' + escapeSmacaHtml(text) + '</span>';
@@ -1963,7 +1946,20 @@ function updateManagementSystemHealth(sensors, latestById, activeSensors) {
   if (sensorsEl) sensorsEl.textContent = String(activeSensors) + ' / ' + String(offlineSensors);
   if (uptimeEl) uptimeEl.innerHTML = toBadge(uptimeState, offlineSensors <= 1 ? 'badge--success' : (offlineSensors <= 3 ? 'badge--warning' : 'badge--danger'));
   if (pendingJobsEl) pendingJobsEl.textContent = String(queueJobs);
-  if (openIncidentsEl) openIncidentsEl.textContent = String(openIncidents);
+  if (openIncidentsEl) {
+    openIncidentsEl.textContent = '—';
+    if (window.SMACAApi && typeof window.SMACAApi.fetchAlertsSummary === 'function') {
+      window.SMACAApi.fetchAlertsSummary()
+        .then(function (summary) {
+          if (openIncidentsEl) {
+            openIncidentsEl.textContent = String((summary && summary.active_events) || 0);
+          }
+        })
+        .catch(function () {
+          if (openIncidentsEl) openIncidentsEl.textContent = '0';
+        });
+    }
+  }
   if (storageEl) storageEl.textContent = storageUsage;
 }
 
@@ -2010,19 +2006,29 @@ function updateManagementCriticalIssues(sensors, latestById, activeSensors, main
     return Number.isFinite(battery) && battery > 0 && battery <= 20;
   }).length;
   const offlineCount = Math.max(0, sensors.length - activeSensors);
-  const pendingAlerts = Array.from(document.querySelectorAll('#management-ai-events-tab tbody tr')).filter(function (row) {
-    const statusCell = row.querySelector('td:nth-child(5)');
-    const statusText = statusCell ? String(statusCell.textContent || '').trim().toLowerCase() : '';
-    return statusText === smacaT('open','open').toLowerCase();
-  }).length;
 
-  const issueLines = [];
-  if (lowBatteryCount > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + lowBatteryCount + ' low battery sensors</span></div>');
-  if (offlineCount > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + offlineCount + ' offline sensors</span></div>');
-  if (pendingAlerts > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + pendingAlerts + ' pending alerts</span></div>');
-  if (maintenanceSensors > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + maintenanceSensors + ' sensors need maintenance</span></div>');
-  if (!issueLines.length) issueLines.push('<div class="quick-tip"><span>•</span><span>No critical issues detected</span></div>');
-  criticalList.innerHTML = issueLines.join('');
+  function renderCriticalIssueLines(pendingAlerts) {
+    const issueLines = [];
+    if (lowBatteryCount > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + lowBatteryCount + ' low battery sensors</span></div>');
+    if (offlineCount > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + offlineCount + ' offline sensors</span></div>');
+    if (pendingAlerts > 0) {
+      issueLines.push('<div class="quick-tip"><span>•</span><span>' + pendingAlerts + ' active alert events</span></div>');
+    }
+    if (maintenanceSensors > 0) issueLines.push('<div class="quick-tip"><span>•</span><span>' + maintenanceSensors + ' sensors need maintenance</span></div>');
+    if (!issueLines.length) issueLines.push('<div class="quick-tip"><span>•</span><span>No critical issues detected</span></div>');
+    criticalList.innerHTML = issueLines.join('');
+  }
+
+  renderCriticalIssueLines(0);
+  if (window.SMACAApi && typeof window.SMACAApi.fetchAlertsSummary === 'function') {
+    window.SMACAApi.fetchAlertsSummary()
+      .then(function (summary) {
+        renderCriticalIssueLines((summary && summary.active_events) || 0);
+      })
+      .catch(function () {
+        renderCriticalIssueLines(0);
+      });
+  }
 }
 
 function updateOverviewCountersFromApi(overview, sensors) {

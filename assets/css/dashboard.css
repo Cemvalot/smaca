@@ -148,6 +148,30 @@
   flex-wrap: wrap;
 }
 
+.topbar__alert-indicator {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--muted);
+  padding: 2px 8px;
+  border-radius: var(--r-sm, 4px);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.topbar__alert-indicator.is-active {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.topbar__alert-indicator--admin {
+  white-space: normal;
+  max-width: min(100%, 42rem);
+}
+
 .topbar__actions {
   display: flex;
   gap: var(--space-2);

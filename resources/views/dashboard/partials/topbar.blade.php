@@ -2,6 +2,9 @@
         <div class="topbar__title">
           <h1 class="topbar__heading">{{ __('messages.topbar.heading') }}</h1>
           <p class="topbar__subtitle">{{ __('messages.topbar.subtitle') }}</p>
+          <div class="topbar__badges">
+            <span id="smaca-active-alerts-indicator" class="topbar__alert-indicator" aria-live="polite" hidden></span>
+          </div>
         </div>
         <div class="topbar__actions">
           <!-- Spatial scope selector (rendered by smaca-spatial.js) -->

@@ -49,3 +49,4 @@ build/
 /database/*.sql
 /database/*.zip
 /deploy-last-commit.files
+deploy-alert-system.files

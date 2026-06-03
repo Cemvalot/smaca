@@ -21,7 +21,7 @@
           </div>
 
           <!-- Summary Cards -->
-          <div class="grid grid--metrics grid--metrics-5 management-kpi-grid" style="margin-bottom: var(--space-6);">
+          <div class="grid grid--metrics grid--metrics-4 management-kpi-grid" style="margin-bottom: var(--space-6);">
             <div class="stat-card" title="Total number of sensors in the system">
               <div class="stat-card__content">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
@@ -59,18 +59,6 @@
                 <div class="stat-card__unit"></div>
               </div>
             </div>
-            <div class="stat-card" title="Open AI-generated insights and alerts">
-              <div class="stat-card__content">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-                  <div class="stat-card__label">{{ __('messages.common.ai_insights') }}</div>
-                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted);">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                  </svg>
-                </div>
-                <div class="stat-card__value" id="ai-events-open-count">6</div>
-                <div class="stat-card__unit"></div>
-              </div>
-            </div>
             <div class="stat-card" title="Users with active session or recent successful login activity">
               <div class="stat-card__content">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
@@ -94,7 +82,6 @@
           <!-- Tabs Navigation -->
           <div class="management-tabs-bar">
             <button class="management-tab active" data-tab="sensors" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--text); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid var(--accent); margin-bottom: -1px;">{{ __('messages.dashboard.sensors') }}</button>
-            <button class="management-tab" data-tab="ai-events" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">{{ __('messages.dashboard.alerts') }}</button>
             <button class="management-tab" data-tab="users" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">{{ __('messages.common.management') }}</button>
             <button class="management-tab" data-tab="system-health" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">{{ __('messages.common.health') }}</button>
             <button class="management-tab" data-tab="settings" style="padding: var(--space-3) var(--space-4); border: none; background: transparent; color: var(--muted); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;">{{ __('messages.dashboard.edit') }}</button>
@@ -192,28 +179,6 @@
             </div>
           </div>
 
-          <!-- {{ __('messages.dashboard.alerts') }} Tab -->
-          <div id="management-ai-events-tab" class="management-tab-content" style="display: none;">
-            <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--text); margin: 0 0 var(--space-4) 0;">{{ __('messages.dashboard.alerts') }}</h3>
-            <div class="card" style="overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-              <div class="card__body" style="padding: 0;">
-                <table class="ai-events-table" style="width: 100%; border-collapse: collapse;">
-                  <thead>
-                    <tr style="background: var(--surface-2); border-bottom: 2px solid var(--border);">
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Type</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Title</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Location</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Severity</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">{{ __('messages.dashboard.status') }}</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Date</th>
-                      <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">{{ __('messages.dashboard.actions') }}</th>
-                    </tr>
-                  </thead>
-                  <tbody id="management-smart-alerts-body"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
           <!-- {{ __('messages.common.management') }} Tab -->
           <div id="management-users-tab" class="management-tab-content" style="display: none;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">

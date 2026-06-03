@@ -209,6 +209,113 @@
   color: white !important;
 }
 
+/* AI / Alerts admin page */
+.ai-alerts-page .ai-alerts-summary-card,
+.ai-alerts-page .ai-alerts-events-card,
+.ai-alerts-page .ai-alerts-future-card {
+  margin-bottom: var(--space-6);
+}
+
+.ai-alerts-page .ai-alerts-page__notice {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+}
+
+.ai-alerts-page .ai-alerts-page__action-note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+
+.ai-alerts-page .ai-alerts-table-wrap {
+  overflow-x: auto;
+}
+
+.ai-alerts-page .ai-alerts-events-table thead th,
+.ai-alerts-page .ai-alerts-events-table tbody td {
+  text-align: left;
+  vertical-align: top;
+  font-size: var(--font-size-sm);
+}
+
+.ai-alerts-page .ai-alerts-events-table__message,
+.ai-alerts-page .ai-alerts-events-table__loading {
+  text-align: center;
+  color: var(--muted);
+  padding: var(--space-6) var(--space-4);
+}
+
+.ai-alerts-page .ai-alerts-events-table__alert-name {
+  font-weight: var(--font-weight-medium);
+  max-width: 14rem;
+}
+
+.ai-alerts-page .ai-alerts-events-table__sensor-cell {
+  min-width: 10rem;
+}
+
+.ai-alerts-page .ai-alerts-events-table__sensor-primary {
+  display: block;
+  font-weight: var(--font-weight-medium);
+}
+
+.ai-alerts-page .ai-alerts-events-table__sensor-external {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+}
+
+.ai-alerts-page .ai-alerts-events-table__sensor-id {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.ai-alerts-page .ai-alerts-events-table__condition {
+  font-size: var(--font-size-xs);
+  padding: 2px 6px;
+  border-radius: var(--r-sm, 4px);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.ai-alerts-page .ai-alerts-events-table__details {
+  max-width: 12rem;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.ai-alerts-page .ai-alerts-events-table__actions {
+  white-space: nowrap;
+}
+
+.ai-alerts-page .ai-alerts-events-table__actions .btn {
+  margin-right: var(--space-1);
+}
+
+.ai-alerts-page .ai-alerts-future-card .card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ai-alerts-page .ai-alerts-future-card__text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 52rem;
+}
+
+.ai-alerts-page .ai-alerts-future-card {
+  opacity: 0.92;
+}
+
 /* User Modal */
 .user-modal {
   position: fixed;

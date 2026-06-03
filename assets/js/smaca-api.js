@@ -7,8 +7,52 @@
 
   const REQUEST_TTLS_MS = {
     '/api/dashboard/overview': 12000,
-    '/api/sensors': 12000
+    '/api/sensors': 12000,
+    '/api/alerts/summary': 12000,
+    '/api/alerts/events': 15000
   };
+
+  const ALERTS_SUMMARY_DEFAULT = {
+    active_events: 0,
+    resolved_today: 0,
+    enabled_rules: 0,
+    total_rules: 0,
+    degraded: true
+  };
+
+  const ALERTS_EVENTS_DEFAULT = {
+    events: [],
+    degraded: true
+  };
+
+  function toIntOrZero(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
+  }
+
+  function normalizeAlertsSummaryPayload(data) {
+    if (!data || typeof data !== 'object') {
+      return Object.assign({}, ALERTS_SUMMARY_DEFAULT);
+    }
+    return {
+      active_events: toIntOrZero(data.active_events),
+      resolved_today: toIntOrZero(data.resolved_today),
+      enabled_rules: toIntOrZero(data.enabled_rules),
+      total_rules: toIntOrZero(data.total_rules),
+      degraded: !!data.degraded
+    };
+  }
+
+  function normalizeAlertsEventsPayload(data) {
+    if (!data || typeof data !== 'object') {
+      return Object.assign({}, ALERTS_EVENTS_DEFAULT);
+    }
+    const events = Array.isArray(data.events) ? data.events : [];
+    return {
+      events: events,
+      degraded: !!data.degraded
+    };
+  }
 
   function nowMs() {
     return Date.now();
@@ -404,6 +448,24 @@
     return fetchJson(path);
   }
 
+  async function fetchAlertsSummary() {
+    try {
+      const data = await fetchJson('/api/alerts/summary');
+      return normalizeAlertsSummaryPayload(data);
+    } catch (error) {
+      return Object.assign({}, ALERTS_SUMMARY_DEFAULT);
+    }
+  }
+
+  async function fetchAlertsEvents() {
+    try {
+      const data = await fetchJson('/api/alerts/events');
+      return normalizeAlertsEventsPayload(data);
+    } catch (error) {
+      return Object.assign({}, ALERTS_EVENTS_DEFAULT);
+    }
+  }
+
   window.SMACAApi = {
     fetchDashboardOverview: fetchDashboardOverview,
     fetchSensors: fetchSensors,
@@ -411,6 +473,8 @@
     fetchSensorTimeseries: fetchSensorTimeseries,
     fetchKpiSummary: fetchKpiSummary,
     fetchSpatialLocations: fetchSpatialLocations,
+    fetchAlertsSummary: fetchAlertsSummary,
+    fetchAlertsEvents: fetchAlertsEvents,
     adapters: {
       normalizeSnapshotToIAQItem: normalizeSnapshotToIAQItem,
       timeseriesPointsToIAQItems: timeseriesPointsToIAQItems,
