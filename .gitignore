@@ -52,3 +52,5 @@ build/
 deploy-alert-system.files
 deploy-ai-alerts-ui.files
 deploy-ollama-ai-summary.files
+deploy-water-dashboard.files
+deploy-water-ingest.files
