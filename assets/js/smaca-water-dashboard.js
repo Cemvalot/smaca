@@ -4,7 +4,13 @@
 (function (global) {
   'use strict';
 
+  var root = (typeof global !== 'undefined' && global)
+    || (typeof window !== 'undefined' && window)
+    || (typeof self !== 'undefined' && self)
+    || {};
+
   var refreshToken = 0;
+  var warnedDirectFetch = false;
 
   var ALARM_LABEL_KEYS = {
     leakage: 'water_alarm_leakage',
@@ -21,7 +27,7 @@
   };
 
   function t(key, fb) {
-    return (global.SMACA_TRANSLATIONS || {})[key] || fb;
+    return (root.SMACA_TRANSLATIONS || {})[key] || fb;
   }
 
   function esc(v) {
@@ -59,26 +65,70 @@
   function readTimeframe() {
     var allowed = ['24h', '7d', '30d'];
     try {
-      var fromState = (global.SMACAState && global.SMACAState.currentTimeframe) || '';
+      var fromState = (root.SMACAState && root.SMACAState.currentTimeframe) || '';
       if (allowed.indexOf(String(fromState)) !== -1) return fromState;
-      var fromGlobal = global.SMACA_TIMEFRAME || '';
+      var fromGlobal = root.SMACA_TIMEFRAME || '';
       if (allowed.indexOf(String(fromGlobal)) !== -1) return fromGlobal;
     } catch (e) {}
     return '24h';
   }
 
+  function warnDirectFetch() {
+    if (warnedDirectFetch) return;
+    warnedDirectFetch = true;
+    try {
+      console.warn('[Water] SMACAApi not available, using direct fetch');
+    } catch (e) {}
+  }
+
+  function directFetchJson(path) {
+    return fetch(path, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' }
+    }).then(function (response) {
+      return response.json().then(function (data) {
+        if (!response.ok) {
+          var message = (data && (data.message || data.error)) || ('HTTP ' + response.status);
+          throw new Error(String(message));
+        }
+        return data;
+      }).catch(function (parseErr) {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        throw parseErr;
+      });
+    });
+  }
+
   function fetchSummary() {
-    if (global.SMACAApi && typeof global.SMACAApi.fetchWaterSummary === 'function') {
-      return global.SMACAApi.fetchWaterSummary();
+    var api = root.SMACAApi || null;
+    if (api && typeof api.fetchWaterSummary === 'function') {
+      try {
+        return api.fetchWaterSummary();
+      } catch (e) {
+        warnDirectFetch();
+        return directFetchJson('/api/water/summary');
+      }
     }
-    return Promise.reject(new Error('SMACAApi unavailable'));
+    warnDirectFetch();
+    return directFetchJson('/api/water/summary');
   }
 
   function fetchTimeseries(tf) {
-    if (global.SMACAApi && typeof global.SMACAApi.fetchWaterTimeseries === 'function') {
-      return global.SMACAApi.fetchWaterTimeseries({ timeframe: tf });
+    var timeframe = tf || readTimeframe() || '24h';
+    var api = root.SMACAApi || null;
+    if (api && typeof api.fetchWaterTimeseries === 'function') {
+      try {
+        return api.fetchWaterTimeseries({ timeframe: timeframe });
+      } catch (e) {
+        warnDirectFetch();
+        return directFetchJson('/api/water/timeseries?timeframe=' + encodeURIComponent(timeframe));
+      }
     }
-    return Promise.reject(new Error('SMACAApi unavailable'));
+    warnDirectFetch();
+    return directFetchJson('/api/water/timeseries?timeframe=' + encodeURIComponent(timeframe));
   }
 
   function setEmptyState(show) {
@@ -209,8 +259,8 @@
       return;
     }
 
-    var adapter = global.SMACAHighchartsAdapter;
-    var loader = global.SMACAHighchartsLoader;
+    var adapter = root.SMACAHighchartsAdapter || null;
+    var loader = root.SMACAHighchartsLoader || null;
     var run = function () {
       if (!adapter || !adapter.createOrUpdateChart || !adapter.hasHighcharts || !adapter.hasHighcharts()) {
         container.innerHTML = '<p class="chart-empty-note">' + esc(t('water_chart_unavailable', 'Chart unavailable.')) + '</p>';
@@ -307,8 +357,11 @@
           if (chartEl) chartEl.innerHTML = '';
         }
       })
-      .catch(function () {
+      .catch(function (err) {
         if (token !== refreshToken) return;
+        try {
+          console.warn('[Water] refresh failed', err);
+        } catch (logErr) {}
         setEmptyState(true);
         renderHero(null, 'no_data');
       });
@@ -316,9 +369,19 @@
 
   function init() {
     if (!document.getElementById('water')) return;
-    refresh();
-    global.addEventListener('smaca:timeframe-changed', refresh);
-    global.addEventListener('smaca:scope-changed', refresh);
+    try {
+      refresh();
+    } catch (e) {
+      try {
+        console.warn('[Water] init refresh failed', e);
+      } catch (logErr) {}
+      setEmptyState(true);
+      renderHero(null, 'no_data');
+    }
+    if (typeof root.addEventListener === 'function') {
+      root.addEventListener('smaca:timeframe-changed', refresh);
+      root.addEventListener('smaca:scope-changed', refresh);
+    }
     setInterval(refresh, 60000);
   }
 
@@ -328,5 +391,5 @@
     init();
   }
 
-  global.SMACAWaterDashboard = { refresh: refresh };
-})();
+  root.SMACAWaterDashboard = { refresh: refresh };
+})(typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : this);
