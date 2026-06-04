@@ -64,6 +64,14 @@ Route::get('/dashboard/energy', function () {
     return view('dashboard.pages.energy', SmacaDashboardViewData::build('energy'));
 });
 
+Route::get('/dashboard/water', function () {
+    if ($redirect = SmacaDashboardGate::requireAdmin()) {
+        return $redirect;
+    }
+
+    return view('dashboard.pages.water', SmacaDashboardViewData::build('water'));
+});
+
 Route::get('/dashboard/management', function () {
     if ($redirect = SmacaDashboardGate::requireAdmin()) {
         return $redirect;

@@ -498,6 +498,21 @@
     };
   }
 
+  async function fetchWaterSummary() {
+    return fetchJson('/api/water/summary');
+  }
+
+  async function fetchWaterTimeseries(options) {
+    const opts = options || {};
+    const params = {};
+    const tf = (opts.timeframe || readActiveTimeframe() || '24h').toString();
+    params.timeframe = tf;
+    const uid = (opts.sensor_uid || '').toString().trim();
+    if (uid) params.sensor_uid = uid;
+    const qs = new URLSearchParams(params).toString();
+    return fetchJson(`/api/water/timeseries?${qs}`);
+  }
+
   async function fetchAiAlertSummary() {
     try {
       const data = await fetchJson('/api/alerts/ai-summary');
@@ -538,6 +553,8 @@
     fetchSpatialLocations: fetchSpatialLocations,
     fetchAlertsSummary: fetchAlertsSummary,
     fetchAlertsEvents: fetchAlertsEvents,
+    fetchWaterSummary: fetchWaterSummary,
+    fetchWaterTimeseries: fetchWaterTimeseries,
     fetchAiAlertSummary: fetchAiAlertSummary,
     generateAiAlertSummary: generateAiAlertSummary,
     adapters: {

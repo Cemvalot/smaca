@@ -273,6 +273,11 @@ html.smaca-is-scrolling #environmental #environmental-kpi-grid .stat-card:hover 
   border-left: 3px solid var(--smaca-accent-energy);
 }
 
+.section-hero--water {
+  background: linear-gradient(120deg, rgba(56, 189, 248, 0.14) 0%, rgba(14, 165, 233, 0.06) 45%, transparent 72%), var(--smaca-section-bg) !important;
+  border-left: 3px solid #38bdf8;
+}
+
 .section-hero--connectivity {
   background: linear-gradient(120deg, rgba(34, 211, 238, 0.12) 0%, rgba(59, 130, 246, 0.06) 40%, transparent 70%), var(--smaca-accent-connectivity-hero), var(--smaca-section-bg) !important;
   border-left: 3px solid var(--smaca-accent-connectivity);
@@ -292,6 +297,8 @@ html.smaca-is-scrolling #environmental #environmental-kpi-grid .stat-card:hover 
 .section-hero--occupancy .section-hero__icon { color: rgba(255, 170, 70, 0.9); background: rgba(255, 170, 70, 0.1); }
 .section-hero--environmental .section-hero__icon { color: #e8a878; background: var(--smaca-accent-environmental-soft); }
 .section-hero--energy .section-hero__icon { color: #e8d080; background: var(--smaca-accent-energy-soft); }
+.section-hero--water .section-hero__icon { color: #7dd3fc; background: rgba(56, 189, 248, 0.12); }
+.smaca-icon-chip--water { color: #7dd3fc; background: rgba(56, 189, 248, 0.12); }
 .section-hero--connectivity .section-hero__icon { color: #9ec8ef; background: var(--smaca-accent-connectivity-soft); }
 .section-hero--ai-insights .section-hero__icon { color: #c4b8f8; background: var(--smaca-accent-ai-soft); }
 

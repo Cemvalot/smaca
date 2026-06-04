@@ -16,6 +16,7 @@ require_once __DIR__ . '/smaca-ingest.php';
 require_once __DIR__ . '/smaca-telemetry-rebuild.php';
 require_once __DIR__ . '/smaca-energy-kpi-audit.php';
 require_once __DIR__ . '/smaca-alerts.php';
+require_once __DIR__ . '/smaca-water-api.php';
 
 if (!function_exists('smacaApiMetricWhitelist')) {
     function smacaApiMetricWhitelist(): array

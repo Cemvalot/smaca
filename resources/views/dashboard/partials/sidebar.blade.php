@@ -51,6 +51,10 @@
         @include('dashboard.partials.pillar-icon-chip', ['pillar' => 'energy', 'size' => 'sm'])
         <span class="nav-link__text">{{ __('messages.nav.energy') }}</span>
       </a>
+      <a href="{{ url('/dashboard/water') }}" class="nav-link nav-link--section {{ $smacaPageId === 'water' ? 'is-active' : '' }}" data-section="water" data-admin-only>
+        @include('dashboard.partials.pillar-icon-chip', ['pillar' => 'water', 'size' => 'sm'])
+        <span class="nav-link__text">{{ __('messages.nav.water') }}</span>
+      </a>
     </div>
 
     <div class="sidebar__group sidebar__group--admin" data-admin-only>

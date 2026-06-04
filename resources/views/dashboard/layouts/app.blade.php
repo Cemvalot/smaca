@@ -253,6 +253,7 @@
       health: "{{ __('messages.common.health') }}",
       connectivity: "{{ __('messages.nav.connectivity') }}",
       energy: "{{ __('messages.nav.energy') }}",
+      water: "{{ __('messages.nav.water') }}",
       occupancy: "{{ __('messages.nav.occupancy') }}",
       environmental: "{{ __('messages.nav.environmental') }}",
       ai_insights: "{{ __('messages.nav.ai_insights') }}",
@@ -548,6 +549,35 @@
       connectivity_health_weak: "{{ __('messages.dashboard_i18n.connectivity_health_weak') }}",
       connectivity_health_problem: "{{ __('messages.dashboard_i18n.connectivity_health_problem') }}",
       connectivity_quality_unstable: "{{ __('messages.dashboard_i18n.connectivity_quality_unstable') }}",
+      water_no_active_alarms: "{{ __('messages.dashboard_i18n.water_no_active_alarms') }}",
+      water_active_alarms_count: "{{ __('messages.dashboard_i18n.water_active_alarms_count') }}",
+      water_no_active_alarms_message: "{{ __('messages.dashboard_i18n.water_no_active_alarms_message') }}",
+      water_status_normal: "{{ __('messages.dashboard_i18n.water_status_normal') }}",
+      water_status_warning: "{{ __('messages.dashboard_i18n.water_status_warning') }}",
+      water_status_critical: "{{ __('messages.dashboard_i18n.water_status_critical') }}",
+      water_status_no_data: "{{ __('messages.dashboard_i18n.water_status_no_data') }}",
+      water_chart_yaxis: "{{ __('messages.dashboard_i18n.water_chart_yaxis') }}",
+      water_chart_series: "{{ __('messages.dashboard_i18n.water_chart_series') }}",
+      water_chart_no_points: "{{ __('messages.dashboard_i18n.water_chart_no_points') }}",
+      water_chart_unavailable: "{{ __('messages.dashboard_i18n.water_chart_unavailable') }}",
+      water_detail_sensor: "{{ __('messages.dashboard_i18n.water_detail_sensor') }}",
+      water_detail_volume_l: "{{ __('messages.dashboard_i18n.water_detail_volume_l') }}",
+      water_detail_volume_m3: "{{ __('messages.dashboard_i18n.water_detail_volume_m3') }}",
+      water_detail_battery: "{{ __('messages.dashboard_i18n.water_detail_battery') }}",
+      water_detail_status: "{{ __('messages.dashboard_i18n.water_detail_status') }}",
+      water_detail_measured: "{{ __('messages.dashboard_i18n.water_detail_measured') }}",
+      water_card_battery_unit: "{{ __('messages.dashboard_i18n.water_card_battery_unit') }}",
+      water_alarm_leakage: "{{ __('messages.dashboard_i18n.water_alarm_leakage') }}",
+      water_alarm_burst: "{{ __('messages.dashboard_i18n.water_alarm_burst') }}",
+      water_alarm_backflow: "{{ __('messages.dashboard_i18n.water_alarm_backflow') }}",
+      water_alarm_low_battery: "{{ __('messages.dashboard_i18n.water_alarm_low_battery') }}",
+      water_alarm_firmware_changed: "{{ __('messages.dashboard_i18n.water_alarm_firmware_changed') }}",
+      water_alarm_meter_tamper: "{{ __('messages.dashboard_i18n.water_alarm_meter_tamper') }}",
+      water_alarm_magnetic_field: "{{ __('messages.dashboard_i18n.water_alarm_magnetic_field') }}",
+      water_alarm_dry: "{{ __('messages.dashboard_i18n.water_alarm_dry') }}",
+      water_alarm_clock_invalid: "{{ __('messages.dashboard_i18n.water_alarm_clock_invalid') }}",
+      water_alarm_hardware_fault: "{{ __('messages.dashboard_i18n.water_alarm_hardware_fault') }}",
+      water_alarm_low_temperature: "{{ __('messages.dashboard_i18n.water_alarm_low_temperature') }}",
       iaq_semantic_coverage_full: "{{ __('messages.dashboard_i18n.iaq_semantic_coverage_full') }}",
       iaq_semantic_coverage_partial: "{{ __('messages.dashboard_i18n.iaq_semantic_coverage_partial') }}",
       iaq_semantic_coverage_limited: "{{ __('messages.dashboard_i18n.iaq_semantic_coverage_limited') }}",
@@ -841,6 +871,9 @@
   <script defer src="{{ asset('assets/js/smaca-connectivity-quality.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-connectivity-quality.js') }}"></script>
   @if(($smacaPage ?? 'overview') === 'connectivity')
   <script defer src="{{ asset('assets/js/smaca-connectivity-dashboard.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-connectivity-dashboard.js') }}"></script>
+  @endif
+  @if(($smacaPage ?? 'overview') === 'water')
+  <script defer src="{{ asset('assets/js/smaca-water-dashboard.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-water-dashboard.js') }}"></script>
   @endif
   <script defer src="{{ asset('assets/js/smaca-chart-explainer.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-chart-explainer.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-card-help.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-card-help.js') }}"></script>
