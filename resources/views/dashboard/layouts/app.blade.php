@@ -36,6 +36,7 @@
 <body>
   <div class="app">
     @include('dashboard.partials.sidebar')
+    <div class="sidebar-backdrop" id="sidebar-backdrop" hidden aria-hidden="true"></div>
     <main class="main">
       @include('dashboard.partials.topbar')
       <div class="content">

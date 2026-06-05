@@ -1065,42 +1065,99 @@ function initRBAC() {
 }
 
 function initSidebarToggle() {
-  const sidebar = document.querySelector('.sidebar');
+  if (document.body && document.body.dataset.smacaSidebarInit === 'true') return;
+  if (document.body) document.body.dataset.smacaSidebarInit = 'true';
+
+  const MOBILE_NAV_MAX = 1024;
+  const sidebar = document.getElementById('app-sidebar') || document.querySelector('.sidebar');
   const toggleBtn = document.getElementById('sidebar-toggle');
+  const closeBtn = document.getElementById('sidebar-close');
+  const backdrop = document.getElementById('sidebar-backdrop');
   if (!sidebar || !toggleBtn) return;
+
+  const openLabel = toggleBtn.getAttribute('data-label-open') || smacaUiT('open_menu', 'Open navigation menu');
+  const closeLabel = toggleBtn.getAttribute('data-label-close') || smacaUiT('close_menu', 'Close navigation menu');
+  const mobileNavQuery = window.matchMedia('(max-width: ' + MOBILE_NAV_MAX + 'px)');
+
+  const isMobileNav = function () {
+    return mobileNavQuery.matches;
+  };
+
+  const syncToggleUi = function (isOpen) {
+    toggleBtn.classList.toggle('is-active', isOpen);
+    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    toggleBtn.setAttribute('aria-label', isOpen ? closeLabel : openLabel);
+    toggleBtn.setAttribute('title', isOpen ? closeLabel : openLabel);
+  };
 
   const closeSidebar = function () {
     sidebar.classList.remove('is-open');
-    toggleBtn.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('smaca-nav-open');
+    syncToggleUi(false);
+    if (backdrop) {
+      backdrop.classList.remove('is-visible');
+      backdrop.setAttribute('aria-hidden', 'true');
+      window.setTimeout(function () {
+        if (!sidebar.classList.contains('is-open')) backdrop.hidden = true;
+      }, 300);
+    }
   };
 
   const openSidebar = function () {
+    if (!isMobileNav()) return;
     sidebar.classList.add('is-open');
-    toggleBtn.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('smaca-nav-open');
+    syncToggleUi(true);
+    if (backdrop) {
+      backdrop.hidden = false;
+      backdrop.classList.add('is-visible');
+      backdrop.setAttribute('aria-hidden', 'false');
+    }
   };
 
-  toggleBtn.setAttribute('aria-expanded', 'false');
+  const toggleSidebar = function () {
+    if (sidebar.classList.contains('is-open')) closeSidebar();
+    else openSidebar();
+  };
+
+  syncToggleUi(false);
   toggleBtn.addEventListener('click', function (event) {
     event.preventDefault();
     event.stopPropagation();
-    if (sidebar.classList.contains('is-open')) closeSidebar();
-    else openSidebar();
+    toggleSidebar();
   });
 
-  document.addEventListener('click', function (event) {
-    if (!sidebar.classList.contains('is-open')) return;
-    if (sidebar.contains(event.target) || toggleBtn.contains(event.target)) return;
-    closeSidebar();
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function (event) {
+      event.preventDefault();
+      closeSidebar();
+    });
+  }
+
+  if (backdrop) {
+    backdrop.addEventListener('click', closeSidebar);
+  }
+
+  sidebar.querySelectorAll('.nav-link, .sidebar__footer a').forEach(function (link) {
+    link.addEventListener('click', function () {
+      if (isMobileNav()) closeSidebar();
+    });
   });
 
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape') closeSidebar();
+    if (event.key === 'Escape' && sidebar.classList.contains('is-open')) closeSidebar();
   });
 
-  window.addEventListener('resize', function () {
-    // Keep desktop sidebar always visible by clearing mobile-open state.
-    if (window.innerWidth > 768) closeSidebar();
-  });
+  const handleViewportChange = function () {
+    if (!isMobileNav()) closeSidebar();
+  };
+
+  window.addEventListener('resize', handleViewportChange);
+  if (typeof mobileNavQuery.addEventListener === 'function') {
+    mobileNavQuery.addEventListener('change', handleViewportChange);
+  } else if (typeof mobileNavQuery.addListener === 'function') {
+    mobileNavQuery.addListener(handleViewportChange);
+  }
 }
 
 // Page-aware bootstrap for split dashboard routes.

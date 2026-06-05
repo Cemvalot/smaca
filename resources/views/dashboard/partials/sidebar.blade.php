@@ -3,8 +3,13 @@
   $smacaIsAdmin = $smacaRole === 'admin';
   $smacaPageId = $smacaPage ?? 'overview';
 @endphp
-<aside class="sidebar">
+<aside class="sidebar" id="app-sidebar" aria-label="{{ __('messages.dashboard_i18n.nav_primary_label') }}">
   <div class="sidebar__header">
+    <button type="button" class="sidebar__close" id="sidebar-close" aria-label="{{ __('messages.topbar.close_menu') }}">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
     <div class="smaca-logo smaca-logo--sidebar smaca-logo--sidebar-dark" aria-label="SMACA">
       <div class="smaca-logo__row">
         <img

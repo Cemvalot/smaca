@@ -110,6 +110,8 @@ return [
         'filter_30d' => 'Filter data for last 30 days',
         'toggle_sidebar' => 'Toggle sidebar',
         'collapse_sidebar' => 'Collapse or expand sidebar',
+        'open_menu' => 'Open navigation menu',
+        'close_menu' => 'Close navigation menu',
     ],
     'dashboard_i18n' => [
         'iot_ai_platform' => 'IoT & AI Platform',

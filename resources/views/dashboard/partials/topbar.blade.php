@@ -1,9 +1,18 @@
 <div class="topbar">
-        <div class="topbar__title">
-          <h1 class="topbar__heading">{{ __('messages.topbar.heading') }}</h1>
-          <p class="topbar__subtitle">{{ __('messages.topbar.subtitle') }}</p>
-          <div class="topbar__badges">
-            <span id="smaca-active-alerts-indicator" class="topbar__alert-indicator" aria-live="polite" hidden></span>
+        <div class="topbar__start">
+          <button type="button" class="topbar__menu-btn" id="sidebar-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="{{ __('messages.topbar.open_menu') }}" title="{{ __('messages.topbar.open_menu') }}" data-label-open="{{ __('messages.topbar.open_menu') }}" data-label-close="{{ __('messages.topbar.close_menu') }}">
+            <span class="topbar__menu-icon" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+          <div class="topbar__title">
+            <h1 class="topbar__heading">{{ __('messages.topbar.heading') }}</h1>
+            <p class="topbar__subtitle">{{ __('messages.topbar.subtitle') }}</p>
+            <div class="topbar__badges">
+              <span id="smaca-active-alerts-indicator" class="topbar__alert-indicator" aria-live="polite" hidden></span>
+            </div>
           </div>
         </div>
         <div class="topbar__actions">
@@ -29,10 +38,5 @@
             <a href="{{ url('/language/en') }}" class="btn btn--ghost btn--sm {{ app()->getLocale() === 'en' ? 'is-active' : '' }}">{{ __('messages.language.english') }}</a>
             <a href="{{ url('/language/el') }}" class="btn btn--ghost btn--sm {{ app()->getLocale() === 'el' ? 'is-active' : '' }}">{{ __('messages.language.greek') }}</a>
           </div>
-          <button class="btn btn--ghost btn--sm" id="sidebar-toggle" aria-label="{{ __('messages.topbar.toggle_sidebar') }}" title="{{ __('messages.topbar.collapse_sidebar') }}">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
         </div>
       </div>
