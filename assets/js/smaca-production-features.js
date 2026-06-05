@@ -5543,8 +5543,8 @@ function bindOverviewTrendChartResize(container, payload) {
 }
 
 function drawOverviewSvgLineChart(container, payload) {
-  const width = Math.max(container.clientWidth, 600);
-  const height = Math.max(container.clientHeight, 320);
+  const width = Math.max(container.clientWidth || container.offsetWidth || 0, 280);
+  const height = Math.max(container.clientHeight || container.offsetHeight || 0, 320);
   const padding = { top: 18, right: 16, bottom: 34, left: 38 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;

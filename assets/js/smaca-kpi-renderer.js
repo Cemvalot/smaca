@@ -912,7 +912,6 @@
     return (
       '<article class="smaca-occupancy-metric-card ' + accentClass + '" data-occupancy-metric="' + escapeHtml(metricKey) + '">' +
       '<span class="smaca-occupancy-metric-card__accent" aria-hidden="true"></span>' +
-      '<div class="smaca-occupancy-metric-card__icon smaca-occupancy-metric-card__icon--leading" aria-hidden="true">' + iconHtml + '</div>' +
       '<div class="smaca-occupancy-metric-card__content">' +
       '<div class="smaca-occupancy-metric-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
       '<div class="smaca-occupancy-metric-card__value">' + escapeHtml(formatOccupancyMetricValue(value)) + '</div>' +
