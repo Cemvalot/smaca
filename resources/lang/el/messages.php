@@ -415,6 +415,8 @@ return [
         'occupancy_badge_auditorium_sensor' => 'Αισθητήρας αμφιθεάτρου',
         'occupancy_sensor_breakdown_title' => 'Ανάλυση ανά αισθητήρα και όροφο',
         'occupancy_sensor_table_sensor' => 'Αισθητήρας',
+        'occupancy_kpi_panel_subtitle' => 'Μετρήσεις κίνησης και συμφόρησης σε πραγματικό χρόνο από μετρητές εισόδου/εξόδου.',
+        'occupancy_kpi_footer_window' => 'Ημερήσιο παράθυρο: :start – :end',
         'occupancy_metrics_daily_window' => 'Ημερήσιο παράθυρο: :start – :end (:timezone)',
         'occupancy_scope_daily_note' => 'Τα ημερήσια occupancy metrics χρησιμοποιούν ημερολογιακή ημέρα Europe/Athens (00:00–00:00).',
         'occupancy_scope_timeframe_note' => 'Η ανάλυση κίνησης παρακάτω χρησιμοποιεί το επιλεγμένο διάστημα (24h / 7d / 30d).',

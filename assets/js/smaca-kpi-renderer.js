@@ -877,15 +877,69 @@
     });
   }
 
+  var OCCUPANCY_METRIC_UI = {
+    people_in: { accent: 'blue' },
+    people_out: { accent: 'green' },
+    remaining_inside: { accent: 'purple' },
+    crowd_density: { accent: 'amber' },
+    peak: { accent: 'pink' }
+  };
+
+  function occupancyMetricIconSvg(metricKey) {
+    switch (metricKey) {
+      case 'people_in':
+        return '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
+      case 'people_out':
+        return '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
+      case 'remaining_inside':
+        return '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
+      case 'crowd_density':
+        return '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M12 11h.01"/></svg>';
+      case 'peak':
+        return '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>';
+      default:
+        return '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>';
+    }
+  }
+
   function buildOccupancyMetricCard(metricKey, labelKey, tooltipKey, value) {
     var label = t(labelKey, labelKey);
     var tooltip = t(tooltipKey, '');
+    var ui = OCCUPANCY_METRIC_UI[metricKey] || { accent: 'blue' };
+    var accentClass = 'smaca-occupancy-metric-card--' + ui.accent;
     return (
-      '<article class="smaca-occupancy-metric-card" data-occupancy-metric="' + escapeHtml(metricKey) + '">' +
+      '<article class="smaca-occupancy-metric-card ' + accentClass + '" data-occupancy-metric="' + escapeHtml(metricKey) + '">' +
+      '<span class="smaca-occupancy-metric-card__accent" aria-hidden="true"></span>' +
+      '<div class="smaca-occupancy-metric-card__icon" aria-hidden="true">' + occupancyMetricIconSvg(metricKey) + '</div>' +
+      '<div class="smaca-occupancy-metric-card__content">' +
       '<div class="smaca-occupancy-metric-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
       '<div class="smaca-occupancy-metric-card__value">' + escapeHtml(formatOccupancyMetricValue(value)) + '</div>' +
+      '<div class="smaca-occupancy-metric-card__subtitle">' + escapeHtml(tooltip) + '</div>' +
+      '</div>' +
       '</article>'
     );
+  }
+
+  function updateOccupancyKpiFooter(metrics) {
+    var footer = document.getElementById('occupancy-kpi-footer');
+    var windowTextEl = document.getElementById('occupancy-kpi-footer-window-text');
+    var tzEl = document.getElementById('occupancy-kpi-footer-tz');
+    if (!footer) return;
+    if (metrics && metrics.calculation_window_start && metrics.calculation_window_end) {
+      if (windowTextEl) {
+        windowTextEl.textContent = t('occupancy_kpi_footer_window', 'Daily window: :start – :end')
+          .replace(':start', metrics.calculation_window_start)
+          .replace(':end', metrics.calculation_window_end);
+      }
+      if (tzEl) {
+        tzEl.textContent = metrics.calculation_window_timezone || 'Europe/Athens';
+      }
+      footer.hidden = false;
+      return;
+    }
+    footer.hidden = true;
+    if (windowTextEl) windowTextEl.textContent = '';
+    if (tzEl) tzEl.textContent = '';
   }
 
   function renderOccupancyMetrics(summaryContainerId, payload) {
@@ -898,6 +952,7 @@
         ? t('kpi_empty_occupancy', 'No movement counters are available for this selected zone.')
         : t('no_occupancy_data', 'No occupancy data');
       container.innerHTML = '<p class="smaca-occupancy-kpi-grid__empty">' + escapeHtml(msg) + '</p>';
+      updateOccupancyKpiFooter(null);
       return;
     }
 
@@ -909,17 +964,8 @@
       buildOccupancyMetricCard('peak', 'occupancy_metric_peak', 'occupancy_tooltip_peak', metrics.peak)
     ];
 
-    var windowNote = '';
-    if (metrics.calculation_window_start && metrics.calculation_window_end) {
-      windowNote = t('occupancy_metrics_daily_window', 'Daily window: :start – :end (:timezone)')
-        .replace(':start', metrics.calculation_window_start)
-        .replace(':end', metrics.calculation_window_end)
-        .replace(':timezone', metrics.calculation_window_timezone || 'Europe/Athens');
-    }
-
-    container.innerHTML = cards.join('') + (windowNote
-      ? '<p class="smaca-occupancy-kpi-grid__window">' + escapeHtml(windowNote) + '</p>'
-      : '');
+    container.innerHTML = cards.join('');
+    updateOccupancyKpiFooter(metrics);
   }
 
   function renderOccupancySensorGroups(groupsContainerId, payload) {

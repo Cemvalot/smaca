@@ -415,6 +415,8 @@ return [
         'occupancy_badge_auditorium_sensor' => 'Auditorium sensor',
         'occupancy_sensor_breakdown_title' => 'Sensor breakdown by floor',
         'occupancy_sensor_table_sensor' => 'Sensor',
+        'occupancy_kpi_panel_subtitle' => 'Real-time movement and congestion metrics derived from entry/exit counters.',
+        'occupancy_kpi_footer_window' => 'Daily window: :start – :end',
         'occupancy_metrics_daily_window' => 'Daily window: :start – :end (:timezone)',
         'occupancy_scope_daily_note' => 'Daily occupancy metrics use the Europe/Athens calendar day (00:00–00:00).',
         'occupancy_scope_timeframe_note' => 'Movement analytics below use the selected timeframe (24h / 7d / 30d).',

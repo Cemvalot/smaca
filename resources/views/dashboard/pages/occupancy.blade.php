@@ -23,19 +23,51 @@
           </div>
           @endif
           <section class="smaca-occupancy-panel" aria-labelledby="smaca-occupancy-panel-title">
-            <header class="smaca-occupancy-panel__header">
-              <h3 id="smaca-occupancy-panel-title" class="smaca-occupancy-panel__title">{{ __('messages.dashboard_i18n.kpi_title_occupancy') }}</h3>
+            <header class="smaca-occupancy-panel__header smaca-occupancy-panel__header--premium">
+              <div class="smaca-occupancy-panel__header-copy">
+                <div class="smaca-occupancy-panel__title-row">
+                  @include('dashboard.partials.pillar-icon-chip', ['pillar' => 'occupancy', 'size' => 'md', 'class' => 'smaca-occupancy-panel__badge'])
+                  <h3 id="smaca-occupancy-panel-title" class="smaca-occupancy-panel__title">{{ __('messages.dashboard_i18n.kpi_title_occupancy') }}</h3>
+                </div>
+                <p class="smaca-occupancy-panel__subtitle">{{ __('messages.dashboard_i18n.occupancy_kpi_panel_subtitle') }}</p>
+              </div>
+              <div class="smaca-occupancy-panel__illustration" aria-hidden="true">
+                <svg class="smaca-occupancy-panel__illustration-svg" viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="occ-illus-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="rgba(251, 146, 60, 0.35)"/>
+                      <stop offset="100%" stop-color="rgba(251, 146, 60, 0.04)"/>
+                    </linearGradient>
+                  </defs>
+                  <rect x="8" y="18" width="184" height="104" rx="18" fill="url(#occ-illus-grad)" stroke="rgba(251, 146, 60, 0.22)" stroke-width="1"/>
+                  <circle cx="52" cy="58" r="14" fill="rgba(251, 146, 60, 0.18)" stroke="rgba(251, 146, 60, 0.45)" stroke-width="1.2"/>
+                  <circle cx="100" cy="48" r="16" fill="rgba(59, 130, 246, 0.16)" stroke="rgba(59, 130, 246, 0.42)" stroke-width="1.2"/>
+                  <circle cx="148" cy="62" r="13" fill="rgba(168, 85, 247, 0.16)" stroke="rgba(168, 85, 247, 0.42)" stroke-width="1.2"/>
+                  <path d="M44 92c12-10 24-8 36 0s24 10 36 0 24-8 36 0" stroke="rgba(148, 163, 184, 0.45)" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M38 58h8M46 54v8" stroke="rgba(251, 146, 60, 0.9)" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M94 48h8M98 44v8" stroke="rgba(59, 130, 246, 0.9)" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M142 62h8M146 58v8" stroke="rgba(168, 85, 247, 0.9)" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M64 108h72" stroke="rgba(251, 146, 60, 0.35)" stroke-width="6" stroke-linecap="round"/>
+                </svg>
+              </div>
             </header>
             <div class="smaca-occupancy-panel__body">
-              <div class="smaca-occupancy-panel__intro" role="note">
-                <p class="smaca-occupancy-info-strip">{{ __('messages.dashboard_i18n.occupancy_scope_daily_note') }} {{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
-                <p class="smaca-occupancy-kpi-footnote">{{ __('messages.dashboard_i18n.flow_estimate_note') }}</p>
-              </div>
-              <div class="smaca-occupancy-panel__divider" aria-hidden="true"></div>
               <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="smaca-occupancy-kpi-grid">
                 <p class="smaca-occupancy-kpi-grid__loading">{{ __('messages.common.loading') }}...</p>
               </div>
             </div>
+            <footer class="smaca-occupancy-panel__footer" id="occupancy-kpi-footer" hidden>
+              <div class="smaca-occupancy-panel__footer-window">
+                <span class="smaca-occupancy-panel__footer-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <path d="M16 2v4M8 2v4M3 10h18"/>
+                  </svg>
+                </span>
+                <span id="occupancy-kpi-footer-window-text" class="smaca-occupancy-panel__footer-window-text"></span>
+              </div>
+              <span id="occupancy-kpi-footer-tz" class="smaca-occupancy-panel__footer-tz"></span>
+            </footer>
           </section>
 
           <section class="card smaca-telemetry-card smaca-occupancy-telemetry-card">

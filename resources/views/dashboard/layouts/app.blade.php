@@ -668,6 +668,7 @@
       occupancy_sensor_breakdown_title: "{{ __('messages.dashboard_i18n.occupancy_sensor_breakdown_title') }}",
       occupancy_sensor_table_sensor: "{{ __('messages.dashboard_i18n.occupancy_sensor_table_sensor') }}",
       occupancy_metrics_daily_window: "{{ __('messages.dashboard_i18n.occupancy_metrics_daily_window') }}",
+      occupancy_kpi_footer_window: "{{ __('messages.dashboard_i18n.occupancy_kpi_footer_window') }}",
       occupancy_scope_daily_note: "{{ __('messages.dashboard_i18n.occupancy_scope_daily_note') }}",
       occupancy_scope_timeframe_note: "{{ __('messages.dashboard_i18n.occupancy_scope_timeframe_note') }}",
       occupancy_chart_in_out_top_title: "{{ __('messages.dashboard_i18n.occupancy_chart_in_out_top_title') }}",
