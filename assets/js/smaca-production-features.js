@@ -5232,10 +5232,24 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   const chartEl = document.getElementById('overview-campus-trend-chart');
   if (!chartEl) return;
 
+  // RBAC: "simple"/non-admin users must not see connectivity in the overview graph.
+  // (The overview connectivity module card is already admin-only in the Blade view.)
+  const isAdminView = !!(
+    (typeof window !== 'undefined'
+      && window.SMACARBAC
+      && typeof window.SMACARBAC.isAdmin === 'function'
+      && window.SMACARBAC.isAdmin())
+    || (typeof window !== 'undefined'
+      && window.SMACA_USER
+      && String(window.SMACA_USER.role || '').toLowerCase().trim() === 'admin')
+  );
+
   const iaqRows = getOverviewModuleRows('iaq', filteredData, timeframe);
   const occupancyRows = getOverviewModuleRows('occupancy', filteredData, timeframe);
   const environmentalRows = getOverviewModuleRows('environmental', filteredData, timeframe);
-  const connectivityRows = getOverviewModuleRows('connectivity', filteredData, timeframe);
+  const connectivityRows = isAdminView
+    ? getOverviewModuleRows('connectivity', filteredData, timeframe)
+    : [];
 
   const chartWindow = getSmacaLineChartWindow(timeframe);
   const buckets = chartWindow.bucketTimesMs.slice();
@@ -5244,7 +5258,9 @@ function renderOverviewTrendChart(filteredData, timeframe) {
 
   const co2ByBucket = aggregateMetricByBucket(iaqRows, 'co2', chartWindow);
   const occupancyByBucket = aggregateOccupancyByBucket(occupancyRows, chartWindow);
-  const connectivityByBucket = aggregateConnectivityQualityByBucket(connectivityRows, chartWindow);
+  const connectivityByBucket = isAdminView
+    ? aggregateConnectivityQualityByBucket(connectivityRows, chartWindow)
+    : {};
   const uvByBucket = aggregateMetricByBucket(environmentalRows, 'uv_index', chartWindow);
 
   const co2SeriesRaw = buckets.map(function (bucket) {
@@ -5277,7 +5293,7 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   const chartSeriesCandidates = [
     { key: 'co2', label: smacaT('overview_chart_legend_co2', 'CO₂ · Air quality'), unit: 'ppm', color: '#3b82f6', values: co2Series },
     { key: 'occupancy', label: smacaT('overview_chart_movement_balance', 'Movement balance'), unit: '', color: '#22c55e', values: occupancySeries },
-    { key: 'connectivity', label: smacaT('overview_chart_legend_connectivity', 'Connectivity · quality'), unit: '%', color: '#06b6d4', values: connectivitySeries },
+    ...(isAdminView ? [{ key: 'connectivity', label: smacaT('overview_chart_legend_connectivity', 'Connectivity · quality'), unit: '%', color: '#06b6d4', values: connectivitySeries }] : []),
     { key: 'uv', label: smacaT('overview_chart_legend_uv', 'Solar Exposure (UV)'), unit: '', color: '#f59e0b', values: uvSeries }
   ];
   const chartSeries = chartSeriesCandidates.filter(function (series) {
@@ -5320,7 +5336,7 @@ function renderOverviewTrendChart(filteredData, timeframe) {
       rawPopulatedCount: rawPopulatedCount,
       rangeStart: new Date(startMs).toISOString(),
       rangeEnd: new Date(endMs).toISOString(),
-      seriesKeys: ['co2', 'occupancy', 'connectivity', 'uv']
+      seriesKeys: isAdminView ? ['co2', 'occupancy', 'connectivity', 'uv'] : ['co2', 'occupancy', 'uv']
     };
   }
 }
