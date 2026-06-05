@@ -492,7 +492,12 @@
   };
 
   function normalizeDeviceTypeKey(sensor) {
-    return String((sensor && sensor.device_type) || '')
+    var deviceType = String((sensor && sensor.device_type) || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+    if (deviceType && deviceType !== 'unknown') return deviceType;
+    return String((sensor && (sensor.sensor_name || sensor.name)) || '')
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '');
@@ -505,8 +510,8 @@
     if (/water/.test(key)) return SENSOR_FRESHNESS_PROFILES.watermeter;
     if (/people|counter|occupancy/.test(key)) return SENSOR_FRESHNESS_PROFILES.peoplecounter;
     if (/iaq|airquality|indoor/.test(key)) return SENSOR_FRESHNESS_PROFILES.indoorairquality;
-    if (/network|connectivity|wireless|lora|rssi/.test(key)) return SENSOR_FRESHNESS_PROFILES.sensornetworkquality;
-    if (/uv|environmental/.test(key)) return SENSOR_FRESHNESS_PROFILES.sensoruv;
+    if (/network|connectivity|wireless|lora|rssi|networkquality/.test(key)) return SENSOR_FRESHNESS_PROFILES.sensornetworkquality;
+    if (/uv|environmental|sensoruv/.test(key)) return SENSOR_FRESHNESS_PROFILES.sensoruv;
     return SENSOR_FRESHNESS_PROFILES.default;
   }
 
