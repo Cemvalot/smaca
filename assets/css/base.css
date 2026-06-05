@@ -238,8 +238,20 @@ a:hover {
   padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--border);
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.card__header .card__subtitle {
+  flex: 1 1 100%;
+  width: 100%;
+  margin: 0;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .card__title {

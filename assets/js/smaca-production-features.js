@@ -1400,13 +1400,13 @@ function renderManagementSensorsFromLiveData() {
     const lastSeenEscaped = escapeSmacaHtml(lastSeenText);
     return `
       <tr class="${isStale ? 'management-sensor-row--stale' : ''}" style="border-bottom: 1px solid var(--border);">
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text); font-family: monospace;">${sensorIdentifier}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${displayTypeName}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorLocationCell}</td>
-        <td style="padding: var(--space-3) var(--space-4);"><span class="badge ${isActive ? 'badge--success' : 'badge--muted'} badge--sm">${isActive ? 'Live' : 'Inactive'}</span></td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm);" class="${batteryClass}">${batteryTextEscaped}</td>
-        <td style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${lastSeenEscaped}${isStale ? ' <span class="badge badge--warning badge--sm">Stale</span>' : ''}</td>
-        <td style="padding: var(--space-3) var(--space-4);"><span style="font-size: var(--font-size-xs); color: var(--muted);">Read-only</span></td>
+        <td data-label="Device ID" style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text); font-family: monospace;">${sensorIdentifier}</td>
+        <td data-label="Type" style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${displayTypeName}</td>
+        <td data-label="Location" style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${sensorLocationCell}</td>
+        <td data-label="Status" style="padding: var(--space-3) var(--space-4);"><span class="badge ${isActive ? 'badge--success' : 'badge--muted'} badge--sm">${isActive ? 'Live' : 'Inactive'}</span></td>
+        <td data-label="Battery" style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm);" class="${batteryClass}">${batteryTextEscaped}</td>
+        <td data-label="Last seen" style="padding: var(--space-3) var(--space-4); font-size: var(--font-size-sm); color: var(--text);">${lastSeenEscaped}${isStale ? ' <span class="badge badge--warning badge--sm">Stale</span>' : ''}</td>
+        <td data-label="Actions" style="padding: var(--space-3) var(--space-4);"><span style="font-size: var(--font-size-xs); color: var(--muted);">Read-only</span></td>
       </tr>
     `;
   }).join('');

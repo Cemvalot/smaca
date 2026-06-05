@@ -1018,9 +1018,11 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
   container.innerHTML = '';
   
   const table = document.createElement('table');
+  table.className = 'smaca-mobile-data-table';
   table.style.width = '100%';
   table.style.borderCollapse = 'collapse';
   table.style.fontSize = 'var(--font-size-sm)';
+  const cellLabels = ['Sensor ID', 'Location', 'Battery', 'Signal', 'Last seen', 'Status'];
   
   // Header
   const thead = document.createElement('thead');
@@ -1069,23 +1071,29 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
       }
     });
     
+    let cellIndex = 0;
+    const labelCell = function (text) {
+      const td = document.createElement('td');
+      td.dataset.label = cellLabels[cellIndex] || '';
+      cellIndex += 1;
+      td.style.padding = 'var(--space-4)';
+      return td;
+    };
+
     // Sensor ID
-    const idCell = document.createElement('td');
+    const idCell = labelCell(sensor.id);
     idCell.textContent = sensor.id;
-    idCell.style.padding = 'var(--space-4)';
     idCell.style.fontWeight = '600';
     row.appendChild(idCell);
     
     // Location
-    const locCell = document.createElement('td');
+    const locCell = labelCell(sensor.location);
     locCell.textContent = sensor.location;
-    locCell.style.padding = 'var(--space-4)';
     locCell.style.color = 'var(--muted)';
     row.appendChild(locCell);
     
     // Battery (visual bar)
-    const batteryCell = document.createElement('td');
-    batteryCell.style.padding = 'var(--space-4)';
+    const batteryCell = labelCell('Battery');
     const batteryBar = document.createElement('div');
     batteryBar.style.width = '80px';
     batteryBar.style.height = '8px';
@@ -1111,8 +1119,7 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
     row.appendChild(batteryCell);
     
     // Signal (dB bands)
-    const signalCell = document.createElement('td');
-    signalCell.style.padding = 'var(--space-4)';
+    const signalCell = labelCell('Signal');
     if (sensor.rssi !== null && sensor.rssi !== undefined && typeof sensor.rssi === 'number') {
       const signalBar = document.createElement('div');
       signalBar.style.display = 'flex';
@@ -1146,16 +1153,14 @@ function createSensorHealthTable(containerId, sensors, options = {}) {
     row.appendChild(signalCell);
     
     // Last Seen
-    const lastSeenCell = document.createElement('td');
-    lastSeenCell.style.padding = 'var(--space-4)';
+    const lastSeenCell = labelCell('Last seen');
     const lastSeen = formatLastSeen(sensor.lastSeenAt);
     lastSeenCell.textContent = lastSeen;
     lastSeenCell.style.color = 'var(--text)';
     row.appendChild(lastSeenCell);
     
     // Status (with confidence)
-    const statusCell = document.createElement('td');
-    statusCell.style.padding = 'var(--space-4)';
+    const statusCell = labelCell('Status');
     const statusBadge = document.createElement('span');
     statusBadge.className = `badge badge--${isOnline ? 'success' : 'danger'} badge--sm`;
     statusBadge.textContent = isOnline ? 'Online' : 'Offline';

@@ -437,12 +437,88 @@
 
 /* Production Features Styles */
 .time-range-selector {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-1);
   background: var(--surface-2);
   padding: var(--space-1);
   border-radius: var(--r-md);
   transition: opacity 0.2s;
+  position: relative;
+  align-items: stretch;
+}
+
+.smaca-timeframe-help {
+  grid-column: 1 / -1;
+  justify-self: end;
+  margin: 0;
+  position: relative;
+}
+
+.smaca-timeframe-help summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--muted);
+  user-select: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  line-height: 1;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.smaca-timeframe-help summary::-webkit-details-marker {
+  display: none;
+}
+
+.smaca-timeframe-help__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 60;
+  min-width: min(280px, calc(100vw - 32px));
+  max-width: 320px;
+  padding: var(--space-3);
+  background: var(--bg-elev, #1a1f29);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.smaca-timeframe-help__panel p {
+  margin: 0 0 var(--space-1);
+}
+
+.smaca-timeframe-help__title {
+  font-weight: 600;
+  margin-bottom: var(--space-2) !important;
+}
+
+.smaca-timeframe-help__note {
+  color: var(--muted);
+  margin-bottom: 0 !important;
+}
+
+@media (min-width: 769px) {
+  .time-range-selector {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .smaca-timeframe-help {
+    grid-column: auto;
+    margin-left: var(--space-2);
+    flex: 0 0 auto;
+  }
 }
 
 .time-range-btn {
@@ -3173,11 +3249,10 @@
     overflow-y: hidden;
   }
 
-  #sensor-health-table table,
-  #sensors-management-table,
-  #users-management-table,
-  .ai-events-table {
-    min-width: 620px;
+  #sensor-health-table table.smaca-mobile-data-table,
+  #sensors-management-table.smaca-mobile-data-table,
+  #users-management-table.smaca-mobile-data-table {
+    min-width: 0;
   }
 
   #management-sensors-tab > div[style*="justify-content: space-between"],
@@ -3300,11 +3375,10 @@
     grid-template-columns: 1fr;
   }
 
-  #sensor-health-table table,
-  #sensors-management-table,
-  #users-management-table,
-  .ai-events-table {
-    min-width: 540px;
+  #sensor-health-table table.smaca-mobile-data-table,
+  #sensors-management-table.smaca-mobile-data-table,
+  #users-management-table.smaca-mobile-data-table {
+    min-width: 0;
   }
 
   .smaca-accordion {
@@ -5946,8 +6020,35 @@
     grid-template-columns: 1fr;
   }
 
-  .iaq-sensor-floor__metrics {
-    grid-template-columns: repeat(2, minmax(84px, 1fr));
+  .iaq-sensor-floor__metrics,
+  .iaq-sensor-floor__metrics--summary {
+    grid-template-columns: 1fr;
+  }
+
+  .iaq-sensor-floor__title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    line-height: 1.35;
+  }
+
+  .iaq-sensor-card__name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    line-height: 1.35;
+  }
+
+  .iaq-sensor-card__side {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .iaq-sensor-card__status-chip,
+  .iaq-sensor-card__side .badge {
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .iaq-sensor-floor__right {
@@ -7833,12 +7934,6 @@
     overflow-wrap: break-word;
   }
 
-  .time-range-selector {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: stretch;
-  }
-
   .time-range-btn,
   #iaq #iaq-metric-toggle .time-range-btn {
     width: 100%;
@@ -8039,5 +8134,115 @@
 
   .smaca-tile__value-number {
     font-size: 1.35rem;
+  }
+}
+
+/* ==================================================================
+   Mobile data tables — card rows instead of squashed columns
+   ================================================================== */
+
+@media (max-width: 768px) {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+    background: var(--surface);
+    box-shadow: 0 1px 0 var(--border);
+  }
+
+  .smaca-mobile-data-table thead {
+    display: none;
+  }
+
+  .smaca-mobile-data-table tbody tr {
+    display: block;
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--border) !important;
+    border-radius: var(--r-md);
+    background: var(--surface-2);
+  }
+
+  .smaca-mobile-data-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .smaca-mobile-data-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(108px, 34%) minmax(0, 1fr);
+    gap: var(--space-2) var(--space-3);
+    align-items: start;
+    padding: var(--space-2) 0 !important;
+    border: 0 !important;
+    text-align: left !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    font-size: var(--font-size-sm) !important;
+  }
+
+  .smaca-mobile-data-table tbody td::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    line-height: 1.35;
+    padding-top: 2px;
+  }
+
+  .smaca-mobile-data-table tbody td .badge {
+    white-space: nowrap;
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  #sensors-management-table tbody td:nth-child(1)::before { content: "Device ID"; }
+  #sensors-management-table tbody td:nth-child(2)::before { content: "Type"; }
+  #sensors-management-table tbody td:nth-child(3)::before { content: "Location"; }
+  #sensors-management-table tbody td:nth-child(4)::before { content: "Status"; }
+  #sensors-management-table tbody td:nth-child(5)::before { content: "Battery"; }
+  #sensors-management-table tbody td:nth-child(6)::before { content: "Last seen"; }
+  #sensors-management-table tbody td:nth-child(7)::before { content: "Actions"; }
+
+  #users-management-table tbody td:nth-child(1)::before { content: "Name"; }
+  #users-management-table tbody td:nth-child(2)::before { content: "Email"; }
+  #users-management-table tbody td:nth-child(3)::before { content: "Role"; }
+  #users-management-table tbody td:nth-child(4)::before { content: "Last login"; }
+  #users-management-table tbody td:nth-child(5)::before { content: "Status"; }
+
+  #sensor-health-table .smaca-mobile-data-table tbody td:nth-child(1)::before { content: "Sensor ID"; }
+  #sensor-health-table .smaca-mobile-data-table tbody td:nth-child(2)::before { content: "Location"; }
+  #sensor-health-table .smaca-mobile-data-table tbody td:nth-child(3)::before { content: "Battery"; }
+  #sensor-health-table .smaca-mobile-data-table tbody td:nth-child(4)::before { content: "Signal"; }
+  #sensor-health-table .smaca-mobile-data-table tbody td:nth-child(5)::before { content: "Last seen"; }
+  #sensor-health-table .smaca-mobile-data-table tbody td:nth-child(6)::before { content: "Status"; }
+
+  #management-sensors-tab .card,
+  #management-users-tab .card,
+  #sensor-health-table {
+    overflow-x: visible;
+  }
+
+  .smaca-iaq-zone--sensor-breakdown .card__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .smaca-iaq-zone--sensor-breakdown .card__subtitle {
+    order: 2;
+  }
+
+  .content > .dashboard-section,
+  .content > #overview,
+  .content > #iaq,
+  .content > #management {
+    padding-top: var(--space-2);
+  }
+
+  .card .chart-placeholder {
+    min-height: 220px;
+    margin-top: var(--space-2);
   }
 }

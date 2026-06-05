@@ -105,7 +105,7 @@
             <!-- {{ __('messages.dashboard.sensors') }} Table -->
             <div class="card" style="overflow-x: auto;">
               <div class="card__body" style="padding: 0;">
-                <table id="sensors-management-table" style="width: 100%; border-collapse: collapse;">
+                <table id="sensors-management-table" class="smaca-mobile-data-table" style="width: 100%; border-collapse: collapse;">
                   <thead>
                     <tr style="background: var(--surface-2); border-bottom: 2px solid var(--border);">
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Device ID</th>
@@ -223,7 +223,7 @@
                   <span class="badge badge--success badge--sm" style="text-transform:none;">user: 16</span>
                   <span class="badge badge--info badge--sm" style="text-transform:none;">viewer: 3</span>
                 </div>
-                <table id="users-management-table" style="width: 100%; border-collapse: collapse;">
+                <table id="users-management-table" class="smaca-mobile-data-table" style="width: 100%; border-collapse: collapse;">
                   <thead>
                     <tr style="background: var(--surface-2); border-bottom: 2px solid var(--border);">
                       <th style="padding: var(--space-3) var(--space-4); text-align: left; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text);">Name</th>
