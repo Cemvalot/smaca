@@ -155,7 +155,7 @@
 .ai-events-table thead th,
 .ai-events-table tbody td {
   padding: var(--space-3) var(--space-4);
-  text-align: center;
+  text-align: left;
   vertical-align: middle;
 }
 
@@ -2908,8 +2908,23 @@
   min-height: 220px;
 }
 
-#uv-daily-comparison-chart {
-  min-height: 220px;
+#uv-daily-comparison-chart,
+#uv-main-chart,
+#uv-pattern-chart {
+  flex: 0 0 auto;
+  height: 260px;
+  min-height: 260px;
+  max-height: 260px;
+  overflow: hidden;
+}
+
+#uv-daily-comparison-chart .highcharts-container,
+#uv-daily-comparison-chart .highcharts-root,
+#uv-main-chart .highcharts-container,
+#uv-pattern-chart .highcharts-container {
+  height: 260px !important;
+  max-height: 260px !important;
+  overflow: hidden !important;
 }
 
 .environmental-zone-grid {
@@ -6018,11 +6033,37 @@
 
   .iaq-sensor-floor__trigger {
     grid-template-columns: 1fr;
+    gap: var(--space-3);
+    align-items: stretch;
+    padding: var(--space-3);
+  }
+
+  .iaq-sensor-floor__left {
+    width: 100%;
+    min-width: 0;
   }
 
   .iaq-sensor-floor__metrics,
   .iaq-sensor-floor__metrics--summary {
-    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .iaq-sensor-floor__metrics span {
+    min-width: 0;
+  }
+
+  .iaq-sensor-floor__metrics small {
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.3;
+    hyphens: manual;
+  }
+
+  .iaq-sensor-floor__metrics strong {
+    white-space: normal;
+    line-height: 1.2;
   }
 
   .iaq-sensor-floor__title {
@@ -6030,6 +6071,11 @@
     overflow: visible;
     text-overflow: unset;
     line-height: 1.35;
+  }
+
+  .iaq-sensor-floor__right {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .iaq-sensor-card__name {
@@ -8243,6 +8289,51 @@
 
   .card .chart-placeholder {
     min-height: 220px;
+    max-height: 280px;
     margin-top: var(--space-2);
+  }
+
+  #uv-daily-comparison-chart,
+  #uv-main-chart,
+  #uv-pattern-chart {
+    height: 240px;
+    min-height: 240px;
+    max-height: 240px;
+  }
+
+  #uv-daily-comparison-chart .highcharts-container,
+  #uv-main-chart .highcharts-container,
+  #uv-pattern-chart .highcharts-container {
+    height: 240px !important;
+    max-height: 240px !important;
+  }
+
+  .ai-alerts-events-table tbody td[colspan] {
+    display: block;
+    grid-template-columns: 1fr;
+    text-align: center !important;
+    padding: var(--space-4) var(--space-3) !important;
+  }
+
+  .ai-alerts-events-table tbody td[colspan]::before {
+    content: none;
+  }
+
+  .ai-alerts-events-table__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    white-space: normal !important;
+  }
+
+  .ai-alerts-table-wrap {
+    overflow-x: visible;
+  }
+}
+
+@media (max-width: 480px) {
+  .iaq-sensor-floor__metrics,
+  .iaq-sensor-floor__metrics--summary {
+    grid-template-columns: 1fr;
   }
 }

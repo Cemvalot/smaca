@@ -60,7 +60,7 @@
     </div>
     <div class="card__body ai-alerts-events-card__body">
       <div class="ai-alerts-table-wrap">
-        <table class="ai-events-table ai-alerts-events-table" aria-describedby="ai-alerts-events-title">
+        <table class="ai-events-table ai-alerts-events-table smaca-mobile-data-table" aria-describedby="ai-alerts-events-title">
           <thead>
             <tr>
               <th scope="col">{{ __('messages.dashboard_i18n.ai_alerts_col_status') }}</th>

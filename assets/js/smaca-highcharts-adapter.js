@@ -224,6 +224,27 @@ function smacaUiT(key, fallback) {
     return merged;
   }
 
+  function normalizeChartContainer(container, heightPx) {
+    if (!container || !Number.isFinite(heightPx) || heightPx <= 0) return;
+    const h = Math.round(heightPx) + 'px';
+    container.style.flex = '0 0 auto';
+    container.style.height = h;
+    container.style.minHeight = h;
+    container.style.maxHeight = h;
+    container.style.overflow = 'hidden';
+  }
+
+  function destroyChartsInContainer(containerId) {
+    const store = ensureChartStore();
+    if (!store || !store.charts) return;
+    Object.keys(store.charts).forEach(function (chartKey) {
+      const chart = store.charts[chartKey];
+      if (chart && chart.renderTo && chart.renderTo.id === containerId) {
+        destroyChart(chartKey);
+      }
+    });
+  }
+
   function createOrUpdateChart(params) {
     if (!hasHighcharts()) return { ok: false, reason: 'missing-highcharts' };
     ensureAccessibilityDisabled();
@@ -233,6 +254,9 @@ function smacaUiT(key, fallback) {
     if (!containerId) return { ok: false, reason: 'missing-container-id' };
     const container = document.getElementById(containerId);
     if (!container) return { ok: false, reason: 'missing-container' };
+    if (Number.isFinite(Number(params?.fixedHeight))) {
+      normalizeChartContainer(container, Number(params.fixedHeight));
+    }
     const store = ensureChartStore();
     if (!store) return { ok: false, reason: 'missing-window' };
     if (!store.meta) store.meta = {};
@@ -260,9 +284,22 @@ function smacaUiT(key, fallback) {
 
     // Ensure charts recover correctly when containers were hidden/resized.
     const chart = store.charts[chartKey];
+    const fixedHeight = Number(params?.fixedHeight);
     if (chart && typeof chart.reflow === 'function') {
       setTimeout(function () {
-        try { chart.reflow(); } catch (e) {}
+        try {
+          if (Number.isFinite(fixedHeight) && fixedHeight > 0) {
+            normalizeChartContainer(container, fixedHeight);
+            const chartHeight = Math.max(120, fixedHeight - 20);
+            if (typeof chart.setSize === 'function') {
+              chart.setSize(null, chartHeight, false);
+            }
+          }
+          chart.reflow();
+          if (Number.isFinite(fixedHeight) && fixedHeight > 0) {
+            normalizeChartContainer(container, fixedHeight);
+          }
+        } catch (e) {}
       }, 0);
     }
 
@@ -1744,14 +1781,27 @@ function smacaUiT(key, fallback) {
     });
 
     const options = {
-      chart: { type: 'column', animation: false, backgroundColor: 'transparent', spacingLeft: 10, spacingRight: 12, spacingTop: 12, spacingBottom: 10 },
+      chart: {
+        type: 'column',
+        height: 240,
+        animation: false,
+        backgroundColor: 'transparent',
+        spacingLeft: 10,
+        spacingRight: 12,
+        spacingTop: 12,
+        spacingBottom: 10
+      },
       title: { text: null },
       credits: { enabled: false },
       legend: { enabled: false },
       xAxis: {
         categories: categories,
         lineColor: 'rgba(148, 163, 184, 0.22)',
-        labels: { style: { color: '#94a3b8', fontSize: '11px', textOutline: 'none' } }
+        labels: {
+          style: { color: '#94a3b8', fontSize: '10px', textOutline: 'none' },
+          autoRotation: [-45],
+          step: 1
+        }
       },
       yAxis: {
         title: { text: 'UV Index', style: { color: '#7c8ca2', fontSize: '10px', fontWeight: '600' } },
@@ -1807,6 +1857,7 @@ function smacaUiT(key, fallback) {
     return createOrUpdateChart({
       chartKey: 'uv-daily-comparison',
       containerId: containerId,
+      fixedHeight: 260,
       options: options
     });
   }
@@ -2447,6 +2498,7 @@ function smacaUiT(key, fallback) {
       getDefaultOptions: function () { return mergeOptions({}, DEFAULT_CHART_OPTIONS); },
       createOrUpdateChart: createOrUpdateChart,
       destroyChart: destroyChart,
+      destroyChartsInContainer: destroyChartsInContainer,
       destroyAllCharts: destroyAllCharts,
       createIaqTrendHighchart: createOrUpdateIaqTrendHighchart,
       createIaqSparklineHighchart: function () { return null; },

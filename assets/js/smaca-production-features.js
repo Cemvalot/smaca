@@ -480,6 +480,21 @@ function renderSparseDataNote(containerId, valuesWithData, totalBuckets, timefra
 function renderEmptyState(containerId, message) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  const adapter = typeof window !== 'undefined' ? window.SMACAHighchartsAdapter : null;
+  if (adapter && typeof adapter.destroyChartsInContainer === 'function') {
+    adapter.destroyChartsInContainer(containerId);
+  }
+  el.style.flex = '0 0 auto';
+  el.style.overflow = 'hidden';
+  if (containerId === 'uv-daily-comparison-chart' || containerId === 'uv-main-chart' || containerId === 'uv-pattern-chart') {
+    el.style.height = '260px';
+    el.style.minHeight = '260px';
+    el.style.maxHeight = '260px';
+  } else {
+    el.style.height = '';
+    el.style.minHeight = '';
+    el.style.maxHeight = '';
+  }
   const text = message || smacaT('no_data_available','No data available');
   // Designed empty-state: a centred dim icon + headline + reason, instead
   // of a bare blank Highcharts area. Keeps the dark SMACA look-and-feel

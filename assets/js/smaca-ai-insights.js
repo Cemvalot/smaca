@@ -227,9 +227,34 @@
     }
   }
 
+  var eventsColumnLabelsCache = null;
+
+  function getEventsColumnLabels() {
+    if (eventsColumnLabelsCache) return eventsColumnLabelsCache;
+    var table = document.querySelector('.ai-alerts-events-table');
+    if (!table) return [];
+    var ths = table.querySelectorAll('thead th');
+    eventsColumnLabelsCache = Array.prototype.map.call(ths, function (th) {
+      return String(th.textContent || '').replace(/\s+/g, ' ').trim();
+    });
+    return eventsColumnLabelsCache;
+  }
+
+  function eventsColumnLabel(index) {
+    var labels = getEventsColumnLabels();
+    return labels[index] || '';
+  }
+
+  function renderEventCell(index, innerHtml, className) {
+    var label = eventsColumnLabel(index);
+    var classAttr = className ? ' class="' + className + '"' : '';
+    return '<td data-label="' + escapeHtml(label) + '"' + classAttr + '>' + innerHtml + '</td>';
+  }
+
   function renderEvents(events, sensorIndex, state) {
     var tbody = document.getElementById('ai-alerts-events-body');
     if (!tbody) return;
+    eventsColumnLabelsCache = null;
 
     if (state === 'unavailable') {
       tbody.innerHTML =
@@ -265,19 +290,20 @@
 
       return (
         '<tr class="ai-events-row">' +
-          '<td><span class="badge ' + statusBadgeClass(displayStatus) + ' badge--sm">' + escapeHtml(displayStatus) + '</span></td>' +
-          '<td class="ai-alerts-events-table__alert-name">' + escapeHtml(event.alert_name || '—') + '</td>' +
-          '<td>' + escapeHtml(formatMetricLabel(event.metric_key)) + '</td>' +
-          '<td class="ai-alerts-events-table__sensor-cell">' + sensorHtml + '</td>' +
-          '<td>' + escapeHtml(formatValue(event.value, event.metric_key)) + '</td>' +
-          '<td><code class="ai-alerts-events-table__condition">' + escapeHtml(formatCondition(event.operator, event.threshold)) + '</code></td>' +
-          '<td>' + escapeHtml(formatDateTime(event.triggered_at)) + '</td>' +
-          '<td>' + escapeHtml(formatDateTime(event.resolved_at)) + '</td>' +
-          '<td class="ai-alerts-events-table__details">' + detailsText + '</td>' +
-          '<td class="ai-alerts-events-table__actions">' +
+          renderEventCell(0, '<span class="badge ' + statusBadgeClass(displayStatus) + ' badge--sm">' + escapeHtml(displayStatus) + '</span>') +
+          renderEventCell(1, escapeHtml(event.alert_name || '—'), 'ai-alerts-events-table__alert-name') +
+          renderEventCell(2, escapeHtml(formatMetricLabel(event.metric_key))) +
+          renderEventCell(3, sensorHtml, 'ai-alerts-events-table__sensor-cell') +
+          renderEventCell(4, escapeHtml(formatValue(event.value, event.metric_key))) +
+          renderEventCell(5, '<code class="ai-alerts-events-table__condition">' + escapeHtml(formatCondition(event.operator, event.threshold)) + '</code>') +
+          renderEventCell(6, escapeHtml(formatDateTime(event.triggered_at))) +
+          renderEventCell(7, escapeHtml(formatDateTime(event.resolved_at))) +
+          renderEventCell(8, detailsText, 'ai-alerts-events-table__details') +
+          renderEventCell(9,
             '<button type="button" class="btn btn--ghost btn--sm" disabled title="' + escapeHtml(pageI18n('action_pending', 'Action API pending')) + '">' + escapeHtml(ackLabel) + '</button>' +
-            '<button type="button" class="btn btn--ghost btn--sm" disabled title="' + escapeHtml(pageI18n('action_pending', 'Action API pending')) + '">' + escapeHtml(resolveLabel) + '</button>' +
-          '</td>' +
+            '<button type="button" class="btn btn--ghost btn--sm" disabled title="' + escapeHtml(pageI18n('action_pending', 'Action API pending')) + '">' + escapeHtml(resolveLabel) + '</button>',
+            'ai-alerts-events-table__actions'
+          ) +
         '</tr>'
       );
     }).join('');
