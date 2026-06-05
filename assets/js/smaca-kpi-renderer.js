@@ -908,15 +908,17 @@
     var tooltip = t(tooltipKey, '');
     var ui = OCCUPANCY_METRIC_UI[metricKey] || { accent: 'blue' };
     var accentClass = 'smaca-occupancy-metric-card--' + ui.accent;
+    var iconHtml = occupancyMetricIconSvg(metricKey);
     return (
       '<article class="smaca-occupancy-metric-card ' + accentClass + '" data-occupancy-metric="' + escapeHtml(metricKey) + '">' +
       '<span class="smaca-occupancy-metric-card__accent" aria-hidden="true"></span>' +
-      '<div class="smaca-occupancy-metric-card__icon" aria-hidden="true">' + occupancyMetricIconSvg(metricKey) + '</div>' +
+      '<div class="smaca-occupancy-metric-card__icon smaca-occupancy-metric-card__icon--leading" aria-hidden="true">' + iconHtml + '</div>' +
       '<div class="smaca-occupancy-metric-card__content">' +
       '<div class="smaca-occupancy-metric-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
       '<div class="smaca-occupancy-metric-card__value">' + escapeHtml(formatOccupancyMetricValue(value)) + '</div>' +
       '<div class="smaca-occupancy-metric-card__subtitle">' + escapeHtml(subtitle) + '</div>' +
       '</div>' +
+      '<div class="smaca-occupancy-metric-card__icon smaca-occupancy-metric-card__icon--trailing" aria-hidden="true">' + iconHtml + '</div>' +
       '</article>'
     );
   }

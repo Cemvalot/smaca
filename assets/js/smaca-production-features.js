@@ -5331,11 +5331,13 @@ function renderOverviewTrendChart(filteredData, timeframe) {
 
   syncOverviewChartLegend(chartSeries.map(function (s) { return s.key; }));
 
-  drawOverviewSvgLineChart(chartEl, {
+  const chartPayload = {
     timeframe: timeframe,
     buckets: buckets,
     series: chartSeries
-  });
+  };
+  drawOverviewSvgLineChart(chartEl, chartPayload);
+  bindOverviewTrendChartResize(chartEl, chartPayload);
 
   // Surface a sparse-data note if most buckets are empty across all four
   // tracked series. We count a bucket as "populated" if at least one
@@ -5519,9 +5521,30 @@ function normalizeSeriesForOverviewChart(values, strategy) {
   });
 }
 
+function bindOverviewTrendChartResize(container, payload) {
+  if (!container || typeof ResizeObserver === 'undefined') return;
+  container.__smacaOverviewChartPayload = payload;
+  if (container.__smacaOverviewResizeObserver) {
+    return;
+  }
+  let resizeFrame = 0;
+  const observer = new ResizeObserver(function () {
+    if (!container.__smacaOverviewChartPayload) return;
+    if (resizeFrame) cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(function () {
+      resizeFrame = 0;
+      if (container.clientWidth > 0 && container.clientHeight > 0) {
+        drawOverviewSvgLineChart(container, container.__smacaOverviewChartPayload);
+      }
+    });
+  });
+  observer.observe(container);
+  container.__smacaOverviewResizeObserver = observer;
+}
+
 function drawOverviewSvgLineChart(container, payload) {
   const width = Math.max(container.clientWidth, 600);
-  const height = Math.max(container.clientHeight, 280);
+  const height = Math.max(container.clientHeight, 320);
   const padding = { top: 18, right: 16, bottom: 34, left: 38 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;

@@ -32,34 +32,6 @@
                 <p class="smaca-occupancy-panel__subtitle">{{ __('messages.dashboard_i18n.occupancy_scope_daily_note') }}</p>
                 <p class="smaca-occupancy-panel__subtitle smaca-occupancy-panel__subtitle--secondary">{{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
               </div>
-              <div class="smaca-occupancy-panel__illustration" aria-hidden="true">
-                <svg class="smaca-occupancy-panel__illustration-svg" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <linearGradient id="occ-portal-grad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stop-color="rgba(96, 165, 250, 0.55)"/>
-                      <stop offset="100%" stop-color="rgba(59, 130, 246, 0.12)"/>
-                    </linearGradient>
-                    <filter id="occ-portal-glow" x="-40%" y="-40%" width="180%" height="180%">
-                      <feGaussianBlur stdDeviation="6" result="blur"/>
-                      <feMerge>
-                        <feMergeNode in="blur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                      </feMerge>
-                    </filter>
-                  </defs>
-                  <ellipse cx="120" cy="138" rx="72" ry="10" fill="rgba(59, 130, 246, 0.12)"/>
-                  <path d="M72 42 L168 42 L188 128 L52 128 Z" fill="url(#occ-portal-grad)" stroke="rgba(96, 165, 250, 0.55)" stroke-width="1.5" filter="url(#occ-portal-glow)"/>
-                  <path d="M88 52 L152 52 L166 118 L74 118 Z" fill="rgba(15, 23, 42, 0.45)" stroke="rgba(147, 197, 253, 0.35)" stroke-width="1"/>
-                  <circle cx="98" cy="92" r="9" fill="rgba(96, 165, 250, 0.35)" stroke="rgba(147, 197, 253, 0.7)" stroke-width="1.2"/>
-                  <path d="M98 101v8M94 105h8" stroke="rgba(191, 219, 254, 0.9)" stroke-width="1.4" stroke-linecap="round"/>
-                  <circle cx="120" cy="86" r="10" fill="rgba(129, 140, 248, 0.38)" stroke="rgba(165, 180, 252, 0.75)" stroke-width="1.2"/>
-                  <path d="M120 96v9M116 100h8" stroke="rgba(224, 231, 255, 0.92)" stroke-width="1.4" stroke-linecap="round"/>
-                  <circle cx="142" cy="92" r="9" fill="rgba(96, 165, 250, 0.35)" stroke="rgba(147, 197, 253, 0.7)" stroke-width="1.2"/>
-                  <path d="M142 101v8M138 105h8" stroke="rgba(191, 219, 254, 0.9)" stroke-width="1.4" stroke-linecap="round"/>
-                  <path d="M34 98c10-6 18-4 26 2M180 98c-10-6-18-4-26 2" stroke="rgba(148, 163, 184, 0.35)" stroke-width="1.5" stroke-linecap="round"/>
-                  <path d="M46 78 L72 92 M194 78 L168 92" stroke="rgba(96, 165, 250, 0.45)" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-              </div>
             </header>
             <div class="smaca-occupancy-panel__body">
               <div id="occupancy-kpi-summary-cards" data-kpi-module="occupancy" class="smaca-occupancy-kpi-grid">

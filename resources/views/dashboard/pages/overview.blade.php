@@ -80,7 +80,6 @@
             <span data-series="uv"><i class="overview-dot overview-dot--warning"></i> {{ __('messages.dashboard_i18n.overview_chart_legend_uv') }}</span>
           </div>
           <div id="overview-campus-trend-chart" class="overview-chart-shell__plot overview-live-chart" role="img" aria-label="Campus trend line chart"></div>
-          <p class="overview-chart-shell__helper">{{ __('messages.dashboard_i18n.overview_chart_subtitle') }}</p>
         </div>
       </div>
     </section>
