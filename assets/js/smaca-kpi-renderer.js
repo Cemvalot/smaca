@@ -902,8 +902,9 @@
     }
   }
 
-  function buildOccupancyMetricCard(metricKey, labelKey, tooltipKey, value) {
+  function buildOccupancyMetricCard(metricKey, labelKey, subtitleKey, tooltipKey, value) {
     var label = t(labelKey, labelKey);
+    var subtitle = t(subtitleKey, '');
     var tooltip = t(tooltipKey, '');
     var ui = OCCUPANCY_METRIC_UI[metricKey] || { accent: 'blue' };
     var accentClass = 'smaca-occupancy-metric-card--' + ui.accent;
@@ -914,7 +915,7 @@
       '<div class="smaca-occupancy-metric-card__content">' +
       '<div class="smaca-occupancy-metric-card__label" title="' + escapeHtml(tooltip) + '">' + escapeHtml(label) + '</div>' +
       '<div class="smaca-occupancy-metric-card__value">' + escapeHtml(formatOccupancyMetricValue(value)) + '</div>' +
-      '<div class="smaca-occupancy-metric-card__subtitle">' + escapeHtml(tooltip) + '</div>' +
+      '<div class="smaca-occupancy-metric-card__subtitle">' + escapeHtml(subtitle) + '</div>' +
       '</div>' +
       '</article>'
     );
@@ -923,23 +924,25 @@
   function updateOccupancyKpiFooter(metrics) {
     var footer = document.getElementById('occupancy-kpi-footer');
     var windowTextEl = document.getElementById('occupancy-kpi-footer-window-text');
-    var tzEl = document.getElementById('occupancy-kpi-footer-tz');
+    var tzTextEl = document.getElementById('occupancy-kpi-footer-tz-text');
     if (!footer) return;
     if (metrics && metrics.calculation_window_start && metrics.calculation_window_end) {
+      var timezone = metrics.calculation_window_timezone || 'Europe/Athens';
       if (windowTextEl) {
-        windowTextEl.textContent = t('occupancy_kpi_footer_window', 'Daily window: :start – :end')
+        windowTextEl.textContent = t('occupancy_metrics_daily_window', 'Daily window: :start – :end (:timezone)')
           .replace(':start', metrics.calculation_window_start)
-          .replace(':end', metrics.calculation_window_end);
+          .replace(':end', metrics.calculation_window_end)
+          .replace(':timezone', timezone);
       }
-      if (tzEl) {
-        tzEl.textContent = metrics.calculation_window_timezone || 'Europe/Athens';
+      if (tzTextEl) {
+        tzTextEl.textContent = timezone;
       }
       footer.hidden = false;
       return;
     }
     footer.hidden = true;
     if (windowTextEl) windowTextEl.textContent = '';
-    if (tzEl) tzEl.textContent = '';
+    if (tzTextEl) tzTextEl.textContent = '';
   }
 
   function renderOccupancyMetrics(summaryContainerId, payload) {
@@ -957,11 +960,11 @@
     }
 
     var cards = [
-      buildOccupancyMetricCard('people_in', 'occupancy_metric_people_in', 'occupancy_tooltip_people_in', metrics.people_in),
-      buildOccupancyMetricCard('people_out', 'occupancy_metric_people_out', 'occupancy_tooltip_people_out', metrics.people_out),
-      buildOccupancyMetricCard('remaining_inside', 'occupancy_metric_remaining_inside', 'occupancy_tooltip_remaining_inside', metrics.remaining_inside),
-      buildOccupancyMetricCard('crowd_density', 'occupancy_metric_crowd_density', 'occupancy_tooltip_crowd_density', metrics.crowd_density),
-      buildOccupancyMetricCard('peak', 'occupancy_metric_peak', 'occupancy_tooltip_peak', metrics.peak)
+      buildOccupancyMetricCard('people_in', 'occupancy_metric_people_in', 'occupancy_metric_subtitle_people_in', 'occupancy_tooltip_people_in', metrics.people_in),
+      buildOccupancyMetricCard('people_out', 'occupancy_metric_people_out', 'occupancy_metric_subtitle_people_out', 'occupancy_tooltip_people_out', metrics.people_out),
+      buildOccupancyMetricCard('remaining_inside', 'occupancy_metric_remaining_inside', 'occupancy_metric_subtitle_remaining_inside', 'occupancy_tooltip_remaining_inside', metrics.remaining_inside),
+      buildOccupancyMetricCard('crowd_density', 'occupancy_metric_crowd_density', 'occupancy_metric_subtitle_crowd_density', 'occupancy_tooltip_crowd_density', metrics.crowd_density),
+      buildOccupancyMetricCard('peak', 'occupancy_metric_peak', 'occupancy_metric_subtitle_peak', 'occupancy_tooltip_peak', metrics.peak)
     ];
 
     container.innerHTML = cards.join('');

@@ -26,28 +26,38 @@
             <header class="smaca-occupancy-panel__header smaca-occupancy-panel__header--premium">
               <div class="smaca-occupancy-panel__header-copy">
                 <div class="smaca-occupancy-panel__title-row">
-                  @include('dashboard.partials.pillar-icon-chip', ['pillar' => 'occupancy', 'size' => 'md', 'class' => 'smaca-occupancy-panel__badge'])
+                  @include('dashboard.partials.pillar-icon-chip', ['pillar' => 'occupancy', 'size' => 'lg', 'class' => 'smaca-occupancy-panel__badge'])
                   <h3 id="smaca-occupancy-panel-title" class="smaca-occupancy-panel__title">{{ __('messages.dashboard_i18n.kpi_title_occupancy') }}</h3>
                 </div>
-                <p class="smaca-occupancy-panel__subtitle">{{ __('messages.dashboard_i18n.occupancy_kpi_panel_subtitle') }}</p>
+                <p class="smaca-occupancy-panel__subtitle">{{ __('messages.dashboard_i18n.occupancy_scope_daily_note') }}</p>
+                <p class="smaca-occupancy-panel__subtitle smaca-occupancy-panel__subtitle--secondary">{{ __('messages.dashboard_i18n.kpi_intro_occupancy') }}</p>
               </div>
               <div class="smaca-occupancy-panel__illustration" aria-hidden="true">
-                <svg class="smaca-occupancy-panel__illustration-svg" viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg class="smaca-occupancy-panel__illustration-svg" viewBox="0 0 240 160" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <defs>
-                    <linearGradient id="occ-illus-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="rgba(251, 146, 60, 0.35)"/>
-                      <stop offset="100%" stop-color="rgba(251, 146, 60, 0.04)"/>
+                    <linearGradient id="occ-portal-grad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="rgba(96, 165, 250, 0.55)"/>
+                      <stop offset="100%" stop-color="rgba(59, 130, 246, 0.12)"/>
                     </linearGradient>
+                    <filter id="occ-portal-glow" x="-40%" y="-40%" width="180%" height="180%">
+                      <feGaussianBlur stdDeviation="6" result="blur"/>
+                      <feMerge>
+                        <feMergeNode in="blur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
                   </defs>
-                  <rect x="8" y="18" width="184" height="104" rx="18" fill="url(#occ-illus-grad)" stroke="rgba(251, 146, 60, 0.22)" stroke-width="1"/>
-                  <circle cx="52" cy="58" r="14" fill="rgba(251, 146, 60, 0.18)" stroke="rgba(251, 146, 60, 0.45)" stroke-width="1.2"/>
-                  <circle cx="100" cy="48" r="16" fill="rgba(59, 130, 246, 0.16)" stroke="rgba(59, 130, 246, 0.42)" stroke-width="1.2"/>
-                  <circle cx="148" cy="62" r="13" fill="rgba(168, 85, 247, 0.16)" stroke="rgba(168, 85, 247, 0.42)" stroke-width="1.2"/>
-                  <path d="M44 92c12-10 24-8 36 0s24 10 36 0 24-8 36 0" stroke="rgba(148, 163, 184, 0.45)" stroke-width="1.5" stroke-linecap="round"/>
-                  <path d="M38 58h8M46 54v8" stroke="rgba(251, 146, 60, 0.9)" stroke-width="1.8" stroke-linecap="round"/>
-                  <path d="M94 48h8M98 44v8" stroke="rgba(59, 130, 246, 0.9)" stroke-width="1.8" stroke-linecap="round"/>
-                  <path d="M142 62h8M146 58v8" stroke="rgba(168, 85, 247, 0.9)" stroke-width="1.8" stroke-linecap="round"/>
-                  <path d="M64 108h72" stroke="rgba(251, 146, 60, 0.35)" stroke-width="6" stroke-linecap="round"/>
+                  <ellipse cx="120" cy="138" rx="72" ry="10" fill="rgba(59, 130, 246, 0.12)"/>
+                  <path d="M72 42 L168 42 L188 128 L52 128 Z" fill="url(#occ-portal-grad)" stroke="rgba(96, 165, 250, 0.55)" stroke-width="1.5" filter="url(#occ-portal-glow)"/>
+                  <path d="M88 52 L152 52 L166 118 L74 118 Z" fill="rgba(15, 23, 42, 0.45)" stroke="rgba(147, 197, 253, 0.35)" stroke-width="1"/>
+                  <circle cx="98" cy="92" r="9" fill="rgba(96, 165, 250, 0.35)" stroke="rgba(147, 197, 253, 0.7)" stroke-width="1.2"/>
+                  <path d="M98 101v8M94 105h8" stroke="rgba(191, 219, 254, 0.9)" stroke-width="1.4" stroke-linecap="round"/>
+                  <circle cx="120" cy="86" r="10" fill="rgba(129, 140, 248, 0.38)" stroke="rgba(165, 180, 252, 0.75)" stroke-width="1.2"/>
+                  <path d="M120 96v9M116 100h8" stroke="rgba(224, 231, 255, 0.92)" stroke-width="1.4" stroke-linecap="round"/>
+                  <circle cx="142" cy="92" r="9" fill="rgba(96, 165, 250, 0.35)" stroke="rgba(147, 197, 253, 0.7)" stroke-width="1.2"/>
+                  <path d="M142 101v8M138 105h8" stroke="rgba(191, 219, 254, 0.9)" stroke-width="1.4" stroke-linecap="round"/>
+                  <path d="M34 98c10-6 18-4 26 2M180 98c-10-6-18-4-26 2" stroke="rgba(148, 163, 184, 0.35)" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M46 78 L72 92 M194 78 L168 92" stroke="rgba(96, 165, 250, 0.45)" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
               </div>
             </header>
@@ -66,7 +76,15 @@
                 </span>
                 <span id="occupancy-kpi-footer-window-text" class="smaca-occupancy-panel__footer-window-text"></span>
               </div>
-              <span id="occupancy-kpi-footer-tz" class="smaca-occupancy-panel__footer-tz"></span>
+              <span id="occupancy-kpi-footer-tz" class="smaca-occupancy-panel__footer-tz">
+                <span class="smaca-occupancy-panel__footer-tz-icon" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M12 7v5l3 2"/>
+                  </svg>
+                </span>
+                <span id="occupancy-kpi-footer-tz-text"></span>
+              </span>
             </footer>
           </section>
 
