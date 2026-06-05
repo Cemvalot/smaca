@@ -473,10 +473,42 @@
     return Math.round(diff / 60000);
   }
 
-  // Overview freshness thresholds — aligned with module-health bars (30 min)
-  // and backend/IAQ stale cutoffs (90 min).
-  var SENSOR_ONLINE_MAX_MIN = 30;
-  var SENSOR_STALE_MAX_MIN = 90;
+  // Per device-type reporting cadence (minutes). Campus LoRaWAN devices do not
+  // all report every few minutes — energy/water meters are intentionally slow.
+  var SENSOR_FRESHNESS_PROFILES = {
+    default:              { onlineMin: 90,  staleMin: 360,  offlineMin: 1440 },
+    indoorairquality:     { onlineMin: 90,  staleMin: 360,  offlineMin: 1440 },
+    iaq:                  { onlineMin: 90,  staleMin: 360,  offlineMin: 1440 },
+    peoplecounter:        { onlineMin: 90,  staleMin: 360,  offlineMin: 1440 },
+    occupancy:            { onlineMin: 90,  staleMin: 360,  offlineMin: 1440 },
+    sensornetworkquality: { onlineMin: 90,  staleMin: 360,  offlineMin: 1440 },
+    connectivity:         { onlineMin: 90,  staleMin: 360,  offlineMin: 1440 },
+    energymeter:          { onlineMin: 480, staleMin: 1440, offlineMin: 2880 },
+    energy:               { onlineMin: 480, staleMin: 1440, offlineMin: 2880 },
+    watermeter:           { onlineMin: 1440, staleMin: 4320, offlineMin: 10080 },
+    water:                { onlineMin: 1440, staleMin: 4320, offlineMin: 10080 },
+    sensoruv:             { onlineMin: 180, staleMin: 720,  offlineMin: 2880 },
+    environmental:        { onlineMin: 180, staleMin: 720,  offlineMin: 2880 }
+  };
+
+  function normalizeDeviceTypeKey(sensor) {
+    return String((sensor && sensor.device_type) || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  }
+
+  function sensorFreshnessProfile(sensor) {
+    var key = normalizeDeviceTypeKey(sensor);
+    if (SENSOR_FRESHNESS_PROFILES[key]) return SENSOR_FRESHNESS_PROFILES[key];
+    if (/energy|meter|sdm|kwh/.test(key)) return SENSOR_FRESHNESS_PROFILES.energymeter;
+    if (/water/.test(key)) return SENSOR_FRESHNESS_PROFILES.watermeter;
+    if (/people|counter|occupancy/.test(key)) return SENSOR_FRESHNESS_PROFILES.peoplecounter;
+    if (/iaq|airquality|indoor/.test(key)) return SENSOR_FRESHNESS_PROFILES.indoorairquality;
+    if (/network|connectivity|wireless|lora|rssi/.test(key)) return SENSOR_FRESHNESS_PROFILES.sensornetworkquality;
+    if (/uv|environmental/.test(key)) return SENSOR_FRESHNESS_PROFILES.sensoruv;
+    return SENSOR_FRESHNESS_PROFILES.default;
+  }
 
   /** Minutes since the newest of last_seen_at / latest.measured_at. */
   function sensorFreshnessMinutes(sensor) {
@@ -496,12 +528,19 @@
     return Math.round(diff / 60000);
   }
 
+  function isSensorFreshnessStale(sensor) {
+    var min = sensorFreshnessMinutes(sensor);
+    if (!isFiniteNum(min)) return true;
+    return min >= sensorFreshnessProfile(sensor).staleMin;
+  }
+
   function classifyOverviewSensorFreshness(sensor) {
     if (!sensor || sensor.is_active === false || sensor.is_active === 0) return 'offline';
     var min = sensorFreshnessMinutes(sensor);
     if (!isFiniteNum(min)) return 'offline';
-    if (min < SENSOR_ONLINE_MAX_MIN) return 'online';
-    if (min < SENSOR_STALE_MAX_MIN) return 'delayed';
+    var profile = sensorFreshnessProfile(sensor);
+    if (min < profile.onlineMin) return 'online';
+    if (min < profile.offlineMin) return 'delayed';
     return 'offline';
   }
 
@@ -1248,7 +1287,8 @@
         });
         var fresh = matching.filter(function (s) {
           var min = sensorFreshnessMinutes(s);
-          return isFiniteNum(min) && min < SENSOR_ONLINE_MAX_MIN;
+          var profile = sensorFreshnessProfile(s);
+          return isFiniteNum(min) && min < profile.onlineMin;
         }).length;
         var pct = matching.length ? (fresh / matching.length) * 100 : 0;
         var worstDriver = findWorstWatchKpi(kpiBundles[m.key], overviewWatchKeys[m.key]);
@@ -1274,8 +1314,8 @@
           pillar: 'system',
           subtitle: overviewTr(
             'overview_module_health_subtitle',
-            'Green bar = sensors reporting in the last 30 min. Status line shows the worst KPI for that module.',
-            'Πράσινη μπάρα = αισθητήρες που αναφέρουν (30 λεπτά). Η γραμμή κατάστασης δείχνει το χειρότερο KPI.'
+            'Green bar = sensors reporting within their expected interval (varies by device type). Status line shows the worst KPI for that module.',
+            'Πράσινη μπάρα = αισθητήρες εντός αναμενόμενου διαστήματος αναφοράς (ανά τύπο). Η γραμμή κατάστασης δείχνει το χειρότερο KPI.'
           ),
           unit: '%',
           meta: overviewTr('overview_module_health_meta', 'Per module · live sensor streams', 'Ανά ενότητα · ζωντανές ροές')
@@ -1310,8 +1350,8 @@
             pillar: 'system',
             subtitle: overviewTr(
               'overview_sensor_donut_subtitle',
-              'Freshness of sensor streams in the current scope.',
-              'Φρεσκάδα ροών αισθητήρων στο τρέχον εύρος.'
+              'Freshness of sensor streams by device reporting cadence (not all sensors transmit every few minutes).',
+              'Φρεσκάδα ροών ανά ρυθμό αναφοράς τύπου αισθητήρα (δεν στέλνουν όλοι ανά λίγα λεπτά).'
             ),
             meta: locText(sensors.length + ' total', 'Σύνολο: ' + sensors.length)
           });
@@ -1421,8 +1461,12 @@
           value: isFiniteNum(staleMin) ? staleMin : null,
           unit: locText('min ago', 'λ. πριν'),
           status: !isFiniteNum(staleMin) ? 'muted'
-            : (staleMin < SENSOR_ONLINE_MAX_MIN ? 'good'
-              : (staleMin < SENSOR_STALE_MAX_MIN ? 'warning' : 'critical')),
+            : (function () {
+              var profile = sensorFreshnessProfile(stalest);
+              if (staleMin < profile.onlineMin) return 'good';
+              if (staleMin < profile.offlineMin) return 'warning';
+              return 'critical';
+            })(),
           icon: ICONS.clock,
           meta: labelForLocation(stalest.sensor_location, stalest.name || stalest.sensor_uid)
         });
@@ -3425,6 +3469,13 @@
 
   // Helpers retained for future tile additions but not always used.
   void [chartHost];
+
+  global.SMACASensorFreshness = {
+    minutes: sensorFreshnessMinutes,
+    profile: sensorFreshnessProfile,
+    classify: classifyOverviewSensorFreshness,
+    isStale: isSensorFreshnessStale
+  };
 
   global.SMACATelemetryBootstrap = {
     refresh: refreshActive,

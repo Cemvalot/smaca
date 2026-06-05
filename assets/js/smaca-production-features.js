@@ -1349,6 +1349,16 @@ function renderConnectivityFromLiveSensors() {
   }
 }
 
+function isManagementSensorStale(sensor) {
+  if (window.SMACASensorFreshness && typeof window.SMACASensorFreshness.isStale === 'function') {
+    return window.SMACASensorFreshness.isStale(sensor);
+  }
+  const latest = sensor?.latest || sensor?.latest_snapshot || {};
+  const lastSeen = latest?.measured_at || sensor?.last_seen_at || null;
+  const lastSeenMs = lastSeen ? new Date(lastSeen).getTime() : NaN;
+  return !Number.isFinite(lastSeenMs) || ((Date.now() - lastSeenMs) > (6 * 60 * 60 * 1000));
+}
+
 function renderManagementSensorsFromLiveData() {
   const sensors = Array.isArray(window.SMACADashboardContext?.sensors) ? window.SMACADashboardContext.sensors : [];
   const latestById = window.SMACADashboardContext?.selectedSensorLatestById || {};
@@ -1364,8 +1374,10 @@ function renderManagementSensorsFromLiveData() {
     const batteryClass = batteryInfo.className;
     const lastSeen = latestRow?.last_seen_at || latest?.measured_at || sensor?.last_seen_at || null;
     const lastSeenText = lastSeen ? new Date(lastSeen).toLocaleString() : 'No data for this sensor';
-    const lastSeenMs = lastSeen ? new Date(lastSeen).getTime() : NaN;
-    const isStale = !Number.isFinite(lastSeenMs) || ((Date.now() - lastSeenMs) > (2 * 60 * 60 * 1000));
+    const isStale = isManagementSensorStale(Object.assign({}, sensor, {
+      last_seen_at: lastSeen,
+      latest: latest && latest.measured_at ? latest : (sensor.latest || { measured_at: lastSeen })
+    }));
     const sensorIdentifier = escapeSmacaHtml(sensor?.sensor_uid || sensor?.id || '');
     const rawSensorName = latestRow?.sensor_name || sensor?.sensor_name || latestRow?.name || sensor?.name || '';
     const displayTypeName = escapeSmacaHtml(rawSensorName || sensor?.device_type || 'Unknown');
@@ -1832,8 +1844,10 @@ function renderManagementSmartAlerts(sensors, latestById) {
   const staleSensors = sensors.filter(function (sensor) {
     const latest = (latestById[String(sensor.id)]?.latest || sensor?.latest_snapshot || {});
     const lastSeen = latestById[String(sensor.id)]?.last_seen_at || latest?.measured_at || sensor?.last_seen_at || null;
-    const lastSeenMs = lastSeen ? new Date(lastSeen).getTime() : NaN;
-    return !Number.isFinite(lastSeenMs) || ((Date.now() - lastSeenMs) > (2 * 60 * 60 * 1000));
+    return isManagementSensorStale(Object.assign({}, sensor, {
+      last_seen_at: lastSeen,
+      latest: latest && latest.measured_at ? latest : (sensor.latest || { measured_at: lastSeen })
+    }));
   });
   if (staleSensors.length > 0) {
     alerts.push({ type: 'signal-loss', title: staleSensors.length + ' sensors no recent signal', location: smacaT('connectivity','Connectivity'), severity: 'medium', status: 'open', date: new Date().toLocaleDateString() });
