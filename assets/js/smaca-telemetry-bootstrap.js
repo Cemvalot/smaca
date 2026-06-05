@@ -473,6 +473,38 @@
     return Math.round(diff / 60000);
   }
 
+  // Overview freshness thresholds — aligned with module-health bars (30 min)
+  // and backend/IAQ stale cutoffs (90 min).
+  var SENSOR_ONLINE_MAX_MIN = 30;
+  var SENSOR_STALE_MAX_MIN = 90;
+
+  /** Minutes since the newest of last_seen_at / latest.measured_at. */
+  function sensorFreshnessMinutes(sensor) {
+    if (!sensor) return null;
+    var newestMs = null;
+    function consider(iso) {
+      if (!iso) return;
+      var parsed = Date.parse(iso);
+      if (!Number.isFinite(parsed)) return;
+      if (newestMs === null || parsed > newestMs) newestMs = parsed;
+    }
+    consider(sensor.last_seen_at);
+    if (sensor.latest) consider(sensor.latest.measured_at);
+    if (newestMs === null) return null;
+    var diff = Date.now() - newestMs;
+    if (diff < 0) return 0;
+    return Math.round(diff / 60000);
+  }
+
+  function classifyOverviewSensorFreshness(sensor) {
+    if (!sensor || sensor.is_active === false || sensor.is_active === 0) return 'offline';
+    var min = sensorFreshnessMinutes(sensor);
+    if (!isFiniteNum(min)) return 'offline';
+    if (min < SENSOR_ONLINE_MAX_MIN) return 'online';
+    if (min < SENSOR_STALE_MAX_MIN) return 'delayed';
+    return 'offline';
+  }
+
   function locText(en, el) {
     var locale = (global.SMACA_LOCALE || 'en').toLowerCase();
     return locale.indexOf('el') === 0 ? (el || en) : en;
@@ -1215,8 +1247,8 @@
           return false;
         });
         var fresh = matching.filter(function (s) {
-          var min = relativeMinutes(s.latest && s.latest.measured_at);
-          return isFiniteNum(min) && min < 30;
+          var min = sensorFreshnessMinutes(s);
+          return isFiniteNum(min) && min < SENSOR_ONLINE_MAX_MIN;
         }).length;
         var pct = matching.length ? (fresh / matching.length) * 100 : 0;
         var worstDriver = findWorstWatchKpi(kpiBundles[m.key], overviewWatchKeys[m.key]);
@@ -1257,11 +1289,10 @@
       var counts = { online: 0, delayed: 0, offline: 0 };
       sensors.forEach(function (s) {
         if (!s) return;
-        if (!s.is_active) { counts.offline += 1; return; }
-        var min = relativeMinutes(s.last_seen_at || (s.latest && s.latest.measured_at));
-        if (!isFiniteNum(min)) { counts.offline += 1; return; }
-        if (min < 5) counts.online += 1;
-        else counts.delayed += 1;
+        var bucket = classifyOverviewSensorFreshness(s);
+        if (bucket === 'online') counts.online += 1;
+        else if (bucket === 'delayed') counts.delayed += 1;
+        else counts.offline += 1;
       });
       var donutEl = grid.querySelector('[data-tile="status-donut"]');
       if (donutEl && tile()) {
@@ -1376,17 +1407,22 @@
       }
 
       // --- 6) Stalest stream ---
-      var stalest = sensors
-        .filter(function (s) { return s && s.last_seen_at; })
-        .sort(function (a, b) { return Date.parse(a.last_seen_at) - Date.parse(b.last_seen_at); })[0];
-      if (stalest) {
-        var staleMin = relativeMinutes(stalest.last_seen_at);
+      var stalestRow = sensors
+        .map(function (s) {
+          return { sensor: s, min: sensorFreshnessMinutes(s) };
+        })
+        .filter(function (row) { return row.sensor && isFiniteNum(row.min); })
+        .sort(function (a, b) { return b.min - a.min; })[0];
+      if (stalestRow) {
+        var staleMin = stalestRow.min;
+        var stalest = stalestRow.sensor;
         renderValueOrEmpty(grid, 'stalest', {
           label: locText('Stalest stream', 'Πιο παλιά ροή'),
           value: isFiniteNum(staleMin) ? staleMin : null,
           unit: locText('min ago', 'λ. πριν'),
           status: !isFiniteNum(staleMin) ? 'muted'
-            : (staleMin < 5 ? 'good' : (staleMin < 30 ? 'warning' : 'critical')),
+            : (staleMin < SENSOR_ONLINE_MAX_MIN ? 'good'
+              : (staleMin < SENSOR_STALE_MAX_MIN ? 'warning' : 'critical')),
           icon: ICONS.clock,
           meta: labelForLocation(stalest.sensor_location, stalest.name || stalest.sensor_uid)
         });
