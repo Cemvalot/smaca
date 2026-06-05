@@ -850,3 +850,35 @@ html.smaca-is-scrolling .occupancy-sensor-floor__body {
   .conn-device-grid { grid-template-columns: 1fr; }
   .conn-table-scroll { max-height: 360px; }
 }
+
+/* Mobile: paint containment clips wrapped labels — relax chrome tiles */
+@media (max-width: 768px) {
+  .topbar {
+    contain: layout style;
+    overflow: visible;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-section,
+  [data-smaca-telemetry] {
+    contain: none;
+    overflow: visible;
+  }
+
+  .smaca-tile,
+  .smaca-tile--chart,
+  .iaq-sensor-floor,
+  .occupancy-sensor-floor,
+  .energy-meter-floor {
+    contain: layout style;
+    overflow: visible;
+  }
+
+  .conn-kpi-card__label,
+  .conn-attention-item__label,
+  .conn-device-card__name {
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.35;
+  }
+}

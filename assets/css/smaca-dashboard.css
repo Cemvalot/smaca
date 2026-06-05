@@ -3958,8 +3958,8 @@
   }
 }
 
-/* ---- Tablet: graceful stacking ------------------------------------- */
-@media (max-width: 1024px) {
+/* ---- Tablet: graceful stacking (phones use single column below) ------ */
+@media (min-width: 769px) and (max-width: 1024px) {
   .grid--metrics-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -7758,5 +7758,286 @@
 @media (max-width: 900px) {
   .dashboard-section--water .grid[style*="1fr 1fr"] {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* ==================================================================
+   Mobile readability pass — wrap text, full-width controls, no clip
+   ================================================================== */
+
+@media (max-width: 768px) {
+  .topbar,
+  .topbar__start,
+  .topbar__title,
+  .topbar__actions,
+  .topbar__spatial,
+  .card,
+  .card__header,
+  .card__body,
+  .stat-card,
+  .stat-card__content,
+  .section-hero,
+  .section-hero__inner,
+  .section-hero__title-row,
+  .overview-live-header,
+  .overview-live-header-copy,
+  .overview-module-card,
+  .smaca-tile,
+  .smaca-tile__head,
+  .dashboard-section,
+  .badge,
+  .data-status-pill {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .card__title,
+  .card__subtitle,
+  .section-hero__title,
+  .section-hero__subtitle,
+  .section-subtitle,
+  .overview-module-card__title,
+  .overview-module-card__desc,
+  .overview-module-card__indicator,
+  .overview-module-card__action {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+    max-width: 100%;
+    line-height: 1.4;
+  }
+
+  .topbar__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .topbar__spatial,
+  .time-range-selector,
+  .language-switcher {
+    width: 100%;
+  }
+
+  .smaca-spatial-trigger {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .smaca-spatial-trigger__label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    line-height: 1.35;
+    overflow-wrap: break-word;
+  }
+
+  .time-range-selector {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .time-range-btn,
+  #iaq #iaq-metric-toggle .time-range-btn {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.25;
+    font-size: var(--font-size-xs);
+  }
+
+  .language-switcher {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .language-switcher .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .overview-kpi-card .stat-card__label,
+  .overview-kpi-card__hint,
+  .overview-kpi-card .overview-live-note,
+  .overview-kpi-card__desc,
+  .overview-kpi-card__semantic-row,
+  .overview-kpi-card__value-caption,
+  .overview-air-score-meta,
+  .overview-live-health__detail,
+  .overview-live-subtitle {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.45;
+  }
+
+  .overview-kpi-card .stat-card__label {
+    letter-spacing: 0.04em;
+  }
+
+  .overview-kpi-card .stat-card__value {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .overview-kpi-card .stat-card__value-unit {
+    white-space: normal;
+  }
+
+  .overview-live-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .overview-live-health {
+    width: 100%;
+    align-self: stretch;
+    flex-wrap: wrap;
+  }
+
+  .overview-live-health__copy {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .card__header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .card__title {
+    flex: 1 1 100%;
+  }
+
+  .card__header > .smaca-help-btn--inheader {
+    margin-left: 0;
+  }
+
+  .smaca-tile__label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    letter-spacing: 0.05em;
+    line-height: 1.35;
+    overflow-wrap: break-word;
+  }
+
+  .smaca-tile__head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .iaq-sensor-floor__title,
+  .occupancy-sensor-floor__title,
+  .energy-meter-floor__title,
+  .iaq-sensor-card__title,
+  .occupancy-sensor-card__title,
+  .energy-meter-card__title,
+  .iaq-sensor-card__secondary,
+  .occupancy-sensor-card__secondary,
+  .energy-meter-card__secondary,
+  .iaq-sensor-floor__summary,
+  .energy-meter-floor__summary {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    overflow-wrap: break-word;
+    line-height: 1.35;
+  }
+
+  .overview-scope-control__segment,
+  .overview-scope-control__pill {
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
+    min-height: 40px;
+  }
+
+  .smaca-cb__label,
+  .smaca-rank-bars__label-text {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    overflow-wrap: break-word;
+    line-height: 1.3;
+  }
+
+  .smaca-cb__row,
+  .smaca-rank-bars__row {
+    grid-template-columns: minmax(72px, 0.9fr) minmax(0, 1.4fr) auto;
+    gap: var(--space-2);
+    align-items: start;
+  }
+
+  .segmented-control {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .segmented-control__btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .grid--metrics-2,
+  .grid--metrics-3,
+  .grid--metrics-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar__heading {
+    font-size: var(--font-size-lg);
+    line-height: 1.25;
+  }
+
+  .topbar__subtitle {
+    font-size: var(--font-size-xs);
+  }
+
+  .overview-kpi-card .stat-card__label {
+    font-size: 10px;
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  .smaca-tg,
+  .smaca-tg--3,
+  .smaca-tg--4,
+  .smaca-tg--5,
+  .smaca-tg--6,
+  .smaca-tg--rich {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .smaca-tile--w1,
+  .smaca-tile--w2,
+  .smaca-tile--w3,
+  .smaca-tile--w4,
+  .smaca-tile--w5,
+  .smaca-tile--w6,
+  .smaca-tile--w7,
+  .smaca-tile--w8,
+  .smaca-tile--w9,
+  .smaca-tile--w12 {
+    grid-column: span 1;
+  }
+
+  .smaca-tile {
+    min-height: 0;
+    padding: var(--space-3);
+  }
+
+  .smaca-tile__value-number {
+    font-size: 1.35rem;
   }
 }

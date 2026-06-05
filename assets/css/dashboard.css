@@ -1167,6 +1167,23 @@ body.smaca-nav-open .content {
 
   .topbar__actions .btn {
     min-height: 44px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .topbar__heading,
+  .topbar__subtitle {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    max-width: 100%;
+    line-height: 1.35;
+  }
+
+  .topbar__alert-indicator {
+    white-space: normal;
+    max-width: 100%;
+    line-height: 1.4;
   }
 
   .grid--metrics {
