@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\App;
 use App\Http\Middleware\SetLocale;
-use App\Services\Public\PublicCampusSnapshotService;
 
 Route::get('/favicon.ico', function () {
     $publicIco = public_path('favicon.ico');
@@ -30,11 +29,7 @@ Route::middleware([SetLocale::class])->group(function () {
     });
 
     Route::get('/landing', function () {
-        $campusSnapshot = (new PublicCampusSnapshotService())->build();
-
-        return view('landing', [
-            'campusSnapshot' => $campusSnapshot,
-        ]);
+        return view('landing');
     });
 
     Route::get('/language/{locale}', function (string $locale) {
