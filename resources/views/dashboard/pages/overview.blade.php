@@ -70,13 +70,18 @@
           <h3 class="card__title">{{ __('messages.nav.dashboard') }}</h3>
         </div>
         <p class="card__subtitle">{{ __('messages.dashboard_i18n.overview_chart_subtitle') }}</p>
+        @if($smacaIsAdmin)
+        <p class="card__subtitle overview-trend-card__connectivity-note">{{ __('messages.dashboard_i18n.overview_chart_connectivity_explainer') }}</p>
+        @endif
       </div>
       <div class="card__body">
         <div class="overview-chart-shell" aria-label="{{ __('messages.nav.dashboard') }} chart">
           <div class="overview-chart-shell__legend" id="overview-chart-legend">
             <span data-series="co2"><i class="overview-dot overview-dot--accent"></i> {{ __('messages.dashboard_i18n.overview_chart_legend_co2') }}</span>
             <span data-series="occupancy"><i class="overview-dot overview-dot--success"></i> {{ __('messages.dashboard_i18n.overview_chart_movement_balance') }} · {{ __('messages.dashboard_i18n.overview_module_occupancy') }}</span>
+            @if($smacaIsAdmin)
             <span data-series="connectivity"><i class="overview-dot overview-dot--info"></i> {{ __('messages.dashboard_i18n.overview_chart_legend_connectivity') }}</span>
+            @endif
             <span data-series="uv"><i class="overview-dot overview-dot--warning"></i> {{ __('messages.dashboard_i18n.overview_chart_legend_uv') }}</span>
           </div>
           <div id="overview-campus-trend-chart" class="overview-chart-shell__plot overview-live-chart" role="img" aria-label="Campus trend line chart"></div>

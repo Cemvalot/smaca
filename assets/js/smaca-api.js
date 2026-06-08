@@ -353,6 +353,46 @@
     return normalized;
   }
 
+  function applyConnectivityMetricToObject(object, metric, value) {
+    if (!object || value === null || value === undefined) return;
+    if (metric === 'signal_strength') {
+      object.signal_strength = value;
+      object.rssi = value;
+    }
+    if (metric === 'snr' || metric === 'signal_to_noise') {
+      object.snr = value;
+      object.signal_to_noise = value;
+    }
+    if (metric === 'tx_ccq') {
+      object.tx_ccq = value;
+    }
+    if (metric === 'tx_rate') {
+      object.tx_rate = value;
+    }
+  }
+
+  function buildConnectivityTimeseriesItems(responses, meta) {
+    const byTime = new Map();
+    (Array.isArray(responses) ? responses : []).forEach(function (response) {
+      const points = Array.isArray(response?.payload?.points) ? response.payload.points : [];
+      points.forEach(function (point) {
+        const time = point?.time;
+        if (!time) return;
+        if (!byTime.has(time)) {
+          byTime.set(time, {
+            time: time,
+            sensorId: meta.sensorId,
+            payload: { object: {} }
+          });
+        }
+        applyConnectivityMetricToObject(byTime.get(time).payload.object, response.metric, toNumberOrNull(point.value));
+      });
+    });
+    return Array.from(byTime.values()).sort(function (a, b) {
+      return new Date(a.time) - new Date(b.time);
+    });
+  }
+
   function mergeMetricIntoEnvironmentalItems(items, metric, points) {
     const normalized = Array.isArray(items) ? items : [];
     const rows = Array.isArray(points) ? points : [];
@@ -372,19 +412,8 @@
       if (metric === 'energy_kwh') {
         existing.payload.object.energy_kwh = value;
       }
-      if (metric === 'signal_strength') {
-        existing.payload.object.signal_strength = value;
-        existing.payload.object.rssi = value;
-      }
-      if (metric === 'snr' || metric === 'signal_to_noise') {
-        existing.payload.object.snr = value;
-        existing.payload.object.signal_to_noise = value;
-      }
-      if (metric === 'tx_ccq') {
-        existing.payload.object.tx_ccq = value;
-      }
-      if (metric === 'tx_rate') {
-        existing.payload.object.tx_rate = value;
+      if (metric === 'signal_strength' || metric === 'snr' || metric === 'signal_to_noise' || metric === 'tx_ccq' || metric === 'tx_rate') {
+        applyConnectivityMetricToObject(existing.payload.object, metric, value);
       }
     });
 
@@ -564,7 +593,8 @@
       timeseriesPointsToEnvironmentalItems: timeseriesPointsToEnvironmentalItems,
       mergeMetricIntoIAQItems: mergeMetricIntoIAQItems,
       mergeMetricIntoOccupancyItems: mergeMetricIntoOccupancyItems,
-      mergeMetricIntoEnvironmentalItems: mergeMetricIntoEnvironmentalItems
+      mergeMetricIntoEnvironmentalItems: mergeMetricIntoEnvironmentalItems,
+      buildConnectivityTimeseriesItems: buildConnectivityTimeseriesItems
     }
   };
 })();

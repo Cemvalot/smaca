@@ -158,9 +158,25 @@ function getSmacaCurrentPage() {
   return maybePage || 'overview';
 }
 
+function isSmacaAdminView() {
+  return !!(
+    (typeof window !== 'undefined'
+      && window.SMACARBAC
+      && typeof window.SMACARBAC.isAdmin === 'function'
+      && window.SMACARBAC.isAdmin())
+    || (typeof window !== 'undefined'
+      && window.SMACA_USER
+      && String(window.SMACA_USER.role || '').toLowerCase().trim() === 'admin')
+  );
+}
+
 function getRequiredBucketsForCurrentPage() {
   const page = getSmacaCurrentPage();
-  return SMACA_PAGE_BUCKETS[page] || [];
+  const buckets = SMACA_PAGE_BUCKETS[page] || [];
+  if (page === 'overview' && !isSmacaAdminView()) {
+    return buckets.filter(function (bucket) { return bucket !== 'connectivity'; });
+  }
+  return buckets;
 }
 
 function shouldHydrateAllSensorLatestForCurrentPage() {
@@ -762,6 +778,21 @@ function connectivityBandToScore(bandKey) {
   return map[bandKey] !== undefined ? map[bandKey] : null;
 }
 
+function connectivityScoreToBandLabel(score) {
+  if (!Number.isFinite(score)) return null;
+  if (score >= 92) return smacaT('connectivity_band_excellent', 'Excellent');
+  if (score >= 78) return smacaT('connectivity_band_very_good', 'Very good');
+  if (score >= 62) return smacaT('connectivity_band_good_usable', 'Good / usable');
+  if (score >= 32) return smacaT('connectivity_band_weak_unstable', 'Weak / unstable');
+  return smacaT('connectivity_band_bad', 'Bad');
+}
+
+function formatOverviewConnectivityValue(score) {
+  if (!Number.isFinite(score)) return 'N/A';
+  var label = connectivityScoreToBandLabel(score);
+  return label ? (label + ' (' + Math.round(score) + ')') : String(Math.round(score));
+}
+
 function connectivityMetricsFromRow(row) {
   var obj = row && row.payload && row.payload.object ? row.payload.object : (row || {});
   if (typeof window !== 'undefined' && window.SMACA_TELEMETRY_METRIC_NORMALIZE && typeof window.SMACA_TELEMETRY_METRIC_NORMALIZE.normalizeLatest === 'function') {
@@ -778,27 +809,20 @@ function connectivityMetricsFromRow(row) {
 function resolveCampusConnectivityQualityPct(sensors) {
   var list = Array.isArray(sensors) ? sensors.filter(sensorHasWirelessMetrics) : [];
   if (!list.length || typeof window === 'undefined' || !window.SMACA_CONNECTIVITY_QUALITY) return null;
-  var sums = { rssi: [], snr: [], tx_ccq: [], tx_rate: [] };
+  var quality = window.SMACA_CONNECTIVITY_QUALITY;
+  var scores = [];
   list.forEach(function (sensor) {
     var latest = sensor.latest_snapshot || sensor.latest || {};
     var m = connectivityMetricsFromRow({ payload: { object: latest } });
-    if (Number.isFinite(m.rssi)) sums.rssi.push(m.rssi);
-    if (Number.isFinite(m.snr)) sums.snr.push(m.snr);
-    if (Number.isFinite(m.tx_ccq)) sums.tx_ccq.push(m.tx_ccq);
-    if (Number.isFinite(m.tx_rate)) sums.tx_rate.push(m.tx_rate);
+    if (m.rssi === null && m.snr === null && m.tx_ccq === null && m.tx_rate === null) return;
+    var overall = quality.classifyOverall(m);
+    var band = overall && (overall.dominant_band || overall.overall_band);
+    var score = band ? connectivityBandToScore(band) : null;
+    if (score !== null) scores.push(score);
   });
-  function avg(arr) {
-    if (!arr.length) return null;
-    return arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
-  }
-  var overall = window.SMACA_CONNECTIVITY_QUALITY.classifyOverall({
-    rssi: avg(sums.rssi),
-    snr: avg(sums.snr),
-    tx_ccq: avg(sums.tx_ccq),
-    tx_rate: avg(sums.tx_rate)
-  });
-  var band = (overall && (overall.dominant_band || overall.overall_band)) || null;
-  return band ? connectivityBandToScore(band) : null;
+  return scores.length
+    ? scores.reduce(function (a, b) { return a + b; }, 0) / scores.length
+    : null;
 }
 
 function isValidFiniteNumber(value) {
@@ -990,7 +1014,7 @@ function buildBucketSensorIds(currentPage, bucket, selectedBySection, iaqSensorI
             .find(function (s) { return Number(s && s.id) === id; });
           return sensorHasWirelessMetrics(sensor);
         });
-      return wirelessIds.slice(0, 3);
+      return wirelessIds;
     }
 
     const selectedSensorId = Number(selected[bucket]);
@@ -2083,7 +2107,12 @@ function updateOverviewCountersFromApi(overview, sensors) {
   if (connectivityHealthEl) {
     const connected = Number.isFinite(Number(totals.connected_sensors)) ? Number(totals.connected_sensors) : connectedFallback;
     const total = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : totalFallback;
-    connectivityHealthEl.textContent = total > 0 ? `${Math.round((connected / total) * 100)}%` : smacaT('not_available','Not available');
+    const wirelessPct = resolveCampusConnectivityQualityPct(sensorRows);
+    connectivityHealthEl.textContent = wirelessPct !== null
+      ? formatOverviewConnectivityValue(wirelessPct)
+      : (total > 0
+        ? `${connected}/${total} ${smacaT('overview_sensors_online_ratio', 'sensors online')}`
+        : smacaT('not_available', 'Not available'));
   }
 
   const occupancyLoadEl = document.getElementById('overview-occupancy-load');
@@ -2227,14 +2256,16 @@ async function fetchAndMapTimeseriesForSensor(sensorId, timeframe, metricList, b
   let items = [];
   if (bucket === 'iaq') items = adapters.timeseriesPointsToIAQItems(firstResponse?.payload?.points || [], meta);
   if (bucket === 'occupancy') items = adapters.timeseriesPointsToOccupancyItems(firstResponse?.payload?.points || [], meta);
-  if (bucket === 'environmental' || bucket === 'energy' || bucket === 'connectivity') {
+  if (bucket === 'connectivity' && typeof adapters.buildConnectivityTimeseriesItems === 'function') {
+    items = adapters.buildConnectivityTimeseriesItems(responses, meta);
+  } else if (bucket === 'environmental' || bucket === 'energy') {
     items = adapters.timeseriesPointsToEnvironmentalItems(firstResponse?.payload?.points || [], meta);
   }
 
   responses.forEach(function (response) {
     if (bucket === 'iaq') items = adapters.mergeMetricIntoIAQItems(items, response.metric, response.payload?.points || []);
     if (bucket === 'occupancy') items = adapters.mergeMetricIntoOccupancyItems(items, response.metric, response.payload?.points || []);
-    if (bucket === 'environmental' || bucket === 'energy' || bucket === 'connectivity') {
+    if (bucket === 'environmental' || bucket === 'energy') {
       items = adapters.mergeMetricIntoEnvironmentalItems(items, response.metric, response.payload?.points || []);
     }
   });
@@ -4618,8 +4649,10 @@ function updateOverviewSystemStatus() {
   if (connectivityHealthCounter) {
     const wirelessPct = resolveCampusConnectivityQualityPct(sensors);
     connectivityHealthCounter.textContent = wirelessPct !== null
-      ? `${Math.round(wirelessPct)}%`
-      : (totalSensors > 0 ? `${Math.round((connectedSensors / totalSensors) * 100)}%` : smacaT('not_available','Not available'));
+      ? formatOverviewConnectivityValue(wirelessPct)
+      : (totalSensors > 0
+        ? `${connectedSensors}/${totalSensors} ${smacaT('overview_sensors_online_ratio', 'sensors online')}`
+        : smacaT('not_available', 'Not available'));
   }
   
   // Update AI events (from AI Insights if available)
@@ -4654,8 +4687,9 @@ function updateOverviewLiveValues(overview, sensorRows) {
   const totalSensors = Number.isFinite(Number(totals.sensors)) ? Number(totals.sensors) : sensorRows.length;
   const wirelessQualityPct = resolveCampusConnectivityQualityPct(sensorRows);
   const connectivityPct = wirelessQualityPct !== null
-    ? Math.round(wirelessQualityPct)
+    ? wirelessQualityPct
     : (totalSensors > 0 ? Math.round((connectedSensors / totalSensors) * 100) : null);
+  const connectivityUsesWirelessQuality = wirelessQualityPct !== null;
 
   const latestCo2 = resolveLatestIaqMetricForOverview('co2', iaqRows, overview, sensorRows);
   const latestPm25 = resolveLatestIaqMetricForOverview('pm2_5', iaqRows, overview, sensorRows);
@@ -4676,9 +4710,11 @@ function updateOverviewLiveValues(overview, sensorRows) {
 
   const connectivityTrendEl = document.getElementById('overview-connectivity-trend');
   if (connectivityTrendEl) {
-    connectivityTrendEl.textContent = Number.isFinite(connectivityPct)
-      ? `${connectivityPct}% ${smacaT('overview_connectivity_quality', 'quality')}`
-      : smacaT('no_connectivity_data', 'No connectivity data');
+    connectivityTrendEl.textContent = connectivityUsesWirelessQuality
+      ? formatOverviewConnectivityValue(connectivityPct)
+      : (Number.isFinite(connectivityPct)
+        ? `${connectedSensors}/${totalSensors} ${smacaT('overview_sensors_online_ratio', 'sensors online')}`
+        : smacaT('no_connectivity_data', 'No connectivity data'));
   }
 
   const badgeAir = document.getElementById('overview-badge-air-quality');
@@ -5261,17 +5297,8 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   const chartEl = document.getElementById('overview-campus-trend-chart');
   if (!chartEl) return;
 
-  // RBAC: "simple"/non-admin users must not see connectivity in the overview graph.
-  // (The overview connectivity module card is already admin-only in the Blade view.)
-  const isAdminView = !!(
-    (typeof window !== 'undefined'
-      && window.SMACARBAC
-      && typeof window.SMACARBAC.isAdmin === 'function'
-      && window.SMACARBAC.isAdmin())
-    || (typeof window !== 'undefined'
-      && window.SMACA_USER
-      && String(window.SMACA_USER.role || '').toLowerCase().trim() === 'admin')
-  );
+  // RBAC: connectivity is admin-only (module card + trend line).
+  const isAdminView = isSmacaAdminView();
 
   const iaqRows = getOverviewModuleRows('iaq', filteredData, timeframe);
   const occupancyRows = getOverviewModuleRows('occupancy', filteredData, timeframe);
@@ -5322,7 +5349,13 @@ function renderOverviewTrendChart(filteredData, timeframe) {
   const chartSeriesCandidates = [
     { key: 'co2', label: smacaT('overview_chart_legend_co2', 'CO₂ · Air quality'), unit: 'ppm', color: '#3b82f6', values: co2Series },
     { key: 'occupancy', label: smacaT('overview_chart_movement_balance', 'Movement balance'), unit: '', color: '#22c55e', values: occupancySeries },
-    ...(isAdminView ? [{ key: 'connectivity', label: smacaT('overview_chart_legend_connectivity', 'Connectivity · quality'), unit: '%', color: '#06b6d4', values: connectivitySeries }] : []),
+    ...(isAdminView ? [{
+      key: 'connectivity',
+      label: smacaT('overview_chart_legend_connectivity', 'Wireless link quality · campus average'),
+      unit: '',
+      color: '#06b6d4',
+      values: connectivitySeries
+    }] : []),
     { key: 'uv', label: smacaT('overview_chart_legend_uv', 'Solar Exposure (UV)'), unit: '', color: '#f59e0b', values: uvSeries }
   ];
   const chartSeries = chartSeriesCandidates.filter(function (series) {
@@ -5675,6 +5708,8 @@ function drawOverviewSvgLineChart(container, payload) {
             ? `${Math.round(value)}${series.unit}`
             : series.key === 'uv'
               ? `${value.toFixed(1)}`
+            : series.key === 'connectivity'
+              ? formatOverviewConnectivityValue(value)
             : `${value.toFixed(1)}${series.unit}`)
         : 'N/A';
       return `
