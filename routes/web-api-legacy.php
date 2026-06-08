@@ -5,6 +5,7 @@ use Carbon\Carbon;
 use App\Services\KPI\KPIInputAssembler;
 use App\Services\KPI\KPIMetadataService;
 use App\Services\KPI\KPIService;
+use App\Services\Public\PublicCampusSnapshotService;
 use App\Services\Spatial\SpatialService;
 use App\Services\Thresholds\ThresholdService;
 use Illuminate\Http\Request;
@@ -75,6 +76,38 @@ Route::match(['GET', 'POST'], '/api', function (Request $request) {
 // Νέο route, επίσης δέχεται και GET και POST για να μη σπάει τίποτα
 Route::match(['GET', 'POST'], '/api/readings/ingest', function (Request $request) {
     return smacaHandleIngest($request);
+});
+
+Route::get('/api/public/campus-snapshot', function () {
+    try {
+        return response()->json((new PublicCampusSnapshotService())->build());
+    } catch (\Throwable $e) {
+        try {
+            \Illuminate\Support\Facades\Log::warning('GET /api/public/campus-snapshot failed', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $ignored) {}
+
+        return response()->json([
+            'totals' => [
+                'sensors' => 0,
+                'sensors_active' => 0,
+                'sensors_reporting' => 0,
+                'sensors_delayed' => 0,
+                'sensors_offline' => 0,
+                'modules' => 4,
+                'active_alert_events' => 0,
+                'resolved_alerts_today' => 0,
+                'enabled_alert_rules' => 0,
+            ],
+            'hero' => [],
+            'showcase' => [],
+            'chart' => ['categories' => [], 'co2' => [], 'occupancy' => []],
+            'latest_update_at' => null,
+            'degraded' => true,
+        ]);
+    }
 });
 
 Route::get('/api/dashboard/overview', function () {

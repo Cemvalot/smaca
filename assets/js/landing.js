@@ -9,16 +9,17 @@
     });
   }
 
-  const smacaData = {
-    co2: [602, 614, 628, 640, 635, 620, 612, 608],
-    occupancy: [58, 63, 69, 74, 78, 73, 68, 65],
-    energy: [285, 298, 306, 323, 338, 329, 314, 302],
+  var snapshotUrl = document.body.getAttribute('data-campus-snapshot-url') || '/api/public/campus-snapshot';
+  var smacaData = {
+    co2: [],
+    occupancy: [],
+    energy: [],
     activity: [
-      'Anomaly score increased in Building A ventilation profile.',
-      'Recommendation issued: increase fresh air cycle in West Wing.',
-      'Occupancy flow is above baseline for seminar spaces.',
-      'Energy drift identified in HVAC schedule group 2.',
-      'Confidence update generated after recent telemetry validation.'
+      'Campus snapshot synchronized with live SMACA telemetry.',
+      'Sensor reporting cadence varies by device type across the campus.',
+      'Occupancy balance is calculated from entry/exit counters.',
+      'Energy intensity uses the same KPI engine as the dashboard overview.',
+      'Alert counts reflect active operational events in the platform.'
     ]
   };
 
@@ -77,13 +78,25 @@
     });
   }
 
-  function initHeroChart() {
-    var categories = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
+  function chartCategories(snapshot) {
+    var chart = snapshot && snapshot.chart ? snapshot.chart : {};
+    if (Array.isArray(chart.categories) && chart.categories.length) {
+      return chart.categories;
+    }
+    return ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
+  }
+
+  function initHeroChart(snapshot) {
+    var chart = snapshot && snapshot.chart ? snapshot.chart : {};
+    var categories = chartCategories(snapshot);
+    smacaData.co2 = Array.isArray(chart.co2) && chart.co2.length ? chart.co2.slice() : [0, 0, 0, 0, 0, 0, 0, 0];
+    smacaData.occupancy = Array.isArray(chart.occupancy) && chart.occupancy.length ? chart.occupancy.slice() : [0, 0, 0, 0, 0, 0, 0, 0];
+
     heroChart = Highcharts.chart('heroChart', {
       chart: {
         backgroundColor: 'transparent',
         animation: {
-          duration: 850,
+          duration: prefersReducedMotion ? 0 : 850,
           easing: 'easeOutQuad'
         }
       },
@@ -99,7 +112,7 @@
         labels: { style: { color: '#94a3b8' } }
       },
       yAxis: [{
-        title: { text: 'Occupancy %', style: { color: '#94a3b8' } },
+        title: { text: 'Movement', style: { color: '#94a3b8' } },
         labels: { style: { color: '#94a3b8' } },
         gridLineColor: 'rgba(100, 116, 139, 0.12)'
       }, {
@@ -121,7 +134,7 @@
       plotOptions: {
         series: {
           animation: {
-            duration: 700
+            duration: prefersReducedMotion ? 0 : 700
           }
         },
         column: {
@@ -130,7 +143,7 @@
       },
       series: [{
         type: 'column',
-        name: 'Occupancy',
+        name: 'Movement',
         data: smacaData.occupancy,
         color: 'rgba(59, 130, 246, 0.72)',
         yAxis: 0
@@ -149,7 +162,16 @@
     });
   }
 
-  function initPlatformChart() {
+  function initPlatformChart(snapshot) {
+    var chart = snapshot && snapshot.chart ? snapshot.chart : {};
+    var categories = chartCategories(snapshot);
+    var co2 = Array.isArray(chart.co2) && chart.co2.length ? chart.co2 : [0, 0, 0, 0, 0, 0, 0, 0];
+    var occupancy = Array.isArray(chart.occupancy) && chart.occupancy.length ? chart.occupancy : [0, 0, 0, 0, 0, 0, 0, 0];
+    var energyValue = snapshot && snapshot.hero ? Number(snapshot.hero.energy_intensity) : null;
+    var energySeries = co2.map(function (_, index) {
+      return Number.isFinite(energyValue) ? energyValue : occupancy[index] || 0;
+    });
+
     Highcharts.chart('platformChart', {
       chart: {
         type: 'areaspline',
@@ -163,7 +185,7 @@
       credits: { enabled: false },
       legend: { enabled: false },
       xAxis: {
-        categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        categories: categories,
         labels: { style: { color: '#94a3b8' } },
         lineColor: 'rgba(100, 116, 139, 0.2)',
         tickColor: 'rgba(100, 116, 139, 0.2)'
@@ -179,31 +201,84 @@
         style: { color: '#e2e8f0' }
       },
       series: [{
-        name: 'Air Quality',
-        data: [58, 66, 63, 74, 77, 71, 68],
+        name: 'CO₂',
+        data: co2,
         color: '#3B82F6',
         fillOpacity: 0.08
       }, {
-        name: 'Occupancy',
-        data: [49, 54, 57, 61, 67, 64, 60],
+        name: 'Movement',
+        data: occupancy,
         color: '#06B6D4',
         fillOpacity: 0.08
       }, {
-        name: 'Efficiency',
-        data: [44, 48, 52, 55, 60, 58, 56],
+        name: 'Energy intensity',
+        data: energySeries,
         color: '#22C55E',
         fillOpacity: 0.08
-      }, {
-        name: 'Alert Pressure',
-        data: [32, 35, 41, 39, 45, 40, 37],
-        color: '#F59E0B',
-        fillOpacity: 0.06
       }]
     });
   }
 
   function randomFrom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function setText(id, value) {
+    var el = document.getElementById(id);
+    if (el && value !== null && value !== undefined && value !== '') {
+      el.textContent = String(value);
+    }
+  }
+
+  function applySnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') {
+      return;
+    }
+
+    var totals = snapshot.totals || {};
+    var hero = snapshot.hero || {};
+    var showcase = snapshot.showcase || {};
+
+    setText('landingStatSensors', totals.sensors);
+    setText('landingStatReporting', totals.sensors_reporting);
+    setText('landingStatModules', totals.modules);
+    setText('landingStatAlerts', totals.active_alert_events);
+
+    setText('kpiCo2', hero.co2_label);
+    setText('kpiOccupancy', hero.occupancy_label);
+    setText('kpiEnergy', hero.energy_label);
+
+    setText('showcaseAvgCo2', showcase.avg_co2_label);
+    setText('showcaseOccupancyPeak', showcase.occupancy_peak_label);
+    setText('showcaseEnergy', showcase.energy_label);
+
+    if (heroChart && snapshot.chart) {
+      smacaData.co2 = Array.isArray(snapshot.chart.co2) ? snapshot.chart.co2.slice() : smacaData.co2;
+      smacaData.occupancy = Array.isArray(snapshot.chart.occupancy) ? snapshot.chart.occupancy.slice() : smacaData.occupancy;
+      heroChart.xAxis[0].setCategories(chartCategories(snapshot), false);
+      heroChart.series[0].setData(smacaData.occupancy, false);
+      heroChart.series[1].setData(smacaData.co2, false);
+      heroChart.redraw();
+    }
+
+    var totalSensors = Number(totals.sensors);
+    var reporting = Number(totals.sensors_reporting);
+    if (Number.isFinite(totalSensors) && totalSensors > 0 && Number.isFinite(reporting)) {
+      confidenceValue = Math.max(0, Math.min(100, Math.round((reporting / totalSensors) * 100)));
+      updateConfidence();
+    }
+  }
+
+  function fetchSnapshot() {
+    return fetch(snapshotUrl, {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin'
+    }).then(function (response) {
+      if (!response.ok) {
+        throw new Error('snapshot request failed');
+      }
+      return response.json();
+    });
   }
 
   function addLogLine(message) {
@@ -242,7 +317,6 @@
     if (!confidenceBar || !confidenceLabel) {
       return;
     }
-    confidenceValue = Math.max(84, Math.min(98, confidenceValue + (Math.random() > 0.5 ? 1 : -1)));
 
     confidenceBar.style.width = confidenceValue + '%';
     confidenceBar.textContent = confidenceValue + '%';
@@ -253,8 +327,7 @@
   }
 
   function initPredictiveStream() {
-    addLogLine('Predictive pipeline initialized for 4 module domains.');
-    addLogLine('Baseline intelligence model loaded for active building portfolio.');
+    addLogLine('Campus snapshot synchronized with live SMACA platform data.');
 
     if (prefersReducedMotion) {
       return;
@@ -262,56 +335,34 @@
 
     setInterval(function () {
       addLogLine(randomFrom(smacaData.activity));
-      updateConfidence();
-      updateHeroSnapshot();
-    }, 2000);
+    }, 8000);
   }
 
-  function average(arr) {
-    var total = arr.reduce(function (sum, value) { return sum + value; }, 0);
-    return total / arr.length;
-  }
-
-  function updateHeroSnapshot() {
-    var lastCo2 = smacaData.co2[smacaData.co2.length - 1] + (Math.random() > 0.5 ? 3 : -3);
-    var lastOcc = smacaData.occupancy[smacaData.occupancy.length - 1] + (Math.random() > 0.5 ? 1 : -1);
-    var lastEnergy = smacaData.energy[smacaData.energy.length - 1] + (Math.random() > 0.5 ? 4 : -4);
-
-    smacaData.co2.push(Math.max(560, Math.min(710, lastCo2)));
-    smacaData.occupancy.push(Math.max(45, Math.min(84, lastOcc)));
-    smacaData.energy.push(Math.max(240, Math.min(360, lastEnergy)));
-
-    smacaData.co2.shift();
-    smacaData.occupancy.shift();
-    smacaData.energy.shift();
-
-    if (heroChart) {
-      heroChart.series[0].setData(smacaData.occupancy, false);
-      heroChart.series[1].setData(smacaData.co2, false);
-      heroChart.redraw();
-    }
-
-    var kpiCo2 = document.getElementById('kpiCo2');
-    var kpiOccupancy = document.getElementById('kpiOccupancy');
-    var kpiEnergy = document.getElementById('kpiEnergy');
-
-    if (kpiCo2) {
-      kpiCo2.textContent = Math.round(average(smacaData.co2)) + ' ppm';
-    }
-    if (kpiOccupancy) {
-      kpiOccupancy.textContent = Math.round(average(smacaData.occupancy)) + '%';
-    }
-    if (kpiEnergy) {
-      kpiEnergy.textContent = Math.round(average(smacaData.energy)) + ' kW';
-    }
-  }
+  var initialSnapshot = window.SMACA_LANDING_SNAPSHOT || null;
 
   initScrollReveal();
   initSectionParallax();
-  initHeroChart();
-  initPlatformChart();
-  updateHeroSnapshot();
+  initHeroChart(initialSnapshot);
+  initPlatformChart(initialSnapshot);
+  applySnapshot(initialSnapshot);
   initPredictiveStream();
+
+  fetchSnapshot()
+    .then(function (payload) {
+      applySnapshot(payload);
+      initPlatformChart(payload);
+    })
+    .catch(function () {
+      addLogLine('Live snapshot refresh unavailable; showing server-rendered campus data.');
+    });
+
+  if (!prefersReducedMotion) {
+    setInterval(function () {
+      fetchSnapshot()
+        .then(applySnapshot)
+        .catch(function () {});
+    }, 60000);
+  }
 
   window.smacaData = smacaData;
 })();

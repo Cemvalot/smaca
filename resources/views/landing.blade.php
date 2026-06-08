@@ -13,7 +13,14 @@
   <link rel="stylesheet" href="{{ asset('assets/css/smaca-logo.css?v=' . time()) }}">
   <link rel="stylesheet" href="{{ asset('assets/css/landing.css?v=' . time()) }}">
 </head>
-<body class="landing-page">
+@php
+  $landingSnapshot = $campusSnapshot ?? [];
+  $landingTotals = $landingSnapshot['totals'] ?? [];
+  $landingHero = $landingSnapshot['hero'] ?? [];
+  $landingShowcase = $landingSnapshot['showcase'] ?? [];
+  $dash = '—';
+@endphp
+<body class="landing-page" data-campus-snapshot-url="{{ url('/api/public/campus-snapshot') }}">
   <div class="landing-telemetry" aria-hidden="true">
     <div class="landing-telemetry__grid"></div>
     <span class="landing-telemetry__node landing-telemetry__node--a"></span>
@@ -81,19 +88,19 @@
                 <div class="col-4">
                   <div class="kpi-mini">
                     <span class="kpi-mini__label">CO₂</span>
-                    <strong id="kpiCo2">632 ppm</strong>
+                    <strong id="kpiCo2">{{ $landingHero['co2_label'] ?? $dash }}</strong>
                   </div>
                 </div>
                 <div class="col-4">
                   <div class="kpi-mini">
                     <span class="kpi-mini__label">{{ __('messages.nav.occupancy') }}</span>
-                    <strong id="kpiOccupancy">71%</strong>
+                    <strong id="kpiOccupancy">{{ $landingHero['occupancy_label'] ?? $dash }}</strong>
                   </div>
                 </div>
                 <div class="col-4">
                   <div class="kpi-mini">
                     <span class="kpi-mini__label">{{ __('messages.nav.energy') }}</span>
-                    <strong id="kpiEnergy">324 kW</strong>
+                    <strong id="kpiEnergy">{{ $landingHero['energy_label'] ?? $dash }}</strong>
                   </div>
                 </div>
               </div>
@@ -124,20 +131,20 @@
       <div class="container">
         <div class="stats-grid">
           <div class="trust-card">
-            <strong>31</strong>
+            <strong id="landingStatSensors">{{ $landingTotals['sensors'] ?? $dash }}</strong>
             <span>{{ __('messages.public.sensors') }}</span>
           </div>
           <div class="trust-card">
-            <strong>4</strong>
+            <strong id="landingStatReporting">{{ $landingTotals['sensors_reporting'] ?? $dash }}</strong>
+            <span>{{ __('messages.public.sensors_reporting') }}</span>
+          </div>
+          <div class="trust-card">
+            <strong id="landingStatModules">{{ $landingTotals['modules'] ?? 4 }}</strong>
             <span>{{ __('messages.public.modules') }}</span>
           </div>
           <div class="trust-card">
-            <strong>24/7</strong>
-            <span>{{ __('messages.public.monitoring') }}</span>
-          </div>
-          <div class="trust-card">
-            <strong>{{ __('messages.dashboard.live') }}</strong>
-            <span>{{ __('messages.dashboard.alerts') }}</span>
+            <strong id="landingStatAlerts">{{ $landingTotals['active_alert_events'] ?? 0 }}</strong>
+            <span>{{ __('messages.public.active_alerts') }}</span>
           </div>
         </div>
       </div>
@@ -233,9 +240,9 @@
                 <span class="tag tag--live">{{ __('messages.public.synced') }}</span>
               </div>
               <div class="row g-2 mb-3">
-                <div class="col-sm-4"><div class="summary-box"><span>{{ __('messages.public.avg_co2') }}</span><strong>618 ppm</strong></div></div>
-                <div class="col-sm-4"><div class="summary-box"><span>{{ __('messages.public.occupancy_peak') }}</span><strong>182 users</strong></div></div>
-                <div class="col-sm-4"><div class="summary-box"><span>{{ __('messages.public.energy_drift') }}</span><strong>+3.2%</strong></div></div>
+                <div class="col-sm-4"><div class="summary-box"><span>{{ __('messages.public.avg_co2') }}</span><strong id="showcaseAvgCo2">{{ $landingShowcase['avg_co2_label'] ?? $dash }}</strong></div></div>
+                <div class="col-sm-4"><div class="summary-box"><span>{{ __('messages.public.occupancy_peak') }}</span><strong id="showcaseOccupancyPeak">{{ $landingShowcase['occupancy_peak_label'] ?? $dash }}</strong></div></div>
+                <div class="col-sm-4"><div class="summary-box"><span>{{ __('messages.public.energy_intensity') }}</span><strong id="showcaseEnergy">{{ $landingShowcase['energy_label'] ?? $dash }}</strong></div></div>
               </div>
               <div id="platformChart" class="platform-chart mb-3" aria-label="{{ __('messages.public.platform_showcase') }}"></div>
               <div class="alerts-list">
@@ -332,6 +339,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script>
+    window.SMACA_LANDING_SNAPSHOT = @json($landingSnapshot);
+  </script>
   <script src="{{ asset('assets/js/landing.js') }}"></script>
 </body>
 </html>
