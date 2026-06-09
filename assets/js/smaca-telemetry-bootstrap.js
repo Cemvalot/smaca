@@ -629,7 +629,7 @@
       iaq: overviewTr('overview_module_iaq', 'Indoor Air Quality', 'Ποιότητα Εσωτερικού Αέρα'),
       energy: overviewTr('overview_module_energy', 'Energy', 'Ενέργεια'),
       occupancy: overviewTr('overview_module_occupancy', 'Occupancy / Movement', 'Κίνηση / Πληρότητα'),
-      environmental: overviewTr('overview_module_environmental', 'Solar Exposure (UV)', 'Ηλιακική Έκθεση (UV)')
+      environmental: overviewTr('overview_module_environmental', 'Solar Exposure (UV)', 'Ηλιακή Έκθεση (UV)')
     };
     return map[moduleKey] || moduleKey;
   }
@@ -1278,7 +1278,7 @@
         { key: 'iaq',           label: locText('Air quality', 'Ποιότητα αέρα'),       color: '#22d3ee', sensorTypes: ['iaq'] },
         { key: 'occupancy',     label: locText('Movement', 'Κίνηση'),                 color: '#a78bfa', sensorTypes: ['occupancy'] },
         { key: 'energy',        label: locText('Energy', 'Ενέργεια'),                 color: '#fbbf24', sensorTypes: ['energy'] },
-        { key: 'environmental', label: locText('Solar Exposure (UV)', 'Ηλιακική Έκθεση (UV)'), color: '#f97316', sensorTypes: ['environmental'] }
+        { key: 'environmental', label: locText('Solar Exposure (UV)', 'Ηλιακή Έκθεση (UV)'), color: '#f97316', sensorTypes: ['environmental'] }
       ];
       var matrixItems = moduleDefs.map(function (m) {
         var matching = sensors.filter(function (s) {

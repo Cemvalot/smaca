@@ -668,7 +668,7 @@ return [
                 ],
                 'insufficient_data' => [
                     'en' => 'No solar exposure (UV) sensor data is available for this location.',
-                    'el' => 'Δεν υπάρχουν δεδομένα αισθητήρα ηλιακικής έκθεσης (UV) για αυτή τη θέση.',
+                    'el' => 'Δεν υπάρχουν δεδομένα αισθητήρα ηλιακής έκθεσης (UV) για αυτή τη θέση.',
                 ],
             ],
         ],
