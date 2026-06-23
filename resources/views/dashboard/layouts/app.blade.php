@@ -859,8 +859,10 @@
   <script defer src="{{ asset('assets/js/smaca-state-manager.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-state-manager.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-trend-calculator.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-trend-calculator.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-alerts-engine.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-alerts-engine.js') }}"></script>
+  @if($smacaRole === 'admin' && ($smacaPage ?? 'overview') === 'management')
   <script defer src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script defer src="{{ asset('assets/js/smaca-csv-export.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-csv-export.js') }}"></script>
+  @endif
   <script defer src="{{ asset('assets/js/smaca-telemetry-metric-normalize.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-telemetry-metric-normalize.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-api.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-api.js') }}"></script>
   <script defer src="{{ asset('assets/js/smaca-alerts-indicator.js') }}?v={{ $smacaAssetVersion('assets/js/smaca-alerts-indicator.js') }}"></script>

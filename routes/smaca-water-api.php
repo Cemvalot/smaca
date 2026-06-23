@@ -233,6 +233,17 @@ if (!function_exists('smacaWaterBuildLatestPayload_impl')) {
     }
 }
 
+if (!function_exists('smacaWaterRequireAdmin_impl')) {
+    function smacaWaterRequireAdmin_impl(): ?\Illuminate\Http\JsonResponse
+    {
+        if ((string) session('role', '') !== 'admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        return null;
+    }
+}
+
 if (!function_exists('smacaWaterSummaryPayload_impl')) {
     /**
      * @return array<string, mixed>
@@ -257,10 +268,18 @@ if (!function_exists('smacaWaterSummaryPayload_impl')) {
 }
 
 Route::get('/api/water/summary', function () {
+    if ($denied = smacaWaterRequireAdmin_impl()) {
+        return $denied;
+    }
+
     return response()->json(smacaWaterSummaryPayload_impl());
 });
 
 Route::get('/api/water/timeseries', function (Request $request) {
+    if ($denied = smacaWaterRequireAdmin_impl()) {
+        return $denied;
+    }
+
     if (!smacaReadingsHasColumn_impl('volume_at_log_time_liters')) {
         return response()->json(['points' => []]);
     }
